@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-import { html, css, CSSResult } from 'lit';
+import { html, css /*, CSSResult */ } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { Base } from './base';
 
@@ -18,19 +18,31 @@ import { Base } from './base';
 @customElement('my-element')
 export class MyElement extends Base {
 
+  constructor() {
+    super();
+  }
+  
   /**
    * definition des styles locaux.
    */
-  static override get localStyles(): CSSResult {
-    return css`
-      :host {
-        display: block;
-        border: solid 1px gray;
-        padding: 16px;
-        max-width: 800px;
-      }
-    `;
-  }
+  // static override get localStyles(): CSSResult {
+  //   return css`
+  //     :host {
+  //       display: block;
+  //       border: solid 1px gray;
+  //       padding: 16px;
+  //       max-width: 800px;
+  //     }
+  //   `;
+  // }
+  static override styles = [css`
+        :host {
+          display: block;
+          border: solid 1px gray;
+          padding: 16px;
+          max-width: 800px;
+        }
+      `]
 
   /**
    * The name to say "Hello" to.
