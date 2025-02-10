@@ -12,9 +12,9 @@ import { string } from 'rollup-plugin-string';
 import alias from '@rollup/plugin-alias';
 
 export default {
-  input: 'my-element.js',
+  input: './build/main.js',
   output: {
-    file: 'my-element.bundled.js',
+    file: './dist/formulizer.js',
     format: 'esm',
   },
   onwarn(warning) {
@@ -44,10 +44,10 @@ export default {
     string({
       include: '**/*.css',
     }),
-    alias({
-      entries: [
-        { find: './assets', replacement: './src/assets' },
-      ]
-    })
+    // alias({
+    //   entries: [
+    //     { find: './assets', replacement: './build/assets' },
+    //   ]
+    // })
   ],
 };
