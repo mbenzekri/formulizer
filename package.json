@@ -41,8 +41,16 @@
   "author": "Google LLC",
   "license": "BSD-3-Clause",
   "dependencies": {
+    "@rollup/plugin-typescript": "^12.1.2",
+    "@rollup/plugin-url": "^8.0.2",
+    "@types/markdown-it": "^14.1.2",
+    "ajv": "^8.17.1",
+    "ajv-i18n": "^4.2.0",
     "bootstrap": "^5.3.3",
-    "lit": "^3.2.0"
+    "lit": "^3.2.0",
+    "markdown-it": "^14.1.0",
+    "tslib": "^2.8.1",
+    "uuid": "^11.0.5"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",

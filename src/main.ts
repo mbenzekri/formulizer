@@ -1,2 +1,4 @@
+import { FzField } from "./field";
 import { MyElement } from "./my-element";
-export { MyElement }
+import { FzForm } from "./fz-form";
+export { MyElement,FzField, FzForm as fzform }

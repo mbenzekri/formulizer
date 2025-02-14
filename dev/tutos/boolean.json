@@ -1,0 +1,44 @@
+{
+    "form": {
+        "type": "object",
+        "title": "Demo boolean",
+        "properties": {
+            "permisb": {
+                "type": "boolean",
+                "title": "J'ai le permis bateau (readonly)",
+                "readonly": true
+            },
+            "permisv": {
+                "type": "boolean",
+                "title": "J'ai le permis voiture"
+            },
+            "permisa": {
+                "type": "boolean",
+                "title": "Permis avion",
+                "oneOf": [
+                    { "const": true, "title": "Je l'ai" },
+                    { "const": false, "title": "Je l'ai pas" },
+                    { "const": null, "title": "Je sais pas" }
+                ],
+                "default": true
+            },
+            "permism": {
+                "type": "boolean",
+                "title": "Permis moto",
+                "oneOf": [ 
+                    { "const": true, "title": "Je l'ai" },
+                    { "const": false, "title": "Je l'ai pas" }
+                ],
+                "default": false
+            },
+            "valide": {
+                "type": "boolean",
+                "title": "J'accepte les conditions ..."
+            }
+        }
+    },
+    "data": {
+        "permisb": false,
+        "permisa": null
+    }
+}

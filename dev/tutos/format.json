@@ -1,0 +1,91 @@
+{
+    "form": {
+        "type": "object",
+        "title": "Demo format",
+        "properties": {
+            "field1": {
+                "title": "format date-time",
+                "type": "string",
+                "format": "date-time",
+                "min": "2021-11-30T11:00"
+            },
+            "field2": {
+                "title": "format time",
+                "type": "string",
+                "format": "time"
+            },
+            "field3": {
+                "title": "format date",
+                "type": "string",
+                "format": "date",
+                "min": "2021-11-30"
+            },
+            "field4": {
+                "title": "format email",
+                "type": "string",
+                "format": "email"
+            },
+            "field5": {
+                "title": "format uri",
+                "type": "string",
+                "format": "uri"
+            },
+            "field6": {
+                "title": "format password",
+                "type": "string",
+                "format": "password"
+            },
+            "field7": {
+                "title": "format color",
+                "type": "string",
+                "format": "color"
+            },
+            "field8": {
+                "title": "format signature",
+                "type": "string",
+                "format": "signature"
+            },
+            "uuid": {
+                "title": "format uuid",
+                "type": "string",
+                "format": "uuid"
+            },
+            "field9": {
+                "title": "format geolocation",
+                "type": "string",
+                "format": "geo"
+            },
+            "field10": {
+                "type": "string",
+                "title": "format doc",
+                "format": "doc",
+                "preview": true,
+                "readonly": false
+            },
+            "field11": {
+                "type": "string",
+                "title": "format barcode",
+                "format": "barcode"
+            },
+            "field12": {
+                "type": "string",
+                "format": "markdown",
+                "expression": [
+                    "---",
+                    "\\`format markdown\\`",
+                    "",
+                    "# Title 1",
+                    "## Title 2",
+                    "### Title 3",
+                    "#### Title 4",
+                    "add fields from data : ${$('#/field1')}"
+                ]
+            }
+        }
+    },
+    "data": {
+        "field1": "2021-12-15T11:00:00Z",
+        "field2": "12:00:25",
+        "field3": "2021-12-15"
+    }
+}

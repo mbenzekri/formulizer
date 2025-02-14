@@ -1,0 +1,13 @@
+{
+    "form": {
+        "type": "object",
+        "title" : "Demo basic",
+        "properties": {
+            "integer_field": {
+                "type": "integer",
+                "minimum": 100
+            }
+        }
+    },
+    "data" : {  }
+}

@@ -1,0 +1,45 @@
+{
+    "form": {
+        "type": "object",
+        "title" : "Demo basic",
+        "properties": {
+            "desc" : {
+                "type" : "string",
+                "format" : "markdown",
+                "expression" : [
+                    "**Type de bases**",
+                    "",
+                    "|type|description|valeur|",
+                    "|----|----|----|",
+                    "|integer|valeur entière -10, 0, 134, ... |${$('1/integer_field')}|",
+                    "|number|valeur réelle -12, -0.5, 0, 3.14265 , ... |${$('1/number_field')}|",
+                    "|string|chaine de caractère \"Gabuzomeuh...\" (voir aussi [format](#format)) |${$('1/string_field')}|",
+                    "|boolean| true ou false|${$('1/bool_field')}|",
+                    "",
+                    "Pour chaque type un champs adapté est affiché",
+                    "",
+                    "---"
+                ]
+            },
+            "integer_field": {
+                "type": ["integer","null"]
+            },
+            "number_field": {
+                "type": "number"
+            },
+            "string_field": {
+                "type": "string"
+            },
+            "bool_field": {
+                "type": "boolean"
+            }
+        },
+        "required": ["integer_field"]
+    },
+    "data" : {
+        "integer_field": 122,
+        "number_field": -3,
+        "string_field": "abcdefghi",
+        "bool_field": true
+    }
+}

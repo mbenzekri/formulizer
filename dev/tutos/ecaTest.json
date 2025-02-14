@@ -1,0 +1,2338 @@
+{
+    "form": {
+        "definitions": {
+            "typePDC": {
+                "type": ["string","null"],
+                "title": "Type de PDC",
+                "oneOf": [
+                    {"const":null,"title":""},
+                    {"const":"anc","title":"ANC"},
+                    {"const":"rac","title":"RAC"} 
+                ],
+                "readonly":false
+            },
+            "typePropriete": {
+                "type": ["string","null"],
+                "title": "Type de propriété",
+                "oneOf": [
+                    {"const":null,"title":""},
+                    {"const":"maison","title":"Maison"},
+                    {"const":"appartement","title":"Appartement"},
+                    {"const":"immeuble d'habitation","title":"Immeuble d'habitation"},
+                    {"const":"localProNonCom","title":"Local professionnel non commercial"},
+                    {"const":"localProCom","title":"Local professionnel commercial"},
+                    {"const":"batimentCommunal","title":"Bâtiment communal"},
+                    {"const":"squat","title":"Squat"},
+                    {"const":"etablissementEnseignement","title":"Etablissement d'enseignement, de formation"},
+                    {"const":"etablissementsoin","title":"Etablissement de soin, actions sociales"},
+                    {"const":"siteCulturel","title":"Site culturel"},
+                    {"const":"tourismeHebergement","title":"Tourisme et hébergement"},
+                    {"const":"equipementSportif","title":"Equipement sportif, stade"},
+                    {"const":"espaceVert","title":"Espace vert, cimetière"},
+                    {"const":"piscine","title":"Piscine"},
+                    {"const":"siteIndustriel","title":"Site industriel"},
+                    {"const":"exploitationAgricole","title":"Exploitation agricole"},
+                    {"const":"aeroportGare","title":"Aéroport, gare"},
+                    {"const":"port","title":"Port"},
+                    {"const":"forainNavire","title":"Forain, navire"},
+                    {"const":"boucheIncendie","title":"Bouche à incendie"},
+                    {"const":"bornePuisage","title":"Borne de puisage"},
+                    {"const":"venteEauGros","title":"Vente d'eau en gros"},
+                    {"const":"chantier","title":"Chantier"},
+                    {"const":"prestataireFacturation","title":"Prestataire de facturation"},
+                    {"const":"typeSite120","title":"Type de site 120 m3"}
+                ],
+                "readonly":false
+            },
+            "activiteNonDomestique": {
+                "type": ["string","null"],
+                "title": "Type d'activité non domestique",
+                "oneOf": [
+                    {"const":null,"title":""},
+                    {"const":"restauration","title":"Restauration"},
+                    {"const":"parking","title":"Parking"},
+                    {"const":"pressing","title":"Pressing"},
+                    {"const":"stationService","title":"Station service"},
+                    {"const":"garageAutomobile","title":"Garage automobile"},
+                    {"const":"lavageAuto","title":"Lavage auto"}
+                ],
+                "readonly":false
+            },
+            "adressePDC": {
+                "type": ["object","null"],
+                "title": "adresse",
+                "properties": {
+                    "numero": {
+                        "type": ["string","null"],
+                        "title": "Numéro de rue",
+                        "readonly": true
+                    },
+                    "repetition": {
+                        "type": ["string","null"],
+                        "title": "Indicateur de répétition",
+                        "readonly": true
+                    },
+                    "nomVoie": {
+                        "type": ["string","null"],
+                        "title": "Nom de la voie",
+                        "readonly": true
+                    },
+                    "complement": {
+                        "type": ["string","null"],
+                        "title": "Complément d'adresse",
+                        "readonly": true
+                    },
+                    "codePostal": {
+                        "type": ["string","null"],
+                        "title": "Code postal",
+                        "pattern": "[0-9]{5}",
+                        "readonly": true
+                    },
+                    "commune": {
+                        "type": ["string","null"],
+                        "title": "Commune",
+                        "readonly": true
+                    }
+                }
+            },
+            "adresse": {
+                "type": ["object","null"],
+                "title": "adresse",
+                "properties": {
+                    "numero": {
+                        "type": ["string","null"],
+                        "title": "Numéro de rue",
+                        "readonly": false
+                    },
+                    "repetition": {
+                        "type": ["string","null"],
+                        "title": "Indicateur de répétition",
+                        "readonly": false
+                    },
+                    "nomVoie": {
+                        "type": ["string","null"],
+                        "title": "Nom de la voie",
+                        "readonly": false
+                    },
+                    "complement": {
+                        "type": ["string","null"],
+                        "title": "Complément d'adresse",
+                        "readonly": false
+                    },
+                    "codePostal": {
+                        "type": ["string","null"],
+                        "title": "Code postal",
+                        "pattern": "[0-9]{5}",
+                        "readonly": false
+                    },
+                    "commune": {
+                        "type": ["string","null"],
+                        "title": "Commune",
+                        "readonly": false
+                    }
+                },
+                "required":[
+                ]
+            },
+            "permisConstruire": {
+                "type": ["object","null"],
+                "title": "Permis de construire",
+                "abstract": "${value.numeroPC} - ${value.anneePC}",
+                "properties": {
+                    "numeroPC": {
+                        "type": ["string","null"],
+                        "title": "Numero de permis de construire"
+                    },
+                    "anneePC": {
+                        "type": ["integer","null"],
+                        "maximum": 2150,
+                        "minimum": 1900,
+                        "title": "Année du Permis de construire"
+                    }
+                },
+                "required": [
+
+                ]
+            },
+            "clientITV": {
+                "type": ["object","null"],
+                "title": "adresse",
+                "abstract":"${value.civilite}      ${value.prenom}      ${value.nom}",
+                "properties": {
+                    "civilite": {
+                        "type": ["string","null"],
+                        "title": "Civilité",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"mrMme","title":"Mme ou M."},
+                            {"const":"mr","title":"M."},
+                            {"const":"mme","title":"Mme"},
+                            {"const":"maitre","title":"Maitre"}
+                        ],
+                        "default": "mrMme",
+                        "readonly": false
+                    },
+                    "nom": {
+                        "type": ["string","null"],
+                        "title": "Nom",
+                        "readonly": true
+                    },
+                    "prenom": {
+                        "type": ["string","null"],
+                        "title": "Prénom",
+                        "readonly": true
+                    },
+                    "numeroTel": {
+                        "type": ["string","null"],
+                        "title": "Numéro de téléphone fixe",
+                        "readonly": true
+                    },
+                    "numeroMobile": {
+                        "type": ["string","null"],
+                        "title": "Numéro de téléphone portable",
+                        "readonly": true
+                    },
+                    "email": {
+                        "type": ["string","null"],
+                        "title": "Adresse e-mail",
+                        "readonly": true
+                    },
+                    "adresse": {
+                        "type": ["string","null"],
+                        "title": "Adresse complète (si différente de celle du PDC)",
+                        "readonly": true
+                    }
+                }
+            },
+            "contactITV": {
+                "type": ["object","null"],
+                "title": "adresse",
+                "abstract":"${value.prenom}      ${value.nom}",
+                "properties": {
+                    "civilite": {
+                        "type": ["string","null"],
+                        "title": "Civilité",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"mrMme","title":"Mme ou M."},
+                            {"const":"mr","title":"M."},
+                            {"const":"mme","title":"Mme"},
+                            {"const":"maitre","title":"Maitre"}
+                        ],
+                        "default": "mrMme",
+                        "readonly": false
+                    },
+                    "nom": {
+                        "type": ["string","null"],
+                        "title": "Nom",
+                        "readonly": true
+                    },
+                    "prenom": {
+                        "type": ["string","null"],
+                        "title": "Prénom",
+                        "readonly": true
+                    },
+                    "numeroMobile": {
+                        "type": ["string","null"],
+                        "title": "Numéro de téléphone portable",
+                        "readonly": true
+                    }
+                }
+            },
+            "contact": {
+                "type": ["object","null"],
+                "title": "contact",
+                "abstract": "${value.type === 1 ? value.raisonSociale +' : ' : ''}${value.civilite} ${value.prenom} ${value.nom}",
+                "properties": {
+                    "type": {
+                        "type": ["string","null"],
+                        "title": "Type",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"morale","title":"Morale"},
+                            {"const":"physique","title":"Physique"}
+                        ],
+                        "default": 2,
+                        "readonly": false
+                    },
+                    "fonction": {
+                        "type": ["string","null"],
+                        "title": "Fonction",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"proprietaire","title":"Propriétaire"},
+                            {"const":"locataire","title":"Locataire"},
+                            {"const":"gestionnaire","title":"Gestionnaire (syndic,...)"},
+                            {"const":"agenceImmobiliere","title":"Agence immobilière"},
+                            {"const":"maitreOuvrage","title":"Maître d'ouvrage"},
+                            {"const":"maitreOeuvre","title":"Maître d'oeuvre"},
+                            {"const":"promoteur","title":"Promoteur"},
+                            {"const":"bureauEtude","title":"Bureau d'étude"},
+                            {"const":"notaire","title":"Notaire"},
+                            {"const":"autre","title":"Autre"}
+                        ],
+                        "default": 1,
+                        "readonly": false
+                    },
+                    "autreFonction": {
+                        "type": ["string","null"],
+                        "title": "Autre fonction",
+                        "maxLength": 256,
+                        "visible": "$('1/fonction') === autre",
+                        "readonly": false
+                    },
+                    "numeroSiret": {
+                        "type": ["string","null"],
+                        "title": "No SIRET",
+                        "maxLength": 256,
+                        "visible": "$('1/type') === morale",
+                        "readonly": false
+                    },
+                    "raisonSociale": {
+                        "type": ["string","null"],
+                        "title": "Raison Sociale",
+                        "maxLength": 256,
+                        "visible": "$('1/type') === morale",
+                        "readonly": false
+                    },
+                    "ajoutContactPhysique": {
+                        "type": ["boolean","null"],
+                        "title": "Ajouer un contact physique",
+                        "default": false,
+                        "visible": "$('1/type') === morale",
+                        "readonly": false
+                    },
+                    "civilite": {
+                        "type": ["string","null"],
+                        "title": "Civilité",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"mrMme","title":"Mme ou M."},
+                            {"const":"mr","title":"M."},
+                            {"const":"mme","title":"Mme"},
+                            {"const":"maitre","title":"Maitre"}
+                        ],
+                        "default": "mrMme",
+                        "visible": "$('1/type') === physique||$('1/ajoutContactPhysique') === true",
+                        "readonly": false
+                    },
+                    "nom": {
+                        "type": ["string","null"],
+                        "title": "Nom",
+                        "maxLength": 256,
+                        "visible": "$('1/type') === physique||$('1/ajoutContactPhysique') === true",
+                        "readonly": false
+                    },
+                    "prenom": {
+                        "type": ["string","null"],
+                        "title": "Prénom",
+                        "maxLength": 256,
+                        "visible": "$('1/type') === physique||$('1/ajoutContactPhysique') === true",
+                        "readonly": false
+                    },
+                    "numeroTel": {
+                        "type": ["string","null"],
+                        "title": "No tél. fixe",
+                        "readonly": false
+                    },
+                    "numeroMobile": {
+                        "type": ["string","null"],
+                        "title": "No tél. mobile",
+                        "readonly": false
+                    },
+                    "email": {
+                        "type": ["string","null"],
+                        "format": "email",
+                        "title": "Courriel",
+                        "readonly": false
+                    },
+                    "adresse": {
+                        "type": ["string","null"],
+                        "title": "Adresse",
+                        "readonly": false
+                    }
+                },
+                "required":[
+
+                ]
+            },
+            "donneeAdministratives":{
+                "type": ["object","null"],
+                "title": "Données Administratives",
+                "properties": {
+                    "numITV": {
+                        "type": ["string","null"],
+                        "title": "N° intervention",
+                        "readonly": true
+                    },
+                    "datePrevue": {
+                        "type": ["string","null"],
+                        "format": "date",
+                        "title": "date du contrôle prévue",
+                        "readonly": true
+                    },
+                    "dateITV": {
+                        "type": ["string","null"],
+                        "format": "date",
+                        "title": "date du contrôle effective",
+                        "readonly": true
+                    },
+                    "contrat": {
+                        "type": ["string","null"],
+                        "title": "Code contrat BANCO",
+                        "readonly": true
+                    },
+                    "contratLib": {
+                        "type": ["string","null"],
+                        "title": "Nom contrat BANCO",
+                        "readonly": true
+                    },
+                    "typeControle": {
+                        "type": ["string","null"],
+                        "title": "type de contrôle",
+                        "readonly": true
+                    },
+                    "typeVisite": {
+                        "type": ["string","null"],
+                        "title": "type de visite",
+                        "readonly": true
+                    },
+                    "agentAffecte": {
+                        "type": ["string","null"],
+                        "title": "Personne en charge du controle",
+                        "readonly": true
+                    },
+                    "ReferenceSPANCNumeroDossier": {
+                        "type": ["string","null"],
+                        "title": "Référence SPANC/No. dossier",
+                        "readonly": false
+                    },
+                    "installateur": {
+                        "type": ["string","null"],
+                        "title": "Installateur",
+                        "readonly": false
+                    }
+                }
+            },
+            "informationPDC":{
+                "type": ["object","null"],
+                "title": "Informations PDC",
+                "properties": {
+                    "idPDC": {
+                        "type": ["string","null"],
+                        "title": "Identifiant du PDC",
+                        "readonly": true
+                    },
+                    "typePDC": {
+                        "$ref": "#/definitions/typePDC",
+                        "readonly":false
+                    },
+                    "typePropriete": {
+                        "$ref": "#/definitions/typePropriete",
+                        "readonly":false
+                    },
+                    "nonDomestique": {
+                        "type": ["boolean","null"],
+                        "title": "Activité non domestique",
+                        "default": null,
+                        "readonly":false
+                    },
+                    "activiteNonDomestique": {
+                        "$ref": "#/definitions/activiteNonDomestique",
+                        "readonly":false,
+                        "visible": "$('1/nonDomestique')"
+                    },
+                    "nbOccupant": {
+                        "type": ["integer","null"],
+                        "title": "Nbr. occupant",
+                        "maximum": 100,
+                        "minimum": 0,
+                        "readonly":false
+                    },
+                    "adressePDC": {
+                        "$ref": "#/definitions/adressePDC",
+                        "title": "Adr. PDC",
+                        "collapsed": "true",
+                        "readonly": true
+                    },
+                    "dernierEtatControle": {
+                        "type": ["string","null"],
+                        "title": "Etat de conformité du dernier contôle",
+                        "readonly": true
+                    },
+                    "dateDernierEtatControle": {
+                        "type": ["string","null"],
+                        "format": "date",
+                        "title": "Date de réalisation de la dernière enquête",
+                        "readonly": true
+                    },
+                    "dernierRapport": {
+                        "type": ["string","null"],
+                        "title": "Rapport de l'enquête précédente",
+                        "readonly": true
+                    }
+                }
+            },
+            "informationContact":{
+                "type": ["object","null"],
+                "title": "Contacts",
+                "properties": {
+                    "clientITV": {
+                        "$ref": "#/definitions/clientITV",
+                        "title": "Client intervention",
+                        "readonly": true,
+                        "collapsed":true
+                    },
+                    "contactITV": {
+                        "$ref": "#/definitions/contactITV",
+                        "title": "Contact intervention",
+                        "readonly": true,
+                        "collapsed":true
+                    },
+                    "contacts": {
+                        "type": ["array","null"],
+                        "title": "Liste des contacts complémentaires:",
+                        "items": {
+                            "$ref": "#/definitions/contact"
+                        },
+                        "readonly": false
+                    },
+                    "contactVisite": {
+                        "type": ["string","null"],
+                        "title": "Contact présent sur place",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":0,"title":"A"},
+                            {"const":1,"title":"B"},
+                            {"const":2,"title":"C"},
+                            {"const":3,"title":"D"},
+                            {"const":4,"title":"E"},
+                            {"const":5,"title":"F"}
+                        ],
+                        "readonly": false
+                    },
+                    "contactDestinataire": {
+                        "type": ["string","null"],
+                        "title": "Destinataire du rapport",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":0,"title":"A"},
+                            {"const":1,"title":"B"},
+                            {"const":2,"title":"C"},
+                            {"const":3,"title":"D"},
+                            {"const":4,"title":"E"},
+                            {"const":5,"title":"F"}
+                        ],
+                        "readonly": false
+                    }
+                }
+            },
+            "informationParcelle":{
+                "type": ["object","null"],
+                "title": "Informations parcelle",
+                "properties": {
+                    "parcelles": {
+                        "type": ["array","null"],
+                        "items": {
+                            "type": ["string","null"]
+                        },
+                        "title": "N° de parcelle cadastrale",
+                        "readonly":false
+                    },
+                    "permisConstruire": {
+                        "type": ["array","null"],
+                        "title": "Permis de construire",
+                        "items": {
+                            "$ref": "#/definitions/permisConstruire"
+                        },
+                        "readonly":false
+                    },
+                    "certificatUrbanisme": {
+                        "type": ["string","null"],
+                        "title": "Certificat d'urbanisme",
+                        "readonly":false
+                    },
+                    "nombreAppartement": {
+                        "type": ["integer","null"],
+                        "title": "Nombre d'appartements (Dans le cas d'un immeuble collectif)",
+                        "minimum": 0,
+                        "maximum": 500,
+                        "readonly":false
+                    },
+                    "referenceExterneCollectivite": {
+                        "type": ["string","null"],
+                        "title": "Référence externe(Communication avec collectivité)",
+                        "readonly":false
+                    }
+                }
+            },
+            "documents":{
+                "type": ["object","null"],
+                "title": "Documents",
+                "properties": {
+                    "documents": {
+                        "type": ["string","null"],
+                        "title": "Pièces jointes",
+                        "readonly": "false"
+                    }
+                }
+            },
+            "commentaire":{
+                "type": ["object","null"],
+                "title": "Commentaires",
+                "properties": {
+                    "commentaireClient": {
+                        "type": ["string","null"],
+                        "title": "Commentaire client",
+                        "maxLength": 1000,
+                        "readonly": "false"
+                    },
+                    "commentaireInterne": {
+                        "type": ["string","null"],
+                        "title": "Commentaire interne",
+                        "maxLength": 1000,
+                        "readonly": "false"
+                    }
+                }
+            },
+            "listeAsset":{
+                "type" : ["array","null"],
+                "title":"Liste des objets du patrimoine",
+                "items" : { 
+                    "oneOf": [
+                        { "case": "value.typeAsset=='branchement'" , "$ref" : "#/definitions/assetBranchement"},
+                        { "case": "value.typeAsset=='equipementEP'" , "$ref" : "#/definitions/assetEquipementEp"},
+                        { "case": "value.typeAsset=='equipementEURAC'" , "$ref" : "#/definitions/assetEquipementEuRac"},
+                        { "case": "value.typeAsset=='ouvrageEP'" , "$ref" : "#/definitions/assetOuvrageEp"},
+                        { "case": "value.typeAsset=='ouvrageEUANC'" , "$ref" : "#/definitions/assetOuvrageEuAnc"},
+                        { "case": "value.typeAsset=='ouvrageEURAC'" , "$ref" : "#/definitions/assetOuvrageEuRac"}
+                    ]
+                }
+
+            },
+            "assetBranchement": {
+                "type": ["object","null"],
+                "abstract":"Branchement: ${value.libelle} ${value.id.substring(0,8)}",
+                "title": "Branchement",
+                "properties": {
+                    "typeAsset":{
+                        "const":"branchement",
+                        "visible":false
+                    },
+                    "id": {
+                        "type": ["string","null"],
+                        "format":"uuid",
+                        "title": "Id ECA du Branchement",
+                        "readonly": true,
+                        "group": "Branchement",
+                        "tab": "tab branchement"
+                    },
+                    "libelle": {
+                        "type": ["string","null"],
+                        "title": "Libellé du branchement",
+                        "readonly": false,
+                        "group": "Branchement",
+                        "tab": "tab branchement"
+                    },
+                    "numeroSIG": {
+                        "type": ["string","null"],
+                        "title": "Numéro du branchement SIG (après mise à jour SIG)",
+                        "readonly": false,
+                        "group": "Branchement",
+                        "tab": "tab branchement"
+                    },
+                    "adrIdentique": {
+                        "$ref": "#/definitions/ouiNonInd",
+                        "title": "Adresse du branchement identique à l'adresse de la propriété:",
+                        "readonly": false,
+                        "group": "Branchement",
+                        "tab": "tab branchement"
+                    },
+                    "adresse": {
+                        "$ref": "#/definitions/adresse",
+                        "title": "Adresse:",
+                        "readonly": false,
+                        "visible":"$('1/adrIdentique') === 'non'||$('1/adrIdentique') === 'indetermine'",
+                        "group": "Branchement",
+                        "tab": "tab branchement"
+                    },
+                    "typeReseau": {
+                        "type": ["string","null"],
+                        "title": "Type de réseau sur lequel est raccordé le branchement:",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"unitaire","title":"Unitaire"},
+                            {"const":"separatifEU","title":"Séparatif - Eaux usées"},
+                            {"const":"separatifEP","title":"Séparatif - Eaux pluviales"},
+                            {"const":"inconnu","title":"Inconnu"}
+                        ],
+                        "readonly": false,
+                        "group": "Branchement",
+                        "tab": "tab branchement"
+                    },
+                    "maitreOuvrageReseau": {
+                        "type": ["string","null"],
+                        "title": "Maitre d'ouvrage du réseau sur lequel est raccordé le branchement:",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"prive","title":"Privé"},
+                            {"const":"interdepartemental","title":"Interdépartemental"},
+                            {"const":"intercommunale","title":"Intercommunal"},
+                            {"const":"departemental","title":"Départemental"},
+                            {"const":"communal","title":"Communal"},
+                            {"const":"inconnu","title":"Inconnu"}
+                        ],
+                        "readonly": false,
+                        "group": "Branchement",
+                        "tab": "tab branchement"
+                    },
+                    "maitreOuvrage": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Maitre d'ouvrage du réseau sur lequel est raccordé le branchement:",
+                        "group": "Branchement",
+                        "tab": "tab branchement"
+                    },
+                    "anneeRaccordement": {
+                        "type": ["integer","null"],
+                        "readonly": false,
+                        "title": "Année de raccordement:",
+                        "group": "Branchement",
+                        "tab": "tab branchement"
+                    },
+                    "systemeAssainissement": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Système d'assainissement:",
+                        "group": "Branchement",
+                        "tab": "tab branchement"
+                    },
+                    "bassinCollecte": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Bassin de collecte/Bassin versant:",
+                        "group": "Branchement",
+                        "tab": "tab branchement"
+                    },
+                    "libre1": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 1:",
+                        "group": "Branchement",
+                        "tab": "tab branchement"
+                    },
+                    "libre2": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 2:",
+                        "group": "Branchement",
+                        "tab": "tab branchement"
+                    },
+                    "libre3": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 3:",
+                        "group": "Branchement",
+                        "tab": "tab branchement"
+                    },
+                    "branchementAccessible": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Branchement accessible:",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab branchement"
+                    },
+                    "boiteBranchement": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Possédant une boîte de branchement en limite de propriété",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab branchement"
+                    },
+                    "patrimoineAmont": {
+                        "type":["array","null"],
+                        "title":"Patrimoine amont:",
+                        "items":{
+                            "type": ["string","null"],
+                            "readonly" :true
+                        },
+                        "readonly": true,
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab branchement"
+                    },
+                    "dernierEtatConformite": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Etat de conformité dernier contrôle",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab branchement"
+                    },
+                    "dateDerniereEnquete": {
+                        "type": ["string","null"],
+                        "format": "date",
+                        "readonly": true,
+                        "title": "Date de réalisation de la dernière enquête",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab branchement"
+                    },
+                    "commentaireDerniereEnquete": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Commentaire de la dernière enquête",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab branchement"
+                    }
+                },
+                "required":[
+
+                ]
+            },
+            "assetEquipementEp": {
+                "type": ["object","null"],
+                "abstract":"Equipement EP: ${value.libelle} ${value.id.substring(0,8)}",
+                "title": "Equipement EP",
+                "properties": {
+                    "typeAsset":{
+                        "const":"equipementEP",
+                        "visible":false
+                    },
+                    "id": {
+                        "type": ["string","null"],                      
+                        "format":"uuid",
+                        "title": "Identifiant ECA de l'équipement EP",
+                        "readonly": true,
+                        "group": "Equipement EP",
+                        "tab": "tab equipementep"
+                    },
+                    "equipementEPType": {
+                        "type": ["string","null"],
+                        "title": "Type",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"descenteGoutiere","title":"Descente de gouttière"},
+                            {"const":"grille","title":"Grille"},
+                            {"const":"syphonSol","title":"Siphon de sol"},
+                            {"const":"regard","title":"Regard"},
+                            {"const":"piscine","title":"Piscine"},
+                            {"const":"videCave","title":"Vide cave"},
+                            {"const":"autre","title":"Autre"} 
+                        ],  
+                        "readonly": false,
+                        "group": "Equipement EP",
+                        "tab": "tab equipementep"
+                    },
+                    "autreType": {
+                        "type": ["string","null"],
+                        "title": "Si Autre, lequel?:",
+                        "readonly": false,
+                        "visible":"$('1/type') === 'autre'",
+                        "group": "Equipement EP",
+                        "tab": "tab equipementep"
+                    },
+                    "libelle": {
+                        "type": ["string","null"],
+                        "title": "Libellé de l'équipement EP",
+                        "readonly": false,
+                        "group": "Equipement EP",
+                        "tab": "tab equipementep"
+                    },
+                    "referenceExterne": {
+                        "type": ["string","null"],
+                        "title": "Référence externe",
+                        "readonly": false,
+                        "group": "Equipement EP",
+                        "tab": "tab equipementep"
+                    },
+                    "localisation": {
+                        "type": ["string","null"],
+                        "title": "Localisation",
+                        "readonly": false,
+                        "group": "Equipement EP",
+                        "tab": "tab equipementep"
+                    },
+                    "libre1": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 1:",
+                        "group": "Equipement EP",
+                        "tab": "tab equipementep"
+                    },
+                    "libre2": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 2:",
+                        "group": "Equipement EP",
+                        "tab": "tab equipementep"
+                    },
+                    "libre3": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 3:",
+                        "group": "Equipement EP",
+                        "tab": "tab equipementep"
+                    },
+                    "exutoire": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Exutoire",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab equipementep"
+                    },
+                    "patrimoineAval": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Patrimoine aval:",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab equipementep"
+                    },
+                    "dernierEtatConformite": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Etat de conformité dernier contrôle",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab equipementep"
+                    },
+                    "dateDerniereEnquete": {
+                        "type": ["string","null"],
+                        "format": "date",
+                        "readonly": true,
+                        "title": "Date de réalisation de la dernière enquête",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab equipementep"
+                    },
+                    "commentaireDerniereEnquete": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Commentaire de la dernière enquête",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab equipementep"
+                    }
+                },
+                "required":[
+
+                ]
+            },
+            "assetEquipementEuRac": {
+                "type": ["object","null"],
+                "abstract":"Equipement EU RAC: ${value.libelle} ${value.id.substring(0,8)}",
+                "title": "Equipement EU RAC",
+                "properties": {
+                    "typeAsset":{
+                        "const":"equipementEURAC",
+                        "visible":false
+                    },
+                    "id": {
+                        "type": ["string","null"],
+                        "format":"uuid",
+                        "title": "Identifiant ECA de l'équipement EU RAC",
+                        "readonly": true,
+                        "group": "Equipement EU RAC",
+                        "tab": "tab equipementeurac"
+                    },
+                    "equipementEURACType": {
+                        "type": ["string","null"],
+                        "title": "Type",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"evier","title":"Evier"},
+                            {"const":"wc","title":"WC"},
+                            {"const":"baignoire","title":"Baignoire"},
+                            {"const":"lavabo","title":"Lavabo"},
+                            {"const":"douche","title":"Douche"},
+                            {"const":"laveVaisselle","title":"Lave-vaisselle"},
+                            {"const":"laveLinge","title":"Lave-linge"},
+                            {"const":"syphonSol","title":"Siphon de sol"},
+                            {"const":"regard","title":"Regard"},
+                            {"const":"bidet","title":"Bidet"},
+                            {"const":"piscine","title":"Piscine"},
+                            {"const":"purgeChaudiere","title":"Purge de chaudière"},
+                            {"const":"autre","title":"Autre"}
+                        ],  
+                        "readonly": false,
+                        "group": "Equipement EU RAC",
+                        "tab": "tab equipementeurac"
+                    },
+                    "autreType": {
+                        "type": ["string","null"],
+                        "title": "Si Autre, lequel?:",
+                        "readonly": false,
+                        "visible":"$('1/type') === 'autre'",
+                        "group": "Equipement EU RAC",
+                        "tab": "tab equipementeurac"
+                    },
+                    "siphon": {
+                        "type": ["string","null"],
+                        "title": "Si siphon de sol:",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"exterieur","title":"Extérieur"},
+                            {"const":"interieur","title":"Intérieur"}
+                        ],
+                        "readonly": false,
+                        "visible":"$('1/type') === 'syphonSol'",
+                        "group": "Equipement EU RAC",
+                        "tab": "tab equipementeurac"
+                    },
+                    "libelle": {
+                        "type": ["string","null"],
+                        "title": "Libellé de l'équipement EU RAC",
+                        "readonly": false,
+                        "group": "Equipement EU RAC",
+                        "tab": "tab equipementeurac"
+                    },
+                    "referenceExterne": {
+                        "type": ["string","null"],
+                        "title": "Référence externe",
+                        "readonly": false,
+                        "group": "Equipement EU RAC",
+                        "tab": "tab equipementeurac"
+                    },
+                    "localisation": {
+                        "type": ["string","null"],
+                        "title": "Localisation",
+                        "readonly": false,
+                        "group": "Equipement EU RAC",
+                        "tab": "tab equipementeurac"
+                    },
+                    "libre1": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 1:",
+                        "group": "Equipement EU RAC",
+                        "tab": "tab equipementeurac"
+                    },
+                    "libre2": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 2:",
+                        "group": "Equipement EU RAC",
+                        "tab": "tab equipementeurac"
+                    },
+                    "libre3": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 3:",
+                        "group": "Equipement EU RAC",
+                        "tab": "tab equipementeurac"
+                    },
+                    "exutoire": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Exutoire",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab equipementeurac"
+                    },
+                    "patrimoineAval": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Patrimoine aval:",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab equipementeurac"
+                    },
+                    "dernierEtatConformite": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Etat de conformité dernier contrôle",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab equipementeurac"
+                    },
+                    "dateDerniereEnquete": {
+                        "type": ["string","null"],
+                        "format": "date",
+                        "readonly": true,
+                        "title": "Date de réalisation de la dernière enquête",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab equipementeurac"
+                    },
+                    "commentaireDerniereEnquete": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Commentaire de la dernière enquête",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab equipementeurac"
+                    }
+                },
+                "required":[
+
+                ]
+            },
+            "assetOuvrageEp": {
+                "type": ["object","null"],
+                "abstract":"Ouvrage EP: ${value.libelle} ${value.id.substring(0,8)}",
+                "title": "Ouvrage EP",
+                "properties": {
+                    "typeAsset":{
+                        "const":"ouvrageEP",
+                        "visible":false
+                    },
+                    "id": {
+                        "type": ["string","null"],
+                        "format":"uuid",
+                        "title": "Identifiant ECA de l'ouvrage EP",
+                        "readonly": true,
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "ouvrageEPType": {
+                        "type": ["string","null"],
+                        "title": "Type",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"bassinEnterreCasier","title":"Bassin enterré avec casiers"},
+                            {"const":"bassinEnterreNidAbeille","title":"Bassin enterré en nid d'abeille"},
+                            {"const":"bassinEnterreVisitable","title":"Bassin enterré visitable"},
+                            {"const":"bassinOuvertEau","title":"Bassin ouvert en eau"},
+                            {"const":"bassinOuvertSec","title":"Bassin ouvert sec"},
+                            {"const":"canalisationSurdimensionnee","title":"Canalisation surdimensionnée"},
+                            {"const":"cuveReutilisationEP","title":"Cuve de réutilisation des eaux de pluies"},
+                            {"const":"noueMinerale","title":"Noue Minérale"},
+                            {"const":"noueVegetal","title":"Noue Végétalisée"},
+                            {"const":"puitInfiltrationNonVisitable","title":"Puits d'infiltration non visitable"},
+                            {"const":"puitInfiltrationVide","title":"Puits d'infiltration vide"},
+                            {"const":"puitInfiltrationVisitable","title":"Puits d'infiltration visitable"},
+                            {"const":"toitureTerasseMinerale","title":"Toiture terasse minérale"},
+                            {"const":"toitureVegetaliseeExtensive","title":"Toiture végétalisée extensive"},
+                            {"const":"toitureVegetaliseeIntensive","title":"Toiture végétalisée intensive"},
+                            {"const":"toitureVegetaliseeSemiIntensive","title":"Toiture végétalisée semi-intensive"},
+                            {"const":"trancheeDrainante","title":"Tranchée Drainante"},
+                            {"const":"autre","title":"Autre"}
+                        ],  
+                        "readonly": false,
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "autreType": {
+                        "type": ["string","null"],
+                        "title": "Si Autre, lequel?:",
+                        "readonly": false,
+                        "visible":"$('1/type') === 'autre'",
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "libelle": {
+                        "type": ["string","null"],
+                        "title": "Libellé de l'ouvrage EP",
+                        "readonly": false,
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "referenceExterne": {
+                        "type": ["string","null"],
+                        "title": "Référence externe",
+                        "readonly": false,
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "dimensionLongueur": {
+                        "type": ["string","null"],
+                        "title": "Longueur (m) (Dimension)",
+                        "readonly": false,
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "dimensionLargeur": {
+                        "type": ["string","null"],
+                        "title": "Largeur (m) (Dimension)",
+                        "readonly": false,
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "dimensionHauteur": {
+                        "type": ["string","null"],
+                        "title": "Hauteur (m) (Dimension)",
+                        "readonly": false,
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "nbArrivee": {
+                        "type": ["string","null"],
+                        "title": "Nombre d'arrivées",
+                        "readonly": false,
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "regulation": {
+                        "type": ["array","null"],
+                        "title": "Régulation:",
+                        "uniqueItems":true,
+                        "items":{
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"pompes","title":"Pompes"},
+                            {"const":"vortex","title":"Vortex"},
+                            {"const":"effetSyphon","title":"Effet siphon"},
+                            {"const":"flotteur","title":"A flotteur"},
+                            {"const":"orificePlaque","title":"Orifice / Plaque"},
+                            {"const":"crapaudines","title":"Crapaudines"},
+                            {"const":"infiltration","title":"Infiltration"}
+                        ]
+                        },
+                        "readonly": false,
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "hauteurRefoulement": {
+                        "type": ["string","null"],
+                        "title": "Hauteur refoulement (m)",
+                        "readonly": false,
+                        "visible":"$('1/regulation') === 0",
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "nbRegulation": {
+                        "type": ["integer","null"],
+                        "title": "Nombre de régulations",
+                        "readonly": false,
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "modele": {
+                        "type": ["string","null"],
+                        "title": "Modèle",
+                        "readonly": false,
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "suverse": {
+                        "type": ["string","null"],
+                        "title": "Suverses",
+                        "readonly": false,
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "hauteur": {
+                        "type": ["string","null"],
+                        "title": "Hauteur (m)",
+                        "readonly": false,
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "localisation": {
+                        "type": ["string","null"],
+                        "title": "Localisation",
+                        "readonly": false,
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "libre1": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 1:",
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "libre2": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 2:",
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "libre3": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 3:",
+                        "group": "Ouvrage EP",
+                        "tab": "tab ouvrageep"
+                    },
+                    "exutoire": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Exutoire",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab ouvrageep"
+                    },
+                    "patrimoineAmont": {
+                        "type":["array","null"],
+                        "title":"Patrimoine amont:",
+                        "items":{
+                            "type": ["string","null"],
+                            "readonly" :true
+                        },
+                        "readonly": true,
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab branchement"
+                    },
+                    "patrimoineAval": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Patrimoine aval:",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab ouvrageep"
+                    },
+                    "dernierEtatConformite": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Etat de conformité dernier contrôle",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab ouvrageep"
+                    },
+                    "dateDerniereEnquete": {
+                        "type": ["string","null"],
+                        "format": "date",
+                        "readonly": true,
+                        "title": "Date de réalisation de la dernière enquête",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab ouvrageep"
+                    },
+                    "commentaireDerniereEnquete": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Commentaire de la dernière enquête",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab ouvrageep"
+                    }
+                },
+                "required":[
+
+                ]
+            },
+            "assetOuvrageEuAnc": {
+                "type": ["object","null"],
+                "abstract":"Ouvrage EU ANC: ${value.libelle} ${value.id.substring(0,8)}",
+                "title": "Ouvrage EU ANC",
+                "properties": {
+                    "typeAsset":{
+                        "const":"ouvrageEUANC",
+                        "visible":false
+                    },
+                    "id": {
+                        "type": ["string","null"],
+                        "format":"uuid",
+                        "title": "Identifiant ECA de l'ouvrage EU ANC",
+                        "readonly": true,
+                        "group": "Ouvrage EU ANC",
+                        "tab": "tab ouvrageeuanc"
+                    },
+                    "ouvrageEUANCType": {
+                        "type": ["string","null"],
+                        "title": "Type",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"bacGraisse","title":"Bac à graisse"},
+                            {"const":"fosseToutesEaux","title":"Fosse toutes eaux"},
+                            {"const":"prefiltre","title":"Préfiltre (décolloïdeur)"},
+                            {"const":"decanteurPrimaire","title":"Décanteur primaire"},
+                            {"const":"fosseAccumulation","title":"Fosse d’accumulation"},
+                            {"const":"fosseChimique","title":"Fosse chimique"},
+                            {"const":"degrilleur","title":"Dégrilleur"},
+                            {"const":"toiletteSeche","title":"Toilettes sèches"},
+                            {"const":"regardRepartition","title":"Regard/Boîte de répartition"},
+                            {"const":"regardBouclage","title":"Regard(s)/Boîte(s) de bouclage"},
+                            {"const":"regardCollecte","title":"Regard/Boîte de collecte (filières drainées)"},
+                            {"const":"systemeTraitement","title":"Système de traitement"},
+                            {"const":"ventilation","title":"Ventilation"},
+                            {"const":"posteRelevage","title":"Poste de relevage"},
+                            {"const":"chasseAutomatique","title":"Chasse automatique"},
+                            {"const":"installationAutreDispositif","title":"Installation avec d'autres dispositifs de traitement : filières agréées"},
+                            {"const":"autrePretraitementPrimaire","title":"Autre (PRÉTRAITEMENT ET/OU TRAITEMENT PRIMAIRE)"},
+                            {"const":"autreSecondaire","title":"Autre (TRAITEMENT SECONDAIRE)"},
+                            {"const":"autreDispositifTraitement","title":"Autre (AUTRES DISPOSITIFS DE TRAITEMENT)"}
+                        ],  
+                        "readonly": false,
+                        "group": "Ouvrage EU ANC",
+                        "tab": "tab ouvrageeuanc"
+                    },
+                    "autreType": {
+                        "type": ["string","null"],
+                        "title": "Si Autre, lequel?:",
+                        "readonly": false,
+                        "visible":"$('1/type') === 'autrePretraitementPrimaire'||$('1/type') === 'autreSecondaire'||$('1/type') === 'autreDispositifTraitement'",
+                        "group": "Ouvrage EU ANC",
+                        "tab": "tab ouvrageeuanc"
+                    },
+                    "libelle": {
+                        "type": ["string","null"],
+                        "title": "Libellé de l'ouvrage EU ANC",
+                        "readonly": false,
+                        "group": "Ouvrage EU ANC",
+                        "tab": "tab ouvrageeuanc"
+                    },
+                    "referenceExterne": {
+                        "type": ["string","null"],
+                        "title": "Référence externe",
+                        "readonly": false,
+                        "group": "Ouvrage EU ANC",
+                        "tab": "tab ouvrageeuanc"
+                    },
+                    "localisation": {
+                        "type": ["string","null"],
+                        "title": "Localisation",
+                        "readonly": false,
+                        "group": "Ouvrage EU ANC",
+                        "tab": "tab ouvrageeuanc"
+                    },
+                    "libre1": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 1:",
+                        "group": "Ouvrage EU ANC",
+                        "tab": "tab ouvrageeuanc"
+                    },
+                    "libre2": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 2:",
+                        "group": "Ouvrage EU ANC",
+                        "tab": "tab ouvrageeuanc"
+                    },
+                    "libre3": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 3:",
+                        "group": "Ouvrage EU ANC",
+                        "tab": "tab ouvrageeuanc"
+                    },
+                    "patrimoineAmont": {
+                        "type":["array","null"],
+                        "title":"Patrimoine amont:",
+                        "items":{
+                            "type": ["string","null"],
+                            "readonly" :true
+                        },
+                        "readonly": true,
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab branchement"
+                    },
+                    "patrimoineAval": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Patrimoine aval:",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab ouvrageeuanc"
+                    },
+                    "dernierEtatConformite": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Etat de conformité dernier contrôle",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab ouvrageeuanc"
+                    },
+                    "dateDerniereEnquete": {
+                        "type": ["string","null"],
+                        "format": "date",
+                        "readonly": true,
+                        "title": "Date de réalisation de la dernière enquête",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab ouvrageeuanc"
+                    },
+                    "commentaireDerniereEnquete": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Commentaire de la dernière enquête",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab ouvrageeuanc"
+                    }
+                },
+                "required":[
+
+                ]
+            },
+            "assetOuvrageEuRac": {
+                "type": ["object","null"],
+                "abstract":"Ouvrage EU RAC: ${value.libelle} ${value.id.substring(0,8)}",
+                "title": "Ouvrage EU RAC",
+                "properties": {
+                    "typeAsset":{
+                        "const":"ouvrageEURAC",
+                        "visible":false
+                    },
+                    "id": {
+                        "type": ["string","null"],
+                        "format":"uuid",
+                        "title": "Identifiant ECA de l'ouvrage EU RAC",
+                        "readonly": true,
+                        "group": "Ouvrage EU RAC",
+                        "tab": "tab ouvrageeurac"
+                    },
+                    "ouvrageEURACType": {
+                        "type": ["string","null"],
+                        "title": "Type",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"separateurHydrocarbure","title":"Séparateur à hydrocarbures"},
+                            {"const":"bacGraisse","title":"Bac à graisse"},
+                            {"const":"autre","title":"Autre"}
+                        ],  
+                        "readonly": false,
+                        "group": "Ouvrage EU RAC",
+                        "tab": "tab ouvrageeurac"
+                    },
+                    "autreType": {
+                        "type": ["string","null"],
+                        "title": "Si Autre, lequel?:",
+                        "readonly": false,
+                        "visible":"$('1/type') === 'autre'",
+                        "group": "Ouvrage EU RAC",
+                        "tab": "tab ouvrageeurac"
+                    },
+                    "libelle": {
+                        "type": ["string","null"],
+                        "title": "Libellé de l'ouvrage EU RAC",
+                        "readonly": false,
+                        "group": "Ouvrage EU RAC",
+                        "tab": "tab ouvrageeurac"
+                    },
+                    "referenceExterne": {
+                        "type": ["string","null"],
+                        "title": "Référence externe",
+                        "readonly": false,
+                        "group": "Ouvrage EU RAC",
+                        "tab": "tab ouvrageeurac"
+                    },
+                    "localisation": {
+                        "type": ["string","null"],
+                        "title": "Localisation",
+                        "readonly": false,
+                        "group": "Ouvrage EU RAC",
+                        "tab": "tab ouvrageeurac"
+                    },
+                    "libre1": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 1:",
+                        "group": "Ouvrage EU RAC",
+                        "tab": "tab ouvrageeurac"
+                    },
+                    "libre2": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 2:",
+                        "group": "Ouvrage EU RAC",
+                        "tab": "tab ouvrageeurac"
+                    },
+                    "libre3": {
+                        "type": ["string","null"],
+                        "readonly": false,
+                        "title": "Champ libre 3:",
+                        "group": "Ouvrage EU RAC",
+                        "tab": "tab ouvrageeurac"
+                    },
+                    "exutoire": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Exutoire",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab ouvrageeurac"
+                    },
+                    "patrimoineAmont": {
+                        "type":["array","null"],
+                        "title":"Patrimoine amont:",
+                        "items":{
+                            "type": ["string","null"],
+                            "readonly" :true
+                        },
+                        "readonly": true,
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab branchement"
+                    },
+                    "patrimoineAval": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Patrimoine aval:",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab ouvrageeurac"
+                    },
+                    "dernierEtatConformite": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Etat de conformité dernier contrôle",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab ouvrageeurac"
+                    },
+                    "dateDerniereEnquete": {
+                        "type": ["string","null"],
+                        "format": "date",
+                        "readonly": true,
+                        "title": "Date de réalisation de la dernière enquête",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab ouvrageeurac"
+                    },
+                    "commentaireDerniereEnquete": {
+                        "type": ["string","null"],
+                        "readonly": true,
+                        "title": "Commentaire de la dernière enquête",
+                        "group": "Informations du dernier contrôle",
+                        "tab": "tab ouvrageeurac"
+                    }
+                },
+                "required":[
+
+                ]
+            },
+            "ouiNonInd": {
+                "type": ["string","null"],
+                "title": "ouiNonInd",
+                "oneOf": [
+                    {"const":null,"title":""},
+                    {"const":"oui","title":"Oui"},
+                    {"const":"non","title":"Non"},
+                    {"const":"indetermine","title":"Indeterminé"}   
+                ]
+            },
+            "validerRefuser": {
+                "type": ["string","null"],
+                "title": "validerRefuser",
+                "oneOf": [
+                    {"const":null,"title":""},
+                    {"const":"valider","title":"Valider"},
+                    {"const":"refuser","title":"Refuser"} 
+                ]
+            },
+            "signature":{
+                "type": ["object","null"],
+                "title": "Signature",
+                "properties": {
+                    "contactSignature": {
+                        "type": ["integer","null"],
+                        "title": "Contact Signataire",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":0,"title":"A"},
+                            {"const":1,"title":"B"},
+                            {"const":2,"title":"C"},
+                            {"const":3,"title":"D"},
+                            {"const":4,"title":"E"},
+                            {"const":5,"title":"F"}
+                        ],
+                        "readonly": "false"
+                    },
+                    "juridique1": {
+                        "$ref": "#/definitions/validerRefuser",
+                        "title": "Champs juridique 1",
+                        "readonly": "false"
+                    },
+                    "juridique2": {
+                        "$ref": "#/definitions/validerRefuser",
+                        "title": "Champs juridique 2",
+                        "readonly": "false"
+                    },
+                    "juridique3": {
+                        "$ref": "#/definitions/validerRefuser",
+                        "title": "Champs juridique 3",
+                        "readonly": "false"
+                    },
+                    "lieuSignature": {
+                        "type": ["string","null"],
+                        "title": "Fait à",
+                        "readonly": "false",
+                        "visible": "$('1/juridique1') === 'valider' && $('1/juridique2') === 'valider' && $('1/juridique3') === 'valider'"
+                    },
+                    "dateSignature": {
+                        "type": ["string","null"],
+                        "format": "date-time",
+                        "title": "Date signature",
+                        "readonly": "true",
+                        "visible": "$('1/juridique1') === 'valider' && $('1/juridique2') === 'valider' && $('1/juridique3') === 'valider'"
+                    },
+                    "signature": {
+                        "type": ["string","null"],
+                        "format": "signature",
+                        "title": "Une signature",
+                        "onchange": "($('1/dateSignature') = (new Date()).toISOString())",
+                        "visible": "$('1/juridique1') === 'valider' && $('1/juridique2') === 'valider' && $('1/juridique3') === 'valider'"
+                    }
+                },
+                "required":[
+                ]
+            },
+            "conformite": {
+                "type": ["string","null"],
+                "title": "conformite",
+                "oneOf": [
+                    {"const":null,"title":""},
+                    {"const":"conforme","title":"Conforme"},
+                    {"const":"nonConforme","title":"Non conforme"},
+                    {"const":"diagnostiqueImpossible","title":"Diagnostique impossible"}
+                ]
+            },
+            "complementConformitefinal": {
+                "type": ["string","null"],
+                "title": "Complément d'informations sur l'état de conformité",
+                "oneOf": [
+                    {"const":null,"title":""},
+                    {"const":"avecReserve","title":"Avec réserves"},
+                    {"const":"derogation","title":"Par dérogation"},
+                    {"const":"sansDysfonctionnement","title":"Sans dysfonctionnement (sur le réseau public)"},
+                    {"const":"sansMotif","title":"Sans motif (conforme simple)"},
+                    {"const":"avecTravauxObligatoire","title":"Avec travaux obligatoires"},
+                    {"const":"avecTravauxFacultatifs","title":"Avec travaux facultatifs"},
+                    {"const":"absenceInstallation","title":"Absence d'installation"},
+                    {"const":"avecTravauxSous4Ans","title":"Avec travaux sous 4 ans ou en cas de vente"},
+                    {"const":"avecDefautEntretien","title":"Avec défauts d'entretien"}
+                ]
+            },
+            "conformitePDC":{
+                "type": ["object","null"],
+                "title": "Conformité du PDC",
+                "properties": {
+                    "conformiteEvalue": {
+                        "type": ["string","null"],
+                        "title": "Fait à",
+                        "readonly": "true"
+                    },
+                    "conformite": {
+                        "$ref": "#/definitions/conformite",
+                        "title": "Conformité finale",
+                        "readonly": false
+                    },
+                    "complementConformite": {
+                        "$ref": "#/definitions/complementConformitefinal",
+                        "title": "Complément d'informations sur l'état de conformité",
+                        "readonly": false
+                    },
+                    "conforme": {
+                        "type": ["string","null"],
+                        "title": "Information :",
+                        "default": "Les préscriptions techniques réglementaires en vigueur sont respectées",
+                        "readonly": true,
+                        "visible": "$('1/conformite') === 1"
+                    },
+                    "nonconforme": {
+                        "type": ["string","null"],
+                        "title": "Information :",
+                        "default": "Les préscriptions techniques réglementaires en vigueur ne sont pas respectées",
+                        "readonly": "true",
+                        "visible": "$('1/conformite') === 0"
+                    },
+                    "commentaireConformite": {
+                        "type": ["string","null"],
+                        "title": "Commentaire conformité",
+                        "maxLength": 1000,
+                        "readonly": false
+                    }
+                },
+                "required":[
+
+                ]
+            },
+            "ctrlBranchementRac": {
+                "type": ["object","null"],
+                "abstract": " ",
+                "title": "Contrôle branchement (RAC)",
+                "properties": {
+                    "raccordeStep": {
+                        "$ref": "#/definitions/ouiNonInd",
+                        "title": "Réseau raccordé à la STEP",
+                        "readonly": false
+                    },
+                    "visible": {
+                        "$ref": "#/definitions/ouiNonInd",
+                        "title": "Branchement visible",
+                        "readonly": false
+                    },
+                    "accessible": {
+                        "$ref": "#/definitions/ouiNonInd",
+                        "title": "Branchement accessible",
+                        "readonly": false
+                    },
+                    "diametreCanalisation": {
+                        "type": "number",
+                        "title": "Diamètre de la canalisation (cm)",
+                        "readonly": false
+                    },
+                    "limitePropriete": {
+                        "$ref": "#/definitions/ouiNonInd",
+                        "title": "Possédant une boîte de branchement en limite de propriété",
+                        "readonly": false
+                    },
+                    "positionBoite": {
+                        "type": ["string","null"],
+                        "title": "Positionnement de la boîte de branchement",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"sousDomainePrive","title":"Sous-domaine privé"},
+                            {"const":"sousDomainePublic","title":"Sous-domaine public"},
+                            {"const":"indetermine","title":"Indéterminé"}
+                        ],
+                        "readonly": false,
+                        "visible":"$('1/limitePropriete') === 'oui'"
+                    },
+                    "accessibliliteBoite": {
+                        "$ref": "#/definitions/ouiNonInd",
+                        "title": "Accessibilité de la boîte de branchement",
+                        "readonly": false,
+                        "visible":"$('1/limitePropriete') === 'oui'"
+                    },
+                    "distanceBoite": {
+                        "type": "number",
+                        "title": "Distance de la boîte de branchement en domaine privé (m)",
+                        "readonly": false,
+                        "visible":"$('1/limitePropriete') === 'oui'"
+                    },
+                    "presenceDecantation": {
+                        "$ref": "#/definitions/ouiNonInd",
+                        "title": "Présence d'une décantation dans la boîte de branchement",
+                        "readonly": false,
+                        "visible":"$('1/limitePropriete') === 'oui'"
+                    },
+                    "presenceRegard": {
+                        "$ref": "#/definitions/ouiNonInd",
+                        "title": "Présence d'un regard mixte non étanche",
+                        "readonly": false,
+                        "visible":"$('1/limitePropriete') === 'oui'"
+                    },
+                    "etatBoite": {
+                        "type": ["string","null"],
+                        "title": "Etat de la boîte de branchement",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"oui","title":"Bon"},
+                            {"const":"mauvais","title":"Mauvais"},
+                            {"const":"indetermine","title":"Indéterminé"}
+                        ],
+                        "readonly": false,
+                        "visible":"$('1/limitePropriete') === 'oui'"
+                    },
+                    "deversementNappe": {
+                        "$ref": "#/definitions/ouiNonInd",
+                        "title": "Déversement de la nappe par le branchement",
+                        "readonly": false
+                    },
+                    "reseauPriveAmontBranchement": {
+                        "$ref": "#/definitions/ouiNonInd",
+                        "title": "Réseau privé en amont du branchement en charge",
+                        "readonly": false
+                    },
+                    "installationAssainissementANCBranchement": {
+                        "$ref": "#/definitions/ouiNonInd",
+                        "title": "Installation d'assainissement non collectif raccordé sur le branchement",
+                        "readonly": false
+                    },
+                    "autreProblemeBranchement": {
+                        "type": ["string","null"],
+                        "title": "Autre problème entraînant une non-conformité du branchement",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"oui","title":"Oui"},
+                            {"const":"non","title":"Non"}
+                        ],
+                        "readonly": false
+                    },
+                    "autreProblemeBranchement2": {
+                        "type": ["string","null"],
+                        "title": "Autre problème entraînant une non-conformité du branchement",
+                        "readonly": false,
+                        "visible":"$('1/autreProblemeBranchement') === 'oui'"
+                    },
+                    "identificationSchema": {
+                        "type": ["string","null"],
+                        "title": "Identification schéma",
+                        "readonly": false
+                    },
+                    "commentaire": {
+                        "type": ["string","null"],
+                        "title": "Commentaire",
+                        "readonly": false
+                    },
+                    "champLibre1": {
+                        "type": ["string","null"],
+                        "title": "Champ libre task 1",
+                        "readonly": false
+                    },
+                    "champLibre2": {
+                        "type": ["string","null"],
+                        "title": "Champ libre task 2",
+                        "readonly": false
+                    },
+                    "champLibre3": {
+                        "type": ["string","null"],
+                        "title": "Champ libre task 3",
+                        "readonly": false
+                    }
+                },
+                "required":[
+
+                ]
+            },
+            "taskConformiteBranch":{
+                "type": ["object","null"],
+                "title": "Conformité",
+                "abstract":"${value.conformite||''} ${value.confcompl||''} ${value.motifnonconf||''}  ${value.naturetvx||''}",
+                "properties": {
+                    "conformiteEvalue": {
+                        "type": ["string","null"],
+                        "title": "Etat de conformité préconisée",
+                        "readonly": "true"
+                    },
+                    "conformite": {
+                        "type": ["string","null"],
+                        "title": "Conformité finale",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"conforme","title":"Conforme"},
+                            {"const":"nonConforme","title":"Non conforme"},
+                            {"const":"diagnosticImpossible","title":"Diagnostic impossible"}
+                        ],
+                        "readonly": false
+                    },
+                    "conformiteComplement": {
+                        "type": ["string","null"],
+                        "title": "Complément d'informations sur l'état de conformité",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"avecReserves","title":"Avec réserves"},
+                            {"const":"derogation","title":"Par dérogation"},
+                            {"const":"sansDysfonctionnement","title":"Sans dysfonctionnement (sur le réseau public)"},
+                            {"const":"sansMotif","title":"Sans motif (conforme simple)"},
+                            {"const":"avecTravauxObligatoire","title":"Avec travaux obligatoires"},
+                            {"const":"avecTravauxFacultatifs","title":"Avec travaux facultatifs"}
+                        ],
+                        "readonly": false
+                    },
+                    "motifNonConformite": {
+                        "type": ["string","null"],
+                        "title": "Motifs de non conformité",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"absenceBoite","title":"Absence de boîte de branchement"},
+                            {"const":"localisationBoite","title":"Localisation boîte de branchement"},
+                            {"const":"regardMixteNonEtanche","title":"Regard mixte non étanche"},
+                            {"const":"presenceDecantation","title":"Présence d'une décantation"},
+                            {"const":"autre","title":"Autre"}
+                        ],
+                        "visible": "$('1/conformite') === 'nonConforme'",
+                        "readonly": false
+                    },
+                    "motifNonConformiteAutre": {
+                        "type": ["string","null"],
+                        "title": "Autres motifs de non conformité",
+                        "visible": "$('1/motifNonConformite') === 'autre'",
+                        "readonly": false
+                    },
+                    "natureTravaux": {
+                        "type": ["string","null"],
+                        "title": "Nature des travaux",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"creationBoite","title":"Création d'une boîte de branchement"},
+                            {"const":"separationEPEU","title":"Séparation des EU et des EP dans le regard mixte"},
+                            {"const":"suppressionDecantation","title":"Suppression de la décantation"},
+                            {"const":"creationNouvelleBoite","title":"Création d'une nouvelle boîte de branchement"},
+                            {"const":"accesibiliteBoite","title":"Rendre accessible la boîte de branchement"},
+                            {"const":"deconnexionANC","title":"Déconnexion de l'installation d'ANC du branchement"},
+                            {"const":"suppressionDeversement","title":"Suppression du déversement de la nappe dans le branchement d'eaux usées"},
+                            {"const":"retablirEcoulement","title":"Rétablir l'écoulement dans le réseau privé"},
+                            {"const":"autre","title":"Autre"}
+                        ],
+                        "visible": "$('1/conformite') === 'Non conforme'",
+                        "readonly": false
+                    },
+                    "natureTravauxAutre": {
+                        "type": ["string","null"],
+                        "title": "Autres natures des travaux",
+                        "visible": "$('1/natureTravaux') === 'autre'",
+                        "readonly": false
+                    },
+                    "motifMiseEnConformite": {
+                        "type": ["string","null"],
+                        "title": "Motifs de mise en conformité",
+                        "oneOf": [
+                            {"const":null,"title":""},
+                            {"const":"creationBoite","title":"Création d'une boîte de branchement"},
+                            {"const":"separationEPEU","title":"Séparation des EU et des EP dans le regard mixte"},
+                            {"const":"suppressionDecantation","title":"Suppression de la décantation"},
+                            {"const":"creationNouvelleBoite","title":"Création d'une nouvelle boîte de branchement"},
+                            {"const":"accesibiliteBoite","title":"Boîte de branchement rendu accessible"},
+                            {"const":"deconnexionANC","title":"Installation d'ANC déconnectée du branchement"},
+                            {"const":"suppressionDeversement","title":"Suppression du déversement de la nappe dans le branchement d'eaux usées"},
+                            {"const":"retablissementEcoulement","title":"Rétablissement de l'écoulement dans le réseau privé"},
+                            {"const":"autre","title":"Autre"}
+                        ],
+                        "readonly": false
+                    },
+                    "motifMiseEnConformiteAutre": {
+                        "type": ["string","null"],
+                        "title": "Autres motifs de mise en conformité",
+                        "visible": "$('1/motifMiseEnConformite') === 'autre'",
+                        "readonly": false
+                    },
+                    "conformiteCommentaire": {
+                        "type": ["string","null"],
+                        "title": "Commentaire conformité",
+                        "maxLength": 1000,
+                        "readonly": false
+                    }
+                },
+                "required":[
+
+                ]
+            },
+            "taskbranchement":{
+                "type":["object","null"],
+                "title":"Contrôle branchement (RAC)",
+                "abstract":"Contrôle branchement (RAC) ${value.assetlibelle} ${value.assetid} ${value.conformite.conformite}",
+                "properties":{
+                    "taskType":{
+                        "const": "taskBranchement",
+                        "visible":false
+                    },
+                    "assetLibelle":{
+                        "type":["string","null"],
+                        "title": "Libellé du Branchement",
+                        "refTo":"#/listeAsset/id"
+                    },
+                    "assetId":{
+                        "type":["string","null"],
+                        "title": "Identifiant ECA du Branchement",
+                        "expression":"String($('#/listeAsset').find(asset => asset.id == $('1/assetLibelle')).id)",
+                        "readonly":true
+                    },
+                    "branchementType":{
+                        "type":["string","null"],
+                        "title": "Type de réseau",
+                        "readonly":true,
+                        "expression":"String($('#/listeAsset').find(asset => asset.id == $('1/assetLibelle')).typeReseau)"
+                    },
+                    "controle":{
+                        "$ref": "#/definitions/ctrlBranchementRac",
+                        "collapsed":true,
+                        "title":"Contôle branchement RAC"
+                    },
+                    "conformite":{
+                        "$ref": "#/definitions/taskConformiteBranch",
+                        "collapsed":true,
+                        "title":"Conformité du branchement"
+
+                    }
+                }
+            }
+        },
+        "type": ["object","null"],
+        "title": "Controle de conformité",
+        "abstract":"Numero d'intervention: ${value.donneeAdmin.numITV}",
+        "properties": {
+            "donneeAdmin": {
+                "$ref": "#/definitions/donneeAdministratives",
+                "abstract": " ",
+                "collapsed":"true",
+                "group": "PDC",
+                "tab": "tabpdc",
+                "visible":true
+            },          
+            "infoPDC": {
+                "$ref": "#/definitions/informationPDC",
+                "abstract": " ",
+                "collapsed":"true",
+                "group": "PDC",
+                "tab": "tabpdc",
+                "visible":true
+            },
+            "infoContact": {
+                "$ref": "#/definitions/informationContact",
+                "abstract": " ",
+                "collapsed":"true",
+                "group": "PDC",
+                "tab": "tabpdc",
+                "visible":true
+            },
+            "infoParcelle": {
+                "$ref": "#/definitions/informationParcelle",
+                "abstract": " ",
+                "collapsed":"true",
+                "group": "PDC",
+                "tab": "tabpdc",
+                "visible":true
+            },
+            "document": {
+                "$ref": "#/definitions/documents",
+                "abstract": " ",
+                "collapsed":"true",
+                "group": "PDC",
+                "tab": "tabpdc",
+                "visible":true
+            },
+            "commentaire": {
+                "$ref": "#/definitions/commentaire",
+                "abstract": " ",
+                "collapsed":"true",
+                "group": "PDC",
+                "tab": "tabpdc",
+                "visible":true
+            },
+            "listeAsset": {
+                "$ref": "#/definitions/listeAsset",
+                "abstract": " ",
+                "collapsed":"true",
+                "group": "PDC",
+                "tab": "tabpdc",
+                "visible":true
+            },
+            "listeControle": {
+                "type": ["array","null"],
+                "items": {
+                    "type": ["integer","null"],
+                    "oneOf": [
+                        {"case":"value.taskType=='taskBranchement'","$ref" : "#/definitions/taskbranchement"}
+                    ]
+                },
+                "title": "Liste",
+                "group": "Contrôles",
+                "tab": "tabpdc"
+            },
+            "signature": {
+                "$ref": "#/definitions/signature",
+                "abstract": "Signé à ${value.lieuSignature} le ${value.dateSignature} ",
+                "collapsed":"false",
+                "group": "Signature",
+                "tab": "tabpdc"
+            },
+            "conformitePDC": {
+                "$ref": "#/definitions/conformitePDC",
+                "abstract": "${value.conformite}       ${value.complementConformite}",
+                "collapsed":"false",
+                "group": "Conformité du PDC",
+                "tab": "tabpdc"
+            }
+        }
+    },
+    "data": {
+        "donneeAdmin": {
+            "TOTO": "TOTO",
+            "numITV": "BABABABABABABABA",
+            "datePrevue": "2021-10-31",
+            "dateITV": "2021-10-31",
+            "contrat": "Code contrat BANCO",
+            "contratLib": "Nom contrat BANCO",
+            "typeControle": "type de contrôle",
+            "typeVisite": "type de visite",
+            "agentAffecte": "Personne en charge du controle",
+            "ReferenceSPANCNumeroDossier": "Référence SPANC/No. dossier",
+            "installateur": "Installateur"
+        },
+        "infoPDC":{
+            "idECA": "identifiant ECA",
+            "idPDC": "AAAA",
+            "typePDC": null,
+            "typePropriete": null,
+            "nonDomestique": true,
+            "activiteNonDomestique": null,
+            "nbOccupant": 0,
+            "adressePDC": {
+                "numero": "1",
+                "repetition": "Indicateur de répétition",
+                "nomVoie": "Nom de la voie",
+                "complement": "Complément d'adresse",
+                "codePostal": "75001",
+                "commune": "Commune"
+                },
+            "dernierEtatControle": "Etat de conformité du dernier contôle",
+            "dateDernierEtatControle": "2021-10-31",
+            "dernierRapport": "FICHIER Rapport de l'enquête précédente"
+        },
+        "infoContact":{
+            "clientITV": {
+                "civilite": "mr",
+                "nom": "Nom",
+                "prenom": "Prénom",
+                "numeroTel": "Numéro de téléphone fixe",
+                "numeroMobile": "Numéro de téléphone portable",
+                "email": "Adresse e-mail",
+                "adresse":  "Adresse complète (si différente de celle du PDC)"
+            },
+            "contactITV": {
+                "civilite": null,
+                "nom": "MARTIN",
+                "prenom": "TOTO",
+                "numeroTel": "+33(0)683501512",
+                "numeroMobile": "+33(0)683501513",
+                "email": "null",
+                "adresse": "null"
+            },
+            "contacts": [
+                {"type": null,
+                "fonction": null,
+                "autreFonction": "Autre fonction",
+                "numeroSiret": "No SIRET",
+                "raisonSociale": "Raison Sociale",
+                "ajoutContactPhysique": true,
+                "civilite": "mr",
+                "nom": "Nom",
+                "prenom": "Prénom",
+                "numeroTel": "0123456789",
+                "numeroMobile": "0123456789",
+                "email": "EMAIL email",
+                "adresse": "Adresse"
+                },
+                {"type": null,
+                    "fonction": null,
+                    "autreFonction": "Autre fonction",
+                    "numeroSiret": "No SIRET",
+                    "raisonSociale": "Raison Sociale",
+                    "ajoutContactPhysique": true,
+                    "civilite": "mr",
+                    "nom": "Nom",
+                    "prenom": "Prénom",
+                    "numeroTel": "0123456789",
+                    "numeroMobile": "0123456789",
+                    "email": "EMAIL email",
+                    "adresse": "Adresse"
+                    }
+            ],
+            "contactVisite": null,
+            "contactDestinataire": null
+        },
+        "infoParcelle":{
+            "parcelles": ["N° de parcelle cadastrale","..."],
+            "permisConstruire": [
+                {"numeroPC": "Numero de permis de construire",
+                 "anneePC": 2021
+                },
+                {"numeroPC": "Numero de permis de construire",
+                    "anneePC": 2021
+                   }
+            ],
+            "certificatUrbanisme": "Certificat d'urbanisme",
+            "nombreAppartement": 2,
+            "referenceExterneCollectivite": "Référence externe(Communication avec collectivité)"
+        },
+        "document": {
+            "documents": "FICHIER"
+        },
+        "commentaire": {
+            "commentaireClient":"Commentaire client",
+            "commentaireInterne":"Commentaire interne"
+        },
+        "listeAsset": [
+            {
+                "typeAsset": "branchement",
+                "id": "c0b4796a-40af-11ec-973a-0242ac130003",
+                "libelle": "Libellé du branchement",
+                "numeroSIG": "Numéro du branchement SIG (après mise à jour SIG)",
+                "adrIdentique": null,
+                "adresse": {
+                    "numero": "25",
+                    "repetition": "Indicateur de répétition",
+                    "nomVoie": "Nom de la voie",
+                    "complement": "Complément d'adresse",
+                    "codePostal": "75001",
+                    "commune": "Commune"
+                },
+                "typeReseau": null,
+                "maitreOuvrageReseau": null,
+                "maitreOuvrage": "Maitre d'ouvrage du réseau sur lequel est raccordé le branchement:",
+                "anneeRaccordement": 2021,
+                "systemeAssainissement": "Système d'assainissement:",
+                "bassinCollecte": "Bassin de collecte/Bassin versant:",
+                "libre1": "Champ libre 1:",
+                "libre2": "Champ libre 2:",
+                "libre3": "Champ libre 3:",
+                "branchementAccessible": "Branchement accessible:",
+                "boiteBranchement": "Possédant une boîte de branchement en limite de propriété",
+                "patrimoineAmont": ["Patrimoine amont:","..."],
+                "dernierEtatConformite": "Etat de conformité dernier contrôle",
+                "dateDerniereEnquete": "Date de réalisation de la dernière enquête",
+                "commentaireDerniereEnquete": "Commentaire de la dernière enquête"
+            },
+            {
+                "typeAsset": "equipementEP",
+                "id": "cb019390-4171-11ec-81d3-0242ac130003",
+                "equipementEPType": null,
+                "autreType": "Si Autre, lequel?:",
+                "libelle": "Libellé de l'équipement EP",
+                "referenceExterne": "Référence externe",
+                "localisation": "Localisation",
+                "libre1": "Champ libre 1:",
+                "libre2": "Champ libre 2:",
+                "libre3": "Champ libre 3:",
+                "exutoire": "Exutoire",
+                "patrimoineAval": "Patrimoine aval:",
+                "dernierEtatConformite": "Etat de conformité dernier contrôle",
+                "dateDerniereEnquete": "Date de réalisation de la dernière enquête",
+                "commentaireDerniereEnquete": "Commentaire de la dernière enquête"
+            },
+            {
+                "typeAsset":"equipementEURAC",
+                "id": "e06e64ec-4171-11ec-81d3-0242ac130003",
+                "equipementEURACType":null,
+                "autreType":"Si Autre, lequel?:",
+                "siphon": null,
+                "libelle": "Libellé de l'équipement EU RAC",
+                "referenceExterne": "Référence externe",
+                "localisation": "Localisation",
+                "libre1": "Champ libre 1:",
+                "libre2": "Champ libre 2:",
+                "libre3": "Champ libre 3:",
+                "exutoire": "Exutoire",
+                "patrimoineAval": "Patrimoine aval:",
+                "dernierEtatConformite": "Etat de conformité dernier contrôle",
+                "dateDerniereEnquete": "Date de réalisation de la dernière enquête",
+                "commentaireDerniereEnquete": "Commentaire de la dernière enquête"
+                
+            },
+            {
+                "typeAsset":"ouvrageEP",
+                "id": "eae1c9dc-4171-11ec-81d3-0242ac130003",
+                "ouvrageEPType": null,
+                "autreType": "Si Autre, lequel?:",
+                "libelle": "Libellé de l'ouvrage EP",
+                "referenceExterne": "Référence externe",
+                "dimensionLongueur": "Longueur (m) (Dimension)",
+                "dimensionLargeur": "Largeur (m) (Dimension)",
+                "dimensionHauteur": "Hauteur (m) (Dimension)",
+                "nbArrivee": "Nombre d'arrivées",
+                "regulation": [null],
+                "hauteurRefoulement": "Hauteur refoulement (m)",
+                "nbRegulation": null,
+                "modele": "Modèle",
+                "suverse": "Suverses",
+                "hauteur": "Hauteur (m)",
+                "localisation": "Localisation",
+                "libre1": "Champ libre 1:",
+                "libre2": "Champ libre 2:",
+                "libre3": "Champ libre 3:",
+                "exutoire": "Exutoire",
+                "patrimoineAmont": ["Patrimoine amont:","..."],
+                "patrimoineAval": "Patrimoine aval:",
+                "dernierEtatConformite": "Etat de conformité dernier contrôle",
+                "dateDerniereEnquete": "Date de réalisation de la dernière enquête",
+                "commentaireDerniereEnquete": "Commentaire de la dernière enquête"
+            },
+            {
+                "typeAsset":"ouvrageEUANC",
+                "id": "f5d93e4c-4171-11ec-81d3-0242ac130003",
+                "ouvrageEUANCType": null,
+                "autreType": "Si Autre, lequel?:",
+                "libelle": "Libellé de l'ouvrage EU ANC",
+                "referenceExterne": "Référence externe",
+                "localisation": "Localisation",
+                "libre1": "Champ libre 1:",
+                "libre2": "Champ libre 2:",
+                "libre3": "Champ libre 3:",
+                "patrimoineAmont": ["Patrimoine amont:","..."],
+                "patrimoineAval": "Patrimoine aval:",
+                "dernierEtatConformite": "Etat de conformité dernier contrôle",
+                "dateDerniereEnquete": "Date de réalisation de la dernière enquête",
+                "commentaireDerniereEnquete": "Commentaire de la dernière enquête"
+            },
+            {
+                "typeAsset":"ouvrageEURAC",
+                "id": "019df33a-4172-11ec-81d3-0242ac130003",
+                "ouvrageEURACType": null,
+                "autreType": "Si Autre, lequel?:",
+                "libelle": "Libellé de l'ouvrage EU RAC",
+                "referenceExterne": "Référence externe",
+                "localisation": "Localisation",
+                "libre1": "Champ libre 1:",
+                "libre2": "Champ libre 2:",
+                "libre3": "Champ libre 3:",
+                "exutoire": "Exutoire",
+                "patrimoineAmont": ["Patrimoine amont:","..."],
+                "patrimoineAval": "Patrimoine aval:",
+                "dernierEtatConformite": "Etat de conformité dernier contrôle",
+                "dateDerniereEnquete": "Date de réalisation de la dernière enquête",
+                "commentaireDerniereEnquete": "Commentaire de la dernière enquête"
+            }
+        ],
+        "listeControle":[
+
+        ],
+        "conformitePDC":{
+            "conformiteEvalue": null,
+            "conformite": null,
+            "complementConformite": null,
+            "commentaireConformite": "Commentaire conformité"
+        },
+        "signature": null
+    }
+}

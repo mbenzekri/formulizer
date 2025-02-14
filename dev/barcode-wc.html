@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<html lang="en">
+
+<head>
+    <title></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="../build/formulizer.js"></script>
+</head>
+
+<body>
+
+  <button type="button" class="btn btn-primary" onclick='modal.open()'>Launch Photo</button>
+  <fz-barcode-dlg></fz-barcode-dlg>
+
+  <script>
+    // Get the modal
+    var modal = document.querySelector('fz-barcode-dlg');
+    modal.addEventListener("close",evt => { 
+      alert(`dialog closed ${evt.detail.dismissed ? 'DISMISSED' : `${evt.detail.imageBitmap.width} x ${evt.detail.imageBitmap.height}` }`)
+    })
+  </script>
+</body>
+
+</html>

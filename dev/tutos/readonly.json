@@ -1,0 +1,31 @@
+{
+    "form": {
+        "type": "object",
+        "title" : "Demo readonly",
+        "properties": {
+            "id": {
+                "title": "userid",
+                "type": "string",
+                "readonly" : true
+            },
+            "changemdp": {
+                "title": "Changer mon Mot de passe",
+                "type": "boolean"
+            },
+            "mdp": {
+                "title": "Mot de passe",
+                "type": "string",
+                "format": "password",
+                "readonly" : "!$('#/changemdp')"
+            }
+        },
+        "required" : ["prenom","nom"]
+    },
+    "data" : {
+        "id": "9361c453-be21-4d94-a600-66f8f0bdeeb3",
+        "prenom" :"Jules",
+        "nom":"Beaulieu",
+        "age": 35,
+        "mdp": "1234567890"
+    }
+}

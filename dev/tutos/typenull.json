@@ -1,0 +1,26 @@
+{
+    "form": {
+        "type": "object",
+        "title" : "type array null",
+        "properties": {
+            "string_field": {
+                "type": ["string", "null"]
+            },
+            "boolean_field": {
+                "type": ["null", "boolean"]
+            },
+            "integer_field": {
+                "type": ["integer", "null"]
+            },
+            "number_field": {
+                "type": ["null", "number"]
+            }
+        }
+    },
+    "data" : {
+        "string_field": null,
+        "boolean_field": null,
+        "integer_field": 35,
+        "number_field": null
+    }
+}

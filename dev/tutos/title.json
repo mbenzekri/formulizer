@@ -1,0 +1,61 @@
+{
+    "form": {
+        "type": "object",
+        "title" : "Demo title",
+        "properties": {
+            "nom": {
+                "type": "string",
+                "title": "Nom"
+            },
+            "age": {
+                "type": "integer",
+                "title": "Age"
+            },
+            "taille": {
+                "type": "number",
+                "title": "Taille"
+            },
+            "permisb": {
+                "type": "boolean",
+                "title": "J'ai le permis"
+            },
+            "couleurs": {
+                "type": "array",
+                "title": "mes couleurs",
+                "items": {
+                    "type": "string",
+                    "enum": [
+                        "blanc",
+                        "noir",
+                        "rouge",
+                        "vert",
+                        "bleu",
+                        "jaune",
+                        "violet"
+                    ]
+                }
+            },
+            "adresse": {
+                "type": "object",
+                "title": "Adresse",
+                "properties": {
+                    "no": {
+                        "type": "integer",
+                        "title": "No"
+                    },
+                    "rue": {
+                        "type": "string",
+                        "title": "Voie"
+                    },
+                    "commune": {
+                        "type": "string",
+                        "title": "Ville"
+                    }
+                }
+            }
+        }
+    },
+    "data": {
+        "adresse" : {}
+    }
+}

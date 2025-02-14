@@ -1,0 +1,29 @@
+{
+    "form": {
+        "type": "object",
+        "title": "Demo visible (test change conformity)",
+        "properties": {
+            "conformity": {
+                "type": "string",
+                "title": "Conformity status",
+                "enum" :  ["Conform", "Not Conform", "Not Conform, bypass"],
+                "default" : "Conform"
+            },
+            "reason": {
+                "type": "string",
+                "title": "Not conform reason",
+                "maxLength": 500,
+                "visible": "$('1/conformity') !== 'Conform'"
+            },
+            "bypass": {
+                "type": "string",
+                "title": "Why you bypass",
+                "maxLength": 500,
+                "visible": "$('1/conformity') == 'Not Conform, bypass'"
+            }
+        }
+    },
+    "data": {
+        "conformity" : "Not Conform"
+    }
+}

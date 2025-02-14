@@ -1,0 +1,30 @@
+{
+    "form": {
+        "type": "object",
+        "title" : "required and requiredWhen demo",
+        "properties": {
+            "prenom": {
+                "title": "Prénom",
+                "type": "string"
+            },
+            "nom": {
+                "title": "Nom",
+                "type": "string"
+            },
+            "age": {
+                "title": "Age",
+                "type": "integer"
+            },
+            "phone": {
+                "title": "Tél",
+                "type": "integer",
+                "requiredWhen": "$('#/age') >= 18"
+            }
+        },
+        "required" : ["prenom","nom"]
+    },
+    "data" : {
+        "nom":"Dupont",
+        "prenom":"Toto"
+    }
+}

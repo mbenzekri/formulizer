@@ -1,0 +1,60 @@
+{
+    "form": {
+        "type": "object",
+        "title" : "Demo asset",
+        "properties": {
+            "capital": {
+                "title" : "Une capitale",
+                "type": "string",
+                "format": "asset",
+                "assets": { "id" : "city", "class" : "CAPITALS"}
+            },
+            "country": {
+                "title" : "Un pays",
+                "type": "string",
+                "format": "asset",
+                "assets": { "id" : "name", "class" : "COUNTRIES"}
+            },
+            "desc" : {
+                "type" : "string",
+                "format" : "markdown",
+                "expression": [
+                    "**Usage** :", 
+                    ">Le format __\"asset\"__ permet de collecter des références ou accroches sur des éléments connus/gérés par l'application appelante ", 
+                    "(patrimoine, référentiel ou autre ...).",
+                    ">Le format __\"asset\"__ est à utiliser conjointement avec la propriété __\"asset\"__ et l'options __\"asset\"__.",
+                    "- le [format __\"asset\"__](https://github.com/Suezenv/pi-sami-form/wiki/JSON-Schema-Form#string-format-voir-formatdemo-) indique que ",
+                    "le champs cible est une référence externe gérée par l'application appelante à l'aide de la propriété asset",
+                    "- la [propriété __\"assets\"__](https://github.com/Suezenv/pi-sami-form/wiki/JSON-Schema-Form#propri%C3%A9t%C3%A9s-ajout%C3%A9es) dont ",
+                    "le type est libre permet d'indiquer les éléments à selectionner et la valeur à retourner ",
+                    "ou de fixer les paramètres de la selection",
+                    "- l'[option __\"asset\"__](https://github.com/Suezenv/pi-sami-form/wiki/Documentation-utilisateur#optionsasset) fourni par le contexte ",
+                    "appelant offre les callnback de mise en oeuvre de la selection au travers des methodes select() et done()" ,
+                    "\\`\\`\\`",
+                    "${ JSON.stringify({ type : 'string', format : 'asset' , assets : { id : 'ident', class : 'COUNTRIES' }, '...' : '...' },null,4) }",
+                    "\\`\\`\\`",
+                    "",
+                    "fz-form attribut [**options.asset**](https://github.com/Suezenv/pi-sami-form/wiki/Documentation-utilisateur#optionsasset) ",
+                    "\\`\\`\\`",
+                    "{",
+                    "    \"asset\" : {", 
+                    "        \"select\" : (assets, value, seleccb) => {", 
+                    "               // cette fonction est appelé lorsque la selection est attendu (clic mappemonde)",
+                    "               // le paramètre assets correspond à la propriété \"assets\" ",
+                    "               // le paramètre value est la valeur actuelle du champ",
+                    "               // le paramètre selectcb est un fonction à appeler avec chaque nouvelle valeur selectionnée",
+                    "        },",
+                    "        \"done\" : () => {", 
+                    "               // cette fonction est appelé lorsque la selection est terminé (clic valider/annuler)",
+                    "        },",
+                    "    }",
+                    "}",
+                    "\\`\\`\\`"
+                ]
+            }
+        }
+    },
+    "data" : {
+
+    }
+}

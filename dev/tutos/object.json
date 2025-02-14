@@ -1,0 +1,23 @@
+{
+    "form": {
+        "type": "object",
+        "title" : "Demo object",
+        "visible": true,
+        "properties": {
+            "prenom": {
+                "title": "Prénom",
+                "type": "string"
+            },
+            "nom": {
+                "title": "Nom",
+                "type": "string"
+            },
+            "age": {
+                "title": "Age",
+                "type": "integer"
+            }
+        },
+        "required" : ["prenom","age"]
+    },
+    "data" : { "prenom": "Marc", "age": 222}
+}

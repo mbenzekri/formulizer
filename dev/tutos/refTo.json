@@ -1,0 +1,452 @@
+{
+    "form": {
+        "definitions": {
+            "team": {
+                "type": "object",
+                "abstract" : "${value.name}",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "desc": {
+                        "type": "string",
+                        "maxLength" : 4000
+                    }
+                }
+            },
+            "hero": {
+                "type": "object",
+                "abstract": "${value.name}${value.alias ? ' (' + value.alias + ')' : ''}",
+                "properties":{
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "alias": {
+                        "type": "string"
+                    },
+                    "teams": {
+                        "type":"array",
+                        "items":{
+                            "type":"string",
+                            "refTo": "#/teams/id",
+                            "addTo": true
+                        }
+                    }
+                },
+                "required":["id","name"]
+            },
+            "myteam": {
+                "type": "object",
+                "abstract": "${value.name} ⇨ ${value.heroes?.length ?? 0} heroe(s) ",
+                "properties":{
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "desc": {
+                        "title": "",
+                        "type": "string",
+                        "maxLength" : 4000
+                    },
+                    "heroes": {
+                        "type":"array",
+                        "title": "",
+                        "items":{
+                            "type":"string",
+                            "refTo": "#/heroes/id",
+                            "addTo": true
+                        }
+                    }
+                },
+                "required":["id","name"]
+
+            }
+        },
+        "type": "object",
+        "title": "Demo enum",
+        "properties": {
+            "myteams": {
+                "type": "array",
+                "items": {"$ref": "#/definitions/myteam"},
+                "title": "",
+                "group": "Mes équipes",
+                "tab": "general"
+            },
+            "heroes": {
+                "type": "array",
+                "items": {"$ref": "#/definitions/hero"},
+                "title": "",
+                "group": "Super-Héros",
+                "tab": "general"
+            },
+            "teams": {
+                "type": "array",
+                "items": {"$ref": "#/definitions/team"},
+                "title": "",
+                "group": "Teams",
+                "tab": "general"
+            }
+        }
+    },
+    "data": {
+        "teams": [
+            {
+                "id": "1-asgardien",
+                "name": "Les Asgardiens",
+                "desc": "Les dieux possèdent certains attributs physiques surhumains. Ils possèdent une espérance de vie extrêmement longue (bien qu’ils ne soient pas immortels comme les dieux de l’Olympe) ; ils vieillissent ainsi à un rythme extrêmement lent à partir du moment où ils ont atteint l’âge adulte (leur espérance de vie se chiffre en milliers d’années) ; Les tissus organiques des Asgardiens – chair, muscles, os – sont environ trois fois plus denses que les tissus similaires des humains, ce qui contribue à leur donner des capacités physiques supérieures à celles des mortels. Ainsi, un Asgardien typique est capable de soulever environ 30 tonne. Les dieux sont immunisés aux maladies terrestres et résistants aux blessures conventionnelles ; si un Asgardien est blessé, il est capable de récupérer bien plus vite qu’un humain. Tous les Asgardiens naissent avec le potentiel pour manipuler et contrôler les énergies mystiques afin d’en obtenir divers effets, même si seuls quelques uns d’entre eux ont développé cette faculté à un degré notable. Si un Asgardien décède, sa place dans un monde de l’au-delà est déterminée par les circonstances de sa mort. S’il meurt au combat, les Valkyries viennent chercher son âme pour la conduire au Valhalla, le palais d’Odin où elle passera une éternité à festoyer et guerroyer. Les âmes des Asgardiens qui ne sont pas morts à la bataille sont emmenées à Hel, le royaume glacé de Héla, la déesse asgardienne de la mort."
+            },
+            {
+                "id": "2-avengers",
+                "name": "Les Avengers",
+                "desc": "Les Avengers rassemblent les plus grands héros de la Terre, réunis pour combattre les menaces face auxquelles un seul héros ne peut faire face. Formés des héros parmi les plus prestigieux et les plus puissants, les Avengers défendent la planète, et parfois l'univers, des menaces dépassant les autorités conventionnelles. Le groupe naquit après une alliance occasionnelle du premier Ant-Man (Hank Pym), sa coéquipière la Guêpe, l'incroyable Hulk, Iron-Man (Tony Stark) et Thor, le Dieu du Tonnerre, afin de contrecarrer la menace de l'Asgardien Loki, demi-frère de ce dernier. Les fondateurs furent réunis involontairement par Loki, qui fit accuser à tort Hulk d'une tentative de déraillement de train (que le titan vert avait en fait sauvé après que le dieu du mal avait menacé le train). Hulk devint alors un fugitif recherché par les autorités et son coéquipier adolescent, Rick Jones, avec ses amis de la Brigade des Jeunes, envoya un appel de détresse aux Quatre Fantastiques ; cependant, Loki, à la recherche d'un piège pour son demi-frère, détourna le message de Jones pour qu'il atteigne Thor. Par hasard, le message radio détourné atteignit également Tony Stark, Hank Pym et Janet van Dyne. Travaillant de concert, les quatre héros retrouvèrent Hulk et, avec ce dernier, ils démasquèrent et triomphèrent de Loki. Pym suggéra alors qu'ils demeurent ensembles en tant qu'équipe et la Guêpe proposa un nom « épique et imagé » pour le groupe : les Avengers."
+            },
+            {
+                "id": "3-xmen",
+                "name": "Les X-Men",
+                "desc": "Pour tenter de faire face au sentiment anti-mutant croissant, le professeur Xavier, mutant télépathe, décida de créer un havre de paix pour ses semblables et d’apprendre aux jeunes mutants venant de découvrir leurs talents à les contrôler et à les mettre au service d’un monde qui les craint et les hait. Il mit au point cérébro, une machine capable d’amplifier ses pouvoirs mentaux pour détecter les mutants où qu’ils se trouvent sur Terre. Aidé de l’agent du FBI Fred Duncan, Xavier passa plusieurs mois à tenter de rassembler un groupe de mutants : Scott Summers (alias Cyclope) qu’il sauva de l’influence d’un super-vilain Jack O’Diamond, Robert Drake (alias Icebegr), Warren Worthington III (alias Angel), Henry McCoy (alias le Fauve) et Jean Grey (alias Marvel Girl), la fille télékinésiste et télépathe d’un de ses amis, John Grey. Il les surnomma les X-Men, car ils étaient dotés du gène X, le gène qui leur conférait leurs incroyables talents et fit de Cyclope leur leader. "
+            },
+            {
+                "id": "4-inhumains",
+                "name": "Les Inhumains",
+                "desc": "Il y a environ 25000 ans, un vaisseau de patrouille kree circulant dans le système solaire abattu un vaisseau conduit par les Eternels, une branche de l’humanité qui avait été créée sur Terre par les Célestes. Les scientifiques krees étudièrent l’un des Eternels qui avait été capturé, Arlok, et furent fascinés par ses pouvoirs surhumains. Réalisant que les Terriens possédaient un potentiel génétique unique, les Krees envoyèrent une expédition scientifique sur la Terre qui accomplit plusieurs expériences sur les humains, dans le but de créer une armée de surhumains à leur service. Leurs créations possédaient une force supérieure à la moyenne et une espérance de vie allongée ; cependant, pour des raisons encore inconnues de nos jours, les Krees abandonnèrent finalement leurs créations et les humains évolués, bientôt baptisés les Inhumains, créèrent leur propre société à part du reste de l’humanité. Il est récemment apparu que les Krees réalisèrent les mêmes expériences sur plusieurs autres races extra-terrestres, conduisant à la création d’êtres surhumains parmi ses espèces."
+            },
+            {
+                "id": "5-4fantastiques",
+                "name": "les 4 fantastiques",
+                "desc": "Red Richards était un brillant scientifique déterminé à traverser l’hyperespace afin de pouvoir atteindre un nouveau système solaire ; il convainquit son vieil ami de l’université, Benjamin J. Grimm, sa petite amie, Jane Storm, et le frère adolescent de celle-ci, Johnny Storm, de se joindre à l’équipage du vaisseau. Cependant, ils n’étaient pas encore éloignés de la Terre qu’une explosion solaire irradia temporairement la ceinture de Van Allen de la Terre, provoquant une projection de radiations cosmiques ; celles-ci pénétrèrent leurs boucliers, provoquant leur irradiation. Grimm réussit à crasher la fusée sur le sol terrestre et les quatre amis survécurent. Cependant, les radiations les avaient affectés : Jane Storm fut la première à démontrer les effets des rayons cosmiques quand elle devint totalement invisible ; puis, Grimm se transforma en une créature écailleuse à la peau orange alors que le corps de Richards devenait malléable comme du caoutchouc. Finalement, Johnny Storm découvrit qu’il pouvait s’enflammer sans se consumer ou souffrir. Richards convainquit ses trois amis d’utiliser leurs nouveaux pouvoirs pour le bien de l’humanité."
+            },
+            {
+                "id": "5-olypiens",
+                "name": "les Olympiens",
+                "desc": "Les Olympiens sont tous bien plus robustes que les mortels de la Terre ; un dieu typique peut soulever ainsi 25 tonnes. Ils ne vieillissent plus une fois qu’ils ont atteint l’âge adulte (et certains d’entre eux sont même nés entièrement adultes), sont immunisés contre toutes les maladies terrestres et sont extrêmement résistants aux dégâts. Avec le temps, ils sont capables de récupérer d’à peu près n’importe quelle blessure. Certains dieux ont, en plus, des pouvoirs « magiques » comme, par exemple, Neptune qui, en tant que dieu des océans, possède un contrôle étendu sur l’eau. Virtuellement tous les dieux de l’Olympe tirent leur puissance par l’intermédiaire de Zeus et sont ainsi liés à la Flamme prométhéenne, qui est localisé dans le Temple de la Flamme prométhéenne dans le Palais de Zeus sur l’Olympe."
+            }
+        ],
+        "heroes": [
+            {
+                "id": "1",
+                "name": "Balder",
+                "teams": [
+                    "1-asgardien"
+                ]
+            },
+            {
+                "id": "2",
+                "name": "Fandral",
+                "teams": [
+                    "1-asgardien"
+                ]
+            },
+            {
+                "id": "3",
+                "name": "Frigga",
+                "teams": [
+                    "1-asgardien"
+                ]
+            },
+            {
+                "id": "4",
+                "name": "Heimdall",
+                "teams": [
+                    "1-asgardien"
+                ]
+            },
+            {
+                "id": "5",
+                "name": "Hogun",
+                "teams": [
+                    "1-asgardien"
+                ]
+            },
+            {
+                "id": "6",
+                "name": "Odin",
+                "teams": [
+                    "1-asgardien"
+                ]
+            },
+            {
+                "id": "7",
+                "name": "Sif",
+                "teams": [
+                    "1-asgardien"
+                ]
+            },
+            {
+                "id": "8",
+                "name": "Thor",
+                "teams": [
+                    "1-asgardien",
+                    "2-avengers"
+                ]
+            },
+            {
+                "id": "9",
+                "name": "Volstagg",
+                "teams": [
+                    "1-asgardien"
+                ]
+            },
+            {
+                "id": "10",
+                "alias": "Angel",
+                "name": "Warren Kenneth Worthington III",
+                "teams": [
+                    "3-xmen"
+                ]
+            },
+            {
+                "id": "11",
+                "alias": "Cyclope",
+                "name": "Scott Summers",
+                "teams": [
+                    "3-xmen"
+                ]
+            },
+            {
+                "id": "12",
+                "alias": "Fauve",
+                "name": "Hank McKoy",
+                "teams": [
+                    "3-xmen"
+                ]
+            },
+            {
+                "id": "13",
+                "alias": "Phénix",
+                "name": "Jean Grey",
+                "teams": [
+                    "3-xmen"
+                ]
+            },
+            {
+                "id": "14",
+                "alias": "Iceberg",
+                "name": "Bobby Louis Drake",
+                "teams": [
+                    "3-xmen"
+                ]
+            },
+            {
+                "id": "15",
+                "alias": "Professeur X",
+                "name": "Professeur Xavier",
+                "teams": [
+                    "3-xmen"
+                ]
+            },
+            {
+                "id": "16",
+                "alias": "Ant-Man",
+                "name": "Scott Lang",
+                "teams": [
+                    "2-avengers"
+                ]
+            },
+            {
+                "id": "17",
+                "alias": "Faucon",
+                "name": "Sam Wilson",
+                "teams": [
+                    "2-avengers"
+                ]
+            },
+            {
+                "id": "18",
+                "alias": "La Guêpe",
+                "name": "Hope van Dyne",
+                "teams": [
+                    "2-avengers"
+                ]
+            },
+            {
+                "id": "19",
+                "alias": "Hulk",
+                "name": "Bruce Banner",
+                "teams": [
+                    "2-avengers"
+                ]
+            },
+            {
+                "id": "20",
+                "alias": "Iron Man",
+                "name": "Tony Stark",
+                "teams": [
+                    "2-avengers"
+                ]
+            },
+            {
+                "id": "211",
+                "alias": "Hawkeye",
+                "name": "Clint Barton",
+                "teams": [
+                    "2-avengers"
+                ]
+            },
+            {
+                "id": "22",
+                "alias": "Panthère noire",
+                "name": "T'Challa",
+                "teams": [
+                    "2-avengers"
+                ]
+            },
+            {
+                "id": "23",
+                "alias": "Spiderman",
+                "name": "Peter Parker",
+                "teams": [
+                    "2-avengers"
+                ]
+            },
+            {
+                "id": "24",
+                "alias": "Sorcière rouge",
+                "name": "Wanda Maximoff",
+                "teams": [
+                    "2-avengers"
+                ]
+            },
+            {
+                "id": "25",
+                "name": "Docteur Strange",
+                "teams": [
+                    "2-avengers"
+                ]
+            },
+            {
+                "id": "26",
+                "alias": "Veuve noire",
+                "name": "Natacha Romanov",
+                "teams": [
+                    "2-avengers"
+                ]
+            },
+            {
+                "id": "27",
+                "alias": "Vif-Argent",
+                "name": "Pietro Django Maximoff",
+                "teams": [
+                    "2-avengers"
+                ]
+            },
+            {
+                "id": "28",
+                "alias": "Flèche noire",
+                "name": "Blackagar Boltagon",
+                "teams": [
+                    "4-inhumains"
+                ]
+            },
+            {
+                "id": "29",
+                "alias": "Gorgone",
+                "name": "Tomi Shishido",
+                "teams": [
+                    "4-inhumains"
+                ]
+            },
+            {
+                "id": "30",
+                "alias": "Crystal",
+                "name": "Crystalia Amaquelin",
+                "teams": [
+                    "4-inhumains"
+                ]
+            },
+            {
+                "id": "31",
+                "alias": "Karnak",
+                "name": "Karnak Mander-Azur",
+                "teams": [
+                    "4-inhumains"
+                ]
+            },
+            {
+                "id": "32",
+                "alias": "Médusa",
+                "name": "Médusalith Amaquelin Boltagon",
+                "teams": [
+                    "4-inhumains"
+                ]
+            },
+            {
+                "id": "33",
+                "name": "Triton",
+                "teams": [
+                    "4-inhumains"
+                ]
+            },
+            {
+                "id": "34",
+                "alias": "La Femme invisible",
+                "name": "Jane Storm",
+                "teams": [
+                    "5-4fantastiques"
+                ]
+            },
+            {
+                "id": "35",
+                "alias": "La Chose",
+                "name": "Ben Grimm",
+                "teams": [
+                    "5-4fantastiques"
+                ]
+            },
+            {
+                "id": "36",
+                "alias": "Mr Fantastic",
+                "name": "Red Richards",
+                "teams": [
+                    "5-4fantastiques"
+                ]
+            },
+            {
+                "id": "37",
+                "alias": "Torche humaine",
+                "name": "Johnny Storm",
+                "teams": [
+                    "5-4fantastiques"
+                ]
+            },
+            {
+                "id": "38",
+                "name": "Athéna",
+                "teams": [
+                    "5-olypiens"
+                ]
+            },
+            {
+                "id": "39",
+                "name": "Héra",
+                "teams": [
+                    "5-olypiens"
+                ]
+            },
+            {
+                "id": "40",
+                "name": "Hercule",
+                "teams": [
+                    "5-olypiens"
+                ]
+            },
+            {
+                "id": "41",
+                "name": "Zeus",
+                "teams": [
+                    "5-olypiens"
+                ]
+            }
+        ]
+    }
+}

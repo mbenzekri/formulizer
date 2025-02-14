@@ -1,0 +1,17 @@
+{
+    "form": {
+        "type": "object",
+        "title" : "Demo ref (raccordé-raccordable)",
+        "properties": {
+            "raccordable": {
+                "type" : "string",
+                "title" : "Raccordable ?",
+                "enumRef" : "T_REF_RR",
+                "change" : "userdata.itv.CD_DOM_RR = value"
+            }
+        }
+    },
+    "data": {
+
+    }
+}

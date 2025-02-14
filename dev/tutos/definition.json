@@ -1,0 +1,95 @@
+{
+    "form": {
+        "definitions": {
+            "typeadr": {
+                "type": "string",
+                "enum": [
+                    "domicile",
+                    "travail",
+                    "vacances",
+                    "facturation",
+                    "autre"
+                ]
+            },
+            "adresse": {
+                "type": "object",
+                "title": "adresse",
+                "properties": {
+                    "type": {
+                        "$ref": "#/definitions/typeadr",
+                        "title": "type"
+                    },
+                    "voie": {
+                        "type": "string",
+                        "title" : "n° et Voie"
+                    },
+                    "commune": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "type",
+                    "voie",
+                    "commune"
+                ]
+            },
+            "boolynu": {
+                "type": "boolean",
+                "title": "Oui/Non/?",
+                "oneOf": [
+                    {
+                        "const": true,
+                        "title": "oui"
+                    },
+                    {
+                        "const": false,
+                        "title": "non"
+                    },
+                    {
+                        "const": null,
+                        "title": "inconnu"
+                    }
+                ]
+            }
+        },
+        "type": "object",
+        "title": "Demo definitions",
+        "properties": {
+            "nomcomplet": {
+                "type": "string", 
+                "title" : "Nom prenom"
+            },
+            "adresse": {
+                "$ref": "#/definitions/adresse", 
+                "title" : "Nom prenom"
+            },
+            "majeur": {
+                "$ref": "#/definitions/boolynu", 
+                "title" : "Je suis majeur",
+                "group" : "Questions"
+            },
+            "permisb": {
+                "$ref": "#/definitions/boolynu", 
+                "title" : "J'ai le permis B",
+                "group" : "Questions"
+            },
+            "deplacement": {
+                "$ref": "#/definitions/boolynu", 
+                "title" : "Je peux me déplacer",
+                "group" : "Questions"
+            }
+        }
+    },
+    "data": {
+        "nomcomplet" : "Jules Baudoin",
+        "adresse" : { 
+            "type" : "domicile",
+            "voie" : "24 rue Henri Martin",
+            "commune" : "PARIS"
+        },
+        "majeur" : true,
+        "permisb" : true,
+        "deplacement" : false
+
+    }
+}

@@ -1,0 +1,65 @@
+{
+    "form": {
+        "type": "object",
+        "title": "Demo collapsed",
+        "properties": {
+            "collapsedoninit": {
+                "type": "object",
+                "title": "collapsed on init",
+                "collapsed": "true",
+                "properties": {
+                    "civilite": {
+                        "type": "string",
+                        "title": "Civilite",
+                        "enum": [
+                            "M.",
+                            "Mme"
+                        ]
+                    },
+                    "nom": {
+                        "type": "string",
+                        "title": "Nom"
+                    },
+                    "prenom": {
+                        "type": "string",
+                        "title": "Prénom"
+                    }
+                }
+            },
+            "notcollapsed": {
+                "type": "object",
+                "title": "not collapsed on init",
+                "properties": {
+                    "civilite": {
+                        "type": "string",
+                        "title": "Civilite",
+                        "enum": [
+                            "M.",
+                            "Mme"
+                        ]
+                    },
+                    "nom": {
+                        "type": "string",
+                        "title": "Nom"
+                    },
+                    "prenom": {
+                        "type": "string",
+                        "title": "Prénom"
+                    }
+                }
+            }
+        }
+    },
+    "data": {
+        "collapsedoninit": {
+            "civilite": "Mme",
+            "prenom": "Ophélie",
+            "nom": "Pradon"
+        },
+        "notcollapsed": {
+            "civilite": "M.",
+            "prenom": "Jules",
+            "nom": "Beaufils"
+        }
+    }
+}

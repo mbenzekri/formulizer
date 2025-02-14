@@ -1,6 +1,6 @@
 import { LitElement, css /*, unsafeCSS, CSSResult, CSSResultGroup */} from 'lit';
 
-// Importation du CSS de Bootstrap en tant que chaîne de caractères
+// Import boostrap CSSs as a string
 import bootstrapCSS from 'bootstrap/dist/css/bootstrap.min.css';
 import bootstrapVarsCSS from './assets/bs_variables.css';
 

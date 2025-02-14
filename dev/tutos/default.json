@@ -1,0 +1,34 @@
+{
+    "form": {
+        "type": "object",
+        "title" : "Demo default",
+        "properties": {
+            "colors" : {
+                "type" : "array",
+                "items" : {
+                    "title" : "couleurs",
+                    "type": "object",
+                    "properties" : {
+                        "red": {
+                            "title": "rouge",
+                            "type": "integer",
+                            "default" : 255
+                        },
+                        "green": {
+                            "title": "vert",
+                            "type": "integer",
+                            "default" : 255
+                        },
+                        "blue": {
+                            "title": "bleu",
+                            "type": "integer",
+                            "default" : 255
+                        }
+                    }
+                }
+            }
+
+        }
+    },
+    "data" : {}
+}

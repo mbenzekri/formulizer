@@ -1,0 +1,20 @@
+{
+    "form": {
+        "type": "object",
+        "title" : "Demo string",
+        "properties": {
+            "field1": {
+                "title" : "champs longueur [5 à 8]",
+                "type": "string",
+                "maxLength" : 8,
+                "minLength" : 5
+            },
+            "field2": {
+                "title" : "champs alphabet majuscule",
+                "type": "string",
+                "pattern" : "^[A-Z]*$"
+            }
+        }
+    },
+    "data" : {}
+}

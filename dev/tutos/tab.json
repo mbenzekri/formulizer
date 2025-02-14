@@ -1,0 +1,84 @@
+{
+    "form": {
+        "type": "object",
+        "title" : "Demo tabs",
+        "properties": {
+            "type_d": {
+                "type": "string",
+                "title" :"nature",
+                "const" :"Domicile",
+                "group" : "domicile",
+                "tab" : "adresses"
+            },
+            "no_d": {
+                "type": "number",
+                "title" :"numero",
+                "group" : "domicile",
+                "tab" : "adresses"
+            },
+            "voie_d": {
+                "type": "string",
+                "title" :"voie",
+                "group" : "domicile",
+                "tab" : "adresses"
+            },
+            "commune_d": {
+                "type": "string",
+                "title" :"commune",
+                "group" : "domicile",
+                "tab" : "adresses"
+            },
+            "type_b": {
+                "type": "string",
+                "title" :"nature",
+                "const" :"Bureau",
+                "group" : "bureau",
+                "tab" : "adresses"
+            },
+            "no_b": {
+                "type": "number",
+                "title" :"numero",
+                "group" : "bureau",
+                "tab" : "adresses"
+            },
+            "voie_b": {
+                "type": "string",
+                "title" :"voie",
+                "group" : "bureau",
+                "tab" : "adresses"
+            },
+            "commune_b": {
+                "type": "string",
+                "title" :"commune",
+                "group" : "bureau",
+                "tab" : "adresses"
+            },
+            "type_s": {
+                "type": "string",
+                "title" :"nature",
+                "const" :"Secondaire",
+                "group" : "secondaire",
+                "tab" : "adresses"
+            },
+            "no_s": {
+                "type": "number",
+                "title" :"numero",
+                "group" : "secondaire",
+                "tab" : "adresses"
+            },
+            "voie_s": {
+                "type": "string",
+                "title" :"voie",
+                "group" : "secondaire",
+                "tab" : "adresses"
+            },
+            "commune_s": {
+                "type": "string",
+                "title" :"commune",
+                "group" : "secondaire",
+                "tab" : "adresses"
+            }
+        }
+    },
+    "data" : {}
+}

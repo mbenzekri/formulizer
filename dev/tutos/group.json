@@ -1,0 +1,33 @@
+{
+    "form": {
+        "type": "object",
+        "title" : "Demo group",
+        "visible": true,
+        "properties": {
+            "nom": {
+                "type": "string",
+                "group": "nomination"
+            },
+            "numero": {
+                "type": "number",
+                "group" : "adresse"
+            },
+            "voie": {
+                "type": "string",
+                "group" : "adresse"
+            },
+            "commune": {
+                "type": "string",
+                "group" : "adresse"
+            },
+            "age": {
+                "type": "integer",
+                "group": "nomination",
+                "maximum": 15
+            }
+        }
+    },
+    "data" : {
+        "age": 3
+    }
+}

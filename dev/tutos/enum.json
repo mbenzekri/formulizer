@@ -1,0 +1,330 @@
+{
+    "form": {
+        "definitions": {
+            "herolg": {
+                "type": "string",
+                "oneOf": [
+                    { "title": "Balder (Asgardien)", "const": "Balder", "teams": ["Asgardien"] },
+                    { "title": "Fandral (Asgardien)", "const": "Fandral", "teams": ["Asgardien"] },
+                    { "title": "Frigga (Asgardien)", "const": "Frigga", "teams": ["Asgardien"] },
+                    { "title": "Heimdall (Asgardien)", "const": "Heimdall", "teams": ["Asgardien"] },
+                    { "title": "Hogun (Asgardien)", "const": "Hogun", "teams": ["Asgardien"] },
+                    { "title": "Odin (Asgardien)", "const": "Odin", "teams": ["Asgardien"] },
+                    { "title": "Sif (Asgardienne)", "const": "Sif", "teams": ["Asgardien"] },
+                    { "title": "Thor (Asgardien, Avenger)", "const": "Thor", "teams": ["Asgardien","Avengers"] },
+                    { "title": "Volstagg (Asgardien)", "const": "Volstagg", "teams": ["Asgardien"] },
+                    { "title": "Angel (X-Men)", "const": "Warren Kenneth Worthington III", "teams": ["X-Men"] },
+                    { "title": "Cyclope (X-Men)", "const": "Scott Summers", "teams": ["X-Men"] },
+                    { "title": "Fauve (X-Men)", "const": "Hank McKoy", "teams": ["X-Men"] },
+                    { "title": "Phénix (X-Men)", "const": "Jean Grey", "teams": ["X-Men"] },
+                    { "title": "Iceberg (X-Men)", "const": "Bobby Louis Drake", "teams": ["X-Men"] },
+                    { "title": "Professeur X (X-Men)", "const": "Professeur Xavier", "teams": ["X-Men"] },
+                    { "title": "Ant-Man (Avengers)", "const": "Scott Lang", "teams": ["Avengers"] },
+                    { "title": "Falcon (Avengers)", "const": "Sam Wilson", "teams": ["Avengers"] },
+                    { "title": "La Guêpe (Avengers)", "const": "Hope van Dyne", "teams": ["Avengers"] },
+                    { "title": "Hulk (Avengers)", "const": "Bruce Banner", "teams": ["Avengers"] },
+                    { "title": "Iron Man (Avengers)", "const": "Tony Stark", "teams": ["Avengers"] },
+                    { "title": "Hawkeye (Avengers)", "const": "Clint Barton", "teams": ["Avengers"] },
+                    { "title": "Panthère noire (Avengers)", "const": "T'Challa", "teams": ["Avengers"] },
+                    { "title": "Spiderman (Avengers)", "const": "Peter Parker", "teams": ["Avengers"] },
+                    { "title": "Sorcière rouge (Avengers)", "const": "Wanda Maximoff", "teams": ["Avengers"] },
+                    { "title": "Docteur Strange (Avengers)", "const": "Docteur Strange", "teams": ["Avengers"] },
+                    { "title": "Veuve noire (Avengers)", "const": "Natacha Romanov", "teams": ["Avengers"] },
+                    { "title": "Vif-Argent (Avengers)", "const": "Vif-Argent", "teams": ["Avengers"] },
+                    { "title": "Flèche noire (Inhumain)", "const": "Flèche noire", "teams": ["Inhumain"] },
+                    { "title": "Gorgone (Inhumain)", "const": "Gorgone", "teams": ["Inhumain"] },
+                    { "title": "Crystal (Inhumain)", "const": "Crystal", "teams": ["Inhumain"] },
+                    { "title": "Karnak (Inhumain)", "const": "Karnak", "teams": ["Inhumain"] },
+                    { "title": "Médusa (Inhumain)", "const": "Médusa", "teams": ["Inhumain"] },
+                    { "title": "Triton (Inhumain)", "const": "Triton", "teams": ["Inhumain"] },
+                    { "title": "La Femme invisible (Fantastic 4)", "const": "Jane Storm", "teams": ["Fantastic 4"] },
+                    { "title": "La Chose (Fantastic 4)", "const": "Ben Grimm", "teams": ["Fantastic 4"] },
+                    { "title": "Mr Fantastic (Fantastic 4)", "const": "Red Richards", "teams": ["Fantastic 4"] },
+                    { "title": "Torche humaine (Fantastic 4)", "const": "Johnny Storm", "teams": ["Fantastic 4"] },
+                    { "title": "Athéna (Olympien)", "const": "Athéna", "teams": ["Olympien"] },
+                    { "title": "Héra (Olympien)", "const": "Héra", "teams": ["Olympien"] },
+                    { "title": "Hercule (Olympien)", "const": "Hercule", "teams": ["Olympien"] },
+                    { "title": "Zeus (Olympien)", "const": "Zeus", "teams": ["Olympien"] }
+                ]
+            },
+            "heroshort": {
+                "type": "string",
+                "oneOf": [
+                    {
+                        "const": "Tony Stark",
+                        "title": "Iron Man",
+                        "group": "Avengers"
+                    },
+                    {
+                        "const": "Charles Xavier",
+                        "title": "Professeur X",
+                        "group": "X-Men"
+                    },
+                    {
+                        "const": "Steve Rogers",
+                        "title": "Captain America",
+                        "group": "Avengers"
+                    },
+                    {
+                        "const": "Romanov Natacha",
+                        "title": "Black Widow",
+                        "group": "Avengers"
+                    },
+                    {
+                        "const": "Bruce Banner",
+                        "title": "Hulk",
+                        "group": "Avengers"
+                    },
+                    {
+                        "const": "Brie Larson",
+                        "title": "Captain Marvel",
+                        "group": "Avengers"
+                    },
+                    {
+                        "const": "Daddy",
+                        "title": "Super Dad",
+                        "group": "Family"
+                    },
+                    {
+                        "const": "Logan",
+                        "title": "Wolverine",
+                        "group": "X-Men"
+                    }
+                ]
+            },
+            "adresse": {
+                "type": "object",
+                "title": "adresse",
+                "abstract": "${value.type}: ${value.no}, ${value.voie} à ${value.commune}",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "domicile",
+                            "travail",
+                            "vacances",
+                            "parent",
+                            "autre"
+                        ]
+                    },
+                    "voie": {
+                        "type": "string",
+                        "title": "n° et Voie"
+                    },
+                    "commune": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "type",
+                    "voie",
+                    "commune"
+                ]
+            },
+            "symptome" : {
+                "type" : ["string", "null"],
+                "oneOf": [
+                    {
+                        "const": null,
+                        "title": "Aucun",
+                        "covid": true
+                    },
+                    {
+                        "const": "FIEVRE",
+                        "title": "Le patient a-t-il de la fièvre",
+                        "covid": true
+                    },
+                    {
+                        "const": "CEPHALEE",
+                        "title": "Le patient a-t-il des maux de tête",
+                        "covid": true
+                    },
+                    {
+                        "const": "COURBATURE",
+                        "title": "Le patient a-t-il des courbatures"
+                    },
+                    {
+                        "const": "TOUX",
+                        "title": "Le patient a-t-il de la toux",
+                        "covid": true
+                    },
+                    {
+                        "const": "NAUSEE",
+                        "title": "Le patient a-t-il des nausées"
+                    },
+                    {
+                        "const": "VOMISSEMENT",
+                        "title": "Le patient a-t-il des vossiments"
+                    },
+                    {
+                        "const": "ACOUPHENE",
+                        "title": "Le patient a-t-il des acouphènes"
+                    },
+                    {
+                        "const": "SUEUR",
+                        "title": "Le patient a-t-il des sueurs"
+                    },
+                    {
+                        "const": "ULCERE",
+                        "title": "Le patient a-t-il des ulcères"
+                    },
+                    {
+                        "const": "AGUEUSIE",
+                        "title": "Le patient a-t-il perdu le gout",
+                        "covid": true
+                    }
+                ]
+            }
+        },
+        "type": "object",
+        "title": "Demo enum",
+        "properties": {
+            "symptome": { 
+                "title": "Synmptome",
+                "$ref" : "#/definitions/symptome" 
+            },
+            "heroshort": { 
+                "title": "hero (short list)",
+                "$ref" : "#/definitions/heroshort" 
+            },
+            "anyhero": { 
+                "title": "hero (long list)",
+                "$ref" : "#/definitions/herolg" 
+            },
+            "avenger": { 
+                "title": "avenger (long list filter)",
+                "$ref" : "#/definitions/herolg",
+                "filter" :" schema.teams.includes('Avengers') "
+            },
+            "asgardian": { 
+                "title": "asgardian (long list filter)",
+                "$ref" : "#/definitions/herolg",
+                "filter" :" schema.teams.includes('Asgardien') "
+            },
+            "color": {
+                "type": "string",
+                "enum": [
+                    "red",
+                    "green",
+                    "blue",
+                    "yellow"
+                ]
+            },
+            "color_readonly": {
+                "type": "string",
+                "readonly": true,
+                "enum": [
+                    "red",
+                    "green",
+                    "blue",
+                    "yellow"
+                ]
+            },
+            "ishappy": {
+                "type": ["boolean","null"],
+                "title": "Suis-je content ?",
+                "oneOf": [
+                    {
+                        "const": null,
+                        "title": "J'sais pas"
+                    },
+                    {
+                        "const": true,
+                        "title": "Oui"
+                    },
+                    {
+                        "const": false,
+                        "title": "Non"
+                    }
+                ]
+            },
+            "someone": {
+                "type": "object",
+                "title": "une personne",
+                "properties": {
+                    "prenom": {
+                        "title": "Prénom",
+                        "type": "string"
+                    },
+                    "nom": {
+                        "title": "Nom",
+                        "type": "string"
+                    },
+                    "adresses": {
+                        "title": "Adresses",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/adresse"
+                        },
+                        "minItems": 1
+                    },
+                    "facturation": {
+                        "type": "string",
+                        "title": "adresse facturation",
+                        "refTo": "#/someone/adresses/id",
+                        "filter": "value.type != 'travail'"
+                    },
+                    "courrier": {
+                        "type": "string",
+                        "title": "adresse courrier",
+                        "refTo": "#/someone/adresses/id"
+                    },
+                    "reason": {
+                        "type": "integer",
+                        "title": "Reason",
+                        "oneOf": [{
+                                "const": 1,
+                                "title": "Morale"
+                            },
+                            {
+                                "const": 2,
+                                "title": "Physique"
+                            }
+                        ],
+                        "default": 2,
+                        "readonly": false
+                    }
+                },
+                "required": [ "prenom", "nom" ]
+            }
+        }
+    },
+    "data": {
+        "color_readonly": "red",
+        "someone": {
+            "prenom": "Bob",
+            "nom": "Minion",
+            "adresses": [
+                {
+                    "id": "895ba09b-acf3-4a4a-993c-ea6c329dbf86",
+                    "type": "domicile",
+                    "no": 10,
+                    "voie": "Rue Chapon",
+                    "commune": "Paris"
+                },
+                {
+                    "id": "3d6eadff-1036-43a1-8a26-dbe18ad1752d",
+                    "type": "travail",
+                    "no": 45,
+                    "voie": "Av  Henri Martin",
+                    "commune": "Paris"
+                },
+                {
+                    "id": "2ea969c3-9bc9-4043-9bbf-b76980b02687",
+                    "type": "parent",
+                    "no": 55,
+                    "voie": "Rue du Faubourg Saint-Honoré",
+                    "commune": "Paris"
+                }
+            ],
+            "reason": 2,
+            "courrier" : "3d6eadff-1036-43a1-8a26-dbe18ad1752d"
+        },
+        "anyhero" : "Odin"
+    }
+}

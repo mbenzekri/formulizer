@@ -1,0 +1,39 @@
+{
+    "form": {
+        "type": "object",
+        "title": "Demo ranges",
+        "properties": {
+            "num1": {
+                "type": "integer",
+                "title": "integer [10,100]",
+                "maximum": 100,
+                "minimum": 10
+            },
+            "num2": {
+                "type": "integer",
+                "title": "integer ]10,100[",
+                "exclusiveMaximum": 100,
+                "exclusiveMinimum": 10
+            },
+            "num3": {
+                "type": "number",
+                "title": "number [10,100]",
+                "maximum": 100,
+                "minimum": 10
+            },
+            "num4": {
+                "type": "number",
+                "title": "number ]10,100[",
+                "exclusiveMaximum": 100,
+                "exclusiveMinimum": 10
+            },
+            "num5": {
+                "type": "integer",
+                "title": "integer step=10",
+                "minimum": 0,
+                "multipleOf": 10
+            }
+        }
+    },
+    "data": {}
+}

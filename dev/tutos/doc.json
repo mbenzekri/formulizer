@@ -1,0 +1,36 @@
+{
+    "form": {
+        "type": "object",
+        "title" : "Demo documents",
+        "properties": {
+            "document": {
+                "type": "string",
+                "format": "doc",
+                "preview": true,
+                "readonly": true
+            },
+            "documentb": {
+                "type": "string",
+                "format": "doc",
+                "preview": false
+            },
+            "documentc": {
+                "type": "string",
+                "format": "doc",
+                "preview": true
+            },
+            "documents": {
+                "type": "array",
+                "items": {
+                    "type":"string",
+                    "format": "doc",
+                    "preview": true
+                }
+            }
+        }
+    },
+    "data" : {
+        "document": "59cbefd0-6300-11ec-b87d-af00ce201501",
+        "documents": ["8724dd60-6301-11ec-9cc0-3783f1582eaa", "59cbefd0-6300-11ec-b87d-af00ce201999"]
+    }
+}

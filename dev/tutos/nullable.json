@@ -1,0 +1,69 @@
+{
+    "form": {
+        "type": "object",
+        "title": "Demo basic",
+        "properties": {
+            "string": {
+                "title": "string _nullable",
+                "type": "string",
+                "_nullable": false
+            },
+            "obj_nullable": {
+                "title": "object _nullable",
+                "type": ["object","null"],
+                "properties": {
+                    "pseudo": { "type": "string" },
+                    "email": { "type": "string" }
+                },
+                "_nullable": true
+            },
+            "obj_required": {
+                "title": "object required",
+                "type": "object",
+                "properties": {
+                    "pseudo": { "type": "string" },
+                    "email": { "type": "string" }
+                }
+            },
+            "array": {
+                "title": "array type 'null' possible",
+                "type": [ "array", "null" ],
+                "items": { "type": "number" }
+            },
+            "object": {
+                "title": "object type 'null' possible",
+                "type": [  "object", "null" ],
+                "properties": {
+                    "Contact": {
+                        "type": ["object","null"],
+                        "properties": {
+                            "Nom": { "type": "string" },
+                            "Prenom": { "type": "string" },
+                            "Adresse": {
+                                "type": ["object","null"],
+                                "properties": {
+                                    "Voie": { "type": "string" },
+                                    "Ville": { "type": "string" },
+                                    "Code Postal": { "type": "string" }
+                                }
+                            }
+                        }
+                    },
+                    "b": {
+                        "type": [ "array", "null" ],
+                        "items" : { "type" : "string" }
+                    },
+                    "c": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "required" : ["obj_required"]
+    },
+    "data": {
+        "string": null,
+        "array": null,
+        "object": null
+    }
+}
