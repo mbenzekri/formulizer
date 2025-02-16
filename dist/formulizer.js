@@ -25007,6 +25007,7 @@ function iso(date = new Date()) {
                     @keypress="${this.change}"
                     ?required="${this.required}"
                     @focus="${this.openDropdown}"
+                    autocomplete="off"
                 />
                 <div id="dropdown-menu" class="dropdown-menu w-100">
                     ${this.showNullChoice ? x `<a class="dropdown-item" @click="${() => this.select({ label: '<vide>', value: this.empty })}" >&lt;vide&gt;</a>` : ''}
