@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { customElement } from "lit/decorators.js"
+import { customElement, query } from "lit/decorators.js"
 import { html } from "lit"
 import { FzEnumBase, EnumItem } from "./fz-enum-base";
 import { unsafeHTML } from "lit/directives/unsafe-html.js"
@@ -9,12 +9,15 @@ import { unsafeHTML } from "lit/directives/unsafe-html.js"
  */
 @customElement("fz-enum-typeahead")
 export class FzEnumTypeahead extends FzEnumBase {
+
+    @query('#query') declare private queryElem: HTMLInputElement;
+    @query('#list') declare private listElem: HTMLElement;
+
     renderEnum() {
-        const prefix = this.firstchars
         return html`
             <div class="input-group">
                 <input  
-                    id="prefix"
+                    id="query"
                     class="form-control" 
                     type="text" 
                     placeholder="${this.label}"
@@ -22,58 +25,61 @@ export class FzEnumTypeahead extends FzEnumBase {
                     @input="${this.change}"
                     @keypress="${this.change}"
                     ?required="${this.required}"
-                    @focus="${this.openDropdown}"
+                    @focus="${this.openList}"
                     autocomplete="off"
                 />
-                <div id="dropdown-menu" class="dropdown-menu w-100">
-                    ${ this.showNullChoice ?html`<a class="dropdown-item" @click="${() => this.select({ label: '<vide>', value: this.empty })}" >&lt;vide&gt;</a>` : '' }
-                    ${this.enums?.map(item => html`<a class="dropdown-item" @click="${() => this.select(item)}" >${unsafeHTML(this.boldPrefix(item.label, prefix)) }</a>`)}
+                <div id="list" class="dropdown-menu w-100">
+                    ${ this.enums?.length == 0 ? html`<a class="dropdown-item">No match...</a>` : '' }
+                    ${ this.showNullChoice ? html`<a class="dropdown-item" @click="${() => this.select({ label: '<vide>', value: this.empty })}" >&lt;vide&gt;</a>` : '' }
+                    ${this.enums?.map(item => html`<a class="dropdown-item" @click="${() => this.select(item)}" >${this.boldPrefix(item.label) }</a>`)}
                 </div>
             </div>`
     }
-
-    get firstchars() {
-        const input = this.shadowRoot?.getElementById("prefix") as HTMLInputElement
-        return input ? input.value : ""
+    // get the  inputed query string
+    get query() {
+        return this.queryElem ? this.queryElem.value : ""
     }
-
-    boldPrefix(label: string, prefix: string): string {
-        if (!prefix || prefix.length == 0) return label
-        const parts = label.split(new RegExp(prefix,"i"))
-        const upper = `<b>${prefix}</b>`
-        return parts.join(upper)
+    
+    // return the given label with query part bolded 
+    private boldPrefix(label: string) {
+        if (this.query == null || this.query.length == 0) return label
+        const parts = label.split(new RegExp(this.query,"i"))
+        const bolded = parts.join(`<b>${this.query}</b>`) 
+        return unsafeHTML(bolded)
     }
 
     override async firstUpdated(changedProperties: any) {
-        const input = this.shadowRoot?.getElementById("prefix") as HTMLInputElement
         const item = this.enums?.find(item => this.value === item.value)
-        if (input) input.value = item ? item.label : ""
+        this.queryElem.value = item ? item.label : ""
         super.firstUpdated(changedProperties)
     }
+
     override change() {
         this.requestUpdate()
     }
 
-    private openDropdown() {
-        this.shadowRoot?.getElementById("dropdown-menu")?.style.setProperty("display", "block")
-            ; (<HTMLInputElement>this.shadowRoot?.getElementById("prefix"))?.select()
+    private openList() {
+        this.listElem.style.setProperty("display", "block")
+        this.queryElem.select()
     }
 
-    private closeDropdown() {
-        this.shadowRoot?.getElementById("dropdown-menu")?.style.setProperty("display", "none")
+    private closeList() {
+        this.listElem.style.setProperty("display", "none")
     }
 
-    select(item: EnumItem) {
-        const input = this.shadowRoot?.getElementById("prefix") as HTMLInputElement
-        if (input) input.value = item.label
+    private select(item: EnumItem) {
+        this.queryElem.value = item.label
         this.value = this.convertToValue(item.value)
-        this.closeDropdown()
+        this.closeList()
         this.requestUpdate()
     }
 
+    // get the enum list to display filter by query string (first 10 items)
     override evalEnums(): void {
         super.evalEnums()
-        this.enums = this.enums?.filter(item => item.label.toUpperCase().includes(this.firstchars.toUpperCase())).slice(0, 10) ?? []
+        const upper = this.query.toUpperCase()
+        const matching = (item: EnumItem) => item.label.toUpperCase().includes(upper)
+        this.enums = this.enums?.filter(matching).slice(0, 10) ?? []
     }
 
 }
