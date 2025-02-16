@@ -24,6 +24,7 @@ document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tabLink => {
 const form = document.getElementById('fzform')
 const schema = document.getElementById('fzschema')
 const data = document.getElementById('fzdata')
+const toc = document.getElementById('toc')
 const timer = null
 const ignoreC = (key, value) => ["parent", "root"].includes(key) ? undefined : value
 
@@ -49,6 +50,12 @@ async function markdown(name) {
     // Affichage du résultat dans la div
     document.getElementById('markdown').innerHTML = resultHtml;
     document.getElementById('name').innerHTML = name;
+}
+
+async function init_toc(form) {
+    const toc_schema = await fetch(`./toc.json`).then(r => r.json())
+    form.schema = toc_schema
+    form.data = { query: "" }
 }
 
 
@@ -110,6 +117,7 @@ const goto = async (name) => {
     if (subject) {
         const tutodata = await fetch(`./tutos/${subject}.json`).then(r => r.json())
         await init_options(form)
+        await init_toc(toc)
         form.schema = tutodata.form
         form.data = tutodata.data
         if (timer) clearInterval(timer)

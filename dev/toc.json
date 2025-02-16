@@ -1,0 +1,13 @@
+{
+    "type": "object",
+    "title": "",
+    "properties": {
+        "Search a tutorial...": {
+            "title": "",
+            "type": "string",
+            "field": "fz-enum-typeahead",
+            "change": "goto(value)",
+            "enum": ["basic","object","array"]
+        }
+    }
+}

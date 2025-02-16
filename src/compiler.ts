@@ -151,7 +151,7 @@ class CSTargetType extends CompilationStep {
     override apply(schema: JSONSchema, parent?: JSONSchema, name?: string) {
         if (Array.isArray(schema.type) && parent && name) {
             if (schema.type.length > 2) {
-                throw Error(`Type multiples non implementé : ${pointerSchema(parent, name)}`)
+                throw Error(`multiple types not implemented : ${pointerSchema(parent, name)}`)
             }
 
             if (!schema.type.includes("null")) {

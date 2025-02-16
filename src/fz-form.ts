@@ -192,9 +192,8 @@ export class FzForm extends LitElement {
                         ? html`<fz-array pointer="#" name="content"  .data="${this.obj}" .schema="${this.schema}"></fz-array>`
                         : html`<fz-object  pointer="#" name="content" .data="${this.obj}" .schema="${this.schema}"></fz-object>`
                     }
-                    <hr>
                     ${!this._errors && this.buttonsVisible
-                        ? html`<div class="d-flex justify-content-end">
+                        ? html`<hr><div class="d-flex justify-content-end">
                             <button type="button"  @click="${this.confirm}" class="btn btn-primary">${this.submitlabel}</button> 
                             <button type="button"  @click="${this.cancel}" class="btn btn-danger">${this.cancellabel}</button>
                         </div>`

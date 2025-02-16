@@ -39,7 +39,7 @@ export class FzEnumTypeahead extends FzEnumBase {
     boldPrefix(label: string, prefix: string): string {
         if (!prefix || prefix.length == 0) return label
         const parts = label.split(new RegExp(prefix,"i"))
-        const upper = `<b>${prefix.toUpperCase()}</b>`
+        const upper = `<b>${prefix}</b>`
         return parts.join(upper)
     }
 

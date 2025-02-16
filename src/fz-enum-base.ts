@@ -24,7 +24,7 @@ export abstract class FzEnumBase extends FzElement {
     }
 
     get showNullChoice() {
-        if (!this.schema.nullAllowed) return true
+        if (!this.schema.nullAllowed) return false
         const show = this.schema.nullAllowed && (
             !this.schema.enum?.includes(null) ||
             !this.schema.oneOf?.some((item: any) => item.const === null) ||

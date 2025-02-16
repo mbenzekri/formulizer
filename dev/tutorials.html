@@ -24,17 +24,12 @@
 <body>
     <div class="container-fluid">
         <div class="row full-height">
-            <!-- Panneau principal (1/12 de la largeur) -->
-            <div id="panel1" class="col-md-1 p-0 d-flex flex-column bg-secondary">
-                <div class="p-3">
-                    <h1>Toc</h1>
-                    <div><a class="btn btn-link text-light" onclick="goto('basic')">basic types</a></div>                
-                    <div><a class="btn btn-link text-light" onclick="goto('object')">object type</a></div>                
-                    <div><a class="btn btn-link text-light" onclick="goto('array')">array type</a></div>                
-                </div>
+            <!-- Panneau toc (1/12 de la largeur) -->
+            <div id="panel1" class="col-md-2 p-0 d-flex flex-column bg-secondary">
+                <fz-form id="toc" style="margin: 5px;"></fz-form>
             </div>
             <!-- Panneau principal (7/12 de la largeur) -->
-            <div id="panel1" class="col-md-7 p-0 d-flex flex-column bg-light">
+            <div id="panel1" class="col-md-6 p-0 d-flex flex-column bg-light">
                 <div class="p-3">
                     <h1>Name : <span id="name"></span>
                         <a href="#panel2" class="btn btn-secondary d-md-none float-end">&gt;&gt;</a>

@@ -12857,7 +12857,7 @@ class CSTargetType extends CompilationStep {
     apply(schema, parent, name) {
         if (Array.isArray(schema.type) && parent && name) {
             if (schema.type.length > 2) {
-                throw Error(`Type multiples non implementé : ${pointerSchema(parent, name)}`);
+                throw Error(`multiple types not implemented : ${pointerSchema(parent, name)}`);
             }
             if (!schema.type.includes("null")) {
                 throw Error(`Second type must be "null" : ${pointerSchema(parent, name)}`);
@@ -15078,7 +15078,7 @@ class FzEnumBase extends FzElement {
     }
     get showNullChoice() {
         if (!this.schema.nullAllowed)
-            return true;
+            return false;
         const show = this.schema.nullAllowed && (!this.schema.enum?.includes(null) ||
             !this.schema.oneOf?.some((item) => item.const === null) ||
             !this.schema.anyOf?.some((item) => item.const === null));
@@ -25022,7 +25022,7 @@ function iso(date = new Date()) {
             if (!prefix || prefix.length == 0)
                 return label;
             const parts = label.split(new RegExp(prefix, "i"));
-            const upper = `<b>${prefix.toUpperCase()}</b>`;
+            const upper = `<b>${prefix}</b>`;
             return parts.join(upper);
         }
         async firstUpdated(changedProperties) {
@@ -25900,9 +25900,8 @@ let FzForm = (() => {
                     ${Array.isArray(this.obj.content)
                     ? x `<fz-array pointer="#" name="content"  .data="${this.obj}" .schema="${this.schema}"></fz-array>`
                     : x `<fz-object  pointer="#" name="content" .data="${this.obj}" .schema="${this.schema}"></fz-object>`}
-                    <hr>
                     ${!this._errors && this.buttonsVisible
-                    ? x `<div class="d-flex justify-content-end">
+                    ? x `<hr><div class="d-flex justify-content-end">
                             <button type="button"  @click="${this.confirm}" class="btn btn-primary">${this.submitlabel}</button> 
                             <button type="button"  @click="${this.cancel}" class="btn btn-danger">${this.cancellabel}</button>
                         </div>`
