@@ -14,6 +14,9 @@ interface JSONArray extends Array<JSONValue> {}
 
 export { JSONValue, JSONObject, JSONArray }
 
+export type JSONSchema = { [key: string]: any }
+
+
 export type ExprFunc<T> = (schema: Pojo, value: any, parent: Pojo, property: string | number, userdata: object) => T | null
 export type Pojo = { [key: string]: any }
 export type FieldOrder = {

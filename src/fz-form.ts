@@ -5,8 +5,8 @@ import { bootstrapCss } from "./bootstrap"
 import { bootstrapIconsCss } from "./bootstrap-icons"
 import { Pojo } from "./types"
 import { FzElement } from "./fz-element";
-import { derefPointerData, setSchema, setParent, setRoot, validateSchema, validateErrors, abstract, DataValidator, getSchema, jsonAttributeConverter } from "./tools"
-import { observers, walkData, walkSchema,solveany, solvebasetype, solveboolean, solveenum, solvehomogeneous, solveobservers, solveorder, solveparent, solvepointer, solveref,solverequired,solvestring,solvetype } from "./compiler"
+import { validateSchema, validateErrors, DataValidator, getSchema, jsonAttributeConverter } from "./tools"
+import { SchemaCompiler, DataCompiler } from "./compiler"
 import { IDocStorage, IDocUserStorage } from "./docstorage";
 import { IAsset } from "./fz-asset";
 import "./fz-array";
@@ -237,104 +237,17 @@ export class FzForm extends LitElement {
         evt.preventDefault()
         evt.stopPropagation()
     }
-    /**
-     * compilation process is a in-depth walkthrough schema
-     * applying in order compile time actions
-     * be carefull action order is primordial
-     */
     compile() {
         try {
-            walkSchema(this.schema, null, null, [
-                solveref((ref: Pojo) => this.definition(ref)),
-                solvebasetype,
-                this.solveenumref.bind(this),
-                solveenum,
-                solvehomogeneous,
-                solveobservers,
-                solveparent,
-                solvepointer,
-                this.solveroot.bind(this),
-                solverequired,
-                solvetype,
-                solveorder,
-            ])
-            // 2nd compilation pass (previous operations fully completed for next step)
-            walkSchema(this.schema, null, null, [
-                this.solverefto.bind(this),
-                solvestring(this.schema, 'abstract', abstract),
-                solveboolean(this.schema, 'case', () => false),
-                solveboolean(this.schema, 'visible', () => true),
-                solveboolean(this.schema, 'readonly', () => false),
-                solveboolean(this.schema, 'requiredWhen', () => false),
-                solveboolean(this.schema, 'collapsed', () => false),
-                solveboolean(this.schema, 'filter', () => true),
-                solveany(this.schema, 'orderBy', () => true),
-                solveany(this.schema, 'expression', () => ''),
-                solveany(this.schema, 'change', () => '')
-            ])
-            walkData(this.obj.content, this.schema, null, null, [
-                (data, schema, pdata, _pschema) => {
-                    setSchema(data, schema)
-                    setParent(data, pdata)
-                    setRoot(data, this.obj.content)
-                }
-            ])
+            const schema_compiler = new SchemaCompiler(this.schema,this.options,this.obj.content)
+            schema_compiler.compile()
+            const data_compiler = new DataCompiler(this.obj.content, this.schema)
+            data_compiler.compile()
         }
         catch (e) {
             this._errors = []
             this.message = "La compilation a échouée : " + String(e)
         }
-    }
-
-    definition(schemaref: Pojo) {
-        if (schemaref && schemaref.$ref) {
-            const ref = schemaref.$ref as string
-            if (!ref.startsWith("#/definitions/")) throw Error(`Solving refs: only '#/definitions/defname' allowed [found => ${ref}]`)
-            if (!this.schema.definitions) throw Error(`No definitions provided in root schema`)
-            const defname = ref.split("/")[2];
-            if (defname in this.schema.definitions) {
-                const deforig: Pojo = this.schema.definitions[defname]
-                const defcopy: Pojo = Object.assign({}, deforig)
-                Object.entries(schemaref).forEach(([n, v]) => (n !== '$ref') && (defcopy[n] = v))
-                return defcopy
-            }
-        }
-        return schemaref
-    }
-
-    solverefto(schema: Pojo) {
-        if (!schema.refTo || typeof schema.refTo === "function") return
-        const refto = schema.refTo as string
-        schema.refTo = () => null
-        const pointer = refto.replace(/\/[^/]+$/, '')
-        const refname = refto.substr(pointer.length + 1)
-        observers(this.schema, schema, `$('${pointer}'')`)
-        schema.refTo = (_schema: Pojo, _value: any, parent: any, property: string, _$: any) => {
-            const refarray = derefPointerData(this.obj.content, parent, property, pointer)
-            if (!refarray) return null
-            if (!Array.isArray(refarray)) {
-                console.error(`reference list must be an array ${pointer}`)
-                return null
-            }
-            return { pointer, refname, refarray }
-        }
-    }
-
-    solveenumref = (schema: Pojo, _parent: Pojo | null, _name: string |null) => {
-        if ("enumRef" in schema) {
-            if (this.options.ref) {
-                const list = this.options.ref(schema.enumRef)
-                const oneof: any[] = list.map((x: any) => ({"const": x.value, "title": x.title}))
-                schema.oneOf = oneof
-            }
-            else {
-                console.error(`missing 'enumRef' function in options`)
-            }
-        }
-    }
-
-    solveroot(schema: Pojo) {
-        schema.root = this.schema
     }
 
     /**

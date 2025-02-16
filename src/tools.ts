@@ -1,4 +1,4 @@
-import { Pojo } from "./types"
+import { JSONSchema, Pojo } from "./types"
 // MBZ-TOFIX import draft from "./draft-07-schema.json"
 // MBZ-TOFIX import { Ajv } from "ajv"
 // MBZ-TOFIX import { ValidateFunction, ErrorObject } from "ajv"
@@ -204,7 +204,7 @@ export function pointerData(parent: Pojo | null, key: string | number | null, pr
     return pointerData(getParent(parent), prev)
 }
 
-export function pointerSchema(parent: Pojo | null, property: string | null, prev = ""): string {
+export function pointerSchema(parent?: JSONSchema, property?: string, prev = ""): string {
     if (!parent) return (property ? property : "")
     if (!property) return ""
     const root = parent.root

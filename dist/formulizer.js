@@ -12733,284 +12733,517 @@ function observers(root, current, expr) {
     }
 }
 /**
- * solveref replace schema defined by reference ($ref) by the real definition (copy)
- * @param definition function to retrieve a schema by it's pointer reference
- * @returns a function to apply remplacement of $ref by the correspondind schema definition
+ * class to compile schema for fz-form
+ * compilation process is a in-depth walkthrough schema applying in order compile time actions
+ * be carefull action order is primordial
  */
-const solveref = (definition) => {
-    return (schema, _parent, _name) => {
-        const properties = schema.properties;
-        properties && Object.entries(properties).forEach(([pname, pschema]) => pschema.$ref && (properties[pname] = definition(pschema)));
-        schema.items && schema.items.$ref && (schema.items = definition(schema.items));
-        schema.items && schema.items.oneOf && (schema.items.oneOf = schema.items.oneOf.map((schema) => schema.$ref ? definition(schema) : schema));
-    };
-};
+class SchemaCompiler {
+    root;
+    steps_pass1;
+    steps_pass2;
+    constructor(root, options, data) {
+        this.root = root;
+        this.steps_pass1 = [
+            new CSDefinition(this.root),
+            new CSTargetType(this.root),
+            new CSAppEnum(this.root, options),
+            new CSEnum(this.root),
+            new CSEnumArray(this.root),
+            new CSUniform(this.root),
+            new CSObservers(this.root),
+            new CSParent(this.root),
+            new CSPointer(this.root),
+            new CSRoot(this.root),
+            new CSRequiredWhen(this.root),
+            new CSType(this.root),
+            new CSFieldOrder(this.root),
+        ];
+        this.steps_pass2 = [
+            new CSInsideRef(this.root, data),
+            new CSTemplate(this.root, '', abstract),
+            new CSBool(this.root, 'case', () => false),
+            new CSBool(this.root, 'visible', () => true),
+            new CSBool(this.root, 'readonly', () => false),
+            new CSBool(this.root, 'requiredWhen', () => false),
+            new CSBool(this.root, 'collapsed', () => false),
+            new CSBool(this.root, 'filter', () => true),
+            new CSAny(this.root, 'orderBy', () => true),
+            new CSAny(this.root, 'expression', () => ''),
+            new CSAny(this.root, 'change', () => ''),
+        ];
+    }
+    compile() {
+        this.walkSchema(this.steps_pass1, this.root);
+        this.walkSchema(this.steps_pass2, this.root);
+    }
+    walkSchema(steps, schema, parent, name) {
+        for (const step of steps) {
+            try {
+                if (step.appliable(schema, parent, name)) {
+                    step.apply(schema, parent, name);
+                }
+            }
+            catch (e) {
+                console.error(`Error while compiling schema ${String(e)}\n - action: ${step.desc}\n - schema: ${pointerSchema(parent, name)}`);
+            }
+        }
+        if (schema.properties)
+            return Object.entries(schema.properties).forEach(([name, child]) => this.walkSchema(steps, child, schema, name));
+        if (schema.items) {
+            if (schema.items.oneOf)
+                return this.walkSchema(steps, schema.items, schema, '*');
+            if (schema.items.allOf)
+                return this.walkSchema(steps, schema.items, schema, '*');
+            if (schema.items.anyOf)
+                return this.walkSchema(steps, schema.items, schema, '*');
+            return this.walkSchema(steps, schema.items, schema, '*');
+        }
+        if (schema.oneOf)
+            return schema.oneOf.forEach((child) => this.walkSchema(steps, child, parent, name));
+        if (schema.allOf)
+            return schema.allOf.forEach((child) => this.walkSchema(steps, child, parent, name));
+        if (schema.anyOf)
+            return schema.anyOf.forEach((child) => this.walkSchema(steps, child, parent, name));
+    }
+}
+class CompilationStep {
+    root;
+    constructor(root) {
+        this.root = root;
+    }
+}
 /**
- * solveenum adds a boolean property 'isenum' true if enumeration detected
- * only basic types may be enums
+ * Replace schemas defined by reference ($ref) by their real
+ * definition as deep copy.
+ */
+class CSDefinition extends CompilationStep {
+    desc = "Definition compilation step ($ref)";
+    appliable(schema) {
+        // check isenum is already solved  
+        return !(schema && schema.$ref);
+    }
+    apply(schema) {
+        const properties = schema.properties;
+        properties && Object.entries(properties).forEach(([pname, pschema]) => pschema.$ref && (properties[pname] = this.definition(pschema)));
+        schema.items && schema.items.$ref && (schema.items = this.definition(schema.items));
+        schema.items && schema.items.oneOf && (schema.items.oneOf = schema.items.oneOf.map((schema) => schema.$ref ? this.definition(schema) : schema));
+    }
+    definition(schema) {
+        const ref = schema.$ref;
+        if (!ref.startsWith("#/definitions/"))
+            throw Error(`Solving refs: only '#/definitions/defname' allowed [found => ${ref}]`);
+        if (!this.root.definitions)
+            throw Error(`No definitions provided in root schema`);
+        const defname = ref.split("/")[2];
+        if (defname in this.root.definitions) {
+            const deforig = this.root.definitions[defname];
+            const defcopy = Object.assign({}, deforig);
+            Object.entries(schema).forEach(([n, v]) => (n !== '$ref') && (defcopy[n] = v));
+            return defcopy;
+        }
+        throw Error(`No definitions found in schema for ${ref}`);
+    }
+}
+/**
+ * Adds a string property 'basetype' wich identify basetype (not null)
+ * @param schema shema to solve base type
+ */
+class CSTargetType extends CompilationStep {
+    desc = "Target type compilation step";
+    appliable() {
+        // applied on all schemas
+        return true;
+    }
+    apply(schema, parent, name) {
+        if (Array.isArray(schema.type) && parent && name) {
+            if (schema.type.length > 2) {
+                throw Error(`Type multiples non implementé : ${pointerSchema(parent, name)}`);
+            }
+            if (!schema.type.includes("null")) {
+                throw Error(`Second type must be "null" : ${pointerSchema(parent, name)}`);
+            }
+            schema.basetype = schema.type.find(t => t !== "null") ?? "null";
+            schema.nullAllowed = true;
+        }
+        else {
+            schema.basetype = schema.type;
+            schema.nullAllowed = false;
+        }
+    }
+}
+/**
+ * Adds a oneOf enum schema obtained through options.ref callback
+ * provided at form initialization
+ */
+class CSAppEnum extends CompilationStep {
+    desc = "Application provided enums compilation step";
+    options;
+    constructor(root, options) {
+        super(root);
+        this.options = options;
+    }
+    appliable(schema) {
+        return "enumRef" in schema;
+    }
+    apply(schema) {
+        if (!this.options.ref)
+            throw Error(`missing 'enumRef' function in options`);
+        const list = this.options.ref(schema.enumRef);
+        const oneof = list.map((x) => ({ "const": x.value, "title": x.title }));
+        schema.oneOf = oneof;
+    }
+}
+/**
+ * Adds a boolean property 'isenum' true if enumeration detected
+ * and only primitive types may be enums
  * 3 flavors :
  *      (a) having an "enums" property
- *      (b) having an "oneOf" property with a array of constants
- *      (c) having an "anyOf" property with a array of constants
- * @param schema schema to solve enum state
- * @example {type '...'}
+ *      (b) having an "oneOf" property containing an array of constants
+ *      (c) having an "anyOf" property containing an array of constants
  */
-const solveenum = (schema, _parent, _name) => {
-    if ("isenum" in schema)
-        return;
-    schema.isenum = false;
-    schema.isenumarray = false;
-    switch (true) {
-        case !isprimitive(schema.basetype): break;
-        case isenumarray(schema):
-            schema.isenumarray = true;
-            break;
-        case !!schema.enum:
-        case schema.oneOf && schema.oneOf.every((sch) => 'const' in sch):
-        case schema.anyOf && schema.anyOf.every((sch) => 'const' in sch):
-            if (!schema.filter)
-                schema.filter = () => true;
-            schema.isenum = true;
-            break;
+class CSEnum extends CompilationStep {
+    desc = " schema tagging compilation step (property isenum) ";
+    appliable(schema) {
+        // check isenum is already solved  
+        return !("isenum" in schema);
     }
-};
+    apply(schema) {
+        schema.isenum = false;
+        switch (true) {
+            // allow only primitive types to be enums
+            case !isprimitive(schema.basetype): break;
+            // it is an enumeration only for one of this cases
+            case !!schema.enum:
+            case schema.oneOf && schema.oneOf.every((sch) => 'const' in sch):
+            case schema.anyOf && schema.anyOf.every((sch) => 'const' in sch):
+                if (!schema.filter)
+                    schema.filter = () => true;
+                schema.isenum = true;
+                break;
+        }
+    }
+}
 /**
- * solveobservers adds an empty array property 'observers'
+ * Adds a boolean property 'isenumarray' true if arry detected
+ * and array items is an enum. Only primitive types may be enums
+ */
+class CSEnumArray extends CompilationStep {
+    desc = "Array of enum compilation step";
+    appliable(schema) {
+        // check isenum is already solved  
+        return !("isenumarray" in schema);
+    }
+    apply(schema) {
+        schema.isenumarray = false;
+        schema.isenumarray = isprimitive(schema.basetype) && isenumarray(schema);
+    }
+}
+/**
+ * Adds a boolean property 'homogeneous' true if  schema is
+ * array and items are of homegeneous type
+ */
+class CSUniform extends CompilationStep {
+    desc = "Homgeneous array items tagging compilation step (property homogeneous)";
+    appliable(schema) {
+        return (schema.basetype === "array");
+    }
+    apply(schema) {
+        schema.homogeneous = schema.items.oneOf ? false : true;
+    }
+}
+/**
+ * adds an empty array property 'observers' to each schema
  * this property will contain jsonpath to the value which is
  * observing the data described by this 'schema'
  *
  * observers have to be alerted when changes occurs to the data described
  * by this schema (see event 'observed-changed' in FzField base class)
  *
- * @param schema schema to solve enum state
- * @example {type '...'}
  */
-const solveobservers = (schema, _parent, _name) => {
-    if (schema.observers)
-        return;
-    schema.observers = [];
-};
+class CSObservers extends CompilationStep {
+    desc = "Observers  compilation step";
+    appliable(schema) {
+        return !schema.observers;
+    }
+    apply(schema) {
+        schema.observers = [];
+    }
+}
 /**
- * solveparent adds a 'parent' schema property to each schema
- *
- * @param schema schema to solve enum state
- * @example {type '...'}
+ * adds a 'parent' property to each schema
+ * it store the parent schema of the currently processed schema
  */
-const solveparent = (schema, parent, _name) => {
-    if (schema.parent)
-        return;
-    schema.parent = parent;
-};
+class CSParent extends CompilationStep {
+    desc = "Array items is of homgeneous type compilation step";
+    appliable(schema) {
+        return !schema.parent;
+    }
+    apply(schema, parent) {
+        schema.parent = parent;
+    }
+}
 /**
- * solveparent adds a 'parent' schema property to each schema
- *
- * @param schema schema to solve enum state
- * @example {type '...'}
+ * Adds a 'pointer' property to each schema
+ * this porperty store the schema pointer of currently processed schema
  */
-const solvepointer = (schema, parent, name) => {
-    if (schema.pointer)
-        return;
-    schema.pointer = parent ? `${parent.pointer}/${name}` : `#`;
-};
+class CSPointer extends CompilationStep {
+    desc = "'homogeneous' property compilation step";
+    appliable(schema) {
+        return !schema.pointer;
+    }
+    apply(schema, parent) {
+        schema.pointer = parent ? `${parent.pointer}/${name}` : `#`;
+    }
+}
 /**
- * solvehomogeneous adds a boolean property 'homogeneous' true
- * if :
- *      - "type" is "array"
- *      - "items" is "oneOf"
- * @param schema schema to solve enum state
- * @example {type '...'}
+ * Adds a 'root' property to each schema
+ * this property store the root schema
  */
-const solvehomogeneous = (schema, _parent, _name) => {
-    if (schema.basetype !== "array")
-        return;
-    schema.homogeneous = schema.items.oneOf ? false : true;
-};
+class CSRoot extends CompilationStep {
+    desc = "'root' property compilation step";
+    appliable(schema) {
+        return !schema.root;
+    }
+    apply(schema, parent) {
+        schema.pointer = parent ? `${parent.pointer}/${name}` : `#`;
+    }
+}
 /**
- * solverequired adds a string property 'requiredWhen' =  "true"  to all properties
- * required for this type
- * if :
- *      - "type" is "object"
- *      - "properties" is set
- * @param schema schema to solve required list
- * @example {type '...'}
+ * Adds a string property 'requiredWhen' to each schema which is a required field
+ * this field will be compiled to getter to manage conditional mandatory values
  */
-const solverequired = (schema, _parent, _name) => {
-    if (schema.basetype !== "object" || !schema.properties || !schema.required)
-        return;
-    schema.required.forEach((name) => {
-        if (name in schema.properties)
-            schema.properties[name].requiredWhen = "true";
-    });
-};
+class CSRequiredWhen extends CompilationStep {
+    desc = "'requiredWhen' property initialisation compilation step";
+    appliable(schema) {
+        return schema.basetype === "object" && schema.properties && schema.required;
+    }
+    apply(schema) {
+        schema.required.forEach((name) => {
+            if (name in schema.properties)
+                schema.properties[name].requiredWhen = "true";
+        });
+    }
+}
 /**
- * solvebasetype adds a string property 'basetype' with real type (not null) if array of "type"
- * @param schema shema to solve base type
+ * Adds a property 'field' with the web component name to be displayed for this schema
+ * depending on 'basetype', 'format', 'const', 'isenum', enum values count, ...
  */
-const solvebasetype = (schema, parent, name) => {
-    if (Array.isArray(schema.type)) {
-        if (schema.type.length > 2) {
-            throw Error(`Type multiples non implementé : ${pointerSchema(parent, name)}`);
+class CSType extends CompilationStep {
+    desc = "'field' property compilation step";
+    appliable(schema) {
+        return !schema.field;
+    }
+    apply(schema) {
+        if ("const" in schema)
+            return schema.field = 'fz-constant';
+        if (schema.refTo && isprimitive(schema.basetype)) {
+            if (!schema.filter)
+                schema.filter = () => true;
+            return schema.field = 'fz-enum';
         }
-        if (!schema.type.includes("null")) {
-            throw Error(`Second type must be "null" : ${pointerSchema(parent, name)}`);
-        }
-        schema.basetype = schema.type.find(t => t !== "null") ?? "null";
-        schema.nullAllowed = true;
-    }
-    else {
-        schema.basetype = schema.type;
-        schema.nullAllowed = false;
-    }
-};
-/**
- * solvetype adds a string property 'field' with the target web component for this schema
- * depending on properties type an isenum (see. solveenum)
- * @param schema shema to solve references
- */
-const solvetype = (schema, _parent, _name) => {
-    if (schema.field)
-        return;
-    if ("const" in schema)
-        return schema.field = 'fz-constant';
-    if (schema.refTo && isprimitive(schema.basetype)) {
-        if (!schema.filter)
-            schema.filter = () => true;
-        return schema.field = 'fz-enum';
-    }
-    if (schema.isenum) {
-        if (!schema.filter)
-            schema.filter = () => true;
-        switch (true) {
-            case schema.enum?.length <= 3: return schema.field = 'fz-enum-check';
-            case schema.oneOf?.length <= 3: return schema.field = 'fz-enum-check';
-            case schema.anyOf?.length <= 3: return schema.field = 'fz-enum-check';
-            case schema.enum?.length <= 20: return schema.field = 'fz-enum';
-            case schema.oneOf?.length <= 20: return schema.field = 'fz-enum';
-            case schema.anyOf?.length <= 20: return schema.field = 'fz-enum';
-            default: return schema.field = 'fz-enum-typeahead';
-        }
-    }
-    switch (schema.basetype) {
-        case 'object': return schema.field = 'fz-object';
-        case 'array': {
-            if (schema.isenumarray) {
-                if (!schema.filter)
-                    schema.filter = () => true;
-                return schema.field = 'fz-enum-array';
+        if (schema.isenum) {
+            if (!schema.filter)
+                schema.filter = () => true;
+            switch (true) {
+                case schema.enum?.length <= 3: return schema.field = 'fz-enum-check';
+                case schema.oneOf?.length <= 3: return schema.field = 'fz-enum-check';
+                case schema.anyOf?.length <= 3: return schema.field = 'fz-enum-check';
+                case schema.enum?.length <= 20: return schema.field = 'fz-enum';
+                case schema.oneOf?.length <= 20: return schema.field = 'fz-enum';
+                case schema.anyOf?.length <= 20: return schema.field = 'fz-enum';
+                default: return schema.field = 'fz-enum-typeahead';
             }
-            return schema.field = 'fz-array';
         }
-        case 'integer':
-            return (schema.minimum && schema.maximum && (schema.maximum - schema.minimum) <= 10)
-                ? schema.field = 'fz-range'
-                : schema.field = 'fz-integer';
-        case 'number': return schema.field = 'fz-float';
-        case 'boolean': return schema.field = 'fz-boolean';
-        case 'string':
-            switch (schema.format) {
-                case "uuid": return schema.field = 'fz-uuid';
-                case "signature": return schema.field = 'fz-signature';
-                case "date": return schema.field = 'fz-date';
-                case "time": return schema.field = 'fz-time';
-                case "date-time": return schema.field = 'fz-datetime';
-                case "geo": return schema.field = 'fz-geolocation';
-                case "doc": return schema.field = 'fz-document';
-                case "markdown": return schema.field = 'fz-markdown';
-                case "asset": return schema.field = 'fz-asset';
+        switch (schema.basetype) {
+            case 'object': return schema.field = 'fz-object';
+            case 'array': {
+                if (schema.isenumarray) {
+                    if (!schema.filter)
+                        schema.filter = () => true;
+                    return schema.field = 'fz-enum-array';
+                }
+                return schema.field = 'fz-array';
             }
-            if (!schema.format && schema.maxLength > 256)
-                return schema.field = 'fz-textarea';
-            return schema.field = 'fz-string';
+            case 'integer':
+                return (schema.minimum && schema.maximum && (schema.maximum - schema.minimum) <= 10)
+                    ? schema.field = 'fz-range'
+                    : schema.field = 'fz-integer';
+            case 'number': return schema.field = 'fz-float';
+            case 'boolean': return schema.field = 'fz-boolean';
+            case 'string':
+                switch (schema.format) {
+                    case "uuid": return schema.field = 'fz-uuid';
+                    case "signature": return schema.field = 'fz-signature';
+                    case "date": return schema.field = 'fz-date';
+                    case "time": return schema.field = 'fz-time';
+                    case "date-time": return schema.field = 'fz-datetime';
+                    case "geo": return schema.field = 'fz-geolocation';
+                    case "doc": return schema.field = 'fz-document';
+                    case "markdown": return schema.field = 'fz-markdown';
+                    case "asset": return schema.field = 'fz-asset';
+                }
+                if (!schema.format && schema.maxLength > 256)
+                    return schema.field = 'fz-textarea';
+                return schema.field = 'fz-string';
+        }
+        return schema.field = 'fz-error';
     }
-    return schema.field = 'fz-error';
-};
-const solveorder = (schema, _parent, _name) => {
-    if (schema.basetype !== 'object' || !schema.properties || schema.order)
-        return;
-    const properties = schema.properties;
-    const groupmap = new Map();
-    const tabmap = new Map();
-    // order properties with tab and grouping
-    let fieldnum = 0;
-    const fields = Object.entries(properties).map(([fieldname, schema]) => {
-        // get or affect tab number
-        if (schema.tab && !tabmap.has(schema.tab))
-            tabmap.set(schema.tab, fieldnum);
-        const tabnum = schema.tab ? tabmap.get(schema.tab) : fieldnum;
-        // get or affect group number
-        if (schema.group && !groupmap.has(schema.group))
-            groupmap.set(schema.group, fieldnum);
-        const groupnum = schema.group ? groupmap.get(schema.group) : fieldnum;
-        return { tabnum, groupnum, fieldnum: fieldnum++, fieldname, schema, tabname: schema.tab, groupname: schema.group };
-    });
-    fields.sort((fa, fb) => {
-        const diff = Math.min(fa.tabnum, fa.groupnum, fa.fieldnum) - Math.min(fb.tabnum, fb.groupnum, fb.fieldnum);
-        return (diff === 0) ? fa.fieldnum - fb.fieldnum : diff;
-    });
-    schema.order = fields;
-};
-const solvestring = (root, property, defaultf) => {
-    return (schema, _parent, _name) => {
-        if (!(property in schema) || typeof schema[property] === "function")
-            return;
-        const expression = schema[property];
-        schema[property] = defaultf;
+}
+/**
+ * Adds a property 'order' for each schema containing the display order rank
+ */
+class CSFieldOrder extends CompilationStep {
+    desc = "'order' property compilation step";
+    appliable(schema) {
+        return schema.basetype === 'object' && schema.properties && !schema.order;
+    }
+    apply(schema) {
+        const properties = schema.properties;
+        const groupmap = new Map();
+        const tabmap = new Map();
+        // order properties with tab and grouping
+        let fieldnum = 0;
+        const fields = Object.entries(properties).map(([fieldname, schema]) => {
+            // get or affect tab number
+            if (schema.tab && !tabmap.has(schema.tab))
+                tabmap.set(schema.tab, fieldnum);
+            const tabnum = schema.tab ? tabmap.get(schema.tab) : fieldnum;
+            // get or affect group number
+            if (schema.group && !groupmap.has(schema.group))
+                groupmap.set(schema.group, fieldnum);
+            const groupnum = schema.group ? groupmap.get(schema.group) : fieldnum;
+            return { tabnum, groupnum, fieldnum: fieldnum++, fieldname, schema, tabname: schema.tab, groupname: schema.group };
+        });
+        fields.sort((fa, fb) => {
+            const diff = Math.min(fa.tabnum, fa.groupnum, fa.fieldnum) - Math.min(fb.tabnum, fb.groupnum, fb.fieldnum);
+            return (diff === 0) ? fa.fieldnum - fb.fieldnum : diff;
+        });
+        schema.order = fields;
+    }
+}
+class CSInsideRef extends CompilationStep {
+    desc = "'refTo' property compilation step";
+    data;
+    constructor(root, data) {
+        super(root);
+        this.data = data;
+    }
+    appliable(schema) {
+        return schema.refTo && typeof schema.refTo !== "function";
+    }
+    apply(schema) {
+        const refto = schema.refTo;
+        schema.refTo = () => null;
+        const pointer = refto.replace(/\/[^/]+$/, '');
+        const refname = refto.substr(pointer.length + 1);
+        observers(this.root, schema, `$('${pointer}'')`);
+        schema.refTo = (_schema, _value, parent, property, _$) => {
+            const refarray = derefPointerData(this.data.content, parent, property, pointer);
+            if (!refarray)
+                return null;
+            if (!Array.isArray(refarray)) {
+                console.error(`reference list must be an array ${pointer}`);
+                return null;
+            }
+            return { pointer, refname, refarray };
+        };
+    }
+}
+/**
+ * compile a given property written as template literal
+ */
+class CSTemplate extends CompilationStep {
+    desc = "template literals compilation step";
+    property;
+    defunc;
+    constructor(root, property, defunc) {
+        super(root);
+        this.property = property;
+        this.defunc = defunc;
+    }
+    appliable(schema) {
+        return this.property in schema && typeof schema[this.property] == "string";
+    }
+    apply(schema) {
+        const expression = schema[this.property];
+        schema[this.property] = this.defunc;
         if (typeof expression == 'string') {
             const code = `try { 
                     return nvl\`${expression}\`
                 } catch(e) { 
-                    console.error(\`unable to produce ${property} property due to :\${e.toString()}\`)
+                    console.error(\`unable to produce ${this.property} property due to :\${e.toString()}\`)
                 }
                 return ''
             `;
             try {
-                observers(root, schema, expression);
-                schema[property] = new Function("schema", "value", "parent", "property", "$", "userdata", code);
-                schema[property].expression = expression;
+                observers(this.root, schema, expression);
+                schema[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code);
+                schema[this.property].expression = expression;
             }
             catch (e) {
-                console.error(`unable to compile ${property} expression "${expression}" due to ::\n\t=>${String(e)}`);
+                throw Error(`unable to compile ${this.property} expression "${expression}" due to ::\n\t=>${String(e)}`);
             }
         }
-    };
-};
-const solveboolean = (root, property, defaultv) => {
-    return (schema, parent, name) => {
-        if (!(property in schema) || typeof schema[property] === "function")
-            return;
-        const expression = schema[property];
-        schema[property] = defaultv;
+    }
+}
+/**
+ * compile a given property written as a function returning boolean
+ */
+class CSBool extends CompilationStep {
+    desc = "template literals compilation step";
+    property;
+    defunc;
+    constructor(root, property, defunc) {
+        super(root);
+        this.property = property;
+        this.defunc = defunc;
+    }
+    appliable(schema) {
+        return this.property in schema && ["string", "boolean"].includes(typeof schema[this.property]);
+    }
+    apply(schema, parent, name) {
+        const expression = schema[this.property];
+        schema[this.property] = this.defunc;
         if (typeof expression == 'boolean' || expression === null) {
-            schema[property] = expression === null ? () => null : () => expression;
+            schema[this.property] = expression === null ? () => null : () => expression;
         }
         else if (typeof expression == 'string') {
             const code = `
-            //# sourceURL=${property}_${(parent && name) ? pointerSchema(parent, name).replace(/\//g, "") : Math.floor(Math.random() * 1e9)}.js
+            //# sourceURL=${this.property}_${(parent && name) ? pointerSchema(parent, name).replace(/\//g, "") : Math.floor(Math.random() * 1e9)}.js
             try {  
                     const result = (${expression}) 
 
                     return result === null ? result : !!result
                 }
-                catch(e) {  console.error(\`unable to produce ${property} property due to :\n\t=>\${e.toString()}\`) }
+                catch(e) {  console.error(\`unable to produce ${this.property} property due to :\n\t=>\${e.toString()}\`) }
                 return true
             `;
             try {
-                observers(root, schema, expression);
-                schema[property] = new Function("schema", "value", "parent", "property", "$", "userdata", code);
-                schema[property].expression = expression;
+                observers(this.root, schema, expression);
+                schema[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code);
+                schema[this.property].expression = expression;
             }
             catch (e) {
-                console.error(`unable to compile ${property} expression "${expression}" due to ::\n\t=>${String(e)}`);
+                throw Error(`unable to compile ${this.property} expression "${expression}" due to ::\n\t=>${String(e)}`);
             }
         }
-    };
-};
-const solveany = (root, property, defaultv) => {
-    return (schema, parent, name) => {
-        if (!(property in schema) || typeof schema[property] === "function")
-            return;
-        const expression = schema[property];
-        schema[property] = defaultv;
+    }
+}
+class CSAny extends CompilationStep {
+    desc = "template literals compilation step";
+    property;
+    defunc;
+    constructor(root, property, defunc) {
+        super(root);
+        this.property = property;
+        this.defunc = defunc;
+    }
+    appliable(schema) {
+        return this.property in schema && typeof schema[this.property] !== "function";
+    }
+    apply(schema, parent, name) {
+        const expression = schema[this.property];
+        schema[this.property] = this.defunc;
         let code = "return null";
         switch (true) {
             case typeof expression == 'boolean':
@@ -13026,86 +13259,76 @@ const solveany = (root, property, defaultv) => {
                 break;
         }
         const body = `
-            //# sourceURL=${property}_${(parent && name) ? pointerSchema(parent, name).replace(/\//g, "") : Math.floor(Math.random() * 1e9)}.js
+            //# sourceURL=${this.property}_${(parent && name) ? pointerSchema(parent, name).replace(/\//g, "") : Math.floor(Math.random() * 1e9)}.js
             try {  
                 ${code} 
             }
-            catch(e) {  console.error(\`unable to produce ${property} property due to :\n\t=>\${e.toString()}\`) }
+            catch(e) {  console.error(\`unable to produce ${this.property} property due to :\n\t=>\${e.toString()}\`) }
             return null
         `;
         try {
             if (Array.isArray(expression))
-                expression.forEach((expr) => observers(root, schema, expr));
+                expression.forEach((expr) => observers(this.root, schema, expr));
             if (typeof expression == 'string')
-                observers(root, schema, expression);
-            schema[property] = new Function("schema", "value", "parent", "property", "$", "userdata", body);
-            schema[property].expression = expression;
+                observers(this.root, schema, expression);
+            schema[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", body);
+            schema[this.property].expression = expression;
         }
         catch (e) {
-            console.error(`unable to compile ${property} expression "${expression}" due to ::\n\t=>${String(e)}`);
+            console.error(`unable to compile ${this.property} expression "${expression}" due to ::\n\t=>${String(e)}`);
         }
-    };
-};
-const walkSchema = (schema, parent, name, actions) => {
-    actions.forEach(action => {
-        try {
-            action(schema, parent, name);
-        }
-        catch (e) {
-            console.error(`Error while compiling schema ${String(e)}\naction: ${action.name}\nschema: ${pointerSchema(parent, name)}`);
-        }
-    });
-    if (schema.properties)
-        return Object.entries(schema.properties).forEach(([name, child]) => walkSchema(child, schema, name, actions));
-    if (schema.items) {
-        if (schema.items.oneOf)
-            return walkSchema(schema.items, schema, '*', actions);
-        if (schema.items.allOf)
-            return walkSchema(schema.items, schema, '*', actions);
-        if (schema.items.anyOf)
-            return walkSchema(schema.items, schema, '*', actions);
-        return walkSchema(schema.items, schema, '*', actions);
     }
-    if (schema.oneOf)
-        return schema.oneOf.forEach((child) => walkSchema(child, parent, name, actions));
-    if (schema.allOf)
-        return schema.allOf.forEach((child) => walkSchema(child, parent, name, actions));
-    if (schema.anyOf)
-        return schema.anyOf.forEach((child) => walkSchema(child, parent, name, actions));
-};
+}
 /**
- *
- * @param data data (plain old javascript object)
- * @param schema schema describing data
- * @param actions actions (functions) to apply on each data
- * @returns
+ * class to compile data for fz-form
+ * compilation process is a in-depth walkthrough schema applying in order compile time actions
+ * be carefull action order is primordial
  */
-const walkData = (data, schema, pdata, pschema, actions) => {
-    if (schema == null || data == null)
-        return;
-    actions.forEach(action => action(data, schema, pdata, pschema));
-    if (Array.isArray(data)) {
-        if (schema.homogeneous) {
-            data.forEach((item) => walkData(item, schema.items, data, schema, actions));
-        }
-        else {
-            data.forEach((item, i) => {
-                schema.items.oneOf.forEach((schema) => {
-                    if (schema.case && schema.case(null, item, data, i, () => null))
-                        walkData(item, schema, data, schema, actions);
+class DataCompiler {
+    data;
+    schema;
+    steps;
+    constructor(data, schema) {
+        this.data = data;
+        this.schema = schema;
+        this.steps = [
+            (data, schema, pdata, _pschema) => {
+                setSchema(data, schema);
+                setParent(data, pdata);
+                setRoot(data, this.data.content);
+            }
+        ];
+    }
+    compile() {
+        this.walkData(this.data.content, this.schema);
+    }
+    walkData(data, schema, pdata, pschema) {
+        if (schema == null || data == null)
+            return;
+        this.steps.forEach(action => action(data, schema, pdata, pschema));
+        if (Array.isArray(data)) {
+            if (schema.homogeneous) {
+                data.forEach((item) => this.walkData(item, schema.items, data, schema));
+            }
+            else {
+                data.forEach((item, i) => {
+                    schema.items.oneOf.forEach((schema) => {
+                        if (schema.case && schema.case(null, item, data, i, () => null))
+                            this.walkData(item, schema, data, schema);
+                    });
                 });
-            });
+            }
+            return;
         }
-        return;
-    }
-    if (typeof data === 'object') {
-        for (const property in data) {
-            const propschema = schema.properties[property];
-            walkData(data[property], propschema, data, schema, actions);
+        if (typeof data === 'object') {
+            for (const property in data) {
+                const propschema = schema.properties[property];
+                this.walkData(data[property], propschema, data, schema);
+            }
+            return;
         }
-        return;
     }
-};
+}
 window.nvl = function nvl(strarr, ...valarr) {
     const all = [];
     strarr.forEach((str, i) => (i == 0)
@@ -25717,104 +25940,17 @@ let FzForm = (() => {
             evt.preventDefault();
             evt.stopPropagation();
         }
-        /**
-         * compilation process is a in-depth walkthrough schema
-         * applying in order compile time actions
-         * be carefull action order is primordial
-         */
         compile() {
             try {
-                walkSchema(this.schema, null, null, [
-                    solveref((ref) => this.definition(ref)),
-                    solvebasetype,
-                    this.solveenumref.bind(this),
-                    solveenum,
-                    solvehomogeneous,
-                    solveobservers,
-                    solveparent,
-                    solvepointer,
-                    this.solveroot.bind(this),
-                    solverequired,
-                    solvetype,
-                    solveorder,
-                ]);
-                // 2nd compilation pass (previous operations fully completed for next step)
-                walkSchema(this.schema, null, null, [
-                    this.solverefto.bind(this),
-                    solvestring(this.schema, 'abstract', abstract),
-                    solveboolean(this.schema, 'case', () => false),
-                    solveboolean(this.schema, 'visible', () => true),
-                    solveboolean(this.schema, 'readonly', () => false),
-                    solveboolean(this.schema, 'requiredWhen', () => false),
-                    solveboolean(this.schema, 'collapsed', () => false),
-                    solveboolean(this.schema, 'filter', () => true),
-                    solveany(this.schema, 'orderBy', () => true),
-                    solveany(this.schema, 'expression', () => ''),
-                    solveany(this.schema, 'change', () => '')
-                ]);
-                walkData(this.obj.content, this.schema, null, null, [
-                    (data, schema, pdata, _pschema) => {
-                        setSchema(data, schema);
-                        setParent(data, pdata);
-                        setRoot(data, this.obj.content);
-                    }
-                ]);
+                const schema_compiler = new SchemaCompiler(this.schema, this.options, this.obj.content);
+                schema_compiler.compile();
+                const data_compiler = new DataCompiler(this.obj.content, this.schema);
+                data_compiler.compile();
             }
             catch (e) {
                 this._errors = [];
                 this.message = "La compilation a échouée : " + String(e);
             }
-        }
-        definition(schemaref) {
-            if (schemaref && schemaref.$ref) {
-                const ref = schemaref.$ref;
-                if (!ref.startsWith("#/definitions/"))
-                    throw Error(`Solving refs: only '#/definitions/defname' allowed [found => ${ref}]`);
-                if (!this.schema.definitions)
-                    throw Error(`No definitions provided in root schema`);
-                const defname = ref.split("/")[2];
-                if (defname in this.schema.definitions) {
-                    const deforig = this.schema.definitions[defname];
-                    const defcopy = Object.assign({}, deforig);
-                    Object.entries(schemaref).forEach(([n, v]) => (n !== '$ref') && (defcopy[n] = v));
-                    return defcopy;
-                }
-            }
-            return schemaref;
-        }
-        solverefto(schema) {
-            if (!schema.refTo || typeof schema.refTo === "function")
-                return;
-            const refto = schema.refTo;
-            schema.refTo = () => null;
-            const pointer = refto.replace(/\/[^/]+$/, '');
-            const refname = refto.substr(pointer.length + 1);
-            observers(this.schema, schema, `$('${pointer}'')`);
-            schema.refTo = (_schema, _value, parent, property, _$) => {
-                const refarray = derefPointerData(this.obj.content, parent, property, pointer);
-                if (!refarray)
-                    return null;
-                if (!Array.isArray(refarray)) {
-                    console.error(`reference list must be an array ${pointer}`);
-                    return null;
-                }
-                return { pointer, refname, refarray };
-            };
-        }
-        solveenumref = (schema, _parent, _name) => {
-            if ("enumRef" in schema) {
-                if (this.options.ref) {
-                    const list = this.options.ref(schema.enumRef);
-                    const oneof = list.map((x) => ({ "const": x.value, "title": x.title }));
-                    schema.oneOf = oneof;
-                }
-                else {
-                    console.error(`missing 'enumRef' function in options`);
-                }
-            }
-        };
-        solveroot(schema) {
-            schema.root = this.schema;
         }
         /**
          * handle 'observed-change' event for change detection and update
