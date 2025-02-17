@@ -1,0 +1,24 @@
+{
+    "form": {
+        "type": "object",
+        "title": "Typeahead",
+        "properties": {
+            "a_superhero": {
+                "title": "Hero",
+                "type": "string",
+                "field": "fz-enum-typeahead",
+                "enum": [
+                    "Iron Man",
+                    "Professeur X",
+                    "Captain America",
+                    "Black Widow",
+                    "Hulk",
+                    "Captain Marvel",
+                    "Super Dad",
+                    "Wolverine"
+                ]
+            }
+        }
+    },
+    "data": {}
+}

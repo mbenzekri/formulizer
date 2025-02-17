@@ -20,7 +20,7 @@ document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tabLink => {
 //     schema: document.getElementById('schemaPanel'),
 //     data: document.getElementById('dataPanel')
 // }
-
+let tutodata = {}
 const form = document.getElementById('fzform')
 const schema = document.getElementById('fzschema')
 const data = document.getElementById('fzdata')
@@ -40,12 +40,13 @@ const md = window.markdownit();
 md.renderer.rules.table_open = function (tokens, idx) {
     return '<table class="table">';
 };
+
 async function markdown(name) {
     // Récupération du contenu du textarea
     defaultText = "Sorry, no description ..."
     const markdownText = await fetch(`./tutos/${name}.md`).then(r => (r.status == 200) ? r.text() : defaultText).catch(() => defaultText)
 
-        // Conversion du Markdown en HTML
+    // Conversion du Markdown en HTML
     const resultHtml = md.render(markdownText);
     // Affichage du résultat dans la div
     document.getElementById('markdown').innerHTML = resultHtml;
@@ -115,7 +116,7 @@ async function init_options(form) {
 const goto = async (name) => {
     const subject = name ?? "basic"
     if (subject) {
-        const tutodata = await fetch(`./tutos/${subject}.json`).then(r => r.json())
+        tutodata = await fetch(`./tutos/${subject}.json`).then(r => r.json())
         await init_options(form)
         await init_toc(toc)
         form.schema = tutodata.form
@@ -128,8 +129,5 @@ const goto = async (name) => {
         markdown(subject)
     }
 }
-
-
-
 
 window.addEventListener('load', () => goto("basic"))

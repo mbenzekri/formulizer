@@ -24671,7 +24671,7 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
                     autocomplete="off"
                 />
                 <div id="list" class="dropdown-menu w-100">
-                    ${this.enums?.length == 0 ? x `<a class="dropdown-item">No match...</a>` : ''}
+                    ${this.enums?.length == 0 ? x `<a class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : ''}
                     ${this.showNullChoice ? x `<a class="dropdown-item" @click="${() => this.select({ label: '<vide>', value: this.empty })}" >&lt;vide&gt;</a>` : ''}
                     ${this.enums?.map(item => x `<a class="dropdown-item" @click="${() => this.select(item)}" >${this.boldPrefix(item.label)}</a>`)}
                 </div>

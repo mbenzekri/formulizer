@@ -7,7 +7,12 @@
             "type": "string",
             "field": "fz-enum-typeahead",
             "change": "goto(value)",
-            "enum": ["basic","object","array"]
+            "enum": [
+                "basic typeahead",
+                "basic",
+                "object",
+                "array"
+            ]
         }
     }
 }
