@@ -98,17 +98,12 @@ bootstrapSheet.replaceSync(bootstrapCSS);
 const bootstrapVarsSheet = new CSSStyleSheet();
 bootstrapVarsSheet.replaceSync(bootstrapVarsCSS);
 class Base extends r$3 {
-    canUse_adoptedStyleSheets() {
-        return !!this.shadowRoot && 'adoptedStyleSheets' in this.shadowRoot;
-    }
     connectedCallback() {
         super.connectedCallback();
         // at this step, shadowRoot is created
-        if (this.shadowRoot && this.canUse_adoptedStyleSheets()) {
-            this.shadowRoot.adoptedStyleSheets = [bootstrapVarsSheet, bootstrapSheet, ...this.shadowRoot.adoptedStyleSheets];
-        }
+        if (this.shadowRoot)
+            S$1(this.shadowRoot, [bootstrapVarsSheet, bootstrapSheet]);
     }
-    static styles = [i$4 ``];
 }
 
 /**
@@ -23667,17 +23662,48 @@ const md = new MarkdownIt({
     // If result starts with <pre... internal wrapper is skipped.
     highlight: function (_str, _lang) { return ''; }
 });
-/**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
-let FzMarkdown = class FzMarkdown extends FzElement {
-    static get styles() {
-        return [
-            ...super.styles,
-            i$4 `
+function patchAttr(md, tagname, attrname, content) {
+    // Save the original rendering rule for table_open (if any)
+    const defaultRender = md.renderer.rules.table_open || function defRender(tokens, idx, options, _env, self) {
+        return self.renderToken(tokens, idx, options);
+    };
+    md.renderer.rules[`${tagname}_open`] = (tokens, idx, options, env, self) => {
+        // Get the current token for the <table> opening tag.
+        const token = tokens[idx];
+        // Check if there's already a class attribute, and append or create as necessary.
+        const classIndex = token.attrIndex(attrname);
+        if (classIndex < 0) {
+            token.attrPush([attrname, content]); // add new attribute
+        }
+        else {
+            if (token.attrs)
+                token.attrs[classIndex][1] += ` ${content}`; // append new class
+        }
+        // Proceed with default rendering.
+        return defaultRender(tokens, idx, options, env, self);
+    };
+}
+function patchImg(md, width, height) {
+    const defaultImageRender = md.renderer.rules.image ||
+        function (tokens, idx, options, _env, self) {
+            return self.renderToken(tokens, idx, options);
+        };
+    md.renderer.rules.image = function (tokens, idx, options, env, self) {
+        const token = tokens[idx];
+        // If no width/height is set, add defaults.
+        if (!token.attrGet('width'))
+            token.attrSet('width', `${width}`); // set default width
+        if (!token.attrGet('height'))
+            token.attrSet('height', `${height}`); // set default height
+        return defaultImageRender(tokens, idx, options, env, self);
+    };
+}
+patchAttr(md, "table", "class", "table table-striped table-responsive");
+patchImg(md, 100, 100);
+let FzMarkdownIt = class FzMarkdownIt extends Base {
+    markdown = "";
+    static styles = [
+        i$4 `
             blockquote {
                 padding: 10px 20px;
                 margin: 0 0 20px;
@@ -23712,49 +23738,33 @@ let FzMarkdown = class FzMarkdown extends FzElement {
                 background-color: #f9f2f4;
                 border-radius: 4px;
             }
-            table {
-                width: 100%;
-                max-width: 100%;
-                margin-bottom: 20px;
+            h1,h2,h3,h4,h5,h6 {
+                text-decoration: underline;
             }
-            table > thead > tr > th,
-            table > tbody > tr > th,
-            table > tfoot > tr > th,
-            table > thead > tr > td,
-            table > tbody > tr > td,
-            table > tfoot > tr > td {
-                padding: 8px;
-                line-height: 1.42857143;
-                vertical-align: top;
-                border-top: 1px solid #ddd;
-            }
-            table > thead > tr > th {
-                vertical-align: bottom;
-                border-bottom: 2px solid #ddd;
-            }
-            table > caption + thead > tr:first-child > th,
-            table > colgroup + thead > tr:first-child > th,
-            table > thead:first-child > tr:first-child > th,
-            table > caption + thead > tr:first-child > td,
-            table > colgroup + thead > tr:first-child > td,
-            table > thead:first-child > tr:first-child > td {
-                border-top: 0;
-            }
-            table > tbody + tbody {
-                border-top: 2px solid #ddd;
-            }
-            table .table {
-                background-color: #fff;
-            }`
-        ];
+        `
+    ];
+    render() {
+        const rendered = md.render(this.markdown);
+        return x `<div>
+            ${o(rendered)}
+        </div>`;
     }
+};
+__decorate([
+    n({ attribute: "markdown", type: String }),
+    __metadata("design:type", String)
+], FzMarkdownIt.prototype, "markdown", void 0);
+FzMarkdownIt = __decorate([
+    t$2("markdown-it")
+], FzMarkdownIt);
+
+let FzMarkdown = class FzMarkdown extends FzElement {
     renderInput() {
         return x ``;
     }
     renderField() {
-        const markdown = this.value == null ? '' : md.render(this.value);
         return x `
-            <div class="form-group row"> <div>${o(markdown)}</div> </div>
+            <div class="form-group row"><markdown-it .markdown="${this.value}"></markdown-it></div>
         `;
     }
     convertToInput(value) {
