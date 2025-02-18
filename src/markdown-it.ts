@@ -1,9 +1,9 @@
 import { customElement, property } from "lit/decorators.js"
 import { unsafeHTML } from "lit/directives/unsafe-html.js"
-import { css, html } from "lit"
+import { css, html, LitElement } from "lit"
 
 import MarkdownIt from "markdown-it"
-import { Base } from "./base"
+import { bootstrapSheet, bootstrapVarsSheet } from "./css"
 
 const md = new MarkdownIt({
     html: false,                // Enable HTML tags in source
@@ -74,11 +74,13 @@ patchAttr(md, "table", "class", "table table-striped table-responsive")
 patchImg(md, 100, 100)
 
 @customElement("markdown-it")
-export class FzMarkdownIt extends Base {
+export class FzMarkdownIt extends LitElement {
 
-    @property({ attribute: "markdown", type: String }) markdown: string = ""
+    @property({ attribute: "markdown", type: String, reflect: true}) markdown: string = ""
 
     static override styles = [
+        bootstrapVarsSheet,
+        bootstrapSheet,
         css`
             blockquote {
                 padding: 10px 20px;
