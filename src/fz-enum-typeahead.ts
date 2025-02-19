@@ -20,13 +20,13 @@ export class FzEnumTypeahead extends FzEnumBase {
                     id="query"
                     class="form-control" 
                     type="text" 
-                    placeholder="${this.label}"
-                    ?readonly="${this.readonly}"
-                    @input="${this.change}"
-                    @keypress="${this.change}"
-                    ?required="${this.required}"
-                    @focus="${this.openList}"
                     autocomplete="off"
+                    placeholder=${this.label}
+                    ?readonly=${this.readonly}
+                    ?required=${this.required}
+                    @input=${this.change}
+                    @keypress=${this.change}
+                    @focus=${this.openList}
                 />
                 <div id="list" class="dropdown-menu w-100">
                     ${ this.enums?.length == 0 ? html`<a class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : '' }

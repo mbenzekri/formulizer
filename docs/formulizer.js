@@ -14625,7 +14625,7 @@ function v1(options, buf, offset) {
         updateV1State(_state, now, rnds);
         bytes = v1Bytes(rnds, _state.msecs, _state.nsecs, _state.clockseq, _state.node, buf, offset);
     }
-    return buf ? bytes : unsafeStringify(bytes);
+    return buf ?? unsafeStringify(bytes);
 }
 function updateV1State(state, now, rnds) {
     state.msecs ??= -Infinity;
@@ -22595,6 +22595,16 @@ function ucs2decode(string) {
 }
 
 /**
+ * Creates a string based on an array of numeric code points.
+ * @see `punycode.ucs2.decode`
+ * @memberOf punycode.ucs2
+ * @name encode
+ * @param {Array} codePoints The array of numeric code points.
+ * @returns {String} The new Unicode string (UCS-2).
+ */
+const ucs2encode = codePoints => String.fromCodePoint(...codePoints);
+
+/**
  * Converts a basic code point into a digit/integer.
  * @see `digitToBasic()`
  * @private
@@ -22879,6 +22889,25 @@ const toASCII = function(input) {
 
 /** Define the public API */
 const punycode = {
+	/**
+	 * A string representing the current Punycode.js version number.
+	 * @memberOf punycode
+	 * @type String
+	 */
+	'version': '2.3.1',
+	/**
+	 * An object of methods to convert from JavaScript's internal character
+	 * representation (UCS-2) to Unicode code points, and back.
+	 * @see <https://mathiasbynens.be/notes/javascript-encoding>
+	 * @memberOf punycode
+	 * @type Object
+	 */
+	'ucs2': {
+		'decode': ucs2decode,
+		'encode': ucs2encode
+	},
+	'decode': decode,
+	'encode': encode,
 	'toASCII': toASCII,
 	'toUnicode': toUnicode
 };
@@ -24683,13 +24712,13 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
                     id="query"
                     class="form-control" 
                     type="text" 
-                    placeholder="${this.label}"
-                    ?readonly="${this.readonly}"
-                    @input="${this.change}"
-                    @keypress="${this.change}"
-                    ?required="${this.required}"
-                    @focus="${this.openList}"
                     autocomplete="off"
+                    placeholder=${this.label}
+                    ?readonly=${this.readonly}
+                    ?required=${this.required}
+                    @input=${this.change}
+                    @keypress=${this.change}
+                    @focus=${this.openList}
                 />
                 <div id="list" class="dropdown-menu w-100">
                     ${this.enums?.length == 0 ? x `<a class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : ''}
