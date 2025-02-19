@@ -12,53 +12,83 @@ import { string } from 'rollup-plugin-string';
 import url from '@rollup/plugin-url';
 import alias from '@rollup/plugin-alias';
 import typescript from '@rollup/plugin-typescript';
+import dts from "rollup-plugin-dts";
 
-export default {
-  input: './dist/main.js',
-  output: {
-    file: './dist/formulizer.js',
-    format: 'esm',
-    sourcemap: true,
+function onwarn(warning) {
+  if (warning.code !== 'THIS_IS_UNDEFINED') {
+    if (warning.message.includes("Rollup 'sourcemap' option must be set to generate source maps.")) return
+    console.error(`(!) ${warning.message}`);
+  }
+}
+const commonPlugins = [
+  alias({
+    entries: [
+      { find: './assets', replacement: '../src/assets' },
+    ]
+  }),
+  // Ensures that dependencies are properly resolved before transformation.
+  resolve(),
+  typescript({ sourceMap: true }),
+  replace({ preventAssignment: false, 'Reflect.decorate': 'undefined' }),
+  string({
+    include: '**/*.css',
+  }),
+  // Permet d'importer les fichiers avec l'extension .css en tant que chaîne de caractères
+  url({
+    // by default, rollup-plugin-url will not handle font files
+    include: ['**/*.woff', '**/*.woff2'],
+    // setting infinite limit will ensure that the files 
+    // are always bundled with the code, not copied to /dist
+    limit: Infinity,
+  }),
+];
+
+// minification step
+const terserPlugin = terser({
+  ecma: 2021,
+  module: true,
+  warnings: true,
+  mangle: {
+    properties: {
+      regex: /^__/,
+    },
   },
-  onwarn(warning) {
-    if (warning.code !== 'THIS_IS_UNDEFINED') {
-      console.error(`(!) ${warning.message}`);
-    }
+});
+
+export default [
+
+  // produce developement bundle
+  {
+    input: './dist/main.js',
+    output: {
+      file: './dist/formulizer.js',
+      format: 'esm',
+      sourcemap: true,
+    },
+    onwarn,
+    plugins: [...commonPlugins,summary()],
   },
-  plugins: [
-    replace({preventAssignment: false, 'Reflect.decorate': 'undefined'}),
-    resolve(),
-    /**
-     * This minification setup serves the static site generation.
-     * For bundling and minification, check the README.md file.
-     */
-    // terser({
-    //   ecma: 2021,
-    //   module: true,
-    //   warnings: true,
-    //   mangle: {
-    //     properties: {
-    //       regex: /^__/,
-    //     },
-    //   },
-    // }),
-    summary(),
-    // Permet d'importer les fichiers avec l'extension .css en tant que chaîne de caractères
-    string({
-      include: '**/*.css',
-    }),
-    alias({
-       entries: [
-         { find: './assets', replacement: '../src/assets' },
-       ]
-     }),
-    url({
-      // by default, rollup-plugin-url will not handle font files
-      include: ['**/*.woff', '**/*.woff2'],
-      // setting infinite limit will ensure that the files 
-      // are always bundled with the code, not copied to /dist
-      limit: Infinity,
-    }),
-    typescript({ sourceMap: true })
-  ],
-};
+
+  // produce minified bundle
+  {
+    input: './dist/main.js',
+    output: {
+      file: './dist/formulizer.min.js',
+      format: 'esm',
+      sourcemap: false,
+    },
+    onwarn,
+    plugins: [...commonPlugins,terserPlugin,summary()],
+  },
+
+  // produce type declarations
+  {
+    input: "src/main.ts", // Ensure this is your root file
+    output: {
+      file: "dist/formulizer.d.ts",
+      format: "es",
+    },
+    plugins: [dts()],
+  },
+
+];

@@ -3,7 +3,8 @@
 /test/
 /build/
 custom-elements.json
-# only generated for size check
 /dist/*
 !/dist/formulizer.js
+!/dist/formulizer.min.js
 !/dist/formulizer.js.map
+!/dist/formulizer.d.ts
