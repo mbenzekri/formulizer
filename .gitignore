@@ -1,7 +1,4 @@
 /node_modules/
-/lib/
-/test/
-/build/
 custom-elements.json
 /dist/*
 !/dist/formulizer.js
