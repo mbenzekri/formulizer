@@ -29,7 +29,7 @@ Here is some important pages.
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script type="module" src="../dist/formulizer.js"></script>
+        <script type="module" src="./formulizer.js"></script>
     </head>
     <body>
         <fz-form id="myform" ></fz-form>
@@ -66,7 +66,7 @@ Here is some important pages.
 
 - load formulizer library in the header:
     ```
-        <script type="module" src="../dist/formulizer.js"></script>
+        <script type="module" src="./formulizer.js"></script>
     ```
 
 - insert the formulizer tag and set attribute id to pick it later
@@ -107,7 +107,7 @@ Here is some important pages.
 
 - set the property `data` with initial data to be edited by the form as plain javascript object
     ```
-        form.data = { "who" : "world!" }
+        form.data = { "who" : "world" }
     ```
 
 - get updated data from the form using "change" event

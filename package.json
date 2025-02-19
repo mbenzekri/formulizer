@@ -13,7 +13,7 @@
   "files": [ "dist/" ],
 
   "scripts": {
-    "build": "tsc && rollup -c",
+    "build": "tsc && rollup -c && cp dist/formulizer.js docs/ ",
     "build:watch": "concurrently 'tsc --watch' 'rollup -c --watch'",
     "clean": "rimraf dist/*.{d.ts,d.ts.map,js,js.map} build/*.{d.ts,d.ts.map,js,js.map}",
     "clean:build": "npm run clean && npm run build",
