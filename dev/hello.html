@@ -1,0 +1,39 @@
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hello, world!</title>
+    <script type="module" src="../dist/formulizer.js"></script>
+</head>
+
+<body>
+    <fz-form id="my-form" schema="{}" data="{}"></fz-form>
+    <pre id="my-data">Hello world</pre>
+    <script>
+        window.onload = () => {
+            const formElem = document.getElementById("my-form")
+            const dataElem = document.getElementById("my-data")
+            const schema = {
+                "title": "Say hello to...",
+                "type": "object",
+                "properties": {
+                    "who": {
+                        "type": "string",
+                    },
+                    "hello": {
+                        "type": "string",
+                        "expression": " `Hello, ${ $('#/who') } !` ",
+                        "readonly" : true
+                    }
+                }
+            }
+            const data = { "who" : "world!" }
+
+            formElem.schema = schema
+            formElem.data = data
+        }
+    </script>
+</body>
+
+</html>

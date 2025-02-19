@@ -77,7 +77,7 @@ export class FzObject extends FzElement {
     }
 
     override update(changedProperties: Map<string, unknown>) {
-        if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema.properties).length !== 0) {
+        if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema.properties ?? {})?.length > 0) {
             const json = JSON.stringify(this.schema, getCircularReplacer)
             this.validator = new DataValidator(JSON.parse(json));
             this.check()

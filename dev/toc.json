@@ -8,6 +8,7 @@
             "field": "fz-enum-typeahead",
             "change": "goto(value)",
             "enum": [
+                "README",
                 "markdown",
                 "documents",
                 "basic typeahead",

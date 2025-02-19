@@ -24,7 +24,7 @@ const loadAsset = async (name) => fetch(`./assets/${name}`).then(r => r.ok ? r.b
 
 
 const md = new window.markdownit({
-    html: false,                // Enable HTML tags in source
+    html: true,                // Enable HTML tags in source
     xhtmlOut: false,            // Use '/' to close single tags (<br />). This is only for full CommonMark compatibility.
     breaks: false,              // Convert '\n' in paragraphs into <br>
     langPrefix: 'language-',    // CSS language prefix for fenced blocks. Can be useful for external highlighters.
@@ -175,4 +175,4 @@ const goto = async (name) => {
     }
 }
 
-window.addEventListener('load', () => goto("basic"))
+window.addEventListener('load', () => goto("README"))

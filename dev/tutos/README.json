@@ -1,0 +1,17 @@
+{
+    "form": {
+        "title": "Say hello to...",
+        "type": "object",
+        "properties": {
+            "who": {
+                "type": "string"
+            },
+            "hello": {
+                "type": "string",
+                "expression": " `Hello, ${ $('#/who') } !` ",
+                "readonly": true
+            }
+        }
+    },
+    "data": { "who" : "world" }
+}
