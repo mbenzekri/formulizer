@@ -65,8 +65,13 @@
         }
         h3,h4,h5,h6 {
             padding-top: 10px;
-
         }
+        #logo {
+            height: 1em;
+            width: auto;
+            vertical-align: middle;
+        }
+
     </style>
 </head>
 
@@ -80,7 +85,8 @@
             <!-- Panneau principal (7/12 de la largeur) -->
             <div id="panel1" class="col-md-6 p-0 d-flex flex-column bg-light">
                 <div class="p-3">
-                    <h1>Topic : <span id="name"></span>
+                    <h1>
+                        <img id=logo src="./assets/Fz.svg" alt="Formulizer Logo"><span id="name"></span>
                         <a href="#panel2" class="btn btn-secondary d-md-none float-end">&gt;&gt;</a>
                     </h1>
                     <div id=markdown >... description ...</div>
