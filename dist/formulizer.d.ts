@@ -215,6 +215,7 @@ declare abstract class FzElement extends LitElement {
     private debugKey;
     protected triggerChange(): void;
     evalExpr(attribute: string, schema?: Pojo, value?: any, parent?: any, key?: string | number): any;
+    get derefFunc(): (tmplOrStr: TemplateStringsArray | string, ...values: any[]) => any;
 }
 
 interface IDocStorage {

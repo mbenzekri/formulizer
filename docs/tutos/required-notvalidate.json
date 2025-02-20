@@ -18,7 +18,7 @@
             "phone": {
                 "title": "numero",
                 "type": "integer",
-                "requiredWhen": "$('#/age') >= 18"
+                "requiredWhen": " $`#/age` >= 18"
             }
         },
         "required" : ["prenom","nom"]

@@ -91,7 +91,7 @@ export abstract class FzEnumBase extends FzElement {
                     const ok = this.evalExpr('filter', schema, item, refarray, index)
                     if (ok) {
                         const value = item[refname]
-                        const label = schema?.abstract(schema, item, refarray, index, (p: string) => this.derefData(p)) ?? value
+                        const label = schema?.abstract(schema, item, refarray, index, this.derefFunc) ?? value
                         list.push({ label, value })
                     }
                     return list

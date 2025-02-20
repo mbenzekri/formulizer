@@ -506,17 +506,17 @@ export abstract class FzElement extends LitElement {
                 ? this.evalExpr("abstract")
                 : abstract(this.schema, this.value)
         } else if (itemschema && itemschema.refTo) {
-            const refto = itemschema.refTo(itemschema,this.value[key], this.data, this.name, (p: string) => this.derefData(p))
+            const refto = itemschema.refTo(itemschema,this.value[key], this.data, this.name,this.derefFunc)
             const index = refto.refarray.findIndex((x: any) => x[refto.refname] === this.value[key])
             const value = refto.refarray[index]
             const schema = getSchema(value)
             text = schema?.abstract
-                ? schema.abstract(schema, value, refto.refarray, index, (p: string) => this.derefData(p))
+                ? schema.abstract(schema, value, refto.refarray, index, this.derefFunc)
                 : abstract(schema, this.value[key])
         } else {
             const schema = (typeof key === 'string') ? this.schema.properties[key] : itemschema
             text = schema?.abstract
-                ? schema.abstract(schema, this.value[key], this.data, this.name, (p: string) => this.derefData(p))
+                ? schema.abstract(schema, this.value[key], this.data, this.name, this.derefFunc)
                 : abstract(schema, this.value[key])
         }
         return text.length > 200 ? text.substring(0, 200) + '...' : text
@@ -628,8 +628,17 @@ export abstract class FzElement extends LitElement {
     evalExpr(attribute: string, schema?: Pojo, value?: any, parent?: any, key?: string | number) {
         if (typeof this.schema?.[attribute] != "function") return null
         if (schema != null) {
-            return this.schema[attribute](schema, value, parent, key, (p: string) => this.derefData(p), this.form?.options.userdata)
+            return this.schema[attribute](schema, value, parent, key, this.derefFunc, this.form?.options.userdata)
         }
-        return this.schema[attribute](this.schema, this.value, this.data, this.name, (p: string) => this.derefData(p), this.form?.options.userdata)
+        return this.schema[attribute](this.schema, this.value, this.data, this.name,this.derefFunc, this.form?.options.userdata)
+    }
+
+    get derefFunc() {
+        return (tmplOrStr: TemplateStringsArray | string, ...values: any[]) => {
+            const pointer = typeof tmplOrStr == "string"
+                ? tmplOrStr
+                : tmplOrStr.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "")
+            return this.derefData(pointer)
+        }
     }
 }

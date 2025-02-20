@@ -18,17 +18,17 @@
             "delta": {
                 "type": "number",
                 "title": "B²-4AC",
-                "expression": "($('#/B')**2) - 4 * $('#/A') * $('#/C')"
+                "expression": " $`#/B`**2 - 4 * $`#/A` * $`#/C` "
             },
             "solution 1": {
                 "type": "string",
                 "title": "solution 1",
-                "expression": "$('#/delta') < 0 ? 'No solution' : $('#/delta') === 0 ? String(-$('#/B') / (2 * $('#/A'))) : String((-$('#/B')+Math.sqrt($('#/delta')))/(2*$('#/A')))"
+                "expression": "$`#/delta` < 0 ? 'No solution' : $`#/delta` === 0 ? String(-$`#/B` / (2 * $`#/A`)) : String((-$`#/B`+Math.sqrt($`#/delta`))/(2*$`#/A`))"
             },
             "solution 2": {
                 "type": "string",
                 "title": "solution 2",
-                "expression": "$('#/delta') < 0 ?  'No solution' : $('#/delta') === 0 ? 'No more solution' : String((-$('#/B')-Math.sqrt($('#/delta')))/(2*$('#/A')))"
+                "expression": "$`#/delta` < 0 ?  'No solution' : $`#/delta` === 0 ? 'No more solution' : String((-$`#/B`-Math.sqrt($`#/delta`))/(2*$`#/A`))"
             }
         }
     },

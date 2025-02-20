@@ -12674,7 +12674,7 @@ function abstract(schema, value) {
 function observers(root, current, expr) {
     if (!root || !current)
         return;
-    const POINTER_RE = /((#|\d+)(\/[^"']+)+)/g;
+    const POINTER_RE = /\$\`([^`]+)`/g;
     let matches;
     while ((matches = POINTER_RE.exec(expr)) != null) {
         const pointer = matches[1];
@@ -13869,18 +13869,18 @@ class FzElement extends r$3 {
                 : abstract(this.schema, this.value);
         }
         else if (itemschema && itemschema.refTo) {
-            const refto = itemschema.refTo(itemschema, this.value[key], this.data, this.name, (p) => this.derefData(p));
+            const refto = itemschema.refTo(itemschema, this.value[key], this.data, this.name, this.derefFunc);
             const index = refto.refarray.findIndex((x) => x[refto.refname] === this.value[key]);
             const value = refto.refarray[index];
             const schema = getSchema(value);
             text = schema?.abstract
-                ? schema.abstract(schema, value, refto.refarray, index, (p) => this.derefData(p))
+                ? schema.abstract(schema, value, refto.refarray, index, this.derefFunc)
                 : abstract(schema, this.value[key]);
         }
         else {
             const schema = (typeof key === 'string') ? this.schema.properties[key] : itemschema;
             text = schema?.abstract
-                ? schema.abstract(schema, this.value[key], this.data, this.name, (p) => this.derefData(p))
+                ? schema.abstract(schema, this.value[key], this.data, this.name, this.derefFunc)
                 : abstract(schema, this.value[key]);
         }
         return text.length > 200 ? text.substring(0, 200) + '...' : text;
@@ -13992,9 +13992,17 @@ class FzElement extends r$3 {
         if (typeof this.schema?.[attribute] != "function")
             return null;
         if (schema != null) {
-            return this.schema[attribute](schema, value, parent, key, (p) => this.derefData(p), this.form?.options.userdata);
+            return this.schema[attribute](schema, value, parent, key, this.derefFunc, this.form?.options.userdata);
         }
-        return this.schema[attribute](this.schema, this.value, this.data, this.name, (p) => this.derefData(p), this.form?.options.userdata);
+        return this.schema[attribute](this.schema, this.value, this.data, this.name, this.derefFunc, this.form?.options.userdata);
+    }
+    get derefFunc() {
+        return (tmplOrStr, ...values) => {
+            const pointer = typeof tmplOrStr == "string"
+                ? tmplOrStr
+                : tmplOrStr.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "");
+            return this.derefData(pointer);
+        };
     }
 }
 __decorate([
@@ -14274,7 +14282,7 @@ let FzArray$1 = class FzArray extends FzElement {
             this.currentSchema = this.schema.homogeneous ? this.schema.items : this.schema.items.oneOf[0];
         this.schemas = this.value == null ? [] : this.schema.homogeneous
             ? this.value.map(() => this.schema.items)
-            : this.value.map((value) => getSchema(value) ?? this.schema.items.oneOf.find((schema) => schema.case && schema.case(null, value, this.data, this.key, (p) => this.derefData(p))));
+            : this.value.map((value) => getSchema(value) ?? this.schema.items.oneOf.find((schema) => schema.case && schema.case(null, value, this.data, this.key, this.derefFunc)));
     }
     solveOrder() {
         if (this.value == null)
@@ -14983,7 +14991,7 @@ class FzEnumBase extends FzElement {
                     const ok = this.evalExpr('filter', schema, item, refarray, index);
                     if (ok) {
                         const value = item[refname];
-                        const label = schema?.abstract(schema, item, refarray, index, (p) => this.derefData(p)) ?? value;
+                        const label = schema?.abstract(schema, item, refarray, index, this.derefFunc) ?? value;
                         list.push({ label, value });
                     }
                     return list;

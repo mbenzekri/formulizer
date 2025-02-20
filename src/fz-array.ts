@@ -263,7 +263,7 @@ export class FzArray extends FzElement {
         if (!this.currentSchema) this.currentSchema = this.schema.homogeneous ?  this.schema.items : this.schema.items.oneOf[0]
         this.schemas = this.value == null ? [] : this.schema.homogeneous
             ? this.value.map(() => this.schema.items)
-            : this.value.map((value: any) => getSchema(value) ?? this.schema.items.oneOf.find((schema: any) => schema.case && schema.case(null, value, this.data, this.key, (p:string) => this.derefData(p))))
+            : this.value.map((value: any) => getSchema(value) ?? this.schema.items.oneOf.find((schema: any) => schema.case && schema.case(null, value, this.data, this.key, this.derefFunc)))
     }
     private solveOrder() {
         if (this.value == null) return

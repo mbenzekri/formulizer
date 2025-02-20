@@ -78,7 +78,7 @@
                     "## Title 2",
                     "### Title 3",
                     "#### Title 4",
-                    "add fields from data : ${$('#/field1')}"
+                    "add fields from data : ${ $`#/field1` }"
                 ]
             }
         }

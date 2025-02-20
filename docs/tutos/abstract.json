@@ -79,7 +79,7 @@
             "calculated": { 
                 "$ref" : "#/definitions/contact",
                 "title": "calculated (click me)",
-                "abstract": "contact ${$('0/prenom')} ${$('0/nom')}"
+                "abstract": "contact ${ $`0/prenom` } ${$`0/nom` }"
             },
             "default": {
                 "$ref" : "#/definitions/contact",

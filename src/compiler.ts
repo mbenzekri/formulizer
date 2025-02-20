@@ -10,7 +10,7 @@ import { setSchema,setParent,setRoot} from "./tools"
  */
 export function observers(root: Pojo, current: Pojo, expr: string): void {
     if (!root || !current) return
-    const POINTER_RE = /((#|\d+)(\/[^"']+)+)/g
+    const POINTER_RE = /\$\`([^`]+)`/g
     let matches
     while ((matches = POINTER_RE.exec(expr)) != null) {
         const pointer = matches[1]

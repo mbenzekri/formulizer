@@ -13,13 +13,13 @@
                 "type": "string",
                 "title": "Not conform reason",
                 "maxLength": 500,
-                "visible": "$('1/conformity') !== 'Conform'"
+                "visible": "$`1/conformity` !== 'Conform'"
             },
             "bypass": {
                 "type": "string",
                 "title": "Why you bypass",
                 "maxLength": 500,
-                "visible": "$('1/conformity') == 'Not Conform, bypass'"
+                "visible": "$`1/conformity` == 'Not Conform, bypass'"
             }
         }
     },

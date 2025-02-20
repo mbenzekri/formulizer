@@ -9,6 +9,7 @@
             "change": "goto(value)",
             "enum": [
                 "README",
+                "expression",
                 "markdown",
                 "documents",
                 "basic typeahead",
