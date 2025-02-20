@@ -207,7 +207,6 @@ declare abstract class FzElement extends LitElement {
     eval(): void;
     check(): void;
     getMessage(key: string, input?: HTMLInputElement): string;
-    derefData(pointer: string): any;
     /**
      * trap F9 key down to log debug Field state
      * @param evt keyboard event to trap key

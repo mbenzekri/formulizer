@@ -582,9 +582,6 @@ export abstract class FzElement extends LitElement {
             default: return ''
         }
     }
-    derefData(pointer: string): any {
-        return derefPointerData(this.form.root, this.data, this.key, pointer)
-    }
 
     /**
      * trap F9 key down to log debug Field state
@@ -638,7 +635,7 @@ export abstract class FzElement extends LitElement {
             const pointer = typeof tmplOrStr == "string"
                 ? tmplOrStr
                 : tmplOrStr.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "")
-            return this.derefData(pointer)
+            return derefPointerData(this.form.root, this.data, this.key, pointer)
         }
     }
 }

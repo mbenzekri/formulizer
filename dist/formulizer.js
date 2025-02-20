@@ -13947,9 +13947,6 @@ class FzElement extends r$3 {
             default: return '';
         }
     }
-    derefData(pointer) {
-        return derefPointerData(this.form.root, this.data, this.key, pointer);
-    }
     /**
      * trap F9 key down to log debug Field state
      * @param evt keyboard event to trap key
@@ -14001,7 +13998,7 @@ class FzElement extends r$3 {
             const pointer = typeof tmplOrStr == "string"
                 ? tmplOrStr
                 : tmplOrStr.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "");
-            return this.derefData(pointer);
+            return derefPointerData(this.form.root, this.data, this.key, pointer);
         };
     }
 }
