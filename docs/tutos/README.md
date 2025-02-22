@@ -46,7 +46,7 @@ Here is some important pages.
                         },
                         "hello": {
                             "type": "string",
-                            "expression": " `Hello, ${ $('#/who') } !` ",
+                            "expression": " `Hello, ${ $`#/who` } !` ",
                             "readonly" : true
                         }
                     }
@@ -92,7 +92,7 @@ Here is some important pages.
                 },
                 "hello": {
                     "type": "string",
-                    "expression": " `Hello, ${ $('#/who') } !` ",
+                    "expression": " `Hello, ${ $`#/who` } !` ",
                     "readonly" : true
                 }
             }

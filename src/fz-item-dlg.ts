@@ -1,6 +1,6 @@
 import { html, css, LitElement } from "lit"
 import { property, customElement } from "lit/decorators.js"
-import { FzDialog } from "./fz-dialog"
+import { FzDialog } from "./dialog"
 import { bootstrapCss } from "./bootstrap"
 import { bootstrapIconsCss } from "./bootstrap-icons"
 import { Pojo } from "./types"

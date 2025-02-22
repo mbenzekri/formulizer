@@ -517,7 +517,7 @@ class CSInsideRef extends CompilationStep {
         schema.refTo = () => null
         const pointer = refto.replace(/\/[^/]+$/, '')
         const refname = refto.substr(pointer.length + 1)
-        observers(this.root, schema, `$('${pointer}'')`)
+        observers(this.root, schema, `$\`${pointer}\``)
         schema.refTo = (_schema: Pojo, _value: any, parent: any, property: string, _$: any) => {
             const refarray = derefPointerData(this.data.content, parent, property, pointer)
             if (!refarray) return null

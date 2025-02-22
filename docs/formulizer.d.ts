@@ -30,38 +30,6 @@ declare global {
     }
 }
 
-/**
- * An example element.
- *
- * @fires count-changed - Indicates when the count changes
- * @slot - This element has a slot
- * @csspart button - The button
- */
-declare class MyElement extends Base {
-    constructor();
-    static styles: lit.CSSResult[];
-    /**
-     * The name to say "Hello" to.
-     */
-    accessor name: string;
-    /**
-     * The number of times the button has been clicked.
-     */
-    accessor count: number;
-    render(): lit_html.TemplateResult<1>;
-    private _onClick;
-    /**
-     * Formats a greeting
-     * @param name The name to say "Hello" to
-     */
-    sayHello(name: string): string;
-}
-declare global {
-    interface HTMLElementTagNameMap {
-        'my-element': MyElement;
-    }
-}
-
 type Pojo = {
     [key: string]: any;
 };
@@ -288,4 +256,4 @@ declare class FzForm extends LitElement {
     observedChange(evt: Event): void;
 }
 
-export { FzField, FzForm, FzMarkdownIt, MyElement };
+export { FzField, FzForm, FzMarkdownIt };

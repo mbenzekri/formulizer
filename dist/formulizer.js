@@ -185,72 +185,6 @@ FzField = __decorate([
     __metadata("design:paramtypes", [])
 ], FzField);
 
-/**
- * An example element.
- *
- * @fires count-changed - Indicates when the count changes
- * @slot - This element has a slot
- * @csspart button - The button
- */
-let MyElement = class MyElement extends Base {
-    constructor() {
-        super();
-    }
-    static styles = [i$4 `
-        :host {
-          display: block;
-          border: solid 1px gray;
-          padding: 16px;
-          max-width: 800px;
-        }
-      `];
-    #name_accessor_storage = 'World';
-    /**
-     * The name to say "Hello" to.
-     */
-    get name() { return this.#name_accessor_storage; }
-    set name(value) { this.#name_accessor_storage = value; }
-    #count_accessor_storage = 0;
-    /**
-     * The number of times the button has been clicked.
-     */
-    get count() { return this.#count_accessor_storage; }
-    set count(value) { this.#count_accessor_storage = value; }
-    render() {
-        return x `
-      <h1>${this.sayHello(this.name)}!</h1>
-      <button type="button" class="btn btn-primary" @click=${this._onClick} part="button">
-        Click Count: ${this.count}
-      </button>
-      <fz-field></fz-field>
-      <slot></slot>
-    `;
-    }
-    _onClick() {
-        this.count++;
-        this.dispatchEvent(new CustomEvent('count-changed'));
-    }
-    /**
-     * Formats a greeting
-     * @param name The name to say "Hello" to
-     */
-    sayHello(name) {
-        return `Hello, ${name}`;
-    }
-};
-__decorate([
-    n(),
-    __metadata("design:type", Object)
-], MyElement.prototype, "name", null);
-__decorate([
-    n({ type: Number }),
-    __metadata("design:type", Object)
-], MyElement.prototype, "count", null);
-MyElement = __decorate([
-    t$2('my-element'),
-    __metadata("design:paramtypes", [])
-], MyElement);
-
 const bootstrapCss = i$4 `
 @charset "UTF-8";
 /*!
@@ -13124,7 +13058,7 @@ class CSInsideRef extends CompilationStep {
         schema.refTo = () => null;
         const pointer = refto.replace(/\/[^/]+$/, '');
         const refname = refto.substr(pointer.length + 1);
-        observers(this.root, schema, `$('${pointer}'')`);
+        observers(this.root, schema, `$\`${pointer}\``);
         schema.refTo = (_schema, _value, parent, property, _$) => {
             const refarray = derefPointerData(this.data.content, parent, property, pointer);
             if (!refarray)
@@ -25641,5 +25575,5 @@ FzForm = __decorate([
     __metadata("design:paramtypes", [])
 ], FzForm);
 
-export { FzField, FzForm, FzMarkdownIt, MyElement };
+export { FzField, FzForm, FzMarkdownIt };
 //# sourceMappingURL=formulizer.js.map

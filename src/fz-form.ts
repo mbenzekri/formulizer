@@ -33,7 +33,7 @@ import "./fz-time";
 import "./fz-enum-typeahead";
 import "./fz-uuid";
 
-import "./fz-dialog";
+import "./dialog";
 import "./fz-barcode-dlg";
 import "./fz-photo-dlg";
 import "./fz-item-dlg";
