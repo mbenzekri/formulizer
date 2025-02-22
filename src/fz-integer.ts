@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
 import {  html } from "lit"
-import { FzElement } from "./fz-element";
 import { isEmptyValue } from "./tools"
+import { FzBaseInput } from "./fz-base-input";
 
 /**
  * @prop schema
@@ -11,7 +11,7 @@ import { isEmptyValue } from "./tools"
  * @prop index
  */
 @customElement("fz-integer")
-export class FzInteger extends FzElement {
+export class FzInteger extends FzBaseInput {
 
     renderInput() {
         return html`

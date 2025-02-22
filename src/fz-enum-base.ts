@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { html, TemplateResult } from "lit"
-import { FzElement } from "./fz-element";
 import { FzItemDlg } from "./fz-item-dlg";
 import { getSchema, isEmptyValue } from "./tools"
+import { FzBaseInput } from "./fz-base-input";
 
 export type EnumItem = { label: string; value: any }
 
-export abstract class FzEnumBase extends FzElement {
+export abstract class FzEnumBase extends FzBaseInput {
 
     abstract renderEnum(): TemplateResult
     protected enums?: EnumItem[]

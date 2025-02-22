@@ -85,9 +85,8 @@ declare abstract class FzElement extends LitElement {
     private _handlers;
     private _dofocus;
     private _form?;
-    abstract renderInput(): TemplateResult;
-    abstract convertToInput(value: any): any;
-    abstract convertToValue(value: any): any;
+    abstract renderField(): TemplateResult;
+    abstract check(): void;
     get value(): any;
     set value(val: any);
     private cascadeValue;
@@ -106,11 +105,6 @@ declare abstract class FzElement extends LitElement {
      */
     get isProperty(): boolean;
     /**
-     * return HTMLInputElement used to edit field value
-     * pay attention may not always exit, some fields dont use HTML inputs (ex: signature)
-     */
-    get input(): HTMLInputElement;
-    /**
      * calculate a visible boolean state for this field
      */
     get visible(): boolean;
@@ -124,12 +118,6 @@ declare abstract class FzElement extends LitElement {
     get readonly(): boolean;
     get empty(): any;
     get isEmpty(): boolean;
-    renderField(): TemplateResult;
-    /**
-     * set focus to input if exists, overriden for composed fields
-     * to use dofocus() to delay focus() call on next update on object and array
-     */
-    focus(): void;
     /**
      * call for focus on next update for field
      */
@@ -166,11 +154,6 @@ declare abstract class FzElement extends LitElement {
     disconnectedCallback(): void;
     requestUpdate(name?: PropertyKey, oldvalue?: unknown): void;
     /**
-     * on first updated set listeners
-     * @param _changedProperties (unused)
-     */
-    firstUpdated(_changedProperties: any): void;
-    /**
      * to be specialized if needed
      */
     firstUpdate(): void;
@@ -187,10 +170,9 @@ declare abstract class FzElement extends LitElement {
      */
     labelClicked(evt: Event): void;
     /**
-     *  'change' handler when changes occurs on this.input
+     *  'change' handler when changes occurs on inputed value
      * - update the model value of the field
      * - check to update validity
-     * @param changedProps changed properties
      */
     change(): void;
     /**
@@ -205,13 +187,7 @@ declare abstract class FzElement extends LitElement {
      * eval "expression" calculated field
      */
     eval(): void;
-    check(): void;
     getMessage(key: string, input?: HTMLInputElement): string;
-    /**
-     * trap F9 key down to log debug Field state
-     * @param evt keyboard event to trap key
-     */
-    private debugKey;
     protected triggerChange(): void;
     evalExpr(attribute: string, schema?: Pojo, value?: any, parent?: any, key?: string | number): any;
     /**

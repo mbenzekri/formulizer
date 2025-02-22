@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
-import {  html } from "lit"
+import {  html, TemplateResult } from "lit"
 import { repeat } from "lit/directives/repeat.js"
 import { FzElement } from "./fz-element";
 import { DataValidator, getCircularReplacer } from "./tools";
@@ -16,6 +16,10 @@ import { isEmptyValue } from "./tools"
 export class FzArray extends FzElement {
     private content?: HTMLElement
     private validator!: DataValidator
+
+    override renderField(): TemplateResult {
+        throw html`Method not implemented`;
+    }
 
     renderInput() {
         return html`

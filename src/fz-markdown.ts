@@ -1,10 +1,10 @@
 import { customElement } from "lit/decorators.js"
 import { html } from "lit"
-import { FzElement } from "./fz-element"
 import "./markdown-it"
+import { FzBaseInput } from "./fz-base-input"
 
 @customElement("fz-markdown")
-export class FzMarkdown extends FzElement {
+export class FzMarkdown extends FzBaseInput {
 
     override renderInput() {
         return html``

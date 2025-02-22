@@ -2,8 +2,8 @@
 import { customElement} from "lit/decorators.js"
 import { html } from "lit"
 import { v1 as uuidv1 } from "uuid"
-import { FzElement } from "./fz-element";
 import { isEmptyValue } from "./tools"
+import { FzBaseInput } from "./fz-base-input";
 
 /**
  * @prop schema
@@ -12,7 +12,7 @@ import { isEmptyValue } from "./tools"
  * @prop index
  */
 @customElement("fz-uuid")
-export class FzUuid extends FzElement {
+export class FzUuid extends FzBaseInput {
 
     renderInput() {
         return html`<div class="input-group" >${this.value}</div>`

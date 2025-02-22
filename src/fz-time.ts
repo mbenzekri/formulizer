@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
 import {  html } from "lit"
-import { FzElement } from "./fz-element";
 import { isEmptyValue } from "./tools"
+import { FzBaseInput } from "./fz-base-input";
 
 function iso(date = new Date()) {
     return date.toISOString().substring(11, 19) 
@@ -15,7 +15,7 @@ function iso(date = new Date()) {
  * @prop index
  */
 @customElement("fz-time")
-export class FzTime extends FzElement {
+export class FzTime extends FzBaseInput {
 
     renderInput() {
         return html`

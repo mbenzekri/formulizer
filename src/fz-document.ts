@@ -2,10 +2,10 @@
 
 import { html, css } from "lit";
 import { customElement } from "lit/decorators.js";
-import { FzElement } from "./fz-element";
 import { IBlobStore } from "./storage";
 import { v1 as uuidv1 } from "uuid"
 import { isEmptyValue } from "./tools"
+import { FzBaseInput } from "./fz-base-input";
 
 /**
  * @prop schema
@@ -15,7 +15,7 @@ import { isEmptyValue } from "./tools"
  * @prop options
  */
  @customElement("fz-document")
-export class FzDocument extends FzElement {
+export class FzDocument extends FzBaseInput {
 
     private static docTypes = [
         // Documents images

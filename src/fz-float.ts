@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
 import {  html, css } from "lit"
-import { FzElement } from "./fz-element";
 import { isEmptyValue } from "./tools"
+import { FzBaseInput } from "./fz-base-input"
 
 const DECIMAL_SEPARATOR = (1.1).toLocaleString().substring(1, 2)
 /**
@@ -12,7 +12,7 @@ const DECIMAL_SEPARATOR = (1.1).toLocaleString().substring(1, 2)
  * @prop index
  */
 @customElement("fz-float")
-export class FzFloat extends FzElement {
+export class FzFloat extends FzBaseInput {
 
     static override get styles() {
         return [

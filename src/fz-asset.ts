@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement } from "lit/decorators.js"
 import { html } from "lit"
-import { FzElement } from "./fz-element";
 import { isEmptyValue } from "./tools"
+import { FzBaseInput } from "./fz-base-input";
 
 enum SelectionState {
     idle, selecting
@@ -12,8 +12,15 @@ export interface IAsset {
     done: () => Promise<void>
 }
 
+/**
+ * @prop schema
+ * @prop data
+ * @prop name
+ * @prop index
+ * @prop required
+ */
 @customElement("fz-asset")
-export class FzAsset extends FzElement {
+export class FzAsset extends FzBaseInput {
     private state = SelectionState.idle
     private oldValue = ""
 

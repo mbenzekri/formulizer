@@ -13417,18 +13417,6 @@ const fiedtypes = [
     "fz-uuid",
 ];
 const fieldtypeslist = fiedtypes.join(',');
-const invalidkeys = [
-    'valueMissing',
-    'badInput',
-    'patternMismatch',
-    'tooLong',
-    'tooShort',
-    'rangeOverflow',
-    'rangeUnderflow',
-    'stepMismatch',
-    'customError',
-    'typeMismatch'
-];
 /**
  * @prop schema
  * @prop data
@@ -13605,13 +13593,6 @@ class FzElement extends r$3 {
         return (this.name != null);
     }
     /**
-     * return HTMLInputElement used to edit field value
-     * pay attention may not always exit, some fields dont use HTML inputs (ex: signature)
-     */
-    get input() {
-        return this.shadowRoot?.getElementById('input');
-    }
-    /**
      * calculate a visible boolean state for this field
      */
     get visible() {
@@ -13645,18 +13626,6 @@ class FzElement extends r$3 {
     get empty() { return getEmptyValue(this.schema); }
     get isEmpty() { return isEmptyValue(this.value); }
     // get pointer() { return pointerData(this.data,this.key) }
-    renderField() {
-        return x `
-            <div class="form-group row">
-                ${this.renderLabel}
-                <div class="col-sm">${this.renderInput()}</div>
-            </div>`;
-    }
-    /**
-     * set focus to input if exists, overriden for composed fields
-     * to use dofocus() to delay focus() call on next update on object and array
-     */
-    focus() { this.input?.focus(); }
     /**
      * call for focus on next update for field
      */
@@ -13815,17 +13784,6 @@ class FzElement extends r$3 {
         super.requestUpdate(name, oldvalue);
     }
     /**
-     * on first updated set listeners
-     * @param _changedProperties (unused)
-     */
-    firstUpdated(_changedProperties) {
-        // for debug 'F9' output state of field
-        this.input?.addEventListener('keydown', this.debugKey.bind(this));
-        if (this.input)
-            this.input.value = this.convertToInput(this.value);
-        this.check();
-    }
-    /**
      * to be specialized if needed
      */
     firstUpdate() { return; }
@@ -13845,8 +13803,6 @@ class FzElement extends r$3 {
             this._dofocus = false;
             this.focus();
         }
-        if (this.input)
-            this.input.value = this.convertToInput(this.value);
     }
     /**
      * 'click' handler when click occurs on field label element
@@ -13857,19 +13813,11 @@ class FzElement extends r$3 {
         this.eventStop(evt);
     }
     /**
-     *  'change' handler when changes occurs on this.input
+     *  'change' handler when changes occurs on inputed value
      * - update the model value of the field
      * - check to update validity
-     * @param changedProps changed properties
      */
     change() {
-        if (this.input) {
-            // cas particulier des 'boolean' qui fonctionnent differements des input.value
-            if (this.schema.basetype === 'boolean')
-                this.value = this.input.checked;
-            else
-                this.value = this.convertToValue(this.input.valueAsNumber ? this.input.valueAsNumber : this.input.value);
-        }
         this.check();
         const event = new CustomEvent('update', {
             detail: {
@@ -13924,30 +13872,6 @@ class FzElement extends r$3 {
         if (this.schema.expression)
             this.value = this.evalExpr("expression");
     }
-    check() {
-        const input = this.input;
-        if (!input) {
-            this.valid = false;
-            this.message = '';
-            return;
-        }
-        const validity = this.input.validity;
-        let countinvalid = 0;
-        let message = '';
-        invalidkeys.forEach(key => {
-            if (key === 'valid')
-                return;
-            const keyinvalid = validity[key];
-            countinvalid += keyinvalid ? 1 : 0;
-            if (keyinvalid)
-                message = this.getMessage(key, input);
-        });
-        this.valid = (countinvalid === 0)
-            || (countinvalid === 1 && validity.badInput && this.value == null && !this.required);
-        this.message = this.valid ? '' : message;
-        this.input?.classList.add(this.valid ? 'valid' : 'invalid');
-        this.input?.classList.remove(this.valid ? 'invalid' : 'valid');
-    }
     getMessage(key, input) {
         switch (key) {
             case 'valueMissing':
@@ -13971,31 +13895,6 @@ class FzElement extends r$3 {
             case 'typeMismatch':
                 return `syntaxe incorrecte`;
             default: return '';
-        }
-    }
-    /**
-     * trap F9 key down to log debug Field state
-     * @param evt keyboard event to trap key
-     */
-    debugKey(evt) {
-        if (evt.key === 'F9') {
-            window._FZ_FORM_FIELD_DEBUG = this;
-            console.log(invalidkeys.map((key) => `${key} = ${this.input.validity[key]}`).join('\n'));
-            const outlist = [
-                ['name', this.name],
-                ['valid', this.valid],
-                ['visible', this.visible],
-                ['required', this.required],
-                ['readonly', this.readonly],
-                ['check', JSON.stringify(this.input.validity)],
-                ['data', JSON.stringify(this.data, (key, value) => typeof key === 'symbol' ? undefined : value, 4)],
-                ['input', this.input.value],
-                ['value', this.value],
-                ['schema', JSON.stringify(this.schema, getCircularReplacer)],
-            ];
-            console.log(outlist.map(item => item.join(" = ")).join("\n"));
-            this.eventStop(evt);
-            debugger;
         }
     }
     triggerChange() {
@@ -14343,12 +14242,132 @@ FzArray$1 = __decorate([
     t$2("fz-array")
 ], FzArray$1);
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const invalidkeys = [
+    'valueMissing',
+    'badInput',
+    'patternMismatch',
+    'tooLong',
+    'tooShort',
+    'rangeOverflow',
+    'rangeUnderflow',
+    'stepMismatch',
+    'customError',
+    'typeMismatch'
+];
+class FzBaseInput extends FzElement {
+    /**
+     * return HTMLInputElement used to edit field value
+     * pay attention may not always exit, some fields dont use HTML inputs (ex: signature)
+     */
+    get input() {
+        return this.shadowRoot?.getElementById('input');
+    }
+    renderField() {
+        return x `
+            <div class="form-group row">
+                ${this.renderLabel}
+                <div class="col-sm">${this.renderInput()}</div>
+            </div>`;
+    }
+    /**
+     * on first updated set listeners
+     * @param _changedProperties (unused)
+     */
+    firstUpdated(_changedProperties) {
+        // for debug 'F9' output state of field
+        this.input?.addEventListener('keydown', (evt) => this.debugKey(evt));
+        if (this.input)
+            this.input.value = this.convertToInput(this.value);
+        this.check();
+    }
+    update(changedProps) {
+        super.update(changedProps);
+        if (this.input)
+            this.input.value = this.convertToInput(this.value);
+    }
+    /**
+     * generic change method is ok, but some special cases must be managed
+     * for specific input types
+     */
+    change() {
+        if (this.input) {
+            // cas particulier des 'boolean' qui fonctionnent differements des input.value
+            if (this.schema.basetype === 'boolean')
+                this.value = this.input.checked;
+            else
+                this.value = this.convertToValue(this.input.valueAsNumber ? this.input.valueAsNumber : this.input.value);
+        }
+        super.change();
+    }
+    /**
+     * overide focus for all input based fields
+     */
+    focus() { this.input?.focus(); }
+    /**
+     * trap F9 key down to log debug Field state
+     * @param evt keyboard event to trap key
+     */
+    debugKey(evt) {
+        if (evt.key === 'F9') {
+            window._FZ_FORM_FIELD_DEBUG = this;
+            console.log(invalidkeys.map((key) => `${key} = ${this.input.validity[key]}`).join('\n'));
+            const outlist = [
+                ['name', this.name],
+                ['valid', this.valid],
+                ['visible', this.visible],
+                ['required', this.required],
+                ['readonly', this.readonly],
+                ['check', JSON.stringify(this.input.validity)],
+                ['data', JSON.stringify(this.data, (key, value) => typeof key === 'symbol' ? undefined : value, 4)],
+                ['input', this.input.value],
+                ['value', this.value],
+                ['schema', JSON.stringify(this.schema, getCircularReplacer)],
+            ];
+            console.log(outlist.map(item => item.join(" = ")).join("\n"));
+            this.eventStop(evt);
+            debugger;
+        }
+    }
+    check() {
+        const input = this.input;
+        if (!input) {
+            this.valid = false;
+            this.message = '';
+            return;
+        }
+        const validity = this.input.validity;
+        let countinvalid = 0;
+        let message = '';
+        invalidkeys.forEach(key => {
+            if (key === 'valid')
+                return;
+            const keyinvalid = validity[key];
+            countinvalid += keyinvalid ? 1 : 0;
+            if (keyinvalid)
+                message = this.getMessage(key, input);
+        });
+        this.valid = (countinvalid === 0)
+            || (countinvalid === 1 && validity.badInput && this.value == null && !this.required);
+        this.message = this.valid ? '' : message;
+        this.input?.classList.add(this.valid ? 'valid' : 'invalid');
+        this.input?.classList.remove(this.valid ? 'invalid' : 'valid');
+    }
+}
+
 var SelectionState;
 (function (SelectionState) {
     SelectionState[SelectionState["idle"] = 0] = "idle";
     SelectionState[SelectionState["selecting"] = 1] = "selecting";
 })(SelectionState || (SelectionState = {}));
-let FzAsset = class FzAsset extends FzElement {
+/**
+ * @prop schema
+ * @prop data
+ * @prop name
+ * @prop index
+ * @prop required
+ */
+let FzAsset = class FzAsset extends FzBaseInput {
     state = SelectionState.idle;
     oldValue = "";
     convertToInput(value) {
@@ -14440,13 +14459,7 @@ FzAsset = __decorate([
     t$2("fz-asset")
 ], FzAsset);
 
-/**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
-let FzBoolean = class FzBoolean extends FzElement {
+let FzBoolean = class FzBoolean extends FzBaseInput {
     renderInput() {
         return x `
             <div class="form-group row">
@@ -14487,7 +14500,7 @@ FzBoolean = __decorate([
  * @prop name
  * @prop index
  */
-let FzConstant = class FzConstant extends FzElement {
+let FzConstant = class FzConstant extends FzBaseInput {
     renderInput() {
         return x `<div class="input-group">${this.value}</div>`;
     }
@@ -14524,7 +14537,7 @@ function iso$2(date = new Date()) {
  * @prop name
  * @prop index
  */
-let FzDate = class FzDate extends FzElement {
+let FzDate = class FzDate extends FzBaseInput {
     renderInput() {
         return x `<input 
             class="form-control" 
@@ -14568,7 +14581,7 @@ function iso$1(date = new Date()) {
  * @prop name
  * @prop index
  */
-let FzDatetime = class FzDatetime extends FzElement {
+let FzDatetime = class FzDatetime extends FzBaseInput {
     renderInput() {
         return x `<input 
             class="form-control" 
@@ -14731,7 +14744,7 @@ var FzDocument_1;
  * @prop index
  * @prop options
  */
-let FzDocument = class FzDocument extends FzElement {
+let FzDocument = class FzDocument extends FzBaseInput {
     static { FzDocument_1 = this; }
     static docTypes = [
         // Documents images
@@ -14935,7 +14948,7 @@ FzDocument = FzDocument_1 = __decorate([
 ], FzDocument);
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-class FzEnumBase extends FzElement {
+class FzEnumBase extends FzBaseInput {
     enums;
     refenum = null;
     renderInput() {
@@ -15114,6 +15127,9 @@ const u=(e,s,t)=>{const r=new Map;for(let l=s;l<=t;l++)r.set(e[l],l);return r},c
 let FzArray = class FzArray extends FzElement {
     content;
     validator;
+    renderField() {
+        throw x `Method not implemented`;
+    }
     renderInput() {
         return x `
             <ul id="content" class="list-group"   style="max-height: 300px; overflow-y: scroll">
@@ -15216,7 +15232,7 @@ FzArray = __decorate([
  * @prop name
  * @prop index
  */
-let FzGeolocation = class FzGeolocation extends FzElement {
+let FzGeolocation = class FzGeolocation extends FzBaseInput {
     static get styles() {
         return [
             ...super.styles,
@@ -15286,7 +15302,7 @@ FzGeolocation = __decorate([
  * @prop name
  * @prop index
  */
-let FzInteger = class FzInteger extends FzElement {
+let FzInteger = class FzInteger extends FzBaseInput {
     renderInput() {
         return x `
             <div class="input-group">
@@ -23825,7 +23841,7 @@ FzMarkdownIt = __decorate([
     t$2("markdown-it")
 ], FzMarkdownIt);
 
-let FzMarkdown = class FzMarkdown extends FzElement {
+let FzMarkdown = class FzMarkdown extends FzBaseInput {
     renderInput() {
         return x ``;
     }
@@ -23886,7 +23902,7 @@ const DECIMAL_SEPARATOR = (1.1).toLocaleString().substring(1, 2);
  * @prop name
  * @prop index
  */
-let FzFloat = class FzFloat extends FzElement {
+let FzFloat = class FzFloat extends FzBaseInput {
     static get styles() {
         return [
             ...super.styles,
@@ -24230,7 +24246,7 @@ FzObject = __decorate([
  * @prop name
  * @prop index
  */
-let FzRange = class FzRange extends FzElement {
+let FzRange = class FzRange extends FzBaseInput {
     static get styles() {
         return [
             ...super.styles,
@@ -24348,7 +24364,7 @@ FzRange = __decorate([
  * @prop name
  * @prop index
  */
-let FzSignature = class FzSignature extends FzElement {
+let FzSignature = class FzSignature extends FzBaseInput {
     #disabled_accessor_storage = false;
     get disabled() { return this.#disabled_accessor_storage; }
     set disabled(value) { this.#disabled_accessor_storage = value; }
@@ -24589,7 +24605,7 @@ FzSignature = __decorate([
  * @prop name
  * @prop index
  */
-let FzString = class FzString extends FzElement {
+let FzString = class FzString extends FzBaseInput {
     static get styles() {
         return [
             ...super.styles,
@@ -24657,7 +24673,7 @@ FzString = __decorate([
  * @prop name
  * @prop index
  */
-let FzTextarea = class FzTextarea extends FzElement {
+let FzTextarea = class FzTextarea extends FzBaseInput {
     renderInput() {
         return x `
             <textarea  
@@ -24698,7 +24714,7 @@ function iso(date = new Date()) {
  * @prop name
  * @prop index
  */
-let FzTime = class FzTime extends FzElement {
+let FzTime = class FzTime extends FzBaseInput {
     renderInput() {
         return x `
             <input 
@@ -24813,7 +24829,7 @@ FzEnumTypeahead = __decorate([
  * @prop name
  * @prop index
  */
-let FzUuid = class FzUuid extends FzElement {
+let FzUuid = class FzUuid extends FzBaseInput {
     renderInput() {
         return x `<div class="input-group" >${this.value}</div>`;
     }

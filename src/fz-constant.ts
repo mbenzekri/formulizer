@@ -2,7 +2,7 @@
 import { customElement} from "lit/decorators.js"
 import {  html } from "lit"
 import { isEmptyValue } from "./tools"
-import { FzElement } from "./fz-element";
+import { FzBaseInput } from "./fz-base-input";
 
 /**
  * @prop schema
@@ -11,7 +11,7 @@ import { FzElement } from "./fz-element";
  * @prop index
  */
 @customElement("fz-constant")
-export class FzConstant extends FzElement {
+export class FzConstant extends FzBaseInput {
 
     renderInput() {
         return html`<div class="input-group">${this.value}</div>`;

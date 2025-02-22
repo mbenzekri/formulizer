@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property } from "lit/decorators.js"
 import { html, css, TemplateResult, LitElement } from "lit"
-import { derefPointerData, abstract, getEmptyValue, isEmptyValue, newValue, getCircularReplacer, getSchema, closestAscendantFrom, calculateDefault } from "./tools"
+import { derefPointerData, abstract, getEmptyValue, isEmptyValue, newValue, getSchema, closestAscendantFrom, calculateDefault } from "./tools"
 import { Pojo } from "./types"
 import { FzForm } from "./fz-form"
 import { bootstrapCss } from "./bootstrap"
@@ -33,18 +33,6 @@ const fiedtypes = [
 ]
 const fieldtypeslist = fiedtypes.join(',')
 
-const invalidkeys = [
-    'valueMissing',
-    'badInput',
-    'patternMismatch',
-    'tooLong',
-    'tooShort',
-    'rangeOverflow',
-    'rangeUnderflow',
-    'stepMismatch',
-    'customError',
-    'typeMismatch'
-]
 /**
  * @prop schema
  * @prop data
@@ -67,9 +55,8 @@ export abstract class FzElement extends LitElement {
     private _dofocus = false
     private _form?: FzForm
 
-    abstract renderInput(): TemplateResult
-    abstract convertToInput(value: any): any // this.value vers this.input.value
-    abstract convertToValue(value: any): any // this.input.value vers value
+    abstract renderField(): TemplateResult;
+    abstract check(): void;
 
     get value(): any {
         // attention ne jamais faire d'effet de bord (modifier this.data dans ce getter)
@@ -212,14 +199,6 @@ export abstract class FzElement extends LitElement {
         return (this.name != null)
     }
     /**
-     * return HTMLInputElement used to edit field value
-     * pay attention may not always exit, some fields dont use HTML inputs (ex: signature) 
-     */
-    get input() {
-        return (this.shadowRoot?.getElementById('input') as HTMLInputElement)
-    }
-
-    /**
      * calculate a visible boolean state for this field 
      */
     get visible() {
@@ -255,18 +234,6 @@ export abstract class FzElement extends LitElement {
     // get pointer() { return pointerData(this.data,this.key) }
 
 
-    renderField(): TemplateResult {
-        return html`
-            <div class="form-group row">
-                ${this.renderLabel}
-                <div class="col-sm">${ this.renderInput() }</div>
-            </div>`
-    }
-    /**
-     * set focus to input if exists, overriden for composed fields 
-     * to use dofocus() to delay focus() call on next update on object and array
-     */
-    override focus() { this.input?.focus() }
     /**
      * call for focus on next update for field
      */
@@ -427,16 +394,6 @@ export abstract class FzElement extends LitElement {
     override requestUpdate(name?: PropertyKey, oldvalue?: unknown): void {
         super.requestUpdate(name, oldvalue)
     }
-    /**
-     * on first updated set listeners
-     * @param _changedProperties (unused)
-     */
-    override firstUpdated(_changedProperties: any) {
-        // for debug 'F9' output state of field
-        this.input?.addEventListener('keydown', this.debugKey.bind(this))
-        if (this.input) this.input.value = this.convertToInput(this.value)
-        this.check()
-    }
 
     /**
      * to be specialized if needed
@@ -458,7 +415,6 @@ export abstract class FzElement extends LitElement {
             this._dofocus = false
             this.focus()
         }
-        if (this.input) this.input.value = this.convertToInput(this.value)
     }
 
     /**
@@ -470,18 +426,11 @@ export abstract class FzElement extends LitElement {
         this.eventStop(evt)
     }
     /**
-     *  'change' handler when changes occurs on this.input
+     *  'change' handler when changes occurs on inputed value
      * - update the model value of the field
      * - check to update validity 
-     * @param changedProps changed properties 
      */
-    change() {
-        if (this.input) {
-            // cas particulier des 'boolean' qui fonctionnent differements des input.value
-            if (this.schema.basetype === 'boolean') this.value = this.input.checked
-            else this.value = this.convertToValue(this.input.valueAsNumber ? this.input.valueAsNumber : this.input.value)
-        }
-
+     change() {
         this.check()
         const event = new CustomEvent('update', {
             detail: {
@@ -534,28 +483,6 @@ export abstract class FzElement extends LitElement {
     eval() {
         if (this.schema.expression) this.value = this.evalExpr("expression")
     }
-    check() {
-        const input = this.input
-        if (!input) {
-            this.valid = false
-            this.message = ''
-            return
-        }
-        const validity = this.input.validity
-        let countinvalid = 0
-        let message = ''
-        invalidkeys.forEach(key => {
-            if (key === 'valid') return
-            const keyinvalid = (validity as any)[key]
-            countinvalid += keyinvalid ? 1 : 0
-            if (keyinvalid) message = this.getMessage(key, input)
-        })
-        this.valid = (countinvalid === 0)
-            || (countinvalid === 1 && validity.badInput && this.value == null && !this.required)
-        this.message = this.valid ? '' : message
-        this.input?.classList.add(this.valid ? 'valid' : 'invalid')
-        this.input?.classList.remove(this.valid ? 'invalid' : 'valid')
-    }
 
     getMessage(key: string, input?: HTMLInputElement): string {
         switch (key) {
@@ -583,31 +510,6 @@ export abstract class FzElement extends LitElement {
         }
     }
 
-    /**
-     * trap F9 key down to log debug Field state
-     * @param evt keyboard event to trap key
-     */
-    private debugKey(evt: KeyboardEvent) {
-        if (evt.key === 'F9') {
-            (window as any)._FZ_FORM_FIELD_DEBUG = this
-            console.log(invalidkeys.map((key) => `${key} = ${(this.input.validity as any)[key]}`).join('\n'))
-            const outlist = [
-                ['name', this.name],
-                ['valid', this.valid],
-                ['visible', this.visible],
-                ['required', this.required],
-                ['readonly', this.readonly],
-                ['check', JSON.stringify(this.input.validity)],
-                ['data', JSON.stringify(this.data, (key, value) => typeof key === 'symbol' ? undefined : value, 4)],
-                ['input', this.input.value],
-                ['value', this.value],
-                ['schema', JSON.stringify(this.schema, getCircularReplacer)],
-            ]
-            console.log(outlist.map(item => item.join(" = ")).join("\n"))
-            this.eventStop(evt)
-            debugger
-        }
-    }
     protected triggerChange() {
         this.evalExpr("change")
         if (this.schema.observers && this.schema.observers.length) {

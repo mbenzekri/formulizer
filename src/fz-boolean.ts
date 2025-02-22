@@ -1,17 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
 import {  html } from "lit"
-import { FzElement } from "./fz-element";
 import { isEmptyValue } from "./tools"
+import { FzBaseInput } from "./fz-base-input";
 
-/**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
 @customElement("fz-boolean")
-export class FzBoolean extends FzElement {
+export class FzBoolean extends FzBaseInput {
     renderInput() {
         return html`
             <div class="form-group row">
