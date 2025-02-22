@@ -630,11 +630,15 @@ export abstract class FzElement extends LitElement {
         return this.schema[attribute](this.schema, this.value, this.data, this.name,this.derefFunc, this.form?.options.userdata)
     }
 
+    /**
+     * return tagged template '$' for pointer derefencing in expression or code used in schema
+     * the pointer derefencing is done relativatly to this.data
+     *  @example $`#/a/b/c` // absolute dereferencing
+     *  @example $`1/b/c`   // relative dereferencing
+     */
     get derefFunc() {
-        return (tmplOrStr: TemplateStringsArray | string, ...values: any[]) => {
-            const pointer = typeof tmplOrStr == "string"
-                ? tmplOrStr
-                : tmplOrStr.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "")
+        return (template: { raw: readonly string[] | ArrayLike<string>}, ...substitutions: any[]) => {
+            const pointer = String.raw(template,substitutions)
             return derefPointerData(this.form.root, this.data, this.key, pointer)
         }
     }

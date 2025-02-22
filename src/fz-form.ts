@@ -7,7 +7,7 @@ import { Pojo } from "./types"
 import { FzElement } from "./fz-element";
 import { validateSchema, validateErrors, DataValidator, getSchema, jsonAttributeConverter } from "./tools"
 import { SchemaCompiler, DataCompiler } from "./compiler"
-import { IDocStorage, IDocUserStorage } from "./docstorage";
+import { BlobCache, IBlobStore, BlobStoreWrapper } from "./storage";
 import { IAsset } from "./fz-asset";
 import "./fz-array";
 import "./fz-asset";
@@ -57,7 +57,7 @@ export class FzForm extends LitElement {
     @property({ type: Boolean, attribute: "readonly" }) accessor readonly = false
     @property({ type: Boolean, attribute: "not-validate" }) accessor notValidate = false
 
-    public docStorage?: IDocStorage
+    public store: IBlobStore = new BlobCache("FZ-FORM")
     public asset?: IAsset
     private validator?: DataValidator
 
@@ -94,7 +94,7 @@ export class FzForm extends LitElement {
     set options(value: any) {
         this.i_options = value
         if (this.i_options?.storage) {
-            this.docStorage = new IDocUserStorage(this.i_options.storage)
+            this.store = new BlobStoreWrapper(this.i_options.storage)
         }
         if (this.i_options?.asset) {
             this.asset = this.i_options.asset;
@@ -239,13 +239,16 @@ export class FzForm extends LitElement {
     compile() {
         try {
             const schema_compiler = new SchemaCompiler(this.schema,this.options,this.obj.content)
-            schema_compiler.compile()
+            const errors = schema_compiler.compile()
+            if (errors.length > 0) {
+                this.message = `Schema compilation failed: \n ${errors.join('\n    - ')}`
+            }
             const data_compiler = new DataCompiler(this.obj.content, this.schema)
             data_compiler.compile()
         }
         catch (e) {
             this._errors = []
-            this.message = "La compilation a échouée : " + String(e)
+            this.message = `Schema compilation failed: ${String(e)}`
         }
     }
 

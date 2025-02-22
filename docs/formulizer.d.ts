@@ -214,13 +214,22 @@ declare abstract class FzElement extends LitElement {
     private debugKey;
     protected triggerChange(): void;
     evalExpr(attribute: string, schema?: Pojo, value?: any, parent?: any, key?: string | number): any;
-    get derefFunc(): (tmplOrStr: TemplateStringsArray | string, ...values: any[]) => any;
+    /**
+     * return tagged template '$' for pointer derefencing in expression or code used in schema
+     * the pointer derefencing is done relativatly to this.data
+     *  @example $`#/a/b/c` // absolute dereferencing
+     *  @example $`1/b/c`   // relative dereferencing
+     */
+    get derefFunc(): (template: {
+        raw: readonly string[] | ArrayLike<string>;
+    }, ...substitutions: any[]) => any;
 }
 
-interface IDocStorage {
+interface IBlobStore {
     put(uuid: string, blob: Blob, filename: string, pointer: string): Promise<void>;
     remove(uuid: string): Promise<void>;
     get(uuid: string): Promise<{
+        uuid: string;
         filename: string;
         blob: Blob;
     } | null>;
@@ -265,7 +274,7 @@ declare class FzForm extends LitElement {
     accessor idData: string;
     accessor readonly: boolean;
     accessor notValidate: boolean;
-    docStorage?: IDocStorage;
+    store: IBlobStore;
     asset?: IAsset;
     private validator?;
     attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void;

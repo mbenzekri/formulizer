@@ -145,14 +145,20 @@ async function init_options(form) {
     const storage = {
         // preexisting documents already presen in storage
         docs: new Map([
-            ["59cbefd0-6300-11ec-b87d-af00ce201501", { filename: "minion.png", blob: loadAsset("minion.png"), pointer: "/document" }],
-            ["8724dd60-6301-11ec-9cc0-3783f1582eaa", { filename: "bad.png", blob: loadAsset("bad.png"), pointer: "/documents/0" }],
-            ["59cbefd0-6300-11ec-b87d-af00ce201999", { filename: "agnes.png", blob: loadAsset("agnes.png"), pointer: "/documents/1" }]
+            ["59cbefd0-6300-11ec-b87d-af00ce201501", { filename: "minion.png", blob: await loadAsset("minion.png"), pointer: "/document" }],
+            ["8724dd60-6301-11ec-9cc0-3783f1582eaa", { filename: "bad.png", blob: await loadAsset("bad.png"), pointer: "/documents/0" }],
+            ["59cbefd0-6300-11ec-b87d-af00ce201999", { filename: "agnes.png", blob: await loadAsset("agnes.png"), pointer: "/documents/1" }]
         ]),
         // fz-form needed API to get,store,delete Application documents
-        put: (uuid, blob, filename, pointer) => this.docs.set(uuid, { blob, filename, pointer }),
-        remove: (uuid) => this.docs.delete(uuid),
-        get: (uuid) => this.docs.get(uuid),
+        put(uuid, blob, filename, pointer) { 
+            return this.docs.set(uuid, { blob, filename, pointer })
+        },
+        remove(uuid) {
+            return this.docs.delete(uuid)
+        },
+        get(uuid) {
+            return this.docs.get(uuid)
+        },
     };
 
     form.options = { ref, userdata, storage }

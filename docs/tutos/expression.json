@@ -1,40 +1,37 @@
 {
     "form": {
         "type": "object",
-        "title": "Demo expression",
+        "title": "ax²+bx+c = 0",
         "properties": {
-            "equation": {
-                "const": "Resoudre Ax² + Bx + C = 0"
-            },
-            "A": {
+            "a": {
                 "type": "number"
             },
-            "B": {
+            "b": {
                 "type": "number"
             },
-            "C": {
+            "c": {
                 "type": "number"
             },
             "delta": {
                 "type": "number",
-                "title": "B²-4AC",
-                "expression": " $`#/B`**2 - 4 * $`#/A` * $`#/C` "
+                "title": "b²-ac",
+                "expression": " $`#/b`**2-4*$`#/a`*$`#/c` "
             },
             "solution 1": {
-                "type": "string",
+                "type": ["number","null"],
                 "title": "solution 1",
-                "expression": "$`#/delta` < 0 ? 'No solution' : $`#/delta` === 0 ? String(-$`#/B` / (2 * $`#/A`)) : String((-$`#/B`+Math.sqrt($`#/delta`))/(2*$`#/A`))"
+                "expression": "$`#/delta` < 0 ? null: $`#/delta` === 0 ? -$`#/b`/(2*$`#/a`) : (-$`#/b`+Math.sqrt($`#/delta`))/(2*$`#/a`)"
             },
             "solution 2": {
-                "type": "string",
+                "type": ["number","null"],
                 "title": "solution 2",
-                "expression": "$`#/delta` < 0 ?  'No solution' : $`#/delta` === 0 ? 'No more solution' : String((-$`#/B`-Math.sqrt($`#/delta`))/(2*$`#/A`))"
+                "expression": "$`#/delta` <= 0 ? null : $`#/delta` === 0 ? null : ((-$`#/b`-Math.sqrt($`#/delta`))/(2*$`#/a`))"
             }
         }
     },
     "data": {
-        "A": 2,
-        "B": -4,
-        "C": -6
+        "a": 2,
+        "b": -4,
+        "c": -6
     }
 }

@@ -12666,7 +12666,10 @@ function abstract(schema, value) {
 
 /**
  * observers function parse expression to extract observed values and set observers
- * array in corresponding schema
+ * array in corresponding schema.
+ * a value is observed by using the pointer dereference operation in expresions: $`#/a/b/c`
+ * the observer is the Object desribed by the schema and the objserved value is the value
+ * pointed by $`...`
  * @param root schema for absolute pointers in expr
  * @param current schema for relative pointer in expr
  * @param expr function body or arrow function body to parse
@@ -12685,13 +12688,15 @@ function observers(root, current, expr) {
 }
 /**
  * class to compile schema for fz-form
- * compilation process is a in-depth walkthrough schema applying in order compile time actions
- * be carefull action order is primordial
+ * compilation process is a in-depth walkthrough schema applying in order all
+ * the compile time actions
+ *  !!! be carefull action order is primordial
  */
 class SchemaCompiler {
     root;
     steps_pass1;
     steps_pass2;
+    errors = [];
     constructor(root, options, data) {
         this.root = root;
         this.steps_pass1 = [
@@ -12706,12 +12711,12 @@ class SchemaCompiler {
             new CSPointer(this.root),
             new CSRoot(this.root),
             new CSRequiredWhen(this.root),
-            new CSType(this.root),
-            new CSFieldOrder(this.root),
+            new CSField(this.root),
+            new CSOrder(this.root),
         ];
         this.steps_pass2 = [
             new CSInsideRef(this.root, data),
-            new CSTemplate(this.root, '', abstract),
+            new CSTemplate(this.root, 'abstract', abstract),
             new CSBool(this.root, 'case', () => false),
             new CSBool(this.root, 'visible', () => true),
             new CSBool(this.root, 'readonly', () => false),
@@ -12724,8 +12729,10 @@ class SchemaCompiler {
         ];
     }
     compile() {
+        this.errors = [];
         this.walkSchema(this.steps_pass1, this.root);
         this.walkSchema(this.steps_pass2, this.root);
+        return this.errors;
     }
     walkSchema(steps, schema, parent, name) {
         for (const step of steps) {
@@ -12735,7 +12742,7 @@ class SchemaCompiler {
                 }
             }
             catch (e) {
-                console.error(`Error while compiling schema ${String(e)}\n - action: ${step.desc}\n - schema: ${pointerSchema(parent, name)}`);
+                this.errors.push(String(e));
             }
         }
         if (schema.properties)
@@ -12758,20 +12765,34 @@ class SchemaCompiler {
     }
 }
 class CompilationStep {
+    static sourceCount = 1;
     root;
-    constructor(root) {
+    property;
+    constructor(root, property) {
         this.root = root;
+        this.property = property;
+    }
+    appliable(_schema, _parent, _name) {
+        // default applied on all schemas
+        return true;
+    }
+    sourceURL(dataProperty) {
+        let source = `_FZ_${this.property}_${dataProperty ?? ''}_${CompilationStep.sourceCount++}.js`.replace(/ +/g, "_");
+        source = source.replace(/[^a-z0-9_]/ig, "");
+        console.log(`builded source :${source}`);
+        return `\n    //# sourceURL=${source}\n`;
+    }
+    error(message) {
+        return Error(`Compilation step ${this.property}: ${message} `);
     }
 }
 /**
  * Replace schemas defined by reference ($ref) by their real
- * definition as deep copy.
+ * definition (by copy)).
  */
 class CSDefinition extends CompilationStep {
-    desc = "Definition compilation step ($ref)";
-    appliable(schema) {
-        // check isenum is already solved  
-        return !(schema && schema.$ref);
+    constructor(root) {
+        super(root, "$ref");
     }
     apply(schema) {
         const properties = schema.properties;
@@ -12782,9 +12803,9 @@ class CSDefinition extends CompilationStep {
     definition(schema) {
         const ref = schema.$ref;
         if (!ref.startsWith("#/definitions/"))
-            throw Error(`Solving refs: only '#/definitions/defname' allowed [found => ${ref}]`);
+            throw this.error(`only '#/definitions/<name>' allowed => ${ref}]`);
         if (!this.root.definitions)
-            throw Error(`No definitions provided in root schema`);
+            throw this.error(`No "definitions" property in root schema`);
         const defname = ref.split("/")[2];
         if (defname in this.root.definitions) {
             const deforig = this.root.definitions[defname];
@@ -12792,18 +12813,19 @@ class CSDefinition extends CompilationStep {
             Object.entries(schema).forEach(([n, v]) => (n !== '$ref') && (defcopy[n] = v));
             return defcopy;
         }
-        throw Error(`No definitions found in schema for ${ref}`);
+        throw this.error(`No definitions found in schema for ${ref}`);
     }
 }
 /**
  * Adds a string property 'basetype' wich identify basetype (not null)
- * @param schema shema to solve base type
+ * @param schema shema to comp base type
  */
 class CSTargetType extends CompilationStep {
-    desc = "Target type compilation step";
-    appliable() {
-        // applied on all schemas
-        return true;
+    constructor(root) {
+        super(root, "basetype");
+    }
+    appliable(schema) {
+        return !(this.property in schema);
     }
     apply(schema, parent, name) {
         if (Array.isArray(schema.type) && parent && name) {
@@ -12827,14 +12849,13 @@ class CSTargetType extends CompilationStep {
  * provided at form initialization
  */
 class CSAppEnum extends CompilationStep {
-    desc = "Application provided enums compilation step";
     options;
     constructor(root, options) {
-        super(root);
+        super(root, "enumRef");
         this.options = options;
     }
     appliable(schema) {
-        return "enumRef" in schema;
+        return this.property in schema;
     }
     apply(schema) {
         if (!this.options.ref)
@@ -12853,10 +12874,11 @@ class CSAppEnum extends CompilationStep {
  *      (c) having an "anyOf" property containing an array of constants
  */
 class CSEnum extends CompilationStep {
-    desc = " schema tagging compilation step (property isenum) ";
+    constructor(root) {
+        super(root, "isenum");
+    }
     appliable(schema) {
-        // check isenum is already solved  
-        return !("isenum" in schema);
+        return !(this.property in schema);
     }
     apply(schema) {
         schema.isenum = false;
@@ -12879,13 +12901,13 @@ class CSEnum extends CompilationStep {
  * and array items is an enum. Only primitive types may be enums
  */
 class CSEnumArray extends CompilationStep {
-    desc = "Array of enum compilation step";
+    constructor(root) {
+        super(root, "isenumarray");
+    }
     appliable(schema) {
-        // check isenum is already solved  
-        return !("isenumarray" in schema);
+        return !(this.property in schema);
     }
     apply(schema) {
-        schema.isenumarray = false;
         schema.isenumarray = isprimitive(schema.basetype) && isenumarray(schema);
     }
 }
@@ -12894,9 +12916,11 @@ class CSEnumArray extends CompilationStep {
  * array and items are of homegeneous type
  */
 class CSUniform extends CompilationStep {
-    desc = "Homgeneous array items tagging compilation step (property homogeneous)";
+    constructor(root) {
+        super(root, "homogeneous");
+    }
     appliable(schema) {
-        return (schema.basetype === "array");
+        return !(this.property in schema) && schema.basetype === "array";
     }
     apply(schema) {
         schema.homogeneous = schema.items.oneOf ? false : true;
@@ -12912,9 +12936,11 @@ class CSUniform extends CompilationStep {
  *
  */
 class CSObservers extends CompilationStep {
-    desc = "Observers  compilation step";
+    constructor(root) {
+        super(root, "observers");
+    }
     appliable(schema) {
-        return !schema.observers;
+        return !(this.property in schema);
     }
     apply(schema) {
         schema.observers = [];
@@ -12925,9 +12951,11 @@ class CSObservers extends CompilationStep {
  * it store the parent schema of the currently processed schema
  */
 class CSParent extends CompilationStep {
-    desc = "Array items is of homgeneous type compilation step";
+    constructor(root) {
+        super(root, "parent");
+    }
     appliable(schema) {
-        return !schema.parent;
+        return !(this.property in schema);
     }
     apply(schema, parent) {
         schema.parent = parent;
@@ -12938,11 +12966,13 @@ class CSParent extends CompilationStep {
  * this porperty store the schema pointer of currently processed schema
  */
 class CSPointer extends CompilationStep {
-    desc = "'homogeneous' property compilation step";
-    appliable(schema) {
-        return !schema.pointer;
+    constructor(root) {
+        super(root, "pointer");
     }
-    apply(schema, parent) {
+    appliable(schema) {
+        return !(this.property in schema);
+    }
+    apply(schema, parent, name) {
         schema.pointer = parent ? `${parent.pointer}/${name}` : `#`;
     }
 }
@@ -12951,12 +12981,14 @@ class CSPointer extends CompilationStep {
  * this property store the root schema
  */
 class CSRoot extends CompilationStep {
-    desc = "'root' property compilation step";
-    appliable(schema) {
-        return !schema.root;
+    constructor(root) {
+        super(root, "root");
     }
-    apply(schema, parent) {
-        schema.pointer = parent ? `${parent.pointer}/${name}` : `#`;
+    appliable(schema) {
+        return !(this.property in schema);
+    }
+    apply(schema) {
+        schema.root = this.root;
     }
 }
 /**
@@ -12964,9 +12996,11 @@ class CSRoot extends CompilationStep {
  * this field will be compiled to getter to manage conditional mandatory values
  */
 class CSRequiredWhen extends CompilationStep {
-    desc = "'requiredWhen' property initialisation compilation step";
+    constructor(root) {
+        super(root, "requiredWhen");
+    }
     appliable(schema) {
-        return schema.basetype === "object" && schema.properties && schema.required;
+        return schema.basetype === "object" && schema.properties != null && schema.required != null;
     }
     apply(schema) {
         schema.required.forEach((name) => {
@@ -12979,10 +13013,12 @@ class CSRequiredWhen extends CompilationStep {
  * Adds a property 'field' with the web component name to be displayed for this schema
  * depending on 'basetype', 'format', 'const', 'isenum', enum values count, ...
  */
-class CSType extends CompilationStep {
-    desc = "'field' property compilation step";
+class CSField extends CompilationStep {
+    constructor(root) {
+        super(root, "field");
+    }
     appliable(schema) {
-        return !schema.field;
+        return !(this.property in schema);
     }
     apply(schema) {
         if ("const" in schema)
@@ -13043,10 +13079,12 @@ class CSType extends CompilationStep {
 /**
  * Adds a property 'order' for each schema containing the display order rank
  */
-class CSFieldOrder extends CompilationStep {
-    desc = "'order' property compilation step";
+class CSOrder extends CompilationStep {
+    constructor(root) {
+        super(root, "order");
+    }
     appliable(schema) {
-        return schema.basetype === 'object' && schema.properties && !schema.order;
+        return !(this.property in schema) && schema.basetype === 'object' && schema.properties != null;
     }
     apply(schema) {
         const properties = schema.properties;
@@ -13073,14 +13111,13 @@ class CSFieldOrder extends CompilationStep {
     }
 }
 class CSInsideRef extends CompilationStep {
-    desc = "'refTo' property compilation step";
     data;
     constructor(root, data) {
-        super(root);
+        super(root, "enumRef");
         this.data = data;
     }
     appliable(schema) {
-        return schema.refTo && typeof schema.refTo !== "function";
+        return this.property in schema && typeof schema.refTo !== "function";
     }
     apply(schema) {
         const refto = schema.refTo;
@@ -13104,22 +13141,21 @@ class CSInsideRef extends CompilationStep {
  * compile a given property written as template literal
  */
 class CSTemplate extends CompilationStep {
-    desc = "template literals compilation step";
-    property;
     defunc;
     constructor(root, property, defunc) {
-        super(root);
-        this.property = property;
+        super(root, property);
         this.defunc = defunc;
     }
     appliable(schema) {
         return this.property in schema && typeof schema[this.property] == "string";
     }
-    apply(schema) {
+    apply(schema, _parent, name) {
         const expression = schema[this.property];
         schema[this.property] = this.defunc;
         if (typeof expression == 'string') {
-            const code = `try { 
+            const code = `
+                ${this.sourceURL(name)}
+                try { 
                     return nvl\`${expression}\`
                 } catch(e) { 
                     console.error(\`unable to produce ${this.property} property due to :\${e.toString()}\`)
@@ -13141,18 +13177,15 @@ class CSTemplate extends CompilationStep {
  * compile a given property written as a function returning boolean
  */
 class CSBool extends CompilationStep {
-    desc = "template literals compilation step";
-    property;
     defunc;
     constructor(root, property, defunc) {
-        super(root);
-        this.property = property;
+        super(root, property);
         this.defunc = defunc;
     }
     appliable(schema) {
         return this.property in schema && ["string", "boolean"].includes(typeof schema[this.property]);
     }
-    apply(schema, parent, name) {
+    apply(schema, _parent, name) {
         const expression = schema[this.property];
         schema[this.property] = this.defunc;
         if (typeof expression == 'boolean' || expression === null) {
@@ -13160,7 +13193,7 @@ class CSBool extends CompilationStep {
         }
         else if (typeof expression == 'string') {
             const code = `
-            //# sourceURL=${this.property}_${(parent && name) ? pointerSchema(parent, name).replace(/\//g, "") : Math.floor(Math.random() * 1e9)}.js
+            ${this.sourceURL(name)}
             try {  
                     const result = (${expression}) 
 
@@ -13181,18 +13214,15 @@ class CSBool extends CompilationStep {
     }
 }
 class CSAny extends CompilationStep {
-    desc = "template literals compilation step";
-    property;
     defunc;
     constructor(root, property, defunc) {
-        super(root);
-        this.property = property;
+        super(root, property);
         this.defunc = defunc;
     }
     appliable(schema) {
         return this.property in schema && typeof schema[this.property] !== "function";
     }
-    apply(schema, parent, name) {
+    apply(schema, _parent, name) {
         const expression = schema[this.property];
         schema[this.property] = this.defunc;
         let code = "return null";
@@ -13210,12 +13240,12 @@ class CSAny extends CompilationStep {
                 break;
         }
         const body = `
-            //# sourceURL=${this.property}_${(parent && name) ? pointerSchema(parent, name).replace(/\//g, "") : Math.floor(Math.random() * 1e9)}.js
             try {  
                 ${code} 
             }
             catch(e) {  console.error(\`unable to produce ${this.property} property due to :\n\t=>\${e.toString()}\`) }
             return null
+            ${this.sourceURL(name)}
         `;
         try {
             if (Array.isArray(expression))
@@ -13288,38 +13318,42 @@ window.nvl = function nvl(strarr, ...valarr) {
     return all.join('');
 };
 
-class IDocUserStorage {
-    userput;
-    userremove;
-    userget;
-    constructor(storage) {
-        const fct = ["put", "get", "remove"];
-        if (!fct.every(f => (f in storage)))
-            throw Error("Les méthodes put, get, remove d'options.storage ne sont pas toutes présentes.");
-        if (!fct.every((f) => typeof storage[f] == "function"))
-            throw Error("Les méthodes put, get, remove d'options.storage doivent être des fonctions.");
-        this.userput = storage.put;
-        this.userremove = storage.remove;
-        this.userget = storage.get;
+class BlobStoreWrapper {
+    store;
+    constructor(store) {
+        this.store = store;
     }
     async put(uuid, blob, filename, pointer) {
-        return await this.userput(uuid, blob, filename, pointer);
+        try {
+            return this.store.put?.(uuid, blob, filename, pointer);
+        }
+        catch (e) {
+            console.error(`storage: unable to put blob for uuid=${uuid} ptr=${pointer}\n    - ${String(e)}`);
+        }
     }
     async remove(uuid) {
-        return await this.userremove(uuid);
+        try {
+            return this.store.remove?.(uuid);
+        }
+        catch (e) {
+            console.error(`storage: unable to remove blob for uuid=${uuid}\n    - ${String(e)}`);
+        }
     }
     async get(uuid) {
-        return await this.userget(uuid);
+        try {
+            return this.store.get?.(uuid) ?? null;
+        }
+        catch (e) {
+            console.error(`storage: unable to get blob for uuid=${uuid}\n    - ${String(e)}`);
+            return null;
+        }
     }
 }
-class DocStorage {
+class BlobCache {
     cacheName;
     cache;
-    idData;
-    filename = "";
-    constructor(cacheName, idData) {
+    constructor(cacheName) {
         this.cacheName = cacheName;
-        this.idData = idData;
     }
     available() {
         return 'caches' in self;
@@ -13328,41 +13362,33 @@ class DocStorage {
         if (this.available())
             this.cache = await caches.open(this.cacheName);
     }
-    // Adding to cache
-    async put(uuid, blob, filename) {
-        const url = `/FZ-FORM/${this.idData}/${uuid}?name=${filename}`;
+    async findKey(uuid) {
+        const keys = await this.cache?.keys() ?? [];
+        for (const key of keys) {
+            if (key.url.includes(uuid)) {
+                const url = new URL(key.url);
+                const filename = url.searchParams.get("name") ?? "";
+                const response = await this.cache?.match(url, { ignoreSearch: true });
+                const blob = await response?.blob();
+                if (blob != null)
+                    return { uuid: uuid, blob: blob, filename };
+            }
+        }
+        return null;
+    }
+    async put(uuid, blob, filename, _pointer) {
+        const url = `/${uuid}?name=${filename}`;
         await this.open();
         await this.cache?.put(url, new Response(blob));
     }
-    // Removing entry from cache
     async remove(uuid) {
-        const url = `/FZ-FORM/${this.idData}/${uuid}`;
         await this.open();
-        await this.cache?.delete(url, { ignoreSearch: true });
-        this.filename = null;
-    }
-    // get entry from cache
-    findKey(cacheKeys, uuid) {
-        if (cacheKeys) {
-            for (const key of cacheKeys) {
-                if (key.url.includes(uuid)) {
-                    const url = new URL(key.url);
-                    this.filename = url.searchParams.get("name");
-                }
-            }
-        }
+        await this.cache?.delete(`/${uuid}`, { ignoreSearch: true });
     }
     async get(uuid) {
-        const url = `/FZ-FORM/${this.idData}/${uuid}`;
         await this.open();
-        const keys = await this.cache?.keys();
-        this.findKey(keys, uuid);
-        const response = await this.cache?.match(url, { ignoreSearch: true });
-        const blob = await response?.blob();
-        return (blob && this.filename) ? {
-            blob: blob,
-            filename: this.filename
-        } : null;
+        const found = await this.findKey(uuid);
+        return found ? found : null;
     }
 }
 
@@ -13993,11 +14019,15 @@ class FzElement extends r$3 {
         }
         return this.schema[attribute](this.schema, this.value, this.data, this.name, this.derefFunc, this.form?.options.userdata);
     }
+    /**
+     * return tagged template '$' for pointer derefencing in expression or code used in schema
+     * the pointer derefencing is done relativatly to this.data
+     *  @example $`#/a/b/c` // absolute dereferencing
+     *  @example $`1/b/c`   // relative dereferencing
+     */
     get derefFunc() {
-        return (tmplOrStr, ...values) => {
-            const pointer = typeof tmplOrStr == "string"
-                ? tmplOrStr
-                : tmplOrStr.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "");
+        return (template, ...substitutions) => {
+            const pointer = String.raw(template, substitutions);
             return derefPointerData(this.form.root, this.data, this.key, pointer);
         };
     }
@@ -14693,7 +14723,7 @@ function v1Bytes(rnds, msecs, nsecs, clockseq, node, buf, offset = 0) {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const CACHE_NAME = "FZ-DOC-STORAGE";
+var FzDocument_1;
 /**
  * @prop schema
  * @prop data
@@ -14702,7 +14732,8 @@ const CACHE_NAME = "FZ-DOC-STORAGE";
  * @prop options
  */
 let FzDocument = class FzDocument extends FzElement {
-    #docTypes_accessor_storage = [
+    static { FzDocument_1 = this; }
+    static docTypes = [
         // Documents images
         "image/png",
         "image/jpeg",
@@ -14728,16 +14759,17 @@ let FzDocument = class FzDocument extends FzElement {
         "application/vnd.oasis.opendocument.presentation",
         "application/vnd.oasis.opendocument.graphics"
     ];
-    get docTypes() { return this.#docTypes_accessor_storage; }
-    set docTypes(value) { this.#docTypes_accessor_storage = value; }
-    url = '';
     photoModal;
+    url = '';
     filename;
-    get preview() {
+    get hasPreview() {
         return this.schema.preview;
     }
     get mimetype() {
-        return (this.schema.mimetype) ? this.schema.mimetype : this.docTypes.join(', ');
+        return (this.schema.mimetype) ? this.schema.mimetype : FzDocument_1.docTypes.join(', ');
+    }
+    get store() {
+        return this.form.store;
     }
     static get styles() {
         return [
@@ -14782,13 +14814,13 @@ let FzDocument = class FzDocument extends FzElement {
     }
     renderInput() {
         return x `
-            <fz-photo-dlg></fz-photo-dlg>
+            <fz-photo-dlg id=modal ></fz-photo-dlg>
             <div class="input-group">
-                ${(this.url && this.preview) ? x `
+                ${(this.url && this.hasPreview) ? x `
                     <div class="input-group-prepend" >
                         <img class="input-group-text img-preview" src="${this.url}" @click="${this.open}"/>
                     </div>` : null}
-                ${(!this.isEmpty && !(this.url && this.preview)) ? x `
+                ${(!this.isEmpty && !(this.url && this.hasPreview)) ? x `
                     <div class="input-group-prepend">
                         <span class="input-group-text"  @click="${this.open}"><i class="bi bi-eye"></i></span>
                     </div>` : null}
@@ -14820,14 +14852,15 @@ let FzDocument = class FzDocument extends FzElement {
         super.change();
         this.requestUpdate();
     }
+    convertToInput(value) {
+        return (value == null) ? "" : value;
+    }
+    convertToValue(value) {
+        return isEmptyValue(value) ? this.empty : value;
+    }
     connectedCallback() {
         super.connectedCallback();
-        this.addEventListener('update', () => {
-            this.check();
-        });
-    }
-    get docStorage() {
-        return this.form?.docStorage ?? new DocStorage(CACHE_NAME, this.form?.idData || "dummy");
+        this.addEventListener('update', () => this.check());
     }
     async firstUpdated(changedProperties) {
         super.firstUpdated(changedProperties);
@@ -14835,32 +14868,30 @@ let FzDocument = class FzDocument extends FzElement {
         this.photoModal.addEventListener('close', (evt) => {
             this.set(v1(), evt.detail.blob, "photo.png");
         });
-        try {
-            if (this.value) {
-                const doc = await this.docStorage.get(this.value);
-                if (doc)
-                    this.set(this.value, doc.blob, doc.filename);
-                else
-                    throw Error('not found');
+        if (this.value != null) {
+            const doc = await this.store.get(this.value);
+            if (doc) {
+                this.set(this.value, doc.blob, doc.filename);
             }
-        }
-        catch (e) {
-            this.valid = false;
-            this.message = "Fichier introuvable";
+            else {
+                this.valid = false;
+                this.message = "document not found";
+            }
         }
     }
     async open() {
-        try {
-            const doc = await this.docStorage.get(this.value);
-            if (doc) {
-                const fileURL = URL.createObjectURL(doc.blob);
-                window.open(fileURL);
-            }
+        if (this.value == null)
+            return;
+        const doc = await this.store.get(this.value);
+        let fileURL;
+        if (doc) {
+            fileURL = URL.createObjectURL(doc.blob);
         }
-        catch (e) {
-            this.valid = false;
-            this.message = "Impossible d'ouvrir le fichier";
+        else {
+            const blob = new Blob([`FzForm ERROR: Couldn't open document uuid=${this.value}`], { type: "text/plain" });
+            fileURL = URL.createObjectURL(blob);
         }
+        window.open(fileURL);
     }
     setUrl(blob) {
         this.url = '';
@@ -14877,11 +14908,12 @@ let FzDocument = class FzDocument extends FzElement {
         if (!blob || !filename)
             return;
         if (this.value)
-            await this.docStorage.remove(this.value);
+            await this.store.remove(this.value);
         this.filename = filename;
         this.value = id;
         this.setUrl(blob);
-        await this.docStorage.put(this.value, blob, this.filename, this.pointer);
+        if (this.value)
+            await this.store.put(this.value, blob, this.filename, this.pointer);
         this.change();
         this.requestUpdate();
     }
@@ -14890,25 +14922,15 @@ let FzDocument = class FzDocument extends FzElement {
     }
     async delete() {
         if (this.value)
-            await this.docStorage.remove(this.value);
+            await this.store.remove(this.value);
         this.value = this.empty;
         this.url = "";
         this.filename = "";
         this.change();
         this.requestUpdate();
     }
-    convertToInput(value) {
-        return (value == null) ? "" : value;
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
 };
-__decorate([
-    n({ attribute: false }),
-    __metadata("design:type", Object)
-], FzDocument.prototype, "docTypes", null);
-FzDocument = __decorate([
+FzDocument = FzDocument_1 = __decorate([
     t$2("fz-document")
 ], FzDocument);
 
@@ -25365,7 +25387,7 @@ let FzForm = class FzForm extends r$3 {
     #notValidate_accessor_storage = false;
     get notValidate() { return this.#notValidate_accessor_storage; }
     set notValidate(value) { this.#notValidate_accessor_storage = value; }
-    docStorage;
+    store = new BlobCache("FZ-FORM");
     asset;
     validator;
     attributeChangedCallback(name, oldValue, newValue) {
@@ -25397,7 +25419,7 @@ let FzForm = class FzForm extends r$3 {
     set options(value) {
         this.i_options = value;
         if (this.i_options?.storage) {
-            this.docStorage = new IDocUserStorage(this.i_options.storage);
+            this.store = new BlobStoreWrapper(this.i_options.storage);
         }
         if (this.i_options?.asset) {
             this.asset = this.i_options.asset;
@@ -25530,13 +25552,16 @@ let FzForm = class FzForm extends r$3 {
     compile() {
         try {
             const schema_compiler = new SchemaCompiler(this.schema, this.options, this.obj.content);
-            schema_compiler.compile();
+            const errors = schema_compiler.compile();
+            if (errors.length > 0) {
+                this.message = `Schema compilation failed: \n ${errors.join('\n    - ')}`;
+            }
             const data_compiler = new DataCompiler(this.obj.content, this.schema);
             data_compiler.compile();
         }
         catch (e) {
             this._errors = [];
-            this.message = "La compilation a échouée : " + String(e);
+            this.message = `Schema compilation failed: ${String(e)}`;
         }
     }
     /**

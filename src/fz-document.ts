@@ -1,13 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { html, css } from "lit";
-import { customElement,  property } from "lit/decorators.js";
+import { customElement } from "lit/decorators.js";
 import { FzElement } from "./fz-element";
-import { IDocStorage, DocStorage } from "./docstorage";
+import { IBlobStore } from "./storage";
 import { v1 as uuidv1 } from "uuid"
 import { isEmptyValue } from "./tools"
-
-const CACHE_NAME = "FZ-DOC-STORAGE"
 
 /**
  * @prop schema
@@ -18,8 +16,8 @@ const CACHE_NAME = "FZ-DOC-STORAGE"
  */
  @customElement("fz-document")
 export class FzDocument extends FzElement {
-    @property({ attribute: false })
-    accessor docTypes = [
+
+    private static docTypes = [
         // Documents images
         "image/png"
         , "image/jpeg"
@@ -42,17 +40,21 @@ export class FzDocument extends FzElement {
         , "application/vnd.oasis.opendocument.graphics"
     ];
 
-    private url = '';
     private photoModal: any;
+    private url = '';
     private filename?: string
-    get preview(): boolean {
+
+    get hasPreview(): boolean {
         return this.schema.preview
     }
 
     get mimetype(): string {
-        return (this.schema.mimetype) ? this.schema.mimetype : this.docTypes.join(', ')
+        return (this.schema.mimetype) ? this.schema.mimetype : FzDocument.docTypes.join(', ')
     }
 
+    get store(): IBlobStore {
+        return this.form.store
+    }
 
     static override get styles() {
         return [
@@ -98,14 +100,14 @@ export class FzDocument extends FzElement {
 
     renderInput() {
         return html`
-            <fz-photo-dlg></fz-photo-dlg>
+            <fz-photo-dlg id=modal ></fz-photo-dlg>
             <div class="input-group">
-                ${ (this.url && this.preview)  ? html`
+                ${ (this.url && this.hasPreview)  ? html`
                     <div class="input-group-prepend" >
                         <img class="input-group-text img-preview" src="${this.url}" @click="${this.open}"/>
                     </div>` : null
                 }
-                ${ (!this.isEmpty && !(this.url && this.preview))  ?html`
+                ${ (!this.isEmpty && !(this.url && this.hasPreview))  ?html`
                     <div class="input-group-prepend">
                         <span class="input-group-text"  @click="${this.open}"><i class="bi bi-eye"></i></span>
                     </div>` : null
@@ -142,15 +144,17 @@ export class FzDocument extends FzElement {
         this.requestUpdate()
     }
 
-    override connectedCallback() {
-        super.connectedCallback()
-        this.addEventListener('update', () => {
-            this.check()
-        })
+    override convertToInput(value: any) {
+        return (value == null) ? "" : value
     }
 
-    get docStorage(): IDocStorage {
-        return this.form?.docStorage ?? new DocStorage(CACHE_NAME, this.form?.idData || "dummy")
+    override convertToValue(value: any) {
+        return isEmptyValue(value) ? this.empty : value;
+    }
+
+    override connectedCallback() {
+        super.connectedCallback()
+        this.addEventListener('update', () =>  this.check())
     }
 
     override async firstUpdated(changedProperties: any) {
@@ -159,31 +163,28 @@ export class FzDocument extends FzElement {
         this.photoModal.addEventListener('close' as any, (evt: CustomEvent) => {
             this.set(uuidv1(),evt.detail.blob, "photo.png")
         })
-        try {
-            if (this.value) {
-                const doc = await this.docStorage.get(this.value)
-                if (doc) 
-                    this.set(this.value, doc.blob, doc.filename)
-                else
-                    throw Error('not found')
+        if (this.value != null)  {
+            const doc = await this.store.get(this.value)
+            if (doc) {
+                this.set(this.value, doc.blob, doc.filename)
+            } else {
+                this.valid = false
+                this.message = "document not found"
             }
-        } catch(e) {
-            this.valid = false
-            this.message = "Fichier introuvable"
         }
     }
 
-    async open() {
-        try {
-            const doc = await this.docStorage.get(this.value)
-            if (doc) {
-                const fileURL = URL.createObjectURL(doc.blob);
-                window.open(fileURL);
-            }
-        } catch (e) {
-            this.valid = false
-            this.message = "Impossible d'ouvrir le fichier"
+    private async open() {
+        if (this.value == null) return
+        const doc = await this.store.get(this.value)
+        let fileURL
+        if (doc) {
+            fileURL = URL.createObjectURL(doc.blob);
+        } else {
+            const blob = new Blob([`FzForm ERROR: Couldn't open document uuid=${this.value}`], { type: "text/plain" });
+            fileURL = URL.createObjectURL(blob);
         }
+        window.open(fileURL);
     }
     private setUrl(blob: Blob) {
         this.url = ''
@@ -197,13 +198,13 @@ export class FzDocument extends FzElement {
         }
     }
 
-    async set(id: string, blob: Blob, filename: string) {
+    private async set(id: string, blob: Blob, filename: string) {
         if (!blob || !filename) return
-        if (this.value) await this.docStorage.remove(this.value)
+        if (this.value) await this.store.remove(this.value)
         this.filename = filename
         this.value = id
         this.setUrl(blob)
-        await this.docStorage.put(this.value, blob, this.filename, this.pointer)
+        if (this.value) await this.store.put(this.value, blob, this.filename, this.pointer)
         this.change()
         this.requestUpdate()
     }
@@ -213,7 +214,7 @@ export class FzDocument extends FzElement {
     }
 
     private async delete() {
-        if (this.value) await this.docStorage.remove(this.value)
+        if (this.value) await this.store.remove(this.value)
         this.value = this.empty
         this.url = ""
         this.filename = ""
@@ -221,11 +222,4 @@ export class FzDocument extends FzElement {
         this.requestUpdate()
     }
 
-    convertToInput(value: any) {
-        return (value == null) ? "" : value
-    }
-
-    convertToValue(value: any) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
 }
