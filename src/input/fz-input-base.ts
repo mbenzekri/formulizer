@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { html, TemplateResult } from "lit";
-import { FzElement } from "./fz-element";
-import { getCircularReplacer } from "./tools";
+import { FzElement } from "../fz-element";
+import { getCircularReplacer } from "../tools";
 
 const invalidkeys = [
     'valueMissing',
@@ -17,7 +17,7 @@ const invalidkeys = [
 ]
 
 
-export abstract class FzBaseInput extends FzElement {
+export abstract class FzInputBase extends FzElement {
 
     /**
      * return HTMLInputElement used to edit field value

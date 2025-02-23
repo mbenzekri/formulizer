@@ -2,10 +2,10 @@
 
 import { html, css } from "lit";
 import { customElement } from "lit/decorators.js";
-import { IBlobStore } from "./storage";
+import { IBlobStore } from "../storage";
 import { v1 as uuidv1 } from "uuid"
-import { isEmptyValue } from "./tools"
-import { FzBaseInput } from "./fz-base-input";
+import { isEmptyValue } from "../tools"
+import { FzInputBase } from "./fz-input-base";
 
 /**
  * @prop schema
@@ -15,7 +15,7 @@ import { FzBaseInput } from "./fz-base-input";
  * @prop options
  */
  @customElement("fz-document")
-export class FzDocument extends FzBaseInput {
+export class FzInputDoc extends FzInputBase {
 
     private static docTypes = [
         // Documents images
@@ -49,7 +49,7 @@ export class FzDocument extends FzBaseInput {
     }
 
     get mimetype(): string {
-        return (this.schema.mimetype) ? this.schema.mimetype : FzDocument.docTypes.join(', ')
+        return (this.schema.mimetype) ? this.schema.mimetype : FzInputDoc.docTypes.join(', ')
     }
 
     get store(): IBlobStore {

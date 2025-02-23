@@ -181,10 +181,6 @@ export class FzObject extends FzElement {
         await this.updateComplete
         this.fields().forEach(field => field.check())
     }
-    
-    renderInput() {
-        return html``
-    }
 
     override renderField(): TemplateResult {
         if (!this.schema.properties) return html``

@@ -8,35 +8,35 @@ import { FzElement } from "./fz-element";
 import { validateSchema, validateErrors, DataValidator, getSchema, jsonAttributeConverter } from "./tools"
 import { SchemaCompiler, DataCompiler } from "./compiler"
 import { BlobCache, IBlobStore, BlobStoreWrapper } from "./storage";
-import { IAsset } from "./fz-asset";
+import { IAsset } from "./input/fz-input-asset";
 import "./fz-array";
-import "./fz-asset";
-import "./fz-boolean";
-import "./fz-constant";
-import "./fz-date";
-import "./fz-datetime";
-import "./fz-document";
-import "./fz-enum";
+import "./input/fz-input-asset";
+import "./input/fz-input-boolean";
+import "./input/fz-input-const";
+import "./input/fz-input-date";
+import "./input/fz-input-datetime";
+import "./input/fz-input-doc";
+import "./input/fz-enum";
 import "./fz-enum-array";
 import "./fz-element";
-import "./fz-geolocation";
-import "./fz-integer";
-import "./fz-markdown";
-import "./fz-enum-check";
-import "./fz-float";
+import "./input/fz-input-geolocation";
+import "./input/fz-input-int";
+import "./input/fz-input-md";
+import "./input/fz-enum-check";
+import "./input/fz-input--float";
 import "./fz-object";
-import "./fz-range";
-import "./fz-signature";
-import "./fz-string";
-import "./fz-textarea";
-import "./fz-time";
-import "./fz-enum-typeahead";
-import "./fz-uuid";
+import "./input/fz-input-range";
+import "./input/fz-input-signature";
+import "./input/fz-input-string";
+import "./input/fz-input-textarea";
+import "./input/fz-input-time";
+import "./input/fz-enum-typeahead";
+import "./input/fz-input-uuid";
 
-import "./dialog";
-import "./fz-barcode-dlg";
-import "./fz-photo-dlg";
-import "./fz-item-dlg";
+import "./dialog/dialog";
+import "./dialog/fz-barcode-dlg";
+import "./dialog/fz-photo-dlg";
+import "./dialog/fz-item-dlg";
 
 /**
  * @prop schema

@@ -1,11 +1,11 @@
 import { html, css, LitElement } from "lit"
 import { property, customElement } from "lit/decorators.js"
 import { FzDialog } from "./dialog"
-import { bootstrapCss } from "./bootstrap"
-import { bootstrapIconsCss } from "./bootstrap-icons"
-import { Pojo } from "./types"
-import { calculateDefault, getSchema } from "./tools"
-import { FzElement } from "./fz-element"
+import { bootstrapCss } from "../bootstrap"
+import { bootstrapIconsCss } from "../bootstrap-icons"
+import { Pojo } from "../types"
+import { calculateDefault, getSchema } from "../tools"
+import { FzElement } from "../fz-element"
 
 
 @customElement("fz-item-dlg")

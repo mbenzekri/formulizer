@@ -1,8 +1,8 @@
 import { html, css, LitElement } from "lit"
 import { customElement, state } from "lit/decorators.js"
 import { FzDialog } from "./dialog"
-import { bootstrapCss } from "./bootstrap"
-import { bootstrapIconsCss } from "./bootstrap-icons"
+import { bootstrapCss } from "../bootstrap"
+import { bootstrapIconsCss } from "../bootstrap-icons"
 
 enum ModalState { notready = 0, scanning, done, fail }
 

@@ -307,7 +307,7 @@ class CSUniform extends CompilationStep {
  * observing the data described by this 'schema' 
  * 
  * observers have to be alerted when changes occurs to the data described 
- * by this schema (see event 'observed-changed' in FzField base class)
+ * by this schema (see event 'observed-changed' in FzElement base class)
  * 
  */
 class CSObservers extends CompilationStep {

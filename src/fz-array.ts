@@ -96,10 +96,6 @@ export class FzArray extends FzElement {
         }
     }
 
-    renderInput() {
-        return html``
-    }
-
     override renderField() {
         this.solveSchemas()
         const lines = (!this.data || !this.value) ? [] : this.value.map((_i: unknown, i: number) => html`${(this.current === i) ? this.renderEditable(i) : this.renderStatic(i)}`)

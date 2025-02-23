@@ -2,8 +2,8 @@
 import { customElement} from "lit/decorators.js"
 import {  html, css } from "lit"
 import {ifDefined} from 'lit/directives/if-defined.js';
-import { isEmptyValue } from "./tools"
-import { FzBaseInput } from "./fz-base-input";
+import { isEmptyValue } from "../tools"
+import { FzInputBase } from "./fz-input-base";
 
 /**
  * @prop schema
@@ -12,7 +12,7 @@ import { FzBaseInput } from "./fz-base-input";
  * @prop index
  */
 @customElement("fz-string")
-export class FzString extends FzBaseInput {
+export class FzInputString extends FzInputBase {
 
     static override get styles() {
         return [

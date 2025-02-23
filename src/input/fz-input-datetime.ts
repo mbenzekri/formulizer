@@ -2,8 +2,8 @@
 import { customElement} from "lit/decorators.js"
 import {  html } from "lit"
 import {ifDefined} from 'lit/directives/if-defined.js';
-import { isEmptyValue } from "./tools"
-import { FzBaseInput } from "./fz-base-input";
+import { isEmptyValue } from "../tools"
+import { FzInputBase } from "./fz-input-base";
 
 function iso(date = new Date()) {
     return date.toISOString().slice(0, -5) + "Z";
@@ -16,7 +16,7 @@ function iso(date = new Date()) {
  * @prop index
  */
 @customElement("fz-datetime")
-export class FzDatetime extends FzBaseInput {
+export class FzInputDatetime extends FzInputBase {
 
     renderInput() {
         return html`<input 

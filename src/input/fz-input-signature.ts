@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property, customElement } from "lit/decorators.js"
 import {  html, css } from "lit"
-import { isEmptyValue } from "./tools"
-import { FzBaseInput } from "./fz-base-input";
+import { isEmptyValue } from "../tools"
+import { FzInputBase } from "./fz-input-base";
 
 declare class ResizeObserver {
     constructor(cb: (entries: any) => void)
@@ -18,7 +18,7 @@ declare class ResizeObserver {
  * @prop index
  */
 @customElement("fz-signature")
-export class FzSignature extends FzBaseInput {
+export class FzInputSignature extends FzInputBase {
 
     @property({ attribute: false }) public accessor disabled = false
     @property({ attribute: false }) accessor state: 'edit' | 'read' = 'read'

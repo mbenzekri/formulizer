@@ -1,7 +1,7 @@
 import { html,css, LitElement } from "lit";
 import { customElement,property } from "lit/decorators.js";
-import { bootstrapCss } from "./bootstrap"
-import { bootstrapIconsCss } from "./bootstrap-icons"
+import { bootstrapCss } from "../bootstrap"
+import { bootstrapIconsCss } from "../bootstrap-icons"
 
 @customElement("fz-dialog")
 export class FzDialog extends LitElement {

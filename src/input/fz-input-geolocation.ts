@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
 import {  html, css } from "lit"
-import { isEmptyValue } from "./tools"
-import { FzBaseInput } from "./fz-base-input";
+import { isEmptyValue } from "../tools"
+import { FzInputBase } from "./fz-input-base";
 
 /**
  * @prop schema
@@ -11,7 +11,7 @@ import { FzBaseInput } from "./fz-base-input";
  * @prop index
  */
 @customElement("fz-geolocation")
-export class FzGeolocation extends FzBaseInput {
+export class FzInputGeolocation extends FzInputBase {
 
     static override get styles() {
         return [

@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
-import {  html } from "lit"
-import { isEmptyValue } from "./tools"
-import { FzBaseInput } from "./fz-base-input";
+import { html } from "lit"
+import { v1 as uuidv1 } from "uuid"
+import { isEmptyValue } from "../tools"
+import { FzInputBase } from "./fz-input-base";
 
 /**
  * @prop schema
@@ -10,16 +11,15 @@ import { FzBaseInput } from "./fz-base-input";
  * @prop name
  * @prop index
  */
-@customElement("fz-constant")
-export class FzConstant extends FzBaseInput {
+@customElement("fz-uuid")
+export class FzInputUuid extends FzInputBase {
 
     renderInput() {
-        return html`<div class="input-group">${this.value}</div>`;
+        return html`<div class="input-group" >${this.value}</div>`
     }
 
     convertToInput(value: any) {
-        if (value == null || value == "") return null
-        return value
+        return (value == null || value == "") ? null : value
     }
     convertToValue(value: any) {
         return isEmptyValue(value) ? this.empty : value;
@@ -27,6 +27,6 @@ export class FzConstant extends FzBaseInput {
 
     override connectedCallback() {
         super.connectedCallback()
-        if (this.value !== this.schema.const) this.value = this.schema.const
+        if (this.value == null) this.value = uuidv1()
     }
 }

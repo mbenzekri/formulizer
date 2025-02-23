@@ -12866,7 +12866,7 @@ class CSUniform extends CompilationStep {
  * observing the data described by this 'schema'
  *
  * observers have to be alerted when changes occurs to the data described
- * by this schema (see event 'observed-changed' in FzField base class)
+ * by this schema (see event 'observed-changed' in FzElement base class)
  *
  */
 class CSObservers extends CompilationStep {
@@ -13977,9 +13977,6 @@ let FzArray$1 = class FzArray extends FzElement {
             super.requestUpdate(name, oldvalue);
         }
     }
-    renderInput() {
-        return x ``;
-    }
     renderField() {
         this.solveSchemas();
         const lines = (!this.data || !this.value) ? [] : this.value.map((_i, i) => x `${(this.current === i) ? this.renderEditable(i) : this.renderStatic(i)}`);
@@ -14189,7 +14186,7 @@ const invalidkeys = [
     'customError',
     'typeMismatch'
 ];
-class FzBaseInput extends FzElement {
+class FzInputBase extends FzElement {
     /**
      * return HTMLInputElement used to edit field value
      * pay attention may not always exit, some fields dont use HTML inputs (ex: signature)
@@ -14301,7 +14298,7 @@ var SelectionState;
  * @prop index
  * @prop required
  */
-let FzAsset = class FzAsset extends FzBaseInput {
+let FzInputAsset = class FzInputAsset extends FzInputBase {
     state = SelectionState.idle;
     oldValue = "";
     convertToInput(value) {
@@ -14389,11 +14386,11 @@ let FzAsset = class FzAsset extends FzBaseInput {
         this.change();
     }
 };
-FzAsset = __decorate([
+FzInputAsset = __decorate([
     t$2("fz-asset")
-], FzAsset);
+], FzInputAsset);
 
-let FzBoolean = class FzBoolean extends FzBaseInput {
+let FzInputBoolean = class FzInputBoolean extends FzInputBase {
     renderInput() {
         return x `
             <div class="form-group row">
@@ -14424,9 +14421,9 @@ let FzBoolean = class FzBoolean extends FzBaseInput {
         return isEmptyValue(value) ? this.empty : !!value;
     }
 };
-FzBoolean = __decorate([
+FzInputBoolean = __decorate([
     t$2("fz-boolean")
-], FzBoolean);
+], FzInputBoolean);
 
 /**
  * @prop schema
@@ -14434,7 +14431,7 @@ FzBoolean = __decorate([
  * @prop name
  * @prop index
  */
-let FzConstant = class FzConstant extends FzBaseInput {
+let FzInputConstant = class FzInputConstant extends FzInputBase {
     renderInput() {
         return x `<div class="input-group">${this.value}</div>`;
     }
@@ -14452,9 +14449,9 @@ let FzConstant = class FzConstant extends FzBaseInput {
             this.value = this.schema.const;
     }
 };
-FzConstant = __decorate([
+FzInputConstant = __decorate([
     t$2("fz-constant")
-], FzConstant);
+], FzInputConstant);
 
 /**
  * @license
@@ -14471,7 +14468,7 @@ function iso$2(date = new Date()) {
  * @prop name
  * @prop index
  */
-let FzDate = class FzDate extends FzBaseInput {
+let FzInputDate = class FzInputDate extends FzInputBase {
     renderInput() {
         return x `<input 
             class="form-control" 
@@ -14502,9 +14499,9 @@ let FzDate = class FzDate extends FzBaseInput {
         return isEmptyValue(value) ? this.empty : iso$2(new Date(value));
     }
 };
-FzDate = __decorate([
+FzInputDate = __decorate([
     t$2("fz-date")
-], FzDate);
+], FzInputDate);
 
 function iso$1(date = new Date()) {
     return date.toISOString().slice(0, -5) + "Z";
@@ -14515,7 +14512,7 @@ function iso$1(date = new Date()) {
  * @prop name
  * @prop index
  */
-let FzDatetime = class FzDatetime extends FzBaseInput {
+let FzInputDatetime = class FzInputDatetime extends FzInputBase {
     renderInput() {
         return x `<input 
             class="form-control" 
@@ -14555,9 +14552,9 @@ let FzDatetime = class FzDatetime extends FzBaseInput {
         return isEmptyValue(value) ? this.empty : iso$1(new Date(value));
     }
 };
-FzDatetime = __decorate([
+FzInputDatetime = __decorate([
     t$2("fz-datetime")
-], FzDatetime);
+], FzInputDatetime);
 
 const byteToHex = [];
 for (let i = 0; i < 256; ++i) {
@@ -14670,7 +14667,7 @@ function v1Bytes(rnds, msecs, nsecs, clockseq, node, buf, offset = 0) {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-var FzDocument_1;
+var FzInputDoc_1;
 /**
  * @prop schema
  * @prop data
@@ -14678,8 +14675,8 @@ var FzDocument_1;
  * @prop index
  * @prop options
  */
-let FzDocument = class FzDocument extends FzBaseInput {
-    static { FzDocument_1 = this; }
+let FzInputDoc = class FzInputDoc extends FzInputBase {
+    static { FzInputDoc_1 = this; }
     static docTypes = [
         // Documents images
         "image/png",
@@ -14713,7 +14710,7 @@ let FzDocument = class FzDocument extends FzBaseInput {
         return this.schema.preview;
     }
     get mimetype() {
-        return (this.schema.mimetype) ? this.schema.mimetype : FzDocument_1.docTypes.join(', ');
+        return (this.schema.mimetype) ? this.schema.mimetype : FzInputDoc_1.docTypes.join(', ');
     }
     get store() {
         return this.form.store;
@@ -14877,12 +14874,12 @@ let FzDocument = class FzDocument extends FzBaseInput {
         this.requestUpdate();
     }
 };
-FzDocument = FzDocument_1 = __decorate([
+FzInputDoc = FzInputDoc_1 = __decorate([
     t$2("fz-document")
-], FzDocument);
+], FzInputDoc);
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-class FzEnumBase extends FzBaseInput {
+class FzEnumBase extends FzInputBase {
     enums;
     refenum = null;
     renderInput() {
@@ -15166,7 +15163,7 @@ FzArray = __decorate([
  * @prop name
  * @prop index
  */
-let FzGeolocation = class FzGeolocation extends FzBaseInput {
+let FzInputGeolocation = class FzInputGeolocation extends FzInputBase {
     static get styles() {
         return [
             ...super.styles,
@@ -15226,9 +15223,9 @@ let FzGeolocation = class FzGeolocation extends FzBaseInput {
         this.requestUpdate();
     }
 };
-FzGeolocation = __decorate([
+FzInputGeolocation = __decorate([
     t$2("fz-geolocation")
-], FzGeolocation);
+], FzInputGeolocation);
 
 /**
  * @prop schema
@@ -15236,7 +15233,7 @@ FzGeolocation = __decorate([
  * @prop name
  * @prop index
  */
-let FzInteger = class FzInteger extends FzBaseInput {
+let FzInputInteger = class FzInputInteger extends FzInputBase {
     renderInput() {
         return x `
             <div class="input-group">
@@ -15282,9 +15279,9 @@ let FzInteger = class FzInteger extends FzBaseInput {
         return isEmptyValue(value) || isNaN(value) ? this.empty : value;
     }
 };
-FzInteger = __decorate([
+FzInputInteger = __decorate([
     t$2("fz-integer")
-], FzInteger);
+], FzInputInteger);
 
 /**
  * @license
@@ -23775,7 +23772,7 @@ FzMarkdownIt = __decorate([
     t$2("markdown-it")
 ], FzMarkdownIt);
 
-let FzMarkdown = class FzMarkdown extends FzBaseInput {
+let FzInputMarkdown = class FzInputMarkdown extends FzInputBase {
     renderInput() {
         return x ``;
     }
@@ -23791,9 +23788,9 @@ let FzMarkdown = class FzMarkdown extends FzBaseInput {
         return (typeof value !== 'string') ? '' : value;
     }
 };
-FzMarkdown = __decorate([
+FzInputMarkdown = __decorate([
     t$2("fz-markdown")
-], FzMarkdown);
+], FzInputMarkdown);
 
 let FZEnumCheck = class FZEnumCheck extends FzEnumBase {
     renderEnum() {
@@ -23836,7 +23833,7 @@ const DECIMAL_SEPARATOR = (1.1).toLocaleString().substring(1, 2);
  * @prop name
  * @prop index
  */
-let FzFloat = class FzFloat extends FzBaseInput {
+let FzInputFloat = class FzInputFloat extends FzInputBase {
     static get styles() {
         return [
             ...super.styles,
@@ -23897,9 +23894,9 @@ let FzFloat = class FzFloat extends FzBaseInput {
         return isEmptyValue(value) || isNaN(value) ? this.empty : value;
     }
 };
-FzFloat = __decorate([
+FzInputFloat = __decorate([
     t$2("fz-float")
-], FzFloat);
+], FzInputFloat);
 
 /**
  * @prop schema
@@ -24065,9 +24062,6 @@ let FzObject = class FzObject extends FzElement {
         await this.updateComplete;
         this.fields().forEach(field => field.check());
     }
-    renderInput() {
-        return x ``;
-    }
     renderField() {
         if (!this.schema.properties)
             return x ``;
@@ -24180,7 +24174,7 @@ FzObject = __decorate([
  * @prop name
  * @prop index
  */
-let FzRange = class FzRange extends FzBaseInput {
+let FzRange = class FzRange extends FzInputBase {
     static get styles() {
         return [
             ...super.styles,
@@ -24298,7 +24292,7 @@ FzRange = __decorate([
  * @prop name
  * @prop index
  */
-let FzSignature = class FzSignature extends FzBaseInput {
+let FzInputSignature = class FzInputSignature extends FzInputBase {
     #disabled_accessor_storage = false;
     get disabled() { return this.#disabled_accessor_storage; }
     set disabled(value) { this.#disabled_accessor_storage = value; }
@@ -24524,14 +24518,14 @@ let FzSignature = class FzSignature extends FzBaseInput {
 __decorate([
     n({ attribute: false }),
     __metadata("design:type", Object)
-], FzSignature.prototype, "disabled", null);
+], FzInputSignature.prototype, "disabled", null);
 __decorate([
     n({ attribute: false }),
     __metadata("design:type", String)
-], FzSignature.prototype, "state", null);
-FzSignature = __decorate([
+], FzInputSignature.prototype, "state", null);
+FzInputSignature = __decorate([
     t$2("fz-signature")
-], FzSignature);
+], FzInputSignature);
 
 /**
  * @prop schema
@@ -24539,7 +24533,7 @@ FzSignature = __decorate([
  * @prop name
  * @prop index
  */
-let FzString = class FzString extends FzBaseInput {
+let FzInputString = class FzInputString extends FzInputBase {
     static get styles() {
         return [
             ...super.styles,
@@ -24597,9 +24591,9 @@ let FzString = class FzString extends FzBaseInput {
         return isEmptyValue(value) ? this.empty : value.toString();
     }
 };
-FzString = __decorate([
+FzInputString = __decorate([
     t$2("fz-string")
-], FzString);
+], FzInputString);
 
 /**
  * @prop schema
@@ -24607,7 +24601,7 @@ FzString = __decorate([
  * @prop name
  * @prop index
  */
-let FzTextarea = class FzTextarea extends FzBaseInput {
+let FzInputTextarea = class FzInputTextarea extends FzInputBase {
     renderInput() {
         return x `
             <textarea  
@@ -24635,9 +24629,9 @@ let FzTextarea = class FzTextarea extends FzBaseInput {
         return isEmptyValue(value) ? this.empty : value.toString();
     }
 };
-FzTextarea = __decorate([
+FzInputTextarea = __decorate([
     t$2("fz-textarea")
-], FzTextarea);
+], FzInputTextarea);
 
 function iso(date = new Date()) {
     return date.toISOString().substring(11, 19);
@@ -24648,7 +24642,7 @@ function iso(date = new Date()) {
  * @prop name
  * @prop index
  */
-let FzTime = class FzTime extends FzBaseInput {
+let FzInputTime = class FzInputTime extends FzInputBase {
     renderInput() {
         return x `
             <input 
@@ -24674,9 +24668,9 @@ let FzTime = class FzTime extends FzBaseInput {
         return isEmptyValue(value) ? this.empty : iso(new Date(value));
     }
 };
-FzTime = __decorate([
+FzInputTime = __decorate([
     t$2("fz-time")
-], FzTime);
+], FzInputTime);
 
 /**
  * an input for long enumeration with typeahead behavior
@@ -24763,7 +24757,7 @@ FzEnumTypeahead = __decorate([
  * @prop name
  * @prop index
  */
-let FzUuid = class FzUuid extends FzBaseInput {
+let FzInputUuid = class FzInputUuid extends FzInputBase {
     renderInput() {
         return x `<div class="input-group" >${this.value}</div>`;
     }
@@ -24779,9 +24773,9 @@ let FzUuid = class FzUuid extends FzBaseInput {
             this.value = v1();
     }
 };
-FzUuid = __decorate([
+FzInputUuid = __decorate([
     t$2("fz-uuid")
-], FzUuid);
+], FzInputUuid);
 
 let FzDialog = class FzDialog extends r$3 {
     modal;
