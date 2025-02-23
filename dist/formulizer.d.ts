@@ -2,34 +2,6 @@ import * as lit_html from 'lit-html';
 import * as lit from 'lit';
 import { LitElement, TemplateResult } from 'lit';
 
-declare abstract class Base extends LitElement {
-    connectedCallback(): void;
-}
-
-/**
- * An example element.
- *
- * @fires count-changed - Indicates when the count changes
- * @slot - This element has a slot
- * @csspart button - The button
- */
-declare class FzField extends Base {
-    constructor();
-    static styles: lit.CSSResult[];
-    /**
-     * property to collapse/extend the field.
-     */
-    accessor p_collapsed: boolean;
-    render(): lit_html.TemplateResult<1>;
-    delete(): void;
-    collapse(): void;
-}
-declare global {
-    interface HTMLElementTagNameMap {
-        'fz-field': FzField;
-    }
-}
-
 type Pojo = {
     [key: string]: any;
 };
@@ -186,7 +158,7 @@ interface IAsset {
 
 declare class FzMarkdownIt extends LitElement {
     markdown: string;
-    static styles: (CSSStyleSheet | lit.CSSResult)[];
+    static styles: (lit.CSSResult | CSSStyleSheet)[];
     render(): lit_html.TemplateResult<1>;
 }
 declare global {
@@ -256,4 +228,4 @@ declare class FzForm extends LitElement {
     observedChange(evt: Event): void;
 }
 
-export { FzField, FzForm, FzMarkdownIt };
+export { FzForm, FzMarkdownIt };
