@@ -209,11 +209,7 @@ export abstract class FzElement extends Base {
     get required() {
         let required = false
         if (this.isProperty && this.schema.requiredWhen) {
-            try {
-                required = this.evalExpr("requiredWhen")
-            } catch (e) {
-                console.error(`Error when evaluating requiredWen ${this.schema.requiredWhen.toString()}`)
-            }
+            required = this.evalExpr("requiredWhen") ?? false
         }
         return required
     }
