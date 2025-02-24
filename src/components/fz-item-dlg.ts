@@ -1,15 +1,14 @@
-import { html, css, LitElement } from "lit"
+import { html, css } from "lit"
 import { property, customElement } from "lit/decorators.js"
 import { FzDialog } from "./dialog"
-import { bootstrapCss } from "../assets/bootstrap"
-import { bootstrapIconsCss } from "../assets/bootstrap-icons"
 import { Pojo } from "../lib/types"
 import { calculateDefault, getSchema } from "../lib/tools"
 import { FzElement } from "../fz-element"
+import { Base } from "../base"
 
 
 @customElement("fz-item-dlg")
-export class FzItemDlg extends LitElement {
+export class FzItemDlg extends Base {
     @property({ type: Object }) accessor  reference:  { pointer: string, refname: string, refarray: any[] } | null = null
     private modal?: FzDialog | null
     private arraySchema?: Pojo
@@ -21,8 +20,7 @@ export class FzItemDlg extends LitElement {
 
     static override get styles() {
         return [
-            bootstrapCss,
-            bootstrapIconsCss,
+            ...super.styles,
             css`
             div {
                 color: black

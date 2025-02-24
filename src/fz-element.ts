@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property } from "lit/decorators.js"
-import { html, css, TemplateResult, LitElement } from "lit"
+import { html, css, TemplateResult } from "lit"
 import { derefPointerData, abstract, getEmptyValue, isEmptyValue, newValue, getSchema, closestAscendantFrom, calculateDefault } from "./lib/tools"
 import { Pojo } from "./lib/types"
 import { FzForm } from "./fz-form"
-import { bootstrapCss } from "./assets/bootstrap"
-import { bootstrapIconsCss } from "./assets/bootstrap-icons"
+import { Base } from "./base"
 
 const fiedtypes = [
     "fz-array",
@@ -40,7 +39,7 @@ const fieldtypeslist = fiedtypes.join(',')
  * @prop index
  * @prop required
  */
-export abstract class FzElement extends LitElement {
+export abstract class FzElement extends Base {
 
     @property({ type: Object }) accessor schema: Pojo = {}
     @property({ type: Object }) accessor data: Pojo = {}
@@ -262,8 +261,7 @@ export abstract class FzElement extends LitElement {
 
     static override get styles() {
         return [
-            bootstrapCss,
-            bootstrapIconsCss,
+            ...super.styles,
             css`
             .invalid {
                 border: 1px solid rgba(220,53,69) !important;

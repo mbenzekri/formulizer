@@ -6,6 +6,10 @@ type Pojo = {
     [key: string]: any;
 };
 
+declare class Base extends LitElement {
+    static get styles(): lit.CSSResult[];
+}
+
 interface IBlobStore {
     put(uuid: string, blob: Blob, filename: string, pointer: string): Promise<void>;
     remove(uuid: string): Promise<void>;
@@ -25,7 +29,7 @@ interface IAsset {
  * @prop schema
  * @prop data
  */
-declare class FzForm extends LitElement {
+declare class FzForm extends Base {
     accessor i_schema: Pojo;
     private accessor i_options;
     private accessor obj;
@@ -81,7 +85,7 @@ declare class FzForm extends LitElement {
  * @prop index
  * @prop required
  */
-declare abstract class FzElement extends LitElement {
+declare abstract class FzElement extends Base {
     accessor schema: Pojo;
     accessor data: Pojo;
     accessor name: string | null;
@@ -209,9 +213,9 @@ declare abstract class FzElement extends LitElement {
     }, ...substitutions: any[]) => any;
 }
 
-declare class FzMarkdownIt extends LitElement {
+declare class FzMarkdownIt extends Base {
     markdown: string;
-    static styles: (lit.CSSResult | CSSStyleSheet)[];
+    static styles: lit.CSSResult[];
     render(): lit_html.TemplateResult<1>;
 }
 declare global {

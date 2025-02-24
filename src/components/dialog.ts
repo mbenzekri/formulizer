@@ -1,10 +1,9 @@
-import { html,css, LitElement } from "lit";
+import { html,css } from "lit";
 import { customElement,property } from "lit/decorators.js";
-import { bootstrapCss } from "../assets/bootstrap"
-import { bootstrapIconsCss } from "../assets/bootstrap-icons"
+import { Base } from "../base";
 
 @customElement("fz-dialog")
-export class FzDialog extends LitElement {
+export class FzDialog extends Base {
     private modal?: HTMLElement | null
     private backdrop?: HTMLElement | null
     private validable = false
@@ -14,8 +13,7 @@ export class FzDialog extends LitElement {
     
     static override get styles() {
         return [
-            bootstrapCss,
-            bootstrapIconsCss,
+            ...super.styles,
             css`
             .modal-body {
                 max-height: 75vh; min-height: 50vh; overflow-y: auto;

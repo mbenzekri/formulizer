@@ -1,8 +1,7 @@
-import { html, css, LitElement } from "lit"
+import { html, css } from "lit"
 import { customElement, state } from "lit/decorators.js"
 import { FzDialog } from "./dialog"
-import { bootstrapCss } from "../assets/bootstrap"
-import { bootstrapIconsCss } from "../assets/bootstrap-icons"
+import { Base } from "../base"
 
 enum ModalState { notready = 0, scanning, done, fail }
 
@@ -14,7 +13,7 @@ const Barcodes = [
     'itf', 'pdf417', 'upc_a', 'upc_e', 'aztec', 'data_matrix', 'qr_code' 
 ]
 @customElement("fz-barcode-dlg")
-export class FzBarcodeDialog extends LitElement {
+export class FzBarcodeDialog extends Base {
     private detector?: any
     private code?: string
     @state()
@@ -25,8 +24,7 @@ export class FzBarcodeDialog extends LitElement {
 
     static override get styles() {
         return [
-            bootstrapCss,
-            bootstrapIconsCss,
+            ...super.styles,
             css`
             div {
                 color: black

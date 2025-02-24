@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { html, LitElement } from "lit";
+import { html } from "lit";
 import { property, customElement, state } from "lit/decorators.js";
-import { bootstrapCss } from "./assets/bootstrap"
-import { bootstrapIconsCss } from "./assets/bootstrap-icons"
 import { Pojo } from "./lib/types"
 import { FzElement } from "./fz-element";
 import { validateSchema, validateErrors, DataValidator, getSchema, jsonAttributeConverter } from "./lib/tools"
@@ -11,6 +9,7 @@ import { BlobCache, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { IAsset } from "./inputs/fz-input-asset";
 import "./collections/fz-array";
 import "./collections/fz-object";
+import { Base } from "./base";
 
 /**
  * @prop schema
@@ -18,7 +17,7 @@ import "./collections/fz-object";
  */
 
 @customElement("fz-form")
-export class FzForm extends LitElement {
+export class FzForm extends Base {
 
     @property({ type: Object, attribute: "schema", converter: jsonAttributeConverter }) accessor i_schema: Pojo = { type: 'object', properties: [] }
     @state() private accessor i_options: any = {}
@@ -154,8 +153,7 @@ export class FzForm extends LitElement {
 
     static override get styles() {
         return [
-            bootstrapCss,
-            bootstrapIconsCss
+            ...super.styles
         ]
     }
     override render() {

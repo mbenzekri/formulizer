@@ -1,8 +1,7 @@
-import { html, css, LitElement } from "lit"
+import { html, css } from "lit"
 import { customElement,state } from "lit/decorators.js"
 import { FzDialog } from "./dialog"
-import { bootstrapCss } from "../assets/bootstrap"
-import { bootstrapIconsCss } from "../assets/bootstrap-icons"
+import { Base } from "../base"
 
 enum PhotoState { notready = 0, video, lowres, hires }
 
@@ -10,7 +9,7 @@ declare global {
     let ImageCapture: any
 }
 @customElement("fz-photo-dlg")
-export class FzPhotoDlg extends LitElement {
+export class FzPhotoDlg extends Base {
     @state()
     private accessor state: PhotoState = PhotoState.video
     private modal?: FzDialog | null
@@ -22,8 +21,7 @@ export class FzPhotoDlg extends LitElement {
     private get isVideo() { return this.state === PhotoState.video }
     static override get styles() {
         return [
-            bootstrapCss,
-            bootstrapIconsCss,
+            ...super.styles,
             css`
             div {
                 color: black

@@ -1,21 +1,14 @@
-import { LitElement, adoptStyles } from 'lit';
+import { LitElement } from 'lit';
 
-// Import boostrap CSSs as a string
-import bootstrapCSS from 'bootstrap/dist/css/bootstrap.min.css';
-import bootstrapVarsCSS from './assets/bs_variables.css';
+import { bootstrapCss } from "./assets/bootstrap"
+import { bootstrapIconsCss } from "./assets/bootstrap-icons"
 
-// this code build the needed style sheet for bootstrap  
-const bootstrapSheet = new CSSStyleSheet();
-bootstrapSheet.replaceSync(bootstrapCSS);
-const bootstrapVarsSheet = new CSSStyleSheet();
-bootstrapVarsSheet.replaceSync(bootstrapVarsCSS);
+export class Base extends LitElement {
 
-export abstract class Base extends LitElement {
-
-    override connectedCallback() {
-        super.connectedCallback();
-        // at this step, shadowRoot is created
-        if (this.shadowRoot) adoptStyles(this.shadowRoot,[bootstrapVarsSheet, bootstrapSheet]) 
+    static override get styles() {
+            return [
+                bootstrapCss,
+                bootstrapIconsCss,
+            ]
     }
-
 }

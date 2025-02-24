@@ -15,7 +15,7 @@ export class FzEnumTypeahead extends FzEnumBase {
 
     renderEnum() {
         return html`
-            <div class="input-group">
+            <div class="dropdown">
                 <input  
                     id="query"
                     class="form-control" 
