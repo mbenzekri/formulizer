@@ -186,12 +186,11 @@ declare abstract class FzElement extends Base {
      * - check to update validity
      */
     protected change(): void;
+    protected triggerChange(): void;
     /**
      * calculate an abstract string (summary) for this field or a property/item of field
      */
     abstract(key?: string | number, itemschema?: Pojo): string;
-    getMessage(key: string, input?: HTMLInputElement): string;
-    protected triggerChange(): void;
     evalExpr(attribute: string, schema?: Pojo, value?: any, parent?: any, key?: string | number): any;
     /**
      * return tagged template '$' for pointer derefencing in expression or code used in schema

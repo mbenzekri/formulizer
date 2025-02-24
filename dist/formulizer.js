@@ -14087,12 +14087,7 @@ class FzElement extends Base {
     get required() {
         let required = false;
         if (this.isProperty && this.schema.requiredWhen) {
-            try {
-                required = this.evalExpr("requiredWhen");
-            }
-            catch (e) {
-                console.error(`Error when evaluating requiredWen ${this.schema.requiredWhen.toString()}`);
-            }
+            required = this.evalExpr("requiredWhen") ?? false;
         }
         return required;
     }
@@ -14315,6 +14310,19 @@ class FzElement extends Base {
         });
         this.dispatchEvent(event);
     }
+    triggerChange() {
+        this.evalExpr("change");
+        if (this.schema.observers && this.schema.observers.length) {
+            this.dispatchEvent(new CustomEvent('observed-changed', {
+                detail: {
+                    observers: this.schema.observers,
+                    field: this
+                },
+                bubbles: true,
+                composed: true
+            }));
+        }
+    }
     /**
      * calculate an abstract string (summary) for this field or a property/item of field
      */
@@ -14343,44 +14351,6 @@ class FzElement extends Base {
                 : abstract(schema, this.value[key]);
         }
         return text.length > 200 ? text.substring(0, 200) + '...' : text;
-    }
-    getMessage(key, input) {
-        switch (key) {
-            case 'valueMissing':
-                return `champs obligatoire`;
-            case 'badInput':
-                return `valeur incorrecte`;
-            case 'patternMismatch':
-                return `format non respecté (patron=${input ? input.getAttribute('pattern') : '?'})`;
-            case 'tooLong':
-                return `trop long (max=${input ? input.getAttribute('maxlength') : '?'})`;
-            case 'tooShort':
-                return `trop court (min=${input ? input.getAttribute('minlength') : '?'})`;
-            case 'rangeOverflow':
-                return `trop grand (max= ${input ? input.getAttribute('max') : '?'})`;
-            case 'rangeUnderflow':
-                return `trop petit (min=${input ? input.getAttribute('min') : '?'})`;
-            case 'stepMismatch':
-                return `erreur de pas (pas=${input ? input.getAttribute('step') : '?'})`;
-            case 'customError':
-                return `erreur spécialisé`;
-            case 'typeMismatch':
-                return `syntaxe incorrecte`;
-            default: return '';
-        }
-    }
-    triggerChange() {
-        this.evalExpr("change");
-        if (this.schema.observers && this.schema.observers.length) {
-            this.dispatchEvent(new CustomEvent('observed-changed', {
-                detail: {
-                    observers: this.schema.observers,
-                    field: this
-                },
-                bubbles: true,
-                composed: true
-            }));
-        }
     }
     evalExpr(attribute, schema, value, parent, key) {
         if (typeof this.schema?.[attribute] != "function")
@@ -15168,7 +15138,7 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
         this.message = '';
         if (this.required && this.value == null) {
             this.valid = false;
-            this.message = this.getMessage('valueMissing');
+            this.message = formatMsg('valueMissing');
         }
         this.content?.classList.add(this.valid ? 'valid' : 'invalid');
         this.content?.classList.remove(this.valid ? 'invalid' : 'valid');
