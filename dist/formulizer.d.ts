@@ -6,6 +6,74 @@ type Pojo = {
     [key: string]: any;
 };
 
+interface IBlobStore {
+    put(uuid: string, blob: Blob, filename: string, pointer: string): Promise<void>;
+    remove(uuid: string): Promise<void>;
+    get(uuid: string): Promise<{
+        uuid: string;
+        filename: string;
+        blob: Blob;
+    } | null>;
+}
+
+interface IAsset {
+    select: (fieldasset: any, value: any, selectCallback: (selected: string) => void) => Promise<void>;
+    done: () => Promise<void>;
+}
+
+/**
+ * @prop schema
+ * @prop data
+ */
+declare class FzForm extends LitElement {
+    accessor i_schema: Pojo;
+    private accessor i_options;
+    private accessor obj;
+    get root(): any;
+    accessor submitlabel: string;
+    accessor cancellabel: string;
+    accessor buttonsVisible: boolean;
+    accessor idData: string;
+    accessor readonly: boolean;
+    accessor notValidate: boolean;
+    store: IBlobStore;
+    asset?: IAsset;
+    private validator?;
+    attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void;
+    get schema(): Pojo;
+    set schema(value: Pojo);
+    get options(): any;
+    set options(value: any);
+    private accessor _errors;
+    get data(): Pojo;
+    set data(value: Pojo);
+    get valid(): boolean;
+    private dataPointerFieldMap;
+    private schemaPointerFieldMap;
+    private message;
+    private observedChangedHandler;
+    constructor();
+    addField(schemaPointer: string, dataPointer: string, field: FzElement): void;
+    removeField(schemaPointer: string, dataPointer: string): void;
+    getfieldFromSchema(pointer: string): FzElement | undefined;
+    getfieldFromData(pointer: string): FzElement | undefined;
+    updateField(pointer: string): void;
+    static get styles(): lit.CSSResult[];
+    render(): lit_html.TemplateResult<1>;
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+    confirm(evt: Event): void;
+    cancel(evt: Event): void;
+    compile(): void;
+    /**
+     * handle 'observed-change' event for change detection and update
+     * between observers and observed data
+     * @param evt
+     * @returns
+     */
+    observedChange(evt: Event): void;
+}
+
 /**
  * @prop schema
  * @prop data
@@ -141,21 +209,6 @@ declare abstract class FzElement extends LitElement {
     }, ...substitutions: any[]) => any;
 }
 
-interface IBlobStore {
-    put(uuid: string, blob: Blob, filename: string, pointer: string): Promise<void>;
-    remove(uuid: string): Promise<void>;
-    get(uuid: string): Promise<{
-        uuid: string;
-        filename: string;
-        blob: Blob;
-    } | null>;
-}
-
-interface IAsset {
-    select: (fieldasset: any, value: any, selectCallback: (selected: string) => void) => Promise<void>;
-    done: () => Promise<void>;
-}
-
 declare class FzMarkdownIt extends LitElement {
     markdown: string;
     static styles: (lit.CSSResult | CSSStyleSheet)[];
@@ -173,59 +226,6 @@ declare global {
 
 declare global {
     let ImageCapture: any;
-}
-
-/**
- * @prop schema
- * @prop data
- */
-declare class FzForm extends LitElement {
-    accessor i_schema: Pojo;
-    private accessor i_options;
-    private accessor obj;
-    get root(): any;
-    accessor submitlabel: string;
-    accessor cancellabel: string;
-    accessor buttonsVisible: boolean;
-    accessor idData: string;
-    accessor readonly: boolean;
-    accessor notValidate: boolean;
-    store: IBlobStore;
-    asset?: IAsset;
-    private validator?;
-    attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void;
-    get schema(): Pojo;
-    set schema(value: Pojo);
-    get options(): any;
-    set options(value: any);
-    private accessor _errors;
-    get data(): Pojo;
-    set data(value: Pojo);
-    get valid(): boolean;
-    private dataPointerFieldMap;
-    private schemaPointerFieldMap;
-    private message;
-    private observedChangedHandler;
-    constructor();
-    addField(schemaPointer: string, dataPointer: string, field: FzElement): void;
-    removeField(schemaPointer: string, dataPointer: string): void;
-    getfieldFromSchema(pointer: string): FzElement | undefined;
-    getfieldFromData(pointer: string): FzElement | undefined;
-    updateField(pointer: string): void;
-    static get styles(): lit.CSSResult[];
-    render(): lit_html.TemplateResult<1>;
-    connectedCallback(): void;
-    disconnectedCallback(): void;
-    confirm(evt: Event): void;
-    cancel(evt: Event): void;
-    compile(): void;
-    /**
-     * handle 'observed-change' event for change detection and update
-     * between observers and observed data
-     * @param evt
-     * @returns
-     */
-    observedChange(evt: Event): void;
 }
 
 export { FzForm, FzMarkdownIt };

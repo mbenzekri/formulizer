@@ -3,7 +3,6 @@
  * Copyright 2018 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 import summary from 'rollup-plugin-summary';
 import terser from '@rollup/plugin-terser';
 import resolve from '@rollup/plugin-node-resolve';
@@ -14,16 +13,27 @@ import alias from '@rollup/plugin-alias';
 import typescript from '@rollup/plugin-typescript';
 import dts from "rollup-plugin-dts";
 
+
+import path from "path";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname)
+
 function onwarn(warning) {
   if (warning.code !== 'THIS_IS_UNDEFINED') {
     if (warning.message.includes("Rollup 'sourcemap' option must be set to generate source maps.")) return
     console.error(`(!) ${warning.message}`);
   }
 }
+
 const commonPlugins = [
   alias({
     entries: [
-      { find: './assets', replacement: '../src/assets' },
+      { find: '../assets/bootstrap-icons.woff', replacement: `${projectRoot}/src/assets/bootstrap-icons.woff` },
+      { find: '../assets/bootstrap-icons.woff2', replacement: `${projectRoot}/src/assets/bootstrap-icons.woff2` },
+      { find: './assets//bootstrap.css', replacement: `${projectRoot}/src/assets/bootstrap.css` },
+      { find: './assets/bs_variables.css', replacement: `${projectRoot}/src/assets/bs_variables.css` },
     ]
   }),
   // Ensures that dependencies are properly resolved before transformation.
@@ -36,7 +46,7 @@ const commonPlugins = [
   // Permet d'importer les fichiers avec l'extension .css en tant que chaîne de caractères
   url({
     // by default, rollup-plugin-url will not handle font files
-    include: ['**/*.woff', '**/*.woff2'],
+    include: ['**/*.woff', '**/*.woff2', '**/*.css'],
     // setting infinite limit will ensure that the files 
     // are always bundled with the code, not copied to /dist
     limit: Infinity,

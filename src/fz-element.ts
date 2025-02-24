@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property } from "lit/decorators.js"
 import { html, css, TemplateResult, LitElement } from "lit"
-import { derefPointerData, abstract, getEmptyValue, isEmptyValue, newValue, getSchema, closestAscendantFrom, calculateDefault } from "./tools"
-import { Pojo } from "./types"
+import { derefPointerData, abstract, getEmptyValue, isEmptyValue, newValue, getSchema, closestAscendantFrom, calculateDefault } from "./lib/tools"
+import { Pojo } from "./lib/types"
 import { FzForm } from "./fz-form"
-import { bootstrapCss } from "./bootstrap"
-import { bootstrapIconsCss } from "./bootstrap-icons"
+import { bootstrapCss } from "./assets/bootstrap"
+import { bootstrapIconsCss } from "./assets/bootstrap-icons"
 
 const fiedtypes = [
     "fz-array",

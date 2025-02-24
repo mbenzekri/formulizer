@@ -1,42 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { html, LitElement } from "lit";
 import { property, customElement, state } from "lit/decorators.js";
-import { bootstrapCss } from "./bootstrap"
-import { bootstrapIconsCss } from "./bootstrap-icons"
-import { Pojo } from "./types"
+import { bootstrapCss } from "./assets/bootstrap"
+import { bootstrapIconsCss } from "./assets/bootstrap-icons"
+import { Pojo } from "./lib/types"
 import { FzElement } from "./fz-element";
-import { validateSchema, validateErrors, DataValidator, getSchema, jsonAttributeConverter } from "./tools"
-import { SchemaCompiler, DataCompiler } from "./compiler"
-import { BlobCache, IBlobStore, BlobStoreWrapper } from "./storage";
-import { IAsset } from "./input/fz-input-asset";
-import "./fz-array";
-import "./input/fz-input-asset";
-import "./input/fz-input-boolean";
-import "./input/fz-input-const";
-import "./input/fz-input-date";
-import "./input/fz-input-datetime";
-import "./input/fz-input-doc";
-import "./input/fz-enum";
-import "./fz-enum-array";
-import "./fz-element";
-import "./input/fz-input-geolocation";
-import "./input/fz-input-int";
-import "./input/fz-input-md";
-import "./input/fz-enum-check";
-import "./input/fz-input--float";
-import "./fz-object";
-import "./input/fz-input-range";
-import "./input/fz-input-signature";
-import "./input/fz-input-string";
-import "./input/fz-input-textarea";
-import "./input/fz-input-time";
-import "./input/fz-enum-typeahead";
-import "./input/fz-input-uuid";
-
-import "./dialog/dialog";
-import "./dialog/fz-barcode-dlg";
-import "./dialog/fz-photo-dlg";
-import "./dialog/fz-item-dlg";
+import { validateSchema, validateErrors, DataValidator, getSchema, jsonAttributeConverter } from "./lib/tools"
+import { SchemaCompiler, DataCompiler } from "./lib/compiler"
+import { BlobCache, IBlobStore, BlobStoreWrapper } from "./lib/storage";
+import { IAsset } from "./inputs/fz-input-asset";
+import "./collections/fz-array";
+import "./collections/fz-object";
 
 /**
  * @prop schema
