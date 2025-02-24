@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property, customElement } from "lit/decorators.js"
 import {  html, css } from "lit"
-import { isEmptyValue } from "../lib/tools"
+import { formatMsg, isEmptyValue } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 
 declare class ResizeObserver {
@@ -202,7 +202,7 @@ export class FzInputSignature extends FzInputBase {
         this.message = ''
         if (this.required && this.value == null) {
             this.valid = false
-            this.message = this.getMessage('valueMissing')
+            this.message = formatMsg('valueMissing')
         }
         this.content?.classList.add(this.valid ? 'valid' : 'invalid')
         this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
