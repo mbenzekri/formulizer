@@ -2,7 +2,7 @@
 import { customElement,property} from "lit/decorators.js"
 import {  html, css } from "lit"
 import { Pojo } from "../lib/types"
-import { DataValidator, getCircularReplacer, getSchema, isEmptyValue } from "../lib/tools"
+import { calculateDefault, DataValidator, formatMsg, getCircularReplacer, getSchema, isEmptyValue } from "../lib/tools"
 import { FZCollection } from "./fz-collection"
 
 /**
@@ -64,7 +64,7 @@ export class FzArray extends FZCollection {
         switch (true) {
             case (this.required && this.value == undefined):
                 this.valid = false
-                this.message = this.getMessage('valueMissing')
+                this.message = formatMsg('valueMissing')
                 break
             case !this.required && this.value == undefined:
                 break
@@ -221,7 +221,7 @@ export class FzArray extends FZCollection {
     }
     private addItem(schema: Pojo, edit = true) {
         if (this.value == null) this.value = []
-        const value = this.default(this.data, schema)
+        const value = calculateDefault(this.data, schema)
         this.value.push(value)
         this.schemas.push(schema)
         if (edit) this.open(this.value.length-1)

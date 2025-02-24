@@ -86,13 +86,13 @@ declare class FzForm extends Base {
  * @prop required
  */
 declare abstract class FzElement extends Base {
+    accessor pointer: string;
     accessor schema: Pojo;
     accessor data: Pojo;
     accessor name: string | null;
     accessor index: number | null;
     accessor valid: boolean;
     accessor message: string;
-    accessor pointer: string;
     private _initdone;
     private _handlers;
     private _dofocus;
@@ -161,20 +161,19 @@ declare abstract class FzElement extends Base {
      * @param key
      */
     renderItem(schema: Pojo, key: string | number): TemplateResult;
-    registerHandler(event: string, handler: (evt: Event) => void): (evt: Event) => void;
     connectedCallback(): void;
     disconnectedCallback(): void;
     requestUpdate(name?: PropertyKey, oldvalue?: unknown): void;
-    /**
-     * to be specialized if needed
-     */
-    firstUpdate(): void;
     /**
      * before each update
      * - set queried focus
      * @param changedProps changed properties
      */
     update(changedProps: any): void;
+    /**
+     * to be specialized if needed
+     */
+    firstUpdate(): void;
     /**
      * 'click' handler when click occurs on field label element
      * may be specialized by subclasses to ac on label clicked event
@@ -186,19 +185,11 @@ declare abstract class FzElement extends Base {
      * - update the model value of the field
      * - check to update validity
      */
-    change(): void;
+    protected change(): void;
     /**
      * calculate an abstract string (summary) for this field or a property/item of field
      */
     abstract(key?: string | number, itemschema?: Pojo): string;
-    /**
-     * calculate a default value a given schema
-     */
-    default(parent: any, schema: Pojo): any;
-    /**
-     * eval "expression" calculated field
-     */
-    eval(): void;
     getMessage(key: string, input?: HTMLInputElement): string;
     protected triggerChange(): void;
     evalExpr(attribute: string, schema?: Pojo, value?: any, parent?: any, key?: string | number): any;

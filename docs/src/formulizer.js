@@ -376,6 +376,31 @@ function abstract(schema, value) {
         default: return value;
     }
 }
+function formatMsg(key, input) {
+    switch (key) {
+        case 'valueMissing':
+            return `champs obligatoire`;
+        case 'badInput':
+            return `valeur incorrecte`;
+        case 'patternMismatch':
+            return `format non respecté (patron=${input ? input.getAttribute('pattern') : '?'})`;
+        case 'tooLong':
+            return `trop long (max=${input ? input.getAttribute('maxlength') : '?'})`;
+        case 'tooShort':
+            return `trop court (min=${input ? input.getAttribute('minlength') : '?'})`;
+        case 'rangeOverflow':
+            return `trop grand (max= ${input ? input.getAttribute('max') : '?'})`;
+        case 'rangeUnderflow':
+            return `trop petit (min=${input ? input.getAttribute('min') : '?'})`;
+        case 'stepMismatch':
+            return `erreur de pas (pas=${input ? input.getAttribute('step') : '?'})`;
+        case 'customError':
+            return `erreur spécialisé`;
+        case 'typeMismatch':
+            return `syntaxe incorrecte`;
+        default: return '';
+    }
+}
 
 const bootstrapCss = i$4 `
 @charset "UTF-8";
@@ -13883,6 +13908,9 @@ const fieldtypeslist = fiedtypes.join(',');
  * @prop required
  */
 class FzElement extends Base {
+    #pointer_accessor_storage = '#';
+    get pointer() { return this.#pointer_accessor_storage; }
+    set pointer(value) { this.#pointer_accessor_storage = value; }
     #schema_accessor_storage = {};
     get schema() { return this.#schema_accessor_storage; }
     set schema(value) { this.#schema_accessor_storage = value; }
@@ -13901,9 +13929,6 @@ class FzElement extends Base {
     #message_accessor_storage = '';
     get message() { return this.#message_accessor_storage; }
     set message(value) { this.#message_accessor_storage = value; }
-    #pointer_accessor_storage = '#';
-    get pointer() { return this.#pointer_accessor_storage; }
-    set pointer(value) { this.#pointer_accessor_storage = value; }
     _initdone = false;
     _handlers = {};
     _dofocus = false;
@@ -14147,10 +14172,17 @@ class FzElement extends Base {
      * render method for this field component (calls renderField() abstract rendering method)
      */
     render() {
-        return x `<div ?hidden="${!this.visible}">
-            <div style="padding-top: 5px">${this.renderField()}</div>
-            ${this.valid ? x `` : x `<div class="row"><span id="error" class="error-message error-truncated" @click="${this.toggleError}">${this.message}</span></div>`}
-        </div>
+        return x `
+            <div ?hidden="${!this.visible}">
+                <div style="padding-top: 5px">${this.renderField()}</div>
+                ${this.valid ? x ``
+            : x `
+                        <div class="row">
+                            <span id="error" class="error-message error-truncated" @click="${this.toggleError}">
+                                ${this.message}
+                            </span>
+                        </div>`}
+            </div>
         `;
     }
     toggleError() {
@@ -14218,13 +14250,8 @@ class FzElement extends Base {
             default: return x `<div class="alert alert-warning" role="alert">field name=${name} type ${schema.basetype}/${schema.field} not implemented !</div>`;
         }
     }
-    registerHandler(event, handler) {
-        if (!this._handlers[event])
-            this._handlers[event] = [];
-        this._handlers[event].push(handler);
-        this.addEventListener(event, handler);
-        return handler;
-    }
+    // lit overridings 
+    // ---------------
     connectedCallback() {
         super.connectedCallback();
         this.form?.addField(this.schema.pointer, this.pointer, this);
@@ -14241,16 +14268,13 @@ class FzElement extends Base {
         super.requestUpdate(name, oldvalue);
     }
     /**
-     * to be specialized if needed
-     */
-    firstUpdate() { return; }
-    /**
      * before each update
      * - set queried focus
      * @param changedProps changed properties
      */
     update(changedProps) {
-        this.eval();
+        if (this.schema.expression)
+            this.value = this.evalExpr("expression");
         if (!this._initdone) {
             this.firstUpdate();
             this._initdone = true;
@@ -14261,6 +14285,10 @@ class FzElement extends Base {
             this.focus();
         }
     }
+    /**
+     * to be specialized if needed
+     */
+    firstUpdate() { return; }
     /**
      * 'click' handler when click occurs on field label element
      * may be specialized by subclasses to ac on label clicked event
@@ -14315,19 +14343,6 @@ class FzElement extends Base {
                 : abstract(schema, this.value[key]);
         }
         return text.length > 200 ? text.substring(0, 200) + '...' : text;
-    }
-    /**
-     * calculate a default value a given schema
-     */
-    default(parent, schema) {
-        return calculateDefault(parent, schema);
-    }
-    /**
-     * eval "expression" calculated field
-     */
-    eval() {
-        if (this.schema.expression)
-            this.value = this.evalExpr("expression");
     }
     getMessage(key, input) {
         switch (key) {
@@ -14389,6 +14404,10 @@ class FzElement extends Base {
     }
 }
 __decorate([
+    n$1({ type: String }),
+    __metadata("design:type", Object)
+], FzElement.prototype, "pointer", null);
+__decorate([
     n$1({ type: Object }),
     __metadata("design:type", Object)
 ], FzElement.prototype, "schema", null);
@@ -14412,10 +14431,6 @@ __decorate([
     n$1({ attribute: false }),
     __metadata("design:type", Object)
 ], FzElement.prototype, "message", null);
-__decorate([
-    n$1({ type: String }),
-    __metadata("design:type", Object)
-], FzElement.prototype, "pointer", null);
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const invalidkeys = [
@@ -14520,7 +14535,7 @@ class FzInputBase extends FzElement {
             const keyinvalid = validity[key];
             countinvalid += keyinvalid ? 1 : 0;
             if (keyinvalid)
-                message = this.getMessage(key, input);
+                message = formatMsg(key, input);
         });
         this.valid = (countinvalid === 0)
             || (countinvalid === 1 && validity.badInput && this.value == null && !this.required);
@@ -15616,25 +15631,27 @@ let FzArray$1 = class FzArray extends FZCollection {
     content;
     validator;
     renderField() {
-        throw x `Method not implemented`;
-    }
-    renderInput() {
         return x `
-            <ul id="content" class="list-group"   style="max-height: 300px; overflow-y: scroll">
-                    ${c(this.getItems(), (item) => item, (item) => x `
-                            <li class="list-group-item">
-                                <div>
-                                    <input
-                                        class="form-check-input"
-                                        type="checkbox"
-                                        ?disabled="${this.readonly ? true : false}"
-                                        ?checked="${this.value?.includes(item.value)}"
-                                        @click="${() => this.toggle(item.value)}"/>
-                                    <label class="form-check-label">${item.label}</label>
-                                </div>
-                            </li>
-                        `)}
-            </ul>`;
+            <div class="form-group row">
+                ${this.renderLabel}
+                <div class="col-sm">
+                    <ul id="content" class="list-group"   style="max-height: 300px; overflow-y: scroll">
+                            ${c(this.getItems(), (item) => item, (item) => x `
+                                    <li class="list-group-item">
+                                        <div>
+                                            <input
+                                                class="form-check-input"
+                                                type="checkbox"
+                                                ?disabled="${this.readonly ? true : false}"
+                                                ?checked="${this.value?.includes(item.value)}"
+                                                @click="${() => this.toggle(item.value)}"/>
+                                            <label class="form-check-label">${item.label}</label>
+                                        </div>
+                                    </li>
+                                `)}
+                    </ul>
+                </div>
+            </div>`;
     }
     check() {
         if (!this.validator)
@@ -15644,7 +15661,7 @@ let FzArray$1 = class FzArray extends FZCollection {
         switch (true) {
             case (this.required && this.value == undefined):
                 this.valid = false;
-                this.message = this.getMessage('valueMissing');
+                this.message = formatMsg('valueMissing');
                 break;
             case !this.required && this.value == undefined:
                 break;
@@ -25938,7 +25955,7 @@ let FzArray = class FzArray extends FZCollection {
         switch (true) {
             case (this.required && this.value == undefined):
                 this.valid = false;
-                this.message = this.getMessage('valueMissing');
+                this.message = formatMsg('valueMissing');
                 break;
             case !this.required && this.value == undefined:
                 break;
@@ -26091,7 +26108,7 @@ let FzArray = class FzArray extends FZCollection {
     addItem(schema, edit = true) {
         if (this.value == null)
             this.value = [];
-        const value = this.default(this.data, schema);
+        const value = calculateDefault(this.data, schema);
         this.value.push(value);
         this.schemas.push(schema);
         if (edit)
@@ -26207,7 +26224,7 @@ let FzObject = class FzObject extends FZCollection {
         switch (true) {
             case (this.required && this.value == undefined):
                 this.valid = false;
-                this.message = this.getMessage('valueMissing');
+                this.message = formatMsg('valueMissing');
                 break;
             case !this.required && this.value == undefined:
                 break;

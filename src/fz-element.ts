@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property } from "lit/decorators.js"
 import { html, css, TemplateResult } from "lit"
-import { derefPointerData, abstract, getEmptyValue, isEmptyValue, newValue, getSchema, closestAscendantFrom, calculateDefault } from "./lib/tools"
+import { derefPointerData, abstract, getEmptyValue, isEmptyValue, newValue, getSchema, closestAscendantFrom } from "./lib/tools"
 import { Pojo } from "./lib/types"
 import { FzForm } from "./fz-form"
 import { Base } from "./base"
@@ -41,13 +41,13 @@ const fieldtypeslist = fiedtypes.join(',')
  */
 export abstract class FzElement extends Base {
 
+    @property({ type: String }) accessor pointer = '#'
     @property({ type: Object }) accessor schema: Pojo = {}
     @property({ type: Object }) accessor data: Pojo = {}
     @property({ type: String }) accessor name: string | null = null
     @property({ type: Number }) accessor index: number | null = null
     @property({ attribute: false }) accessor valid = false
     @property({ attribute: false }) accessor message = ''
-    @property({ type: String }) accessor pointer = '#'
 
     private _initdone = false
     private _handlers: { [name: string]: ((evt: Event) => void)[] } = {}
@@ -297,10 +297,17 @@ export abstract class FzElement extends Base {
      * render method for this field component (calls renderField() abstract rendering method)
      */
     override render() {
-        return html`<div ?hidden="${!this.visible}">
-            <div style="padding-top: 5px">${this.renderField()}</div>
-            ${this.valid ? html`` : html`<div class="row"><span id="error" class="error-message error-truncated" @click="${this.toggleError}">${this.message}</span></div>`}
-        </div>
+        return html`
+            <div ?hidden="${!this.visible}">
+                <div style="padding-top: 5px">${this.renderField()}</div>
+                ${this.valid ? html``
+                : html`
+                        <div class="row">
+                            <span id="error" class="error-message error-truncated" @click="${this.toggleError}">
+                                ${this.message}
+                            </span>
+                        </div>`}
+            </div>
         `
     }
 
@@ -312,8 +319,8 @@ export abstract class FzElement extends Base {
      * render method for label
      */
     get renderLabel() {
-        if (this.schema.title === "") return html`` 
-        if (this.isItem)  return html`
+        if (this.schema.title === "") return html``
+        if (this.isItem) return html`
             <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
                 <div @click="${this.labelClicked}"><span class="badge bg-primary rounded-pill">${this.label}</span></div>
             </label>`
@@ -322,7 +329,7 @@ export abstract class FzElement extends Base {
             <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
                 <div>${this.label}${this.required ? '*' : ''}</div>
             </label>`
-        }
+    }
 
     /**
      * render an item of this field 
@@ -334,7 +341,7 @@ export abstract class FzElement extends Base {
      * @param key 
      */
     renderItem(schema: Pojo, key: string | number): TemplateResult {
-        let name: string | null=null;;
+        let name: string | null = null;;
         let index: number | null = null;
         if (!this.schema) return html``
         if (typeof key === 'string') name = key
@@ -368,13 +375,9 @@ export abstract class FzElement extends Base {
             default: return html`<div class="alert alert-warning" role="alert">field name=${name} type ${schema.basetype}/${schema.field} not implemented !</div>`
         }
     }
-    registerHandler(event: string, handler: (evt: Event) => void) {
-        if (!this._handlers[event]) this._handlers[event] = []
-        this._handlers[event].push(handler)
-        this.addEventListener(event, handler)
-        return handler
-    }
 
+    // lit overridings 
+    // ---------------
     override connectedCallback() {
         super.connectedCallback()
         this.form?.addField(this.schema.pointer, this.pointer, this)
@@ -389,21 +392,20 @@ export abstract class FzElement extends Base {
             handlers.forEach(handler => this.removeEventListener(event, handler))
         }
     }
+
     override requestUpdate(name?: PropertyKey, oldvalue?: unknown): void {
         super.requestUpdate(name, oldvalue)
     }
 
-    /**
-     * to be specialized if needed
-     */
-    firstUpdate() { return; }
     /**
      * before each update
      * - set queried focus 
      * @param changedProps changed properties 
      */
     override update(changedProps: any) {
-        this.eval()
+        if (this.schema.expression) 
+            this.value = this.evalExpr("expression")
+
         if (!this._initdone) {
             this.firstUpdate()
             this._initdone = true
@@ -414,6 +416,11 @@ export abstract class FzElement extends Base {
             this.focus()
         }
     }
+
+    /**
+     * to be specialized if needed
+     */
+    firstUpdate() { return; }
 
     /**
      * 'click' handler when click occurs on field label element
@@ -428,7 +435,7 @@ export abstract class FzElement extends Base {
      * - update the model value of the field
      * - check to update validity 
      */
-     change() {
+    protected change() {
         this.check()
         const event = new CustomEvent('update', {
             detail: {
@@ -441,72 +448,7 @@ export abstract class FzElement extends Base {
         });
         this.dispatchEvent(event);
     }
-    /**
-     * calculate an abstract string (summary) for this field or a property/item of field
-     */
 
-    abstract(key?: string | number, itemschema?: Pojo): string {
-        let text
-        if (key === null || key === undefined) {
-            if (this.isEmpty) return "~"
-            text = this.schema.abstract
-                ? this.evalExpr("abstract")
-                : abstract(this.schema, this.value)
-        } else if (itemschema && itemschema.refTo) {
-            const refto = itemschema.refTo(itemschema,this.value[key], this.data, this.name,this.derefFunc)
-            const index = refto.refarray.findIndex((x: any) => x[refto.refname] === this.value[key])
-            const value = refto.refarray[index]
-            const schema = getSchema(value)
-            text = schema?.abstract
-                ? schema.abstract(schema, value, refto.refarray, index, this.derefFunc)
-                : abstract(schema, this.value[key])
-        } else {
-            const schema = (typeof key === 'string') ? this.schema.properties[key] : itemschema
-            text = schema?.abstract
-                ? schema.abstract(schema, this.value[key], this.data, this.name, this.derefFunc)
-                : abstract(schema, this.value[key])
-        }
-        return text.length > 200 ? text.substring(0, 200) + '...' : text
-    }
-
-    /**
-     * calculate a default value a given schema 
-     */
-    default(parent: any, schema: Pojo): any {
-        return calculateDefault(parent,schema)
-    }
-    /**
-     * eval "expression" calculated field 
-     */
-    eval() {
-        if (this.schema.expression) this.value = this.evalExpr("expression")
-    }
-
-    getMessage(key: string, input?: HTMLInputElement): string {
-        switch (key) {
-            case 'valueMissing':
-                return `champs obligatoire`
-            case 'badInput':
-                return `valeur incorrecte`
-            case 'patternMismatch':
-                return `format non respecté (patron=${input ? input.getAttribute('pattern') : '?'})`
-            case 'tooLong':
-                return `trop long (max=${input ? input.getAttribute('maxlength') : '?'})`
-            case 'tooShort':
-                return `trop court (min=${input ? input.getAttribute('minlength') : '?'})`
-            case 'rangeOverflow':
-                return `trop grand (max= ${input ? input.getAttribute('max') : '?'})`
-            case 'rangeUnderflow':
-                return `trop petit (min=${input ? input.getAttribute('min') : '?'})`
-            case 'stepMismatch':
-                return `erreur de pas (pas=${input ? input.getAttribute('step') : '?'})`
-            case 'customError':
-                return `erreur spécialisé`
-            case 'typeMismatch':
-                return `syntaxe incorrecte`
-            default: return ''
-        }
-    }
 
     protected triggerChange() {
         this.evalExpr("change")
@@ -522,12 +464,41 @@ export abstract class FzElement extends Base {
         }
     }
 
+
+    /**
+     * calculate an abstract string (summary) for this field or a property/item of field
+     */
+
+    abstract(key?: string | number, itemschema?: Pojo): string {
+        let text
+        if (key === null || key === undefined) {
+            if (this.isEmpty) return "~"
+            text = this.schema.abstract
+                ? this.evalExpr("abstract")
+                : abstract(this.schema, this.value)
+        } else if (itemschema && itemschema.refTo) {
+            const refto = itemschema.refTo(itemschema, this.value[key], this.data, this.name, this.derefFunc)
+            const index = refto.refarray.findIndex((x: any) => x[refto.refname] === this.value[key])
+            const value = refto.refarray[index]
+            const schema = getSchema(value)
+            text = schema?.abstract
+                ? schema.abstract(schema, value, refto.refarray, index, this.derefFunc)
+                : abstract(schema, this.value[key])
+        } else {
+            const schema = (typeof key === 'string') ? this.schema.properties[key] : itemschema
+            text = schema?.abstract
+                ? schema.abstract(schema, this.value[key], this.data, this.name, this.derefFunc)
+                : abstract(schema, this.value[key])
+        }
+        return text.length > 200 ? text.substring(0, 200) + '...' : text
+    }
+
     evalExpr(attribute: string, schema?: Pojo, value?: any, parent?: any, key?: string | number) {
         if (typeof this.schema?.[attribute] != "function") return null
         if (schema != null) {
             return this.schema[attribute](schema, value, parent, key, this.derefFunc, this.form?.options.userdata)
         }
-        return this.schema[attribute](this.schema, this.value, this.data, this.name,this.derefFunc, this.form?.options.userdata)
+        return this.schema[attribute](this.schema, this.value, this.data, this.name, this.derefFunc, this.form?.options.userdata)
     }
 
     /**
@@ -537,8 +508,8 @@ export abstract class FzElement extends Base {
      *  @example $`1/b/c`   // relative dereferencing
      */
     get derefFunc() {
-        return (template: { raw: readonly string[] | ArrayLike<string>}, ...substitutions: any[]) => {
-            const pointer = String.raw(template,substitutions)
+        return (template: { raw: readonly string[] | ArrayLike<string> }, ...substitutions: any[]) => {
+            const pointer = String.raw(template, substitutions)
             return derefPointerData(this.form.root, this.data, this.key, pointer)
         }
     }

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { html, TemplateResult } from "lit";
 import { FzElement } from "../fz-element";
-import { getCircularReplacer } from "../lib/tools";
+import { formatMsg, getCircularReplacer } from "../lib/tools";
 
 const invalidkeys = [
     'valueMissing',
@@ -112,7 +112,7 @@ export abstract class FzInputBase extends FzElement {
             if (key === 'valid') return
             const keyinvalid = (validity as any)[key]
             countinvalid += keyinvalid ? 1 : 0
-            if (keyinvalid) message = this.getMessage(key, input)
+            if (keyinvalid) message = formatMsg(key, input)
         })
         this.valid = (countinvalid === 0)
             || (countinvalid === 1 && validity.badInput && this.value == null && !this.required)

@@ -4,7 +4,7 @@ import { html, css, TemplateResult } from "lit"
 import { FZCollection } from "./fz-collection"
 import { FzElement } from "../fz-element"
 import { Pojo, FieldOrder } from "../lib/types"
-import { DataValidator, getCircularReplacer, isEmptyValue } from "../lib/tools"
+import { DataValidator, formatMsg, getCircularReplacer, isEmptyValue } from "../lib/tools"
 
 /**
  * @prop schema
@@ -49,7 +49,7 @@ export class FzObject extends FZCollection {
         switch (true) {
             case (this.required && this.value == undefined):
                 this.valid = false
-                this.message = this.getMessage('valueMissing')
+                this.message = formatMsg('valueMissing')
                 break
             case !this.required && this.value == undefined:
                 break

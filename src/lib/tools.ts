@@ -319,3 +319,29 @@ export function abstract(schema: Pojo, value: any): string {
         default: return value
     }
 }
+
+export function formatMsg(key: string, input?: HTMLInputElement): string {
+    switch (key) {
+        case 'valueMissing':
+            return `champs obligatoire`
+        case 'badInput':
+            return `valeur incorrecte`
+        case 'patternMismatch':
+            return `format non respecté (patron=${input ? input.getAttribute('pattern') : '?'})`
+        case 'tooLong':
+            return `trop long (max=${input ? input.getAttribute('maxlength') : '?'})`
+        case 'tooShort':
+            return `trop court (min=${input ? input.getAttribute('minlength') : '?'})`
+        case 'rangeOverflow':
+            return `trop grand (max= ${input ? input.getAttribute('max') : '?'})`
+        case 'rangeUnderflow':
+            return `trop petit (min=${input ? input.getAttribute('min') : '?'})`
+        case 'stepMismatch':
+            return `erreur de pas (pas=${input ? input.getAttribute('step') : '?'})`
+        case 'customError':
+            return `erreur spécialisé`
+        case 'typeMismatch':
+            return `syntaxe incorrecte`
+        default: return ''
+    }
+}
