@@ -30,45 +30,42 @@ interface IAsset {
  * @prop data
  */
 declare class FzForm extends Base {
-    accessor i_schema: Pojo;
     private accessor i_options;
     private accessor obj;
-    get root(): any;
+    accessor i_schema: Pojo;
     accessor submitlabel: string;
     accessor cancellabel: string;
     accessor buttonsVisible: boolean;
     accessor idData: string;
     accessor readonly: boolean;
     accessor notValidate: boolean;
+    private accessor _errors;
     store: IBlobStore;
     asset?: IAsset;
     private validator?;
-    attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void;
-    get schema(): Pojo;
-    set schema(value: Pojo);
-    get options(): any;
-    set options(value: any);
-    private accessor _errors;
-    get data(): Pojo;
-    set data(value: Pojo);
-    get valid(): boolean;
     private dataPointerFieldMap;
     private schemaPointerFieldMap;
     private message;
     private observedChangedHandler;
     constructor();
+    get root(): any;
+    get schema(): Pojo;
+    set schema(value: Pojo);
+    get options(): any;
+    set options(value: any);
+    get data(): Pojo;
+    set data(value: Pojo);
+    get valid(): boolean;
+    attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void;
+    static get styles(): lit.CSSResult[];
+    render(): lit_html.TemplateResult<1>;
+    connectedCallback(): void;
+    disconnectedCallback(): void;
     addField(schemaPointer: string, dataPointer: string, field: FzElement): void;
     removeField(schemaPointer: string, dataPointer: string): void;
     getfieldFromSchema(pointer: string): FzElement | undefined;
     getfieldFromData(pointer: string): FzElement | undefined;
     updateField(pointer: string): void;
-    static get styles(): lit.CSSResult[];
-    render(): lit_html.TemplateResult<1>;
-    connectedCallback(): void;
-    disconnectedCallback(): void;
-    confirm(evt: Event): void;
-    cancel(evt: Event): void;
-    compile(): void;
     /**
      * handle 'observed-change' event for change detection and update
      * between observers and observed data
@@ -76,6 +73,9 @@ declare class FzForm extends Base {
      * @returns
      */
     observedChange(evt: Event): void;
+    confirm(evt: Event): void;
+    cancel(evt: Event): void;
+    compile(): void;
 }
 
 /**

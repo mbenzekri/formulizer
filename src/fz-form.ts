@@ -3,12 +3,10 @@ import { html } from "lit";
 import { property, customElement, state } from "lit/decorators.js";
 import { Pojo } from "./lib/types"
 import { FzElement } from "./fz-element";
-import { validateSchema, validateErrors, DataValidator, getSchema, jsonAttributeConverter } from "./lib/tools"
+import { validateSchema, validateErrors, DataValidator, jsonAttributeConverter, cleanJSON } from "./lib/tools"
 import { SchemaCompiler, DataCompiler } from "./lib/compiler"
 import { BlobCache, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { IAsset } from "./inputs/fz-input-asset";
-import "./collections/fz-array";
-import "./collections/fz-object";
 import { Base } from "./base";
 
 /**
@@ -19,29 +17,31 @@ import { Base } from "./base";
 @customElement("fz-form")
 export class FzForm extends Base {
 
-    @property({ type: Object, attribute: "schema", converter: jsonAttributeConverter }) accessor i_schema: Pojo = { type: 'object', properties: [] }
     @state() private accessor i_options: any = {}
     @state() private accessor obj = { content: {} }
-    get root() : any { return this.obj.content } 
+    @property({ type: Object, attribute: "schema", converter: jsonAttributeConverter }) accessor i_schema: Pojo = { type: 'object', properties: [] }
     @property({ type: String, attribute: "submit-label" }) accessor submitlabel = "Ok"
     @property({ type: String, attribute: "cancel-label" }) accessor cancellabel = "Cancel"
     @property({ type: Boolean, attribute: "buttons-visible" }) accessor buttonsVisible = false
     @property({ type: String, attribute: "id-data" }) accessor idData = ""
     @property({ type: Boolean, attribute: "readonly" }) accessor readonly = false
     @property({ type: Boolean, attribute: "not-validate" }) accessor notValidate = false
+    @state() private accessor _errors: Array<any> | null = null
 
     public store: IBlobStore = new BlobCache("FZ-FORM")
     public asset?: IAsset
     private validator?: DataValidator
+    private dataPointerFieldMap: Map<string, FzElement> = new Map()
+    private schemaPointerFieldMap: Map<string, FzElement> = new Map()
+    private message = ""
+    private observedChangedHandler: (e: Event) => void
 
-    override attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
-        super.attributeChangedCallback(name, oldValue, newValue);
-        if (name === 'schema') {
-          // Utilise le converter instance-spécifique pour convertir l'attribut
-          const converted = jsonAttributeConverter.fromAttribute(newValue) as Pojo
-          this.schema = converted
-        }
+    constructor() {
+        super()
+        this.observedChangedHandler = (e) => this.observedChange(e)
     }
+
+    get root() : any { return this.obj.content } 
 
     get schema() { return this.i_schema }
     set schema(value: Pojo) {
@@ -74,30 +74,8 @@ export class FzForm extends Base {
         }
     }
 
-    @state()
-    private accessor _errors: Array<any> | null = null
 
-    get data() {
-
-        // patch nullable pour ne pas rendre d'objet sans propriété ou de tableau vide 
-        // remplacement par null ou undefined
-        const  replacer = function( this: any, name:string, value:any) {
-            const schema = getSchema(value)
-            const pschema = getSchema(this)
-            if (pschema?.properties?.[name]?.transient) return undefined
-            if (schema && Array.isArray(value) && value.length === 0) {
-                return schema.nullAllowed ? null : undefined
-            }
-            if (schema && value != null && typeof value === "object" && Object.keys(value).every(key => value[key] == null)) {
-                return schema.nullAllowed ? null : undefined
-            }
-            return value;
-        }
-        const jsonstr = JSON.stringify(this.obj.content,replacer)
-        const jsonobj = jsonstr == null ? null : JSON.parse(jsonstr)
-        return jsonobj
-    }
-
+    get data() { return cleanJSON(this.obj.content) }
     set data(value: Pojo) {
         if (!this.validator) {
             this.message = "L'attribut 'schema' n'est pas un JSON Schema Form valide."
@@ -123,32 +101,13 @@ export class FzForm extends Base {
         return this.validator.validate(this.obj.content)
     }
 
-    private dataPointerFieldMap: Map<string, FzElement> = new Map()
-    private schemaPointerFieldMap: Map<string, FzElement> = new Map()
-    private message = ""
-    private observedChangedHandler: (e: Event) => void
-
-    constructor() {
-        super()
-        this.observedChangedHandler = this.observedChange.bind(this)
-    }
-
-    addField(schemaPointer: string, dataPointer: string, field: FzElement) {
-        this.schemaPointerFieldMap.set(schemaPointer, field)
-        this.dataPointerFieldMap.set(dataPointer, field)
-    }
-    removeField(schemaPointer: string, dataPointer: string) {
-        this.schemaPointerFieldMap.delete(schemaPointer)
-        this.dataPointerFieldMap.delete(dataPointer)
-    }
-    getfieldFromSchema(pointer: string) {
-        return this.schemaPointerFieldMap.get(pointer)
-    }
-    getfieldFromData(pointer: string) {
-        return this.dataPointerFieldMap.get(pointer)
-    }
-    updateField(pointer: string) {
-        this.getfieldFromData(pointer)?.requestUpdate()
+    override attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
+        super.attributeChangedCallback(name, oldValue, newValue);
+        if (name === 'schema') {
+          // Utilise le converter instance-spécifique pour convertir l'attribut
+          const converted = jsonAttributeConverter.fromAttribute(newValue) as Pojo
+          this.schema = converted
+        }
     }
 
     static override get styles() {
@@ -158,7 +117,7 @@ export class FzForm extends Base {
     }
     override render() {
         return html`
-            ${!this._errors
+            ${!this._errors?.length
                 ? html`
                     ${Array.isArray(this.obj.content)
                         ? html`<fz-array pointer="#" name="content"  .data="${this.obj}" .schema="${this.schema}"></fz-array>`
@@ -186,6 +145,38 @@ export class FzForm extends Base {
     }
 
 
+    addField(schemaPointer: string, dataPointer: string, field: FzElement) {
+        this.schemaPointerFieldMap.set(schemaPointer, field)
+        this.dataPointerFieldMap.set(dataPointer, field)
+    }
+    removeField(schemaPointer: string, dataPointer: string) {
+        this.schemaPointerFieldMap.delete(schemaPointer)
+        this.dataPointerFieldMap.delete(dataPointer)
+    }
+    getfieldFromSchema(pointer: string) {
+        return this.schemaPointerFieldMap.get(pointer)
+    }
+    getfieldFromData(pointer: string) {
+        return this.dataPointerFieldMap.get(pointer)
+    }
+    updateField(pointer: string) {
+        this.getfieldFromData(pointer)?.requestUpdate()
+    }
+
+    /**
+     * handle 'observed-change' event for change detection and update
+     * between observers and observed data
+     * @param evt 
+     * @returns 
+     */
+    observedChange(evt: Event) {
+        if (this === evt.composedPath()[0]) return
+        const observers: string[] = (evt as CustomEvent).detail.observers
+        observers.forEach(pointer => {
+            const field = this.getfieldFromSchema(pointer)
+            field?.requestUpdate()
+        })
+    }
     confirm(evt: Event) {
         const event = new CustomEvent('submit', {
             detail: {
@@ -209,34 +200,25 @@ export class FzForm extends Base {
         evt.stopPropagation()
     }
     compile() {
-        try {
-            const schema_compiler = new SchemaCompiler(this.schema,this.options,this.obj.content)
-            const errors = schema_compiler.compile()
-            if (errors.length > 0) {
-                this.message = `Schema compilation failed: \n ${errors.join('\n    - ')}`
-            }
-            const data_compiler = new DataCompiler(this.obj.content, this.schema)
-            data_compiler.compile()
+
+        // All schema compilation are fatal (unable to build the form)
+        const schema_compiler = new SchemaCompiler(this.schema,this.options,this.obj.content)
+        const schema_errors = schema_compiler.compile()
+        if (schema_errors.length > 0) {
+            this.message = `Schema compilation failed: \n    - ${schema_errors.join('\n    - ')}`
+            console.error(this.message)
+            return
         }
-        catch (e) {
-            this._errors = []
-            this.message = `Schema compilation failed: ${String(e)}`
+
+        // Data compilation never fail otherwise it's a bug to fix
+        const data_compiler = new DataCompiler(this.obj.content, this.schema)
+        const data_errors = data_compiler.compile()
+        if (data_errors.length > 0) {
+            this.message = `Data compilation failed: \n    - ${data_errors.join('\n    - ')}`
+            console.error(this.message)
         }
+
     }
 
-    /**
-     * handle 'observed-change' event for change detection and update
-     * between observers and observed data
-     * @param evt 
-     * @returns 
-     */
-    observedChange(evt: Event) {
-        if (this === evt.composedPath()[0]) return
-        const observers: string[] = (evt as CustomEvent).detail.observers
-        observers.forEach(pointer => {
-            const field = this.getfieldFromSchema(pointer)
-            field?.requestUpdate()
-        })
-    }
 
 }

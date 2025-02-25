@@ -345,3 +345,28 @@ export function formatMsg(key: string, input?: HTMLInputElement): string {
         default: return ''
     }
 }
+
+export function cleanJSON(data: Pojo) {
+    // patch nullable pour ne pas rendre d'objet sans propriété ou de tableau vide 
+    // remplacement par null ou undefined
+    const replacer = function (this: any, name: string, value: any) {
+        const schema = getSchema(value)
+        const pschema = getSchema(this)
+        if (pschema?.properties?.[name]?.transient) return undefined
+        if (schema && Array.isArray(value) && value.length === 0) {
+            return schema.nullAllowed ? null : undefined
+        }
+        if (schema && value != null && typeof value === "object" && Object.keys(value).every(key => value[key] == null)) {
+            return schema.nullAllowed ? null : undefined
+        }
+        return value;
+    }
+    const jsonstr = JSON.stringify(data, replacer)
+    const jsonobj = jsonstr == null ? null : JSON.parse(jsonstr)
+    return jsonobj
+}
+
+(window as any).nvl = function nvl(templates: { raw: readonly string[] | ArrayLike<string> }, ...values: any[]) {
+    const cleaned = values.map(v => v ?? '')
+    return String.raw(templates,cleaned)
+}

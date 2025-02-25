@@ -7,16 +7,19 @@ import "./inputs/fz-input-textarea";
 import "./inputs/fz-input-string";
 import "./inputs/fz-input-signature";
 import "./inputs/fz-input-boolean";
-import "./inputs/fz-input--float";
+import "./inputs/fz-input-float";
 import "./inputs/fz-input-range";
 import "./inputs/fz-input-geolocation";
 import "./inputs/fz-input-int";
 import "./inputs/fz-input-const";
-import "./collections/fz-enum-array";
 import "./inputs/fz-input-doc";
 import "./inputs/fz-input-md";
 import "./inputs/fz-input-uuid";
 import "./inputs/fz-enum-typeahead";
+
+import "./collections/fz-array";
+import "./collections/fz-object";
+import "./collections/fz-enum-array";
 
 import "./components/dialog"
 import "./components/fz-barcode-dlg"

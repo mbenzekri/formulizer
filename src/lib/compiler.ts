@@ -663,6 +663,8 @@ export class DataCompiler {
     data: Pojo
     schema: JSONSchema
     steps: ((data: Pojo, schema: JSONSchema, pdata?: Pojo, pschema?: JSONSchema) =>void)[]
+    errors: string[] = []
+
     constructor(data: Pojo, schema: JSONSchema) {
         this.data = data
         this.schema = schema
@@ -675,12 +677,18 @@ export class DataCompiler {
         ]
     }
     compile() {
+        this.errors = []
         this.walkData(this.data.content, this.schema)
+        return this.errors
     }
 
     walkData(data: Pojo, schema: Pojo, pdata?: Pojo, pschema?: Pojo) {
         if (schema == null || data == null) return
-        this.steps.forEach(action => action(data, schema, pdata, pschema))
+        try {
+            this.steps.forEach(action => action(data, schema, pdata, pschema))
+        } catch(e) {
+            this.errors.push(String(e))
+        }
         if (Array.isArray(data)) {
             if (schema.homogeneous) {
                 data.forEach((item: Pojo) => this.walkData(item, schema.items, data, schema))
@@ -704,10 +712,3 @@ export class DataCompiler {
     
 }
 
-(window as any).nvl = function nvl(strarr: string[], ...valarr: any[]) {
-    const all: any[] = []
-    strarr.forEach((str, i) => (i == 0)
-        ? all.push(str)
-        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str))
-    return all.join('')
-}

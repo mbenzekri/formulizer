@@ -401,6 +401,30 @@ function formatMsg(key, input) {
         default: return '';
     }
 }
+function cleanJSON(data) {
+    // patch nullable pour ne pas rendre d'objet sans propriété ou de tableau vide 
+    // remplacement par null ou undefined
+    const replacer = function (name, value) {
+        const schema = getSchema(value);
+        const pschema = getSchema(this);
+        if (pschema?.properties?.[name]?.transient)
+            return undefined;
+        if (schema && Array.isArray(value) && value.length === 0) {
+            return schema.nullAllowed ? null : undefined;
+        }
+        if (schema && value != null && typeof value === "object" && Object.keys(value).every(key => value[key] == null)) {
+            return schema.nullAllowed ? null : undefined;
+        }
+        return value;
+    };
+    const jsonstr = JSON.stringify(data, replacer);
+    const jsonobj = jsonstr == null ? null : JSON.parse(jsonstr);
+    return jsonobj;
+}
+window.nvl = function nvl(templates, ...values) {
+    const cleaned = values.map(v => v ?? '');
+    return String.raw(templates, cleaned);
+};
 
 const bootstrapCss = i$4 `
 @charset "UTF-8";
@@ -15575,132 +15599,6 @@ FzInputConstant = __decorate([
     t$4("fz-constant")
 ], FzInputConstant);
 
-/**
- * @license
- * Copyright 2020 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */const {I:t}=Z$1,s=()=>document.createComment(""),r=(o,i,n)=>{const e=o._$AA.parentNode,l=void 0===i?o._$AB:i._$AA;if(void 0===n){const i=e.insertBefore(s(),l),c=e.insertBefore(s(),l);n=new t(i,c,o,o.options);}else {const t=n._$AB.nextSibling,i=n._$AM,c=i!==o;if(c){let t;n._$AQ?.(o),n._$AM=o,void 0!==n._$AP&&(t=o._$AU)!==i._$AU&&n._$AP(t);}if(t!==l||c){let o=n._$AA;for(;o!==t;){const t=o.nextSibling;e.insertBefore(o,l),o=t;}}}return n},v=(o,t,i=o)=>(o._$AI(t,i),o),u$1={},m=(o,t=u$1)=>o._$AH=t,p=o=>o._$AH,M=o=>{o._$AP?.(false,true);let t=o._$AA;const i=o._$AB.nextSibling;for(;t!==i;){const o=t.nextSibling;t.remove(),t=o;}};
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-const u=(e,s,t)=>{const r=new Map;for(let l=s;l<=t;l++)r.set(e[l],l);return r},c=e$2(class extends i{constructor(e){if(super(e),e.type!==t$1.CHILD)throw Error("repeat() can only be used in text expressions")}dt(e,s,t){let r;void 0===t?t=s:void 0!==s&&(r=s);const l=[],o=[];let i=0;for(const s of e)l[i]=r?r(s,i):i,o[i]=t(s,i),i++;return {values:o,keys:l}}render(e,s,t){return this.dt(e,s,t).values}update(s,[t,r$1,c]){const d=p(s),{values:p$1,keys:a}=this.dt(t,r$1,c);if(!Array.isArray(d))return this.ut=a,p$1;const h=this.ut??=[],v$1=[];let m$1,y,x=0,j=d.length-1,k=0,w=p$1.length-1;for(;x<=j&&k<=w;)if(null===d[x])x++;else if(null===d[j])j--;else if(h[x]===a[k])v$1[k]=v(d[x],p$1[k]),x++,k++;else if(h[j]===a[w])v$1[w]=v(d[j],p$1[w]),j--,w--;else if(h[x]===a[w])v$1[w]=v(d[x],p$1[w]),r(s,v$1[w+1],d[x]),x++,w--;else if(h[j]===a[k])v$1[k]=v(d[j],p$1[k]),r(s,d[x],d[j]),j--,k++;else if(void 0===m$1&&(m$1=u(a,k,w),y=u(h,x,j)),m$1.has(h[x]))if(m$1.has(h[j])){const e=y.get(a[k]),t=void 0!==e?d[e]:null;if(null===t){const e=r(s,d[x]);v(e,p$1[k]),v$1[k]=e;}else v$1[k]=v(t,p$1[k]),r(s,d[x],t),d[e]=null;k++;}else M(d[j]),j--;else M(d[x]),x++;for(;k<=w;){const e=r(s,v$1[w+1]);v(e,p$1[k]),v$1[k++]=e;}for(;x<=j;){const e=d[x++];null!==e&&M(e);}return this.ut=a,m(s,v$1),T}});
-
-class FZCollection extends FzElement {
-}
-
-/**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
-let FzArray$1 = class FzArray extends FZCollection {
-    content;
-    validator;
-    renderField() {
-        return x `
-            <div class="form-group row">
-                ${this.renderLabel}
-                <div class="col-sm">
-                    <ul id="content" class="list-group"   style="max-height: 300px; overflow-y: scroll">
-                            ${c(this.getItems(), (item) => item, (item) => x `
-                                    <li class="list-group-item">
-                                        <div>
-                                            <input
-                                                class="form-check-input"
-                                                type="checkbox"
-                                                ?disabled="${this.readonly ? true : false}"
-                                                ?checked="${this.value?.includes(item.value)}"
-                                                @click="${() => this.toggle(item.value)}"/>
-                                            <label class="form-check-label">${item.label}</label>
-                                        </div>
-                                    </li>
-                                `)}
-                    </ul>
-                </div>
-            </div>`;
-    }
-    check() {
-        if (!this.validator)
-            return;
-        this.valid = true;
-        this.message = '';
-        switch (true) {
-            case (this.required && this.value == undefined):
-                this.valid = false;
-                this.message = formatMsg('valueMissing');
-                break;
-            case !this.required && this.value == undefined:
-                break;
-            default:
-                this.valid = this.validator.validate(this.value);
-                const errors = this.validator.errors()?.filter(e => e.instancePath.match(/\//g)?.length === 1);
-                if (this.valid == false && errors && errors.length > 0)
-                    this.message = this.validator.errorsText(errors);
-        }
-        this.content = this.shadowRoot?.getElementById('content') ?? undefined;
-        this.content?.classList.add(this.valid ? 'valid' : 'invalid');
-        this.content?.classList.remove(this.valid ? 'invalid' : 'valid');
-    }
-    connectedCallback() {
-        super.connectedCallback();
-        this.addEventListener('update', () => {
-            this.check();
-        });
-    }
-    update(changedProperties) {
-        if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema).length !== 0) {
-            const json = JSON.stringify(this.schema, getCircularReplacer);
-            this.validator = new DataValidator(JSON.parse(json));
-            this.check();
-        }
-        super.update(changedProperties);
-    }
-    toggle(value) {
-        if (this.value == null)
-            this.value = [];
-        if (this.value.includes(value)) {
-            const pos = this.value.indexOf(value);
-            if (pos >= 0)
-                this.value.splice(pos, 1);
-        }
-        else {
-            this.value.push(value);
-        }
-    }
-    convertToInput(_value) {
-        throw new Error("IMPOSSIBLE : PAS D'INPUT POUR LES ENUM-ARRAY!");
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
-    getItems() {
-        const enums = this.schema.items?.enum;
-        if (enums)
-            return enums.reduce((list, value) => {
-                const ok = this.evalExpr('filter', this.schema.items, value, this.data[this.key], -1);
-                if (ok)
-                    list.push({ label: String(value), value });
-                return list;
-            }, []);
-        const consts = this.schema.items?.oneOf;
-        if (consts)
-            return consts.reduce((list, type) => {
-                const ok = this.evalExpr('filter', type, type.const, this.data[this.key], -1);
-                if (ok)
-                    list.push({ label: type.title ?? type.description ?? type.const, value: type.const });
-                return list;
-            }, []);
-        return [];
-    }
-};
-FzArray$1 = __decorate([
-    t$4("fz-enum-array")
-], FzArray$1);
-
 const byteToHex = [];
 for (let i = 0; i < 256; ++i) {
     byteToHex.push((i + 0x100).toString(16).slice(1));
@@ -24627,6 +24525,681 @@ FzEnumTypeahead = __decorate([
     t$4("fz-enum-typeahead")
 ], FzEnumTypeahead);
 
+class FZCollection extends FzElement {
+}
+
+/**
+ * @prop schema
+ * @prop data
+ * @prop name
+ * @prop index
+ */
+let FzArray$1 = class FzArray extends FZCollection {
+    #current_accessor_storage = null;
+    get current() { return this.#current_accessor_storage; }
+    set current(value) { this.#current_accessor_storage = value; }
+    schemas = [];
+    currentSchema;
+    content;
+    validator;
+    get nomore() {
+        return this.schema.maxItems && this.value && this.value.length >= this.schema.maxItems;
+    }
+    get noless() {
+        return this.schema.minItems && this.value && this.value.length <= this.schema.minItems;
+    }
+    convertToInput(_value) {
+        throw new Error("IMPOSSIBLE : PAS D'INPUT POUR LES ARRAY!");
+    }
+    convertToValue(value) {
+        return isEmptyValue(value) ? this.empty : value;
+    }
+    static get styles() {
+        return [
+            ...super.styles,
+            i$4 `.panel {
+                    padding:5px;
+                    border: solid 1px lightgray;
+                    border-radius:10px; 
+                    user-select: none;
+                }`
+        ];
+    }
+    update(changedProperties) {
+        if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema).length !== 0) {
+            const json = JSON.stringify(this.schema, getCircularReplacer);
+            this.validator = new DataValidator(JSON.parse(json));
+            this.check();
+        }
+        super.update(changedProperties);
+    }
+    check() {
+        if (!this.validator)
+            return;
+        this.valid = true;
+        this.message = '';
+        switch (true) {
+            case (this.required && this.value == undefined):
+                this.valid = false;
+                this.message = formatMsg('valueMissing');
+                break;
+            case !this.required && this.value == undefined:
+                break;
+            default:
+                this.valid = this.validator.validate(this.value);
+                const errors = this.validator.errors()?.filter(e => e.instancePath.match(/\//g)?.length === 1);
+                if (this.valid == false && errors && errors.length > 0)
+                    this.message = this.validator.errorsText(errors);
+        }
+        this.content = this.shadowRoot?.getElementById('content') ?? undefined;
+        this.content?.classList.add(this.valid ? 'valid' : 'invalid');
+        this.content?.classList.remove(this.valid ? 'invalid' : 'valid');
+    }
+    connectedCallback() {
+        super.connectedCallback();
+        this.addEventListener('update', () => {
+            this.check();
+        });
+        this.addEventListener('toggle-item', (evt) => {
+            this.close();
+            this.eventStop(evt);
+        });
+    }
+    requestUpdate(name, oldvalue) {
+        if (name !== undefined) {
+            this.solveSchemas(true);
+            super.requestUpdate(name, oldvalue);
+        }
+    }
+    renderField() {
+        this.solveSchemas();
+        const lines = (!this.data || !this.value) ? [] : this.value.map((_i, i) => x `${(this.current === i) ? this.renderEditable(i) : this.renderStatic(i)}`);
+        return x `
+            <div @focusout="${this.focusout}">
+                <div class="form-group row">
+                ${this.schema.title === "" ? x `` : this.renderLabel}
+                    <div class="col-sm">
+                        <ul id="content" class="list-group">
+                            ${lines}
+                            ${this.readonly ? x `` : x `
+                                <li class="list-group-item" @click="${this.close}">
+                                    <button type="button" @click="${this.add}" ?disabled="${this.nomore}" class="btn btn-primary btn-sm "><b>+</b></button>
+                                    ${this.schema.homogeneous ? null : x `
+                                        <div class="btn-group" style="float:right" role="group">
+                                            <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
+                                                @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            ${this.currentSchema?.title || "Ajouter"}
+                                            </button> 
+                                            <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+                                                ${this.schema.items.oneOf.map((schema, i) => x `<a class="dropdown-item"
+                                                    @click="${() => this.selectSchema(i)}" >${schema.title || "Type" + i}</a>`)}
+                                            </div>
+                                        </div>`}
+                                </li>
+                            `}
+                        </ul>
+                    </div>
+                </div>
+            </div>`;
+    }
+    renderStatic(index) {
+        this.solveOrder();
+        this.solveSchemas();
+        return x `
+        <li 
+                id="${index}"
+                draggable="true" 
+                @dragstart="${(evt) => this.drag(index, evt)}"
+                @dragover="${this.allowDrop}"
+                @drop="${this.drop}"   
+                @click="${(evt) => this.open(index, evt)}"              
+                class="list-group-item"
+            >
+            ${this.abstract(index, this.schemas[index])}
+            ${this.readonly ? x `` : x `<button ?hidden="${this.noless}" @click="${(evt) => this.del(index, evt)}" type="button" style="float:right" class="btn-close" aria-label="Close"></button>`}
+        </li>`;
+    }
+    renderEditable(index) {
+        const schema = this.schemas[index];
+        return x `<li class="list-group-item"> ${this.renderItem(schema, index)} </li>`;
+    }
+    focusout() {
+        // MBZ A VERIFIER this.close()
+        this.triggerChange();
+    }
+    focus() {
+        if (this.fields().length > 0) {
+            const first = this.fields()[0];
+            first.dofocus();
+        }
+    }
+    open(index, evt) {
+        if (this.current === index) {
+            this.close();
+        }
+        else {
+            this.current = index;
+            this.dofocus();
+        }
+        this.eventStop(evt);
+    }
+    close(evt) {
+        this.current = null;
+        this.triggerChange();
+        this.eventStop(evt);
+    }
+    drag(index, ev) {
+        if (ev.dataTransfer) {
+            ev.dataTransfer.setData('text', index.toString());
+        }
+        else if (ev.originalEvent.dataTransfer) {
+            ev.originalEvent.dataTransfer.setData('text', index.toString());
+        }
+        this.current = null;
+        this.requestUpdate();
+    }
+    drop(ev) {
+        if (ev.dataTransfer) {
+            const from = parseInt(ev.dataTransfer.getData("text"), 10);
+            const to = parseInt(ev.target.id);
+            this.value.splice(to, 0, this.value.splice(from, 1)[0]);
+            this.schemas.splice(to, 0, this.schemas.splice(from, 1)[0]);
+            this.requestUpdate();
+        }
+        this.eventStop(ev);
+    }
+    allowDrop(ev) {
+        ev.preventDefault();
+    }
+    del(index, evt) {
+        if (this.noless)
+            return;
+        this.remItem(index);
+        this.eventStop(evt);
+    }
+    add(evt) {
+        if (this.nomore || !this.currentSchema)
+            return;
+        this.addItem(this.currentSchema);
+        this.eventStop(evt);
+    }
+    remItem(index) {
+        this.value.splice(index, 1);
+        this.schemas.splice(index, 1);
+        this.current = null;
+        this.requestUpdate();
+        this.triggerChange();
+        this.check();
+    }
+    addItem(schema, edit = true) {
+        if (this.value == null)
+            this.value = [];
+        const value = calculateDefault(this.data, schema);
+        this.value.push(value);
+        this.schemas.push(schema);
+        if (edit)
+            this.open(this.value.length - 1);
+        this.triggerChange();
+        this.requestUpdate();
+        this.check();
+    }
+    toggleDropdown() {
+        const display = this.shadowRoot?.querySelector(".dropdown-menu")?.style.display;
+        display == "block" ? this.closeDropdown() : this.openDropdown();
+    }
+    closeDropdown() {
+        const elem = this.shadowRoot?.querySelector(".dropdown-menu");
+        if (elem != null) {
+            elem.style.display = "none";
+        }
+    }
+    openDropdown() {
+        const elem = this.shadowRoot?.querySelector(".dropdown-menu");
+        if (elem != null) {
+            elem.style.display = "block";
+        }
+    }
+    selectSchema(index) {
+        this.currentSchema = this.schema.items.oneOf[index];
+        this.closeDropdown();
+        this.requestUpdate();
+    }
+    solveSchemas(force = false) {
+        if (!this.schema?.items)
+            return;
+        if (!force && this.currentSchema && this.schemas)
+            return;
+        if (!this.currentSchema)
+            this.currentSchema = this.schema.homogeneous ? this.schema.items : this.schema.items.oneOf[0];
+        this.schemas = this.value == null ? [] : this.schema.homogeneous
+            ? this.value.map(() => this.schema.items)
+            : this.value.map((value) => getSchema(value) ?? this.schema.items.oneOf.find((schema) => schema.case && schema.case(null, value, this.data, this.key, this.derefFunc)));
+    }
+    solveOrder() {
+        if (this.value == null)
+            return;
+        const current = this.value;
+        const orderedidx = current.map((_x, i) => i).sort((ia, ib) => {
+            const va = this.evalExpr("orderBy", this.schemas[ia], current[ia], this.value, ia);
+            const vb = this.evalExpr("orderBy", this.schemas[ib], current[ib], this.value, ib);
+            switch (true) {
+                case (va === vb): return 0;
+                case (va == null): return -1;
+                case (vb == null): return 1;
+                case (va > vb): return 1;
+                case (va < vb): return -1;
+                default: return 0;
+            }
+        });
+        const schemas = this.schemas.map(x => x);
+        const values = current.map(x => x);
+        for (let i = 0; i < orderedidx.length; i++) {
+            this.schemas[i] = schemas[orderedidx[i]];
+            this.value[i] = values[orderedidx[i]];
+        }
+    }
+};
+__decorate([
+    n$1({ attribute: false }),
+    __metadata("design:type", Object)
+], FzArray$1.prototype, "current", null);
+FzArray$1 = __decorate([
+    t$4("fz-array")
+], FzArray$1);
+
+/**
+ * @prop schema
+ * @prop data
+ * @prop name
+ * @prop index
+ */
+let FzObject = class FzObject extends FZCollection {
+    convertToInput(_value) {
+        throw new Error("IMPOSSIBLE : PAS D'INPUT POUR LES OBJECT!");
+    }
+    convertToValue(value) {
+        return isEmptyValue(value) ? this.empty : value;
+    }
+    #collapsed_accessor_storage = false;
+    get collapsed() { return this.#collapsed_accessor_storage; }
+    set collapsed(value) { this.#collapsed_accessor_storage = value; }
+    #activegroup_accessor_storage = {};
+    get activegroup() { return this.#activegroup_accessor_storage; }
+    set activegroup(value) { this.#activegroup_accessor_storage = value; }
+    content;
+    validator;
+    seen;
+    static get styles() {
+        return [
+            ...super.styles,
+            i$4 `
+                .panel {
+                    padding:5px;
+                    border: solid 1px lightgray;
+                    border-radius:10px; 
+                    user-select: none;
+                }
+                `
+        ];
+    }
+    check() {
+        if (!this.validator)
+            return;
+        this.valid = true;
+        this.message = '';
+        switch (true) {
+            case (this.required && this.value == undefined):
+                this.valid = false;
+                this.message = formatMsg('valueMissing');
+                break;
+            case !this.required && this.value == undefined:
+                break;
+            default:
+                this.valid = this.validator.validate(this.value);
+                const errors = this.validator.errors()?.filter(e => e.instancePath.match(/\//g)?.length === 1);
+                if (this.valid == false && errors && errors.length > 0)
+                    this.message = this.validator.errorsText(errors);
+        }
+        this.content = this.shadowRoot?.getElementById('content') ?? undefined;
+        this.content?.classList.add(this.valid ? 'valid' : 'invalid');
+        this.content?.classList.remove(this.valid ? 'invalid' : 'valid');
+    }
+    connectedCallback() {
+        super.connectedCallback();
+        this.addEventListener('update', () => {
+            this.check();
+            this.requestUpdate();
+        });
+    }
+    firstUpdated(changedProperties) {
+        super.firstUpdated(changedProperties);
+        this.setCollapsed();
+    }
+    update(changedProperties) {
+        if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema.properties ?? {})?.length > 0) {
+            const json = JSON.stringify(this.schema, getCircularReplacer);
+            this.validator = new DataValidator(JSON.parse(json));
+            this.check();
+        }
+        super.update(changedProperties);
+    }
+    setCollapsed() {
+        // si root on collapse jamais
+        this.collapsed = (this.schema.parent == null) ? false : this.evalExpr("collapsed");
+    }
+    renderSingle(itemTemplates, fields, fieldpos) {
+        // render single item
+        const fieldname = fields[fieldpos].fieldname;
+        const schema = this.schema.properties[fieldname];
+        itemTemplates.push(this.renderItem(schema, fieldname));
+        fieldpos += 1;
+        return fieldpos;
+    }
+    renderGroup(itemTemplates, fields, fieldpos) {
+        const group = [];
+        const groupnum = fields[fieldpos].groupnum;
+        const groupname = fields[fieldpos].groupname;
+        // render group items
+        for (; fieldpos < fields.length && groupnum === fields[fieldpos].groupnum; fieldpos++) {
+            const fieldname = fields[fieldpos].fieldname;
+            const schema = this.schema.properties[fieldname];
+            group.push(this.renderItem(schema, fieldname));
+        }
+        // render group
+        itemTemplates.push(x `
+                <div class="card shadow" style="margin-bottom:5px">
+                    <div class="card-header d-flex justify-content-between align-items-center">${groupname}</div>
+                    <div class="card-body">${group}</div>
+                </div>`);
+        return fieldpos;
+    }
+    renderTabGroup(itemTemplates, fields, fieldpos) {
+        const group = [];
+        const groupnum = fields[fieldpos].groupnum;
+        const groupname = fields[fieldpos].groupname;
+        const tabname = fields[fieldpos].tabname;
+        // render group items
+        for (; fieldpos < fields.length && groupnum === fields[fieldpos].groupnum; fieldpos++) {
+            const fieldname = fields[fieldpos].fieldname;
+            const schema = this.schema.properties[fieldname];
+            const hidden = this.activegroup[tabname] !== groupname;
+            group.push(x `<div class="tab-pane active container" style="margin:0;max-width:100%"  id="content" ?hidden="${hidden}" data-tabname="${tabname}" data-groupname="${groupname}">${this.renderItem(schema, fieldname)}</div>`);
+        }
+        // render group
+        itemTemplates.push(x `${group}`);
+        return fieldpos;
+    }
+    renderTab(itemTemplates, fields, fieldpos) {
+        const tab = [];
+        const tabnum = fields[fieldpos].tabnum;
+        const tabname = fields[fieldpos].tabname;
+        const firstpos = fieldpos;
+        this.activegroup[tabname] = fields[fieldpos].groupname;
+        while (fieldpos < fields.length && tabnum === fields[fieldpos].tabnum) {
+            fieldpos = this.renderTabGroup(tab, fields, fieldpos);
+        }
+        const mapgroup = {};
+        for (let i = firstpos; i < fieldpos; i++) {
+            const groupname = fields[i].groupname;
+            mapgroup[groupname] = 1;
+        }
+        const groupnames = Object.keys(mapgroup);
+        // render tab headers
+        itemTemplates.push(x `<ul class="nav nav-tabs" id="content">
+                ${groupnames.map(groupname => x `<li class="nav-item">
+                        <a class="nav-link" data-tabname="${tabname}" data-groupname="${groupname}" @click="${this.toggleTab}" aria-current="page" href="#" data-toggle="tab" href="#${groupname}">${groupname}</a>
+                    </li>`)}
+            </ul>`);
+        // render tab contents
+        itemTemplates.push(x `<div class="tab-content border border-top-0" id="content" style="padding-bottom:5px;margin-bottom:5px">${tab}</div>`);
+        return fieldpos;
+    }
+    get deletable() {
+        if (this.schema.parent == null || this.isEmpty)
+            return false;
+        if (this.schema.nullAllowed && this.nullable)
+            return true;
+        if (!this.schema.nullAllowed && !this.required)
+            return true;
+        return false;
+    }
+    async delete() {
+        this.value = this.empty;
+        if (this.collapsed !== null)
+            this.collapsed = true;
+        this.requestUpdate();
+        await this.updateComplete;
+        this.fields().forEach(field => field.check());
+    }
+    renderField() {
+        if (!this.schema.properties)
+            return x ``;
+        const itemTemplates = [];
+        const fields = this.schema.order;
+        let fieldpos = 0;
+        while (fields && fieldpos < fields.length) {
+            const current = fields[fieldpos];
+            if (current.tabname && current.groupname) {
+                fieldpos = this.renderTab(itemTemplates, fields, fieldpos);
+            }
+            else if (current.groupname) {
+                fieldpos = this.renderGroup(itemTemplates, fields, fieldpos);
+            }
+            else {
+                fieldpos = this.renderSingle(itemTemplates, fields, fieldpos);
+            }
+        }
+        return x `${this.isItem
+            ? x `<div>${this.renderLabel}</div>${itemTemplates}`
+            : this.schema.title === "" ? x `<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`
+                : x `<div class="panel" id="content" >
+                <div class="panel-heading">
+                    <div>
+                        ${this.renderLabel}
+                        ${this.collapsed ? x `${this.abstract()}` : x ``}
+                        <button
+                            ?hidden="${!this.deletable}"
+                            @click="${() => this.delete()}" 
+                            type="button" style="float:right" class="btn-close" aria-label="Close">
+                        </button>
+                    </div>
+                </div>
+                <hr ?hidden="${this.collapsed}" style="margin: 0 0" >
+                <div ?hidden="${this.collapsed}" > ${itemTemplates} </div>
+                </div>`}`;
+    }
+    isRequiredProperty(name) {
+        return !!this.schema.required?.includes(name);
+    }
+    fields() {
+        const fields = [];
+        const tags = Object.values(this.schema.properties)
+            .map((property) => property.field).join(', ');
+        const list = this.shadowRoot?.querySelectorAll(tags);
+        list?.forEach((elem) => fields.push(elem));
+        return fields;
+    }
+    focus() {
+        const fields = this.fields();
+        const first = fields[0];
+        first.dofocus();
+    }
+    labelClicked(evt) {
+        if (this.isItem) {
+            this.dispatchEvent(new CustomEvent('toggle-item', {
+                detail: {
+                    field: this
+                },
+                bubbles: true,
+                composed: true
+            }));
+        }
+        else {
+            this.toggle(evt);
+        }
+        super.labelClicked(evt);
+    }
+    toggleTab(evt) {
+        const elem = evt.target;
+        const tabname = elem.getAttribute("data-tabname");
+        const groupname = elem.getAttribute("data-groupname");
+        const tabs = elem.parentElement?.parentElement;
+        const childs = tabs?.querySelectorAll('a') ?? [];
+        for (const item of childs)
+            item.classList.remove("active");
+        elem.classList.add("active");
+        this.activegroup[tabname] = groupname;
+        const content = tabs.nextElementSibling;
+        const panes = content?.querySelectorAll('.tab-pane') ?? [];
+        if (panes) {
+            for (const item of panes) {
+                item.hidden = item.getAttribute("data-groupname") !== groupname ? true : false;
+            }
+        }
+        this.eventStop(evt);
+    }
+    toggle(evt) {
+        if (this.collapsed !== null)
+            this.collapsed = !this.collapsed;
+        this.eventStop(evt);
+        this.requestUpdate();
+    }
+};
+__decorate([
+    n$1({ attribute: false }),
+    __metadata("design:type", Object)
+], FzObject.prototype, "collapsed", null);
+__decorate([
+    n$1({ attribute: false }),
+    __metadata("design:type", Object)
+], FzObject.prototype, "activegroup", null);
+FzObject = __decorate([
+    t$4("fz-object")
+], FzObject);
+
+/**
+ * @license
+ * Copyright 2020 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */const {I:t}=Z$1,s=()=>document.createComment(""),r=(o,i,n)=>{const e=o._$AA.parentNode,l=void 0===i?o._$AB:i._$AA;if(void 0===n){const i=e.insertBefore(s(),l),c=e.insertBefore(s(),l);n=new t(i,c,o,o.options);}else {const t=n._$AB.nextSibling,i=n._$AM,c=i!==o;if(c){let t;n._$AQ?.(o),n._$AM=o,void 0!==n._$AP&&(t=o._$AU)!==i._$AU&&n._$AP(t);}if(t!==l||c){let o=n._$AA;for(;o!==t;){const t=o.nextSibling;e.insertBefore(o,l),o=t;}}}return n},v=(o,t,i=o)=>(o._$AI(t,i),o),u$1={},m=(o,t=u$1)=>o._$AH=t,p=o=>o._$AH,M=o=>{o._$AP?.(false,true);let t=o._$AA;const i=o._$AB.nextSibling;for(;t!==i;){const o=t.nextSibling;t.remove(),t=o;}};
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const u=(e,s,t)=>{const r=new Map;for(let l=s;l<=t;l++)r.set(e[l],l);return r},c=e$2(class extends i{constructor(e){if(super(e),e.type!==t$1.CHILD)throw Error("repeat() can only be used in text expressions")}dt(e,s,t){let r;void 0===t?t=s:void 0!==s&&(r=s);const l=[],o=[];let i=0;for(const s of e)l[i]=r?r(s,i):i,o[i]=t(s,i),i++;return {values:o,keys:l}}render(e,s,t){return this.dt(e,s,t).values}update(s,[t,r$1,c]){const d=p(s),{values:p$1,keys:a}=this.dt(t,r$1,c);if(!Array.isArray(d))return this.ut=a,p$1;const h=this.ut??=[],v$1=[];let m$1,y,x=0,j=d.length-1,k=0,w=p$1.length-1;for(;x<=j&&k<=w;)if(null===d[x])x++;else if(null===d[j])j--;else if(h[x]===a[k])v$1[k]=v(d[x],p$1[k]),x++,k++;else if(h[j]===a[w])v$1[w]=v(d[j],p$1[w]),j--,w--;else if(h[x]===a[w])v$1[w]=v(d[x],p$1[w]),r(s,v$1[w+1],d[x]),x++,w--;else if(h[j]===a[k])v$1[k]=v(d[j],p$1[k]),r(s,d[x],d[j]),j--,k++;else if(void 0===m$1&&(m$1=u(a,k,w),y=u(h,x,j)),m$1.has(h[x]))if(m$1.has(h[j])){const e=y.get(a[k]),t=void 0!==e?d[e]:null;if(null===t){const e=r(s,d[x]);v(e,p$1[k]),v$1[k]=e;}else v$1[k]=v(t,p$1[k]),r(s,d[x],t),d[e]=null;k++;}else M(d[j]),j--;else M(d[x]),x++;for(;k<=w;){const e=r(s,v$1[w+1]);v(e,p$1[k]),v$1[k++]=e;}for(;x<=j;){const e=d[x++];null!==e&&M(e);}return this.ut=a,m(s,v$1),T}});
+
+/**
+ * @prop schema
+ * @prop data
+ * @prop name
+ * @prop index
+ */
+let FzArray = class FzArray extends FZCollection {
+    content;
+    validator;
+    renderField() {
+        return x `
+            <div class="form-group row">
+                ${this.renderLabel}
+                <div class="col-sm">
+                    <ul id="content" class="list-group"   style="max-height: 300px; overflow-y: scroll">
+                            ${c(this.getItems(), (item) => item, (item) => x `
+                                    <li class="list-group-item">
+                                        <div>
+                                            <input
+                                                class="form-check-input"
+                                                type="checkbox"
+                                                ?disabled="${this.readonly ? true : false}"
+                                                ?checked="${this.value?.includes(item.value)}"
+                                                @click="${() => this.toggle(item.value)}"/>
+                                            <label class="form-check-label">${item.label}</label>
+                                        </div>
+                                    </li>
+                                `)}
+                    </ul>
+                </div>
+            </div>`;
+    }
+    check() {
+        if (!this.validator)
+            return;
+        this.valid = true;
+        this.message = '';
+        switch (true) {
+            case (this.required && this.value == undefined):
+                this.valid = false;
+                this.message = formatMsg('valueMissing');
+                break;
+            case !this.required && this.value == undefined:
+                break;
+            default:
+                this.valid = this.validator.validate(this.value);
+                const errors = this.validator.errors()?.filter(e => e.instancePath.match(/\//g)?.length === 1);
+                if (this.valid == false && errors && errors.length > 0)
+                    this.message = this.validator.errorsText(errors);
+        }
+        this.content = this.shadowRoot?.getElementById('content') ?? undefined;
+        this.content?.classList.add(this.valid ? 'valid' : 'invalid');
+        this.content?.classList.remove(this.valid ? 'invalid' : 'valid');
+    }
+    connectedCallback() {
+        super.connectedCallback();
+        this.addEventListener('update', () => {
+            this.check();
+        });
+    }
+    update(changedProperties) {
+        if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema).length !== 0) {
+            const json = JSON.stringify(this.schema, getCircularReplacer);
+            this.validator = new DataValidator(JSON.parse(json));
+            this.check();
+        }
+        super.update(changedProperties);
+    }
+    toggle(value) {
+        if (this.value == null)
+            this.value = [];
+        if (this.value.includes(value)) {
+            const pos = this.value.indexOf(value);
+            if (pos >= 0)
+                this.value.splice(pos, 1);
+        }
+        else {
+            this.value.push(value);
+        }
+    }
+    convertToInput(_value) {
+        throw new Error("IMPOSSIBLE : PAS D'INPUT POUR LES ENUM-ARRAY!");
+    }
+    convertToValue(value) {
+        return isEmptyValue(value) ? this.empty : value;
+    }
+    getItems() {
+        const enums = this.schema.items?.enum;
+        if (enums)
+            return enums.reduce((list, value) => {
+                const ok = this.evalExpr('filter', this.schema.items, value, this.data[this.key], -1);
+                if (ok)
+                    list.push({ label: String(value), value });
+                return list;
+            }, []);
+        const consts = this.schema.items?.oneOf;
+        if (consts)
+            return consts.reduce((list, type) => {
+                const ok = this.evalExpr('filter', type, type.const, this.data[this.key], -1);
+                if (ok)
+                    list.push({ label: type.title ?? type.description ?? type.const, value: type.const });
+                return list;
+            }, []);
+        return [];
+    }
+};
+FzArray = __decorate([
+    t$4("fz-enum-array")
+], FzArray);
+
 let FzDialog = class FzDialog extends Base {
     modal;
     backdrop;
@@ -25749,6 +26322,7 @@ class DataCompiler {
     data;
     schema;
     steps;
+    errors = [];
     constructor(data, schema) {
         this.data = data;
         this.schema = schema;
@@ -25761,12 +26335,19 @@ class DataCompiler {
         ];
     }
     compile() {
+        this.errors = [];
         this.walkData(this.data.content, this.schema);
+        return this.errors;
     }
     walkData(data, schema, pdata, pschema) {
         if (schema == null || data == null)
             return;
-        this.steps.forEach(action => action(data, schema, pdata, pschema));
+        try {
+            this.steps.forEach(action => action(data, schema, pdata, pschema));
+        }
+        catch (e) {
+            this.errors.push(String(e));
+        }
         if (Array.isArray(data)) {
             if (schema.homogeneous) {
                 data.forEach((item) => this.walkData(item, schema.items, data, schema));
@@ -25790,13 +26371,6 @@ class DataCompiler {
         }
     }
 }
-window.nvl = function nvl(strarr, ...valarr) {
-    const all = [];
-    strarr.forEach((str, i) => (i == 0)
-        ? all.push(str)
-        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
-    return all.join('');
-};
 
 class BlobStoreWrapper {
     store;
@@ -25875,567 +26449,17 @@ class BlobCache {
 /**
  * @prop schema
  * @prop data
- * @prop name
- * @prop index
- */
-let FzArray = class FzArray extends FZCollection {
-    #current_accessor_storage = null;
-    get current() { return this.#current_accessor_storage; }
-    set current(value) { this.#current_accessor_storage = value; }
-    schemas = [];
-    currentSchema;
-    content;
-    validator;
-    get nomore() {
-        return this.schema.maxItems && this.value && this.value.length >= this.schema.maxItems;
-    }
-    get noless() {
-        return this.schema.minItems && this.value && this.value.length <= this.schema.minItems;
-    }
-    convertToInput(_value) {
-        throw new Error("IMPOSSIBLE : PAS D'INPUT POUR LES ARRAY!");
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
-    static get styles() {
-        return [
-            ...super.styles,
-            i$4 `.panel {
-                    padding:5px;
-                    border: solid 1px lightgray;
-                    border-radius:10px; 
-                    user-select: none;
-                }`
-        ];
-    }
-    update(changedProperties) {
-        if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema).length !== 0) {
-            const json = JSON.stringify(this.schema, getCircularReplacer);
-            this.validator = new DataValidator(JSON.parse(json));
-            this.check();
-        }
-        super.update(changedProperties);
-    }
-    check() {
-        if (!this.validator)
-            return;
-        this.valid = true;
-        this.message = '';
-        switch (true) {
-            case (this.required && this.value == undefined):
-                this.valid = false;
-                this.message = formatMsg('valueMissing');
-                break;
-            case !this.required && this.value == undefined:
-                break;
-            default:
-                this.valid = this.validator.validate(this.value);
-                const errors = this.validator.errors()?.filter(e => e.instancePath.match(/\//g)?.length === 1);
-                if (this.valid == false && errors && errors.length > 0)
-                    this.message = this.validator.errorsText(errors);
-        }
-        this.content = this.shadowRoot?.getElementById('content') ?? undefined;
-        this.content?.classList.add(this.valid ? 'valid' : 'invalid');
-        this.content?.classList.remove(this.valid ? 'invalid' : 'valid');
-    }
-    connectedCallback() {
-        super.connectedCallback();
-        this.addEventListener('update', () => {
-            this.check();
-        });
-        this.addEventListener('toggle-item', (evt) => {
-            this.close();
-            this.eventStop(evt);
-        });
-    }
-    requestUpdate(name, oldvalue) {
-        if (name !== undefined) {
-            this.solveSchemas(true);
-            super.requestUpdate(name, oldvalue);
-        }
-    }
-    renderField() {
-        this.solveSchemas();
-        const lines = (!this.data || !this.value) ? [] : this.value.map((_i, i) => x `${(this.current === i) ? this.renderEditable(i) : this.renderStatic(i)}`);
-        return x `
-            <div @focusout="${this.focusout}">
-                <div class="form-group row">
-                ${this.schema.title === "" ? x `` : this.renderLabel}
-                    <div class="col-sm">
-                        <ul id="content" class="list-group">
-                            ${lines}
-                            ${this.readonly ? x `` : x `
-                                <li class="list-group-item" @click="${this.close}">
-                                    <button type="button" @click="${this.add}" ?disabled="${this.nomore}" class="btn btn-primary btn-sm "><b>+</b></button>
-                                    ${this.schema.homogeneous ? null : x `
-                                        <div class="btn-group" style="float:right" role="group">
-                                            <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
-                                                @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            ${this.currentSchema?.title || "Ajouter"}
-                                            </button> 
-                                            <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-                                                ${this.schema.items.oneOf.map((schema, i) => x `<a class="dropdown-item"
-                                                    @click="${() => this.selectSchema(i)}" >${schema.title || "Type" + i}</a>`)}
-                                            </div>
-                                        </div>`}
-                                </li>
-                            `}
-                        </ul>
-                    </div>
-                </div>
-            </div>`;
-    }
-    renderStatic(index) {
-        this.solveOrder();
-        this.solveSchemas();
-        return x `
-        <li 
-                id="${index}"
-                draggable="true" 
-                @dragstart="${(evt) => this.drag(index, evt)}"
-                @dragover="${this.allowDrop}"
-                @drop="${this.drop}"   
-                @click="${(evt) => this.open(index, evt)}"              
-                class="list-group-item"
-            >
-            ${this.abstract(index, this.schemas[index])}
-            ${this.readonly ? x `` : x `<button ?hidden="${this.noless}" @click="${(evt) => this.del(index, evt)}" type="button" style="float:right" class="btn-close" aria-label="Close"></button>`}
-        </li>`;
-    }
-    renderEditable(index) {
-        const schema = this.schemas[index];
-        return x `<li class="list-group-item"> ${this.renderItem(schema, index)} </li>`;
-    }
-    focusout() {
-        // MBZ A VERIFIER this.close()
-        this.triggerChange();
-    }
-    focus() {
-        if (this.fields().length > 0) {
-            const first = this.fields()[0];
-            first.dofocus();
-        }
-    }
-    open(index, evt) {
-        if (this.current === index) {
-            this.close();
-        }
-        else {
-            this.current = index;
-            this.dofocus();
-        }
-        this.eventStop(evt);
-    }
-    close(evt) {
-        this.current = null;
-        this.triggerChange();
-        this.eventStop(evt);
-    }
-    drag(index, ev) {
-        if (ev.dataTransfer) {
-            ev.dataTransfer.setData('text', index.toString());
-        }
-        else if (ev.originalEvent.dataTransfer) {
-            ev.originalEvent.dataTransfer.setData('text', index.toString());
-        }
-        this.current = null;
-        this.requestUpdate();
-    }
-    drop(ev) {
-        if (ev.dataTransfer) {
-            const from = parseInt(ev.dataTransfer.getData("text"), 10);
-            const to = parseInt(ev.target.id);
-            this.value.splice(to, 0, this.value.splice(from, 1)[0]);
-            this.schemas.splice(to, 0, this.schemas.splice(from, 1)[0]);
-            this.requestUpdate();
-        }
-        this.eventStop(ev);
-    }
-    allowDrop(ev) {
-        ev.preventDefault();
-    }
-    del(index, evt) {
-        if (this.noless)
-            return;
-        this.remItem(index);
-        this.eventStop(evt);
-    }
-    add(evt) {
-        if (this.nomore || !this.currentSchema)
-            return;
-        this.addItem(this.currentSchema);
-        this.eventStop(evt);
-    }
-    remItem(index) {
-        this.value.splice(index, 1);
-        this.schemas.splice(index, 1);
-        this.current = null;
-        this.requestUpdate();
-        this.triggerChange();
-        this.check();
-    }
-    addItem(schema, edit = true) {
-        if (this.value == null)
-            this.value = [];
-        const value = calculateDefault(this.data, schema);
-        this.value.push(value);
-        this.schemas.push(schema);
-        if (edit)
-            this.open(this.value.length - 1);
-        this.triggerChange();
-        this.requestUpdate();
-        this.check();
-    }
-    toggleDropdown() {
-        const display = this.shadowRoot?.querySelector(".dropdown-menu")?.style.display;
-        display == "block" ? this.closeDropdown() : this.openDropdown();
-    }
-    closeDropdown() {
-        const elem = this.shadowRoot?.querySelector(".dropdown-menu");
-        if (elem != null) {
-            elem.style.display = "none";
-        }
-    }
-    openDropdown() {
-        const elem = this.shadowRoot?.querySelector(".dropdown-menu");
-        if (elem != null) {
-            elem.style.display = "block";
-        }
-    }
-    selectSchema(index) {
-        this.currentSchema = this.schema.items.oneOf[index];
-        this.closeDropdown();
-        this.requestUpdate();
-    }
-    solveSchemas(force = false) {
-        if (!this.schema?.items)
-            return;
-        if (!force && this.currentSchema && this.schemas)
-            return;
-        if (!this.currentSchema)
-            this.currentSchema = this.schema.homogeneous ? this.schema.items : this.schema.items.oneOf[0];
-        this.schemas = this.value == null ? [] : this.schema.homogeneous
-            ? this.value.map(() => this.schema.items)
-            : this.value.map((value) => getSchema(value) ?? this.schema.items.oneOf.find((schema) => schema.case && schema.case(null, value, this.data, this.key, this.derefFunc)));
-    }
-    solveOrder() {
-        if (this.value == null)
-            return;
-        const current = this.value;
-        const orderedidx = current.map((_x, i) => i).sort((ia, ib) => {
-            const va = this.evalExpr("orderBy", this.schemas[ia], current[ia], this.value, ia);
-            const vb = this.evalExpr("orderBy", this.schemas[ib], current[ib], this.value, ib);
-            switch (true) {
-                case (va === vb): return 0;
-                case (va == null): return -1;
-                case (vb == null): return 1;
-                case (va > vb): return 1;
-                case (va < vb): return -1;
-                default: return 0;
-            }
-        });
-        const schemas = this.schemas.map(x => x);
-        const values = current.map(x => x);
-        for (let i = 0; i < orderedidx.length; i++) {
-            this.schemas[i] = schemas[orderedidx[i]];
-            this.value[i] = values[orderedidx[i]];
-        }
-    }
-};
-__decorate([
-    n$1({ attribute: false }),
-    __metadata("design:type", Object)
-], FzArray.prototype, "current", null);
-FzArray = __decorate([
-    t$4("fz-array")
-], FzArray);
-
-/**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
-let FzObject = class FzObject extends FZCollection {
-    convertToInput(_value) {
-        throw new Error("IMPOSSIBLE : PAS D'INPUT POUR LES OBJECT!");
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
-    #collapsed_accessor_storage = false;
-    get collapsed() { return this.#collapsed_accessor_storage; }
-    set collapsed(value) { this.#collapsed_accessor_storage = value; }
-    #activegroup_accessor_storage = {};
-    get activegroup() { return this.#activegroup_accessor_storage; }
-    set activegroup(value) { this.#activegroup_accessor_storage = value; }
-    content;
-    validator;
-    seen;
-    static get styles() {
-        return [
-            ...super.styles,
-            i$4 `
-                .panel {
-                    padding:5px;
-                    border: solid 1px lightgray;
-                    border-radius:10px; 
-                    user-select: none;
-                }
-                `
-        ];
-    }
-    check() {
-        if (!this.validator)
-            return;
-        this.valid = true;
-        this.message = '';
-        switch (true) {
-            case (this.required && this.value == undefined):
-                this.valid = false;
-                this.message = formatMsg('valueMissing');
-                break;
-            case !this.required && this.value == undefined:
-                break;
-            default:
-                this.valid = this.validator.validate(this.value);
-                const errors = this.validator.errors()?.filter(e => e.instancePath.match(/\//g)?.length === 1);
-                if (this.valid == false && errors && errors.length > 0)
-                    this.message = this.validator.errorsText(errors);
-        }
-        this.content = this.shadowRoot?.getElementById('content') ?? undefined;
-        this.content?.classList.add(this.valid ? 'valid' : 'invalid');
-        this.content?.classList.remove(this.valid ? 'invalid' : 'valid');
-    }
-    connectedCallback() {
-        super.connectedCallback();
-        this.addEventListener('update', () => {
-            this.check();
-            this.requestUpdate();
-        });
-    }
-    firstUpdated(changedProperties) {
-        super.firstUpdated(changedProperties);
-        this.setCollapsed();
-    }
-    update(changedProperties) {
-        if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema.properties ?? {})?.length > 0) {
-            const json = JSON.stringify(this.schema, getCircularReplacer);
-            this.validator = new DataValidator(JSON.parse(json));
-            this.check();
-        }
-        super.update(changedProperties);
-    }
-    setCollapsed() {
-        // si root on collapse jamais
-        this.collapsed = (this.schema.parent == null) ? false : this.evalExpr("collapsed");
-    }
-    renderSingle(itemTemplates, fields, fieldpos) {
-        // render single item
-        const fieldname = fields[fieldpos].fieldname;
-        const schema = this.schema.properties[fieldname];
-        itemTemplates.push(this.renderItem(schema, fieldname));
-        fieldpos += 1;
-        return fieldpos;
-    }
-    renderGroup(itemTemplates, fields, fieldpos) {
-        const group = [];
-        const groupnum = fields[fieldpos].groupnum;
-        const groupname = fields[fieldpos].groupname;
-        // render group items
-        for (; fieldpos < fields.length && groupnum === fields[fieldpos].groupnum; fieldpos++) {
-            const fieldname = fields[fieldpos].fieldname;
-            const schema = this.schema.properties[fieldname];
-            group.push(this.renderItem(schema, fieldname));
-        }
-        // render group
-        itemTemplates.push(x `
-                <div class="card shadow" style="margin-bottom:5px">
-                    <div class="card-header d-flex justify-content-between align-items-center">${groupname}</div>
-                    <div class="card-body">${group}</div>
-                </div>`);
-        return fieldpos;
-    }
-    renderTabGroup(itemTemplates, fields, fieldpos) {
-        const group = [];
-        const groupnum = fields[fieldpos].groupnum;
-        const groupname = fields[fieldpos].groupname;
-        const tabname = fields[fieldpos].tabname;
-        // render group items
-        for (; fieldpos < fields.length && groupnum === fields[fieldpos].groupnum; fieldpos++) {
-            const fieldname = fields[fieldpos].fieldname;
-            const schema = this.schema.properties[fieldname];
-            const hidden = this.activegroup[tabname] !== groupname;
-            group.push(x `<div class="tab-pane active container" style="margin:0;max-width:100%"  id="content" ?hidden="${hidden}" data-tabname="${tabname}" data-groupname="${groupname}">${this.renderItem(schema, fieldname)}</div>`);
-        }
-        // render group
-        itemTemplates.push(x `${group}`);
-        return fieldpos;
-    }
-    renderTab(itemTemplates, fields, fieldpos) {
-        const tab = [];
-        const tabnum = fields[fieldpos].tabnum;
-        const tabname = fields[fieldpos].tabname;
-        const firstpos = fieldpos;
-        this.activegroup[tabname] = fields[fieldpos].groupname;
-        while (fieldpos < fields.length && tabnum === fields[fieldpos].tabnum) {
-            fieldpos = this.renderTabGroup(tab, fields, fieldpos);
-        }
-        const mapgroup = {};
-        for (let i = firstpos; i < fieldpos; i++) {
-            const groupname = fields[i].groupname;
-            mapgroup[groupname] = 1;
-        }
-        const groupnames = Object.keys(mapgroup);
-        // render tab headers
-        itemTemplates.push(x `<ul class="nav nav-tabs" id="content">
-                ${groupnames.map(groupname => x `<li class="nav-item">
-                        <a class="nav-link" data-tabname="${tabname}" data-groupname="${groupname}" @click="${this.toggleTab}" aria-current="page" href="#" data-toggle="tab" href="#${groupname}">${groupname}</a>
-                    </li>`)}
-            </ul>`);
-        // render tab contents
-        itemTemplates.push(x `<div class="tab-content border border-top-0" id="content" style="padding-bottom:5px;margin-bottom:5px">${tab}</div>`);
-        return fieldpos;
-    }
-    get deletable() {
-        if (this.schema.parent == null || this.isEmpty)
-            return false;
-        if (this.schema.nullAllowed && this.nullable)
-            return true;
-        if (!this.schema.nullAllowed && !this.required)
-            return true;
-        return false;
-    }
-    async delete() {
-        this.value = this.empty;
-        if (this.collapsed !== null)
-            this.collapsed = true;
-        this.requestUpdate();
-        await this.updateComplete;
-        this.fields().forEach(field => field.check());
-    }
-    renderField() {
-        if (!this.schema.properties)
-            return x ``;
-        const itemTemplates = [];
-        const fields = this.schema.order;
-        let fieldpos = 0;
-        while (fields && fieldpos < fields.length) {
-            const current = fields[fieldpos];
-            if (current.tabname && current.groupname) {
-                fieldpos = this.renderTab(itemTemplates, fields, fieldpos);
-            }
-            else if (current.groupname) {
-                fieldpos = this.renderGroup(itemTemplates, fields, fieldpos);
-            }
-            else {
-                fieldpos = this.renderSingle(itemTemplates, fields, fieldpos);
-            }
-        }
-        return x `${this.isItem
-            ? x `<div>${this.renderLabel}</div>${itemTemplates}`
-            : this.schema.title === "" ? x `<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`
-                : x `<div class="panel" id="content" >
-                <div class="panel-heading">
-                    <div>
-                        ${this.renderLabel}
-                        ${this.collapsed ? x `${this.abstract()}` : x ``}
-                        <button
-                            ?hidden="${!this.deletable}"
-                            @click="${() => this.delete()}" 
-                            type="button" style="float:right" class="btn-close" aria-label="Close">
-                        </button>
-                    </div>
-                </div>
-                <hr ?hidden="${this.collapsed}" style="margin: 0 0" >
-                <div ?hidden="${this.collapsed}" > ${itemTemplates} </div>
-                </div>`}`;
-    }
-    isRequiredProperty(name) {
-        return !!this.schema.required?.includes(name);
-    }
-    fields() {
-        const fields = [];
-        const tags = Object.values(this.schema.properties)
-            .map((property) => property.field).join(', ');
-        const list = this.shadowRoot?.querySelectorAll(tags);
-        list?.forEach((elem) => fields.push(elem));
-        return fields;
-    }
-    focus() {
-        const fields = this.fields();
-        const first = fields[0];
-        first.dofocus();
-    }
-    labelClicked(evt) {
-        if (this.isItem) {
-            this.dispatchEvent(new CustomEvent('toggle-item', {
-                detail: {
-                    field: this
-                },
-                bubbles: true,
-                composed: true
-            }));
-        }
-        else {
-            this.toggle(evt);
-        }
-        super.labelClicked(evt);
-    }
-    toggleTab(evt) {
-        const elem = evt.target;
-        const tabname = elem.getAttribute("data-tabname");
-        const groupname = elem.getAttribute("data-groupname");
-        const tabs = elem.parentElement?.parentElement;
-        const childs = tabs?.querySelectorAll('a') ?? [];
-        for (const item of childs)
-            item.classList.remove("active");
-        elem.classList.add("active");
-        this.activegroup[tabname] = groupname;
-        const content = tabs.nextElementSibling;
-        const panes = content?.querySelectorAll('.tab-pane') ?? [];
-        if (panes) {
-            for (const item of panes) {
-                item.hidden = item.getAttribute("data-groupname") !== groupname ? true : false;
-            }
-        }
-        this.eventStop(evt);
-    }
-    toggle(evt) {
-        if (this.collapsed !== null)
-            this.collapsed = !this.collapsed;
-        this.eventStop(evt);
-        this.requestUpdate();
-    }
-};
-__decorate([
-    n$1({ attribute: false }),
-    __metadata("design:type", Object)
-], FzObject.prototype, "collapsed", null);
-__decorate([
-    n$1({ attribute: false }),
-    __metadata("design:type", Object)
-], FzObject.prototype, "activegroup", null);
-FzObject = __decorate([
-    t$4("fz-object")
-], FzObject);
-
-/**
- * @prop schema
- * @prop data
  */
 let FzForm = class FzForm extends Base {
-    #i_schema_accessor_storage = { type: 'object', properties: [] };
-    get i_schema() { return this.#i_schema_accessor_storage; }
-    set i_schema(value) { this.#i_schema_accessor_storage = value; }
     #i_options_accessor_storage = {};
     get i_options() { return this.#i_options_accessor_storage; }
     set i_options(value) { this.#i_options_accessor_storage = value; }
     #obj_accessor_storage = { content: {} };
     get obj() { return this.#obj_accessor_storage; }
     set obj(value) { this.#obj_accessor_storage = value; }
-    get root() { return this.obj.content; }
+    #i_schema_accessor_storage = { type: 'object', properties: [] };
+    get i_schema() { return this.#i_schema_accessor_storage; }
+    set i_schema(value) { this.#i_schema_accessor_storage = value; }
     #submitlabel_accessor_storage = "Ok";
     get submitlabel() { return this.#submitlabel_accessor_storage; }
     set submitlabel(value) { this.#submitlabel_accessor_storage = value; }
@@ -26454,17 +26478,21 @@ let FzForm = class FzForm extends Base {
     #notValidate_accessor_storage = false;
     get notValidate() { return this.#notValidate_accessor_storage; }
     set notValidate(value) { this.#notValidate_accessor_storage = value; }
+    #_errors_accessor_storage = null;
+    get _errors() { return this.#_errors_accessor_storage; }
+    set _errors(value) { this.#_errors_accessor_storage = value; }
     store = new BlobCache("FZ-FORM");
     asset;
     validator;
-    attributeChangedCallback(name, oldValue, newValue) {
-        super.attributeChangedCallback(name, oldValue, newValue);
-        if (name === 'schema') {
-            // Utilise le converter instance-spécifique pour convertir l'attribut
-            const converted = jsonAttributeConverter.fromAttribute(newValue);
-            this.schema = converted;
-        }
+    dataPointerFieldMap = new Map();
+    schemaPointerFieldMap = new Map();
+    message = "";
+    observedChangedHandler;
+    constructor() {
+        super();
+        this.observedChangedHandler = (e) => this.observedChange(e);
     }
+    get root() { return this.obj.content; }
     get schema() { return this.i_schema; }
     set schema(value) {
         {
@@ -26492,29 +26520,7 @@ let FzForm = class FzForm extends Base {
             this.asset = this.i_options.asset;
         }
     }
-    #_errors_accessor_storage = null;
-    get _errors() { return this.#_errors_accessor_storage; }
-    set _errors(value) { this.#_errors_accessor_storage = value; }
-    get data() {
-        // patch nullable pour ne pas rendre d'objet sans propriété ou de tableau vide 
-        // remplacement par null ou undefined
-        const replacer = function (name, value) {
-            const schema = getSchema(value);
-            const pschema = getSchema(this);
-            if (pschema?.properties?.[name]?.transient)
-                return undefined;
-            if (schema && Array.isArray(value) && value.length === 0) {
-                return schema.nullAllowed ? null : undefined;
-            }
-            if (schema && value != null && typeof value === "object" && Object.keys(value).every(key => value[key] == null)) {
-                return schema.nullAllowed ? null : undefined;
-            }
-            return value;
-        };
-        const jsonstr = JSON.stringify(this.obj.content, replacer);
-        const jsonobj = jsonstr == null ? null : JSON.parse(jsonstr);
-        return jsonobj;
-    }
+    get data() { return cleanJSON(this.obj.content); }
     set data(value) {
         if (!this.validator) {
             this.message = "L'attribut 'schema' n'est pas un JSON Schema Form valide.";
@@ -26539,30 +26545,13 @@ let FzForm = class FzForm extends Base {
             return false;
         return this.validator.validate(this.obj.content);
     }
-    dataPointerFieldMap = new Map();
-    schemaPointerFieldMap = new Map();
-    message = "";
-    observedChangedHandler;
-    constructor() {
-        super();
-        this.observedChangedHandler = this.observedChange.bind(this);
-    }
-    addField(schemaPointer, dataPointer, field) {
-        this.schemaPointerFieldMap.set(schemaPointer, field);
-        this.dataPointerFieldMap.set(dataPointer, field);
-    }
-    removeField(schemaPointer, dataPointer) {
-        this.schemaPointerFieldMap.delete(schemaPointer);
-        this.dataPointerFieldMap.delete(dataPointer);
-    }
-    getfieldFromSchema(pointer) {
-        return this.schemaPointerFieldMap.get(pointer);
-    }
-    getfieldFromData(pointer) {
-        return this.dataPointerFieldMap.get(pointer);
-    }
-    updateField(pointer) {
-        this.getfieldFromData(pointer)?.requestUpdate();
+    attributeChangedCallback(name, oldValue, newValue) {
+        super.attributeChangedCallback(name, oldValue, newValue);
+        if (name === 'schema') {
+            // Utilise le converter instance-spécifique pour convertir l'attribut
+            const converted = jsonAttributeConverter.fromAttribute(newValue);
+            this.schema = converted;
+        }
     }
     static get styles() {
         return [
@@ -26571,7 +26560,7 @@ let FzForm = class FzForm extends Base {
     }
     render() {
         return x `
-            ${!this._errors
+            ${!this._errors?.length
             ? x `
                     ${Array.isArray(this.obj.content)
                 ? x `<fz-array pointer="#" name="content"  .data="${this.obj}" .schema="${this.schema}"></fz-array>`
@@ -26592,6 +26581,38 @@ let FzForm = class FzForm extends Base {
     disconnectedCallback() {
         super.disconnectedCallback();
         this.removeEventListener('observed-changed', this.observedChangedHandler);
+    }
+    addField(schemaPointer, dataPointer, field) {
+        this.schemaPointerFieldMap.set(schemaPointer, field);
+        this.dataPointerFieldMap.set(dataPointer, field);
+    }
+    removeField(schemaPointer, dataPointer) {
+        this.schemaPointerFieldMap.delete(schemaPointer);
+        this.dataPointerFieldMap.delete(dataPointer);
+    }
+    getfieldFromSchema(pointer) {
+        return this.schemaPointerFieldMap.get(pointer);
+    }
+    getfieldFromData(pointer) {
+        return this.dataPointerFieldMap.get(pointer);
+    }
+    updateField(pointer) {
+        this.getfieldFromData(pointer)?.requestUpdate();
+    }
+    /**
+     * handle 'observed-change' event for change detection and update
+     * between observers and observed data
+     * @param evt
+     * @returns
+     */
+    observedChange(evt) {
+        if (this === evt.composedPath()[0])
+            return;
+        const observers = evt.detail.observers;
+        observers.forEach(pointer => {
+            const field = this.getfieldFromSchema(pointer);
+            field?.requestUpdate();
+        });
     }
     confirm(evt) {
         const event = new CustomEvent('submit', {
@@ -26616,40 +26637,23 @@ let FzForm = class FzForm extends Base {
         evt.stopPropagation();
     }
     compile() {
-        try {
-            const schema_compiler = new SchemaCompiler(this.schema, this.options, this.obj.content);
-            const errors = schema_compiler.compile();
-            if (errors.length > 0) {
-                this.message = `Schema compilation failed: \n ${errors.join('\n    - ')}`;
-            }
-            const data_compiler = new DataCompiler(this.obj.content, this.schema);
-            data_compiler.compile();
-        }
-        catch (e) {
-            this._errors = [];
-            this.message = `Schema compilation failed: ${String(e)}`;
-        }
-    }
-    /**
-     * handle 'observed-change' event for change detection and update
-     * between observers and observed data
-     * @param evt
-     * @returns
-     */
-    observedChange(evt) {
-        if (this === evt.composedPath()[0])
+        // All schema compilation are fatal (unable to build the form)
+        const schema_compiler = new SchemaCompiler(this.schema, this.options, this.obj.content);
+        const schema_errors = schema_compiler.compile();
+        if (schema_errors.length > 0) {
+            this.message = `Schema compilation failed: \n    - ${schema_errors.join('\n    - ')}`;
+            console.error(this.message);
             return;
-        const observers = evt.detail.observers;
-        observers.forEach(pointer => {
-            const field = this.getfieldFromSchema(pointer);
-            field?.requestUpdate();
-        });
+        }
+        // Data compilation never fail otherwise it's a bug to fix
+        const data_compiler = new DataCompiler(this.obj.content, this.schema);
+        const data_errors = data_compiler.compile();
+        if (data_errors.length > 0) {
+            this.message = `Data compilation failed: \n    - ${data_errors.join('\n    - ')}`;
+            console.error(this.message);
+        }
     }
 };
-__decorate([
-    n$1({ type: Object, attribute: "schema", converter: jsonAttributeConverter }),
-    __metadata("design:type", Object)
-], FzForm.prototype, "i_schema", null);
 __decorate([
     r$3(),
     __metadata("design:type", Object)
@@ -26658,6 +26662,10 @@ __decorate([
     r$3(),
     __metadata("design:type", Object)
 ], FzForm.prototype, "obj", null);
+__decorate([
+    n$1({ type: Object, attribute: "schema", converter: jsonAttributeConverter }),
+    __metadata("design:type", Object)
+], FzForm.prototype, "i_schema", null);
 __decorate([
     n$1({ type: String, attribute: "submit-label" }),
     __metadata("design:type", Object)
