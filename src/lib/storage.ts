@@ -1,7 +1,9 @@
+import { StoreItem } from "../lib/types"
+
 export interface IBlobStore {
     put(uuid: string, blob: Blob, filename: string, pointer: string): Promise<void>
     remove(uuid: string): Promise<void>
-    get(uuid: string): Promise<{ uuid: string, filename: string, blob: Blob} | null>
+    get(uuid: string): Promise<StoreItem | undefined>
 }
 
 export class BlobStoreWrapper implements IBlobStore {
@@ -85,5 +87,23 @@ export class BlobCache implements IBlobStore {
         return found ?  found : null
     }
 
+
+}
+
+
+export class BlobMemory implements IBlobStore {
+    store = new Map<string, StoreItem>()
+
+    async put(uuid: string, blob: Blob, filename: string, _pointer: string) {
+        this.store.set(uuid,{uuid, blob, filename})
+    }
+
+    async remove(uuid: string) {
+        await this.store.delete(uuid)
+    }
+
+    async get(uuid: string) {
+        return this.store.get(uuid)
+    }
 
 }

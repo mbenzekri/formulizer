@@ -28,3 +28,5 @@ export type FieldOrder = {
     tabname: string;
     groupname: string;
 }
+
+export type StoreItem = {uuid: string, blob: Blob, filename: string}

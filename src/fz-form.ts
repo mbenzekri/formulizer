@@ -5,7 +5,7 @@ import { Pojo } from "./lib/types"
 import { FzElement } from "./fz-element";
 import { validateSchema, validateErrors, DataValidator, jsonAttributeConverter, cleanJSON } from "./lib/tools"
 import { SchemaCompiler, DataCompiler } from "./lib/compiler"
-import { BlobCache, IBlobStore, BlobStoreWrapper } from "./lib/storage";
+import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { IAsset } from "./inputs/fz-input-asset";
 import { Base } from "./base";
 
@@ -28,9 +28,9 @@ export class FzForm extends Base {
     @property({ type: Boolean, attribute: "not-validate" }) accessor notValidate = false
     @state() private accessor _errors: Array<any> | null = null
 
-    public store: IBlobStore = new BlobCache("FZ-FORM")
-    public asset?: IAsset
-    private validator?: DataValidator
+    public store: IBlobStore = new BlobMemory()
+    public asset!: IAsset
+    private validator!: DataValidator
     private dataPointerFieldMap: Map<string, FzElement> = new Map()
     private schemaPointerFieldMap: Map<string, FzElement> = new Map()
     private message = ""
