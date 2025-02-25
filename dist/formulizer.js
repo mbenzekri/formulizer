@@ -433,7 +433,7 @@ const bootstrapCss = i$4 `
  * Copyright 2011-2024 The Bootstrap Authors
  * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
  */
-:root,
+:host,
 [data-bs-theme=light] {
   --bs-blue: #0d6efd;
   --bs-indigo: #6610f2;
@@ -617,7 +617,7 @@ const bootstrapCss = i$4 `
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :root {
+  :host {
     scroll-behavior: smooth;
   }
 }
@@ -1204,7 +1204,7 @@ progress {
     max-width: 1320px;
   }
 }
-:root {
+:host {
   --bs-breakpoint-xs: 0;
   --bs-breakpoint-sm: 576px;
   --bs-breakpoint-md: 768px;
@@ -26399,50 +26399,20 @@ class BlobStoreWrapper {
         }
         catch (e) {
             console.error(`storage: unable to get blob for uuid=${uuid}\n    - ${String(e)}`);
-            return null;
+            return;
         }
     }
 }
-class BlobCache {
-    cacheName;
-    cache;
-    constructor(cacheName) {
-        this.cacheName = cacheName;
-    }
-    available() {
-        return 'caches' in self;
-    }
-    async open() {
-        if (this.available())
-            this.cache = await caches.open(this.cacheName);
-    }
-    async findKey(uuid) {
-        const keys = await this.cache?.keys() ?? [];
-        for (const key of keys) {
-            if (key.url.includes(uuid)) {
-                const url = new URL(key.url);
-                const filename = url.searchParams.get("name") ?? "";
-                const response = await this.cache?.match(url, { ignoreSearch: true });
-                const blob = await response?.blob();
-                if (blob != null)
-                    return { uuid: uuid, blob: blob, filename };
-            }
-        }
-        return null;
-    }
+class BlobMemory {
+    store = new Map();
     async put(uuid, blob, filename, _pointer) {
-        const url = `/${uuid}?name=${filename}`;
-        await this.open();
-        await this.cache?.put(url, new Response(blob));
+        this.store.set(uuid, { uuid, blob, filename });
     }
     async remove(uuid) {
-        await this.open();
-        await this.cache?.delete(`/${uuid}`, { ignoreSearch: true });
+        await this.store.delete(uuid);
     }
     async get(uuid) {
-        await this.open();
-        const found = await this.findKey(uuid);
-        return found ? found : null;
+        return this.store.get(uuid);
     }
 }
 
@@ -26450,38 +26420,42 @@ class BlobCache {
  * @prop schema
  * @prop data
  */
-let FzForm = class FzForm extends Base {
+let FzForm = class FzForm extends r$1 {
+    static get styles() {
+        return [
+            bootstrapCss,
+            bootstrapIconsCss,
+        ];
+    }
     #i_options_accessor_storage = {};
     get i_options() { return this.#i_options_accessor_storage; }
     set i_options(value) { this.#i_options_accessor_storage = value; }
-    #obj_accessor_storage = { content: {} };
-    get obj() { return this.#obj_accessor_storage; }
-    set obj(value) { this.#obj_accessor_storage = value; }
     #i_schema_accessor_storage = { type: 'object', properties: [] };
     get i_schema() { return this.#i_schema_accessor_storage; }
     set i_schema(value) { this.#i_schema_accessor_storage = value; }
-    #submitlabel_accessor_storage = "Ok";
-    get submitlabel() { return this.#submitlabel_accessor_storage; }
-    set submitlabel(value) { this.#submitlabel_accessor_storage = value; }
-    #cancellabel_accessor_storage = "Cancel";
-    get cancellabel() { return this.#cancellabel_accessor_storage; }
-    set cancellabel(value) { this.#cancellabel_accessor_storage = value; }
-    #buttonsVisible_accessor_storage = false;
-    get buttonsVisible() { return this.#buttonsVisible_accessor_storage; }
-    set buttonsVisible(value) { this.#buttonsVisible_accessor_storage = value; }
-    #idData_accessor_storage = "";
-    get idData() { return this.#idData_accessor_storage; }
-    set idData(value) { this.#idData_accessor_storage = value; }
+    #actions_accessor_storage = false;
+    get actions() { return this.#actions_accessor_storage; }
+    set actions(value) { this.#actions_accessor_storage = value; }
     #readonly_accessor_storage = false;
     get readonly() { return this.#readonly_accessor_storage; }
     set readonly(value) { this.#readonly_accessor_storage = value; }
-    #notValidate_accessor_storage = false;
-    get notValidate() { return this.#notValidate_accessor_storage; }
-    set notValidate(value) { this.#notValidate_accessor_storage = value; }
+    #checkIn_accessor_storage = false;
+    get checkIn() { return this.#checkIn_accessor_storage; }
+    set checkIn(value) { this.#checkIn_accessor_storage = value; }
+    #checkOut_accessor_storage = false;
+    get checkOut() { return this.#checkOut_accessor_storage; }
+    set checkOut(value) { this.#checkOut_accessor_storage = value; }
+    oninit = null;
+    onready = null;
+    onvaliddata = null;
+    oninvaliddata = null;
+    onvalidate = null;
+    ondismiss = null;
     #_errors_accessor_storage = null;
     get _errors() { return this.#_errors_accessor_storage; }
     set _errors(value) { this.#_errors_accessor_storage = value; }
-    store = new BlobCache("FZ-FORM");
+    obj = { content: {} };
+    store = new BlobMemory();
     asset;
     validator;
     dataPointerFieldMap = new Map();
@@ -26491,8 +26465,15 @@ let FzForm = class FzForm extends Base {
     constructor() {
         super();
         this.observedChangedHandler = (e) => this.observedChange(e);
+        ["oninit", "onready", "onvaliddata", "oninvaliddata", "onvalidate", "ondismiss"].forEach(event => {
+            this.constructor.elementProperties.get(event).converter =
+                (value) => { this.setGlobalHandler(event.substring(2), value); return value; };
+        });
     }
     get root() { return this.obj.content; }
+    get valid() {
+        return this.validator == null ? false : this.validator.validate(this.obj.content);
+    }
     get schema() { return this.i_schema; }
     set schema(value) {
         {
@@ -26523,27 +26504,22 @@ let FzForm = class FzForm extends Base {
     get data() { return cleanJSON(this.obj.content); }
     set data(value) {
         if (!this.validator) {
-            this.message = "L'attribut 'schema' n'est pas un JSON Schema Form valide.";
+            // we do not have a valid JSON Schema unable to work
+            this.message = "Unable to accept data because provided JSON Schema is not valid.";
             return;
         }
-        else {
-            if (!this.notValidate && !this.validator.validate(value)) {
-                this._errors = this.validator?.errors() || null;
-                this.message = "L'attribut 'data' n'est pas un JSON valide vis à vis de l'attribut schema.";
-            }
-            else {
-                this.message = "";
-                this._errors = null;
-                this.obj.content = value;
-                this.compile();
-                this.requestUpdate();
-            }
+        if (this.checkIn && !this.validator.validate(value)) {
+            // data must be valid (checkin true)
+            this._errors = this.validator?.errors() || null;
+            this.message = "provided data is not conform to schema (checkin activated)";
+            return;
         }
-    }
-    get valid() {
-        if (!this.validator)
-            return false;
-        return this.validator.validate(this.obj.content);
+        // data accepted without validation (checkin false)
+        this.message = "";
+        this._errors = null;
+        this.obj.content = value;
+        this.compile();
+        this.requestUpdate();
     }
     attributeChangedCallback(name, oldValue, newValue) {
         super.attributeChangedCallback(name, oldValue, newValue);
@@ -26553,30 +26529,38 @@ let FzForm = class FzForm extends Base {
             this.schema = converted;
         }
     }
-    static get styles() {
-        return [
-            ...super.styles
-        ];
-    }
     render() {
+        return !this._errors?.length ? this.renderForm() : this.renderError();
+    }
+    renderForm() {
         return x `
-            ${!this._errors?.length
-            ? x `
-                    ${Array.isArray(this.obj.content)
-                ? x `<fz-array pointer="#" name="content"  .data="${this.obj}" .schema="${this.schema}"></fz-array>`
-                : x `<fz-object  pointer="#" name="content" .data="${this.obj}" .schema="${this.schema}"></fz-object>`}
-                    ${!this._errors && this.buttonsVisible
-                ? x `<hr><div class="d-flex justify-content-end">
-                            <button type="button"  @click="${this.confirm}" class="btn btn-primary">${this.submitlabel}</button> 
-                            <button type="button"  @click="${this.cancel}" class="btn btn-danger">${this.cancellabel}</button>
-                        </div>`
-                : x ``}`
-            : x `Error(s): <hr><p class="error-message"> ${this.message}</p><pre><ol>
-                ${this._errors.map(error => x `<li>Dans la propriété : ${(error.dataPath == undefined) ? error.instancePath : error.dataPath} : ${error.keyword} ➜ ${error.message}</li>`)}</ol></pre>`}`;
+            ${Array.isArray(this.obj.content)
+            ? x `<fz-array pointer="#" name="content"  .data="${this.obj}" .schema="${this.schema}"></fz-array>`
+            : x `<fz-object  pointer="#" name="content" .data="${this.obj}" .schema="${this.schema}"></fz-object>`}
+            ${this.renderButtons()}`;
+    }
+    renderButtons() {
+        if (!this.actions)
+            return null;
+        return x `
+            <hr>
+            <div class="d-grid gap-2 d-sm-block justify-content-md-end">
+                <button class="btn btn-primary" type="button" @click=${this.confirm}>Ok</button>
+                <button class="btn btn-danger" type="button" @click=${this.cancel} >Cancel</button>
+            </div>`;
+    }
+    renderError() {
+        return x `
+            Error(s): 
+            <hr>
+            <p class="error-message"> ${this.message}</p>
+            <pre><ol>${this._errors?.map(error => x `<li>Dans la propriété : ${(error.dataPath == undefined) ? error.instancePath : error.dataPath} : ${error.keyword} ➜ ${error.message}</li>`)}
+            </ol></pre>`;
     }
     connectedCallback() {
         super.connectedCallback();
         this.addEventListener('observed-changed', this.observedChangedHandler);
+        this.dispatchEvent(new CustomEvent('init'));
     }
     disconnectedCallback() {
         super.disconnectedCallback();
@@ -26615,26 +26599,16 @@ let FzForm = class FzForm extends Base {
         });
     }
     confirm(evt) {
-        const event = new CustomEvent('submit', {
-            detail: {
-                data: this.data,
-                schema: this.schema
-            }
-        });
-        this.dispatchEvent(event);
         evt.preventDefault();
         evt.stopPropagation();
+        const event = new CustomEvent('validate');
+        this.dispatchEvent(event);
     }
     cancel(evt) {
-        const event = new CustomEvent('cancel', {
-            detail: {
-                data: this.data,
-                schema: this.schema
-            }
-        });
-        this.dispatchEvent(event);
         evt.preventDefault();
         evt.stopPropagation();
+        const event = new CustomEvent('dismiss');
+        this.dispatchEvent(event);
     }
     compile() {
         // All schema compilation are fatal (unable to build the form)
@@ -26652,6 +26626,15 @@ let FzForm = class FzForm extends Base {
             this.message = `Data compilation failed: \n    - ${data_errors.join('\n    - ')}`;
             console.error(this.message);
         }
+        this.dispatchEvent(new CustomEvent('ready'));
+    }
+    setGlobalHandler(event, value) {
+        if (value) {
+            const fn = window[value]; // Look up the function in the global scope
+            if (typeof fn === 'function') {
+                this.addEventListener(event, fn);
+            }
+        }
     }
 };
 __decorate([
@@ -26659,37 +26642,49 @@ __decorate([
     __metadata("design:type", Object)
 ], FzForm.prototype, "i_options", null);
 __decorate([
-    r$3(),
-    __metadata("design:type", Object)
-], FzForm.prototype, "obj", null);
-__decorate([
     n$1({ type: Object, attribute: "schema", converter: jsonAttributeConverter }),
     __metadata("design:type", Object)
 ], FzForm.prototype, "i_schema", null);
 __decorate([
-    n$1({ type: String, attribute: "submit-label" }),
+    n$1({ type: Boolean, attribute: "actions" }),
     __metadata("design:type", Object)
-], FzForm.prototype, "submitlabel", null);
-__decorate([
-    n$1({ type: String, attribute: "cancel-label" }),
-    __metadata("design:type", Object)
-], FzForm.prototype, "cancellabel", null);
-__decorate([
-    n$1({ type: Boolean, attribute: "buttons-visible" }),
-    __metadata("design:type", Object)
-], FzForm.prototype, "buttonsVisible", null);
-__decorate([
-    n$1({ type: String, attribute: "id-data" }),
-    __metadata("design:type", Object)
-], FzForm.prototype, "idData", null);
+], FzForm.prototype, "actions", null);
 __decorate([
     n$1({ type: Boolean, attribute: "readonly" }),
     __metadata("design:type", Object)
 ], FzForm.prototype, "readonly", null);
 __decorate([
-    n$1({ type: Boolean, attribute: "not-validate" }),
+    n$1({ type: Boolean, attribute: "checkin" }),
     __metadata("design:type", Object)
-], FzForm.prototype, "notValidate", null);
+], FzForm.prototype, "checkIn", null);
+__decorate([
+    n$1({ type: Boolean, attribute: "checkout" }),
+    __metadata("design:type", Object)
+], FzForm.prototype, "checkOut", null);
+__decorate([
+    n$1({ type: String, attribute: 'oninit', converter: (v) => v }),
+    __metadata("design:type", Object)
+], FzForm.prototype, "oninit", void 0);
+__decorate([
+    n$1({ type: String, attribute: 'onready', converter: (v) => v }),
+    __metadata("design:type", Object)
+], FzForm.prototype, "onready", void 0);
+__decorate([
+    n$1({ type: String, attribute: 'onvaliddata', converter: (v) => v }),
+    __metadata("design:type", Object)
+], FzForm.prototype, "onvaliddata", void 0);
+__decorate([
+    n$1({ type: String, attribute: 'oninvaliddata', converter: (v) => v }),
+    __metadata("design:type", Object)
+], FzForm.prototype, "oninvaliddata", void 0);
+__decorate([
+    n$1({ type: String, attribute: 'onvalidate', converter: (v) => v }),
+    __metadata("design:type", Object)
+], FzForm.prototype, "onvalidate", void 0);
+__decorate([
+    n$1({ type: String, attribute: 'ondismiss', converter: (v) => v }),
+    __metadata("design:type", Object)
+], FzForm.prototype, "ondismiss", void 0);
 __decorate([
     r$3(),
     __metadata("design:type", Object)

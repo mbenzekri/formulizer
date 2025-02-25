@@ -7,7 +7,7 @@ export const bootstrapCss = css`
  * Copyright 2011-2024 The Bootstrap Authors
  * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
  */
-:root,
+:host,
 [data-bs-theme=light] {
   --bs-blue: #0d6efd;
   --bs-indigo: #6610f2;
@@ -191,7 +191,7 @@ export const bootstrapCss = css`
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :root {
+  :host {
     scroll-behavior: smooth;
   }
 }
@@ -778,7 +778,7 @@ progress {
     max-width: 1320px;
   }
 }
-:root {
+:host {
   --bs-breakpoint-xs: 0;
   --bs-breakpoint-sm: 576px;
   --bs-breakpoint-md: 768px;

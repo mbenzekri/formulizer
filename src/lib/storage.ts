@@ -34,7 +34,7 @@ export class BlobStoreWrapper implements IBlobStore {
             return this.store.get?.(uuid) ?? null
         } catch(e) {
             console.error(`storage: unable to get blob for uuid=${uuid}\n    - ${String(e)}`)
-            return null
+            return
         }
    }
 
@@ -84,10 +84,8 @@ export class BlobCache implements IBlobStore {
     async get(uuid: string) {
         await this.open()
         const found = await this.findKey(uuid)
-        return found ?  found : null
+        return found ?? undefined
     }
-
-
 }
 
 

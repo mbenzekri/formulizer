@@ -8,14 +8,15 @@
             "field": "fz-enum-typeahead",
             "change": "goto(value)",
             "enum": [
-                "README",
                 "expression",
                 "markdown",
                 "documents",
                 "basic typeahead",
                 "basic",
                 "object",
-                "array"
+                "array",
+                "README",
+                "Component API"
             ]
         }
     }

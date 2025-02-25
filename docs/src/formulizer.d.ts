@@ -5,6 +5,11 @@ import { LitElement, TemplateResult } from 'lit';
 type Pojo = {
     [key: string]: any;
 };
+type StoreItem = {
+    uuid: string;
+    blob: Blob;
+    filename: string;
+};
 
 declare class Base extends LitElement {
     static get styles(): lit.CSSResult[];
@@ -13,11 +18,7 @@ declare class Base extends LitElement {
 interface IBlobStore {
     put(uuid: string, blob: Blob, filename: string, pointer: string): Promise<void>;
     remove(uuid: string): Promise<void>;
-    get(uuid: string): Promise<{
-        uuid: string;
-        filename: string;
-        blob: Blob;
-    } | null>;
+    get(uuid: string): Promise<StoreItem | undefined>;
 }
 
 interface IAsset {
@@ -29,36 +30,43 @@ interface IAsset {
  * @prop schema
  * @prop data
  */
-declare class FzForm extends Base {
+declare class FzForm extends LitElement {
+    static get styles(): lit.CSSResult[];
     private accessor i_options;
-    private accessor obj;
     accessor i_schema: Pojo;
-    accessor submitlabel: string;
-    accessor cancellabel: string;
-    accessor buttonsVisible: boolean;
-    accessor idData: string;
+    accessor actions: boolean;
     accessor readonly: boolean;
-    accessor notValidate: boolean;
+    accessor checkIn: boolean;
+    accessor checkOut: boolean;
+    oninit: string | null;
+    onready: string | null;
+    onvaliddata: string | null;
+    oninvaliddata: string | null;
+    onvalidate: string | null;
+    ondismiss: string | null;
     private accessor _errors;
+    private readonly obj;
     store: IBlobStore;
-    asset?: IAsset;
-    private validator?;
-    private dataPointerFieldMap;
-    private schemaPointerFieldMap;
+    asset: IAsset;
+    private validator;
+    private readonly dataPointerFieldMap;
+    private readonly schemaPointerFieldMap;
     private message;
-    private observedChangedHandler;
+    private readonly observedChangedHandler;
     constructor();
     get root(): any;
+    get valid(): boolean;
     get schema(): Pojo;
     set schema(value: Pojo);
     get options(): any;
     set options(value: any);
     get data(): Pojo;
     set data(value: Pojo);
-    get valid(): boolean;
     attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void;
-    static get styles(): lit.CSSResult[];
     render(): lit_html.TemplateResult<1>;
+    private renderForm;
+    renderButtons(): lit_html.TemplateResult<1> | null;
+    renderError(): lit_html.TemplateResult<1>;
     connectedCallback(): void;
     disconnectedCallback(): void;
     addField(schemaPointer: string, dataPointer: string, field: FzElement): void;
@@ -76,6 +84,7 @@ declare class FzForm extends Base {
     confirm(evt: Event): void;
     cancel(evt: Event): void;
     compile(): void;
+    private setGlobalHandler;
 }
 
 /**

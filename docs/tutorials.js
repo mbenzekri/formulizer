@@ -150,7 +150,7 @@ async function init_options(form) {
             ["59cbefd0-6300-11ec-b87d-af00ce201999", { filename: "agnes.png", blob: await loadAsset("agnes.png"), pointer: "/documents/1" }]
         ]),
         // fz-form needed API to get,store,delete Application documents
-        put(uuid, blob, filename, pointer) { 
+        put(uuid, blob, filename, pointer) {
             return this.docs.set(uuid, { blob, filename, pointer })
         },
         remove(uuid) {
@@ -164,19 +164,34 @@ async function init_options(form) {
     form.options = { ref, userdata, storage }
 }
 
+const defaultTuto = {
+    "form": {
+        "type": "object",
+        "properties": {
+            "a field": {
+                "type": "string"
+            }
+        }
+    },
+    "data": {
+    }
+}
+
 const goto = async (name) => {
     const subject = name ?? "basic"
     if (subject) {
-        tutodata = await fetch(`./tutos/${subject}.json`).then(r => r.json())
-        await init_options(form)
-        await init_toc(toc)
-        form.schema = tutodata.form
-        form.data = tutodata.data
-        if (timer) clearInterval(timer)
-        schema.innerHTML = JSON.stringify(tutodata.form, ignoreProperties, 4).replace(/\n/g, '<br>')
-        form.addEventListener('update', () => {
-            data.innerHTML = JSON.stringify(form.data, undefined, 4).replace(/\n/g, '<br>')
-        })
+        tutodata = await fetch(`./tutos/${subject}.json`).then(r => r.ok ? r.json() : defaultTuto).catch(() => defaultTuto)
+        if (tutodata) {
+            await init_options(form)
+            await init_toc(toc)
+            form.schema = tutodata.form
+            form.data = tutodata.data
+            if (timer) clearInterval(timer)
+            schema.innerHTML = JSON.stringify(tutodata.form, ignoreProperties, 4).replace(/\n/g, '<br>')
+            form.addEventListener('update', () => {
+                data.innerHTML = JSON.stringify(form.data, undefined, 4).replace(/\n/g, '<br>')
+            })
+        }
         markdown(subject)
     }
 }
