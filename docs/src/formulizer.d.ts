@@ -66,7 +66,7 @@ declare class FzForm extends LitElement {
     render(): lit_html.TemplateResult<1>;
     private renderForm;
     renderButtons(): lit_html.TemplateResult<1> | null;
-    renderError(): lit_html.TemplateResult<1>;
+    private renderError;
     connectedCallback(): void;
     disconnectedCallback(): void;
     addField(schemaPointer: string, dataPointer: string, field: FzElement): void;

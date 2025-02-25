@@ -149,7 +149,7 @@ export class FzForm extends LitElement {
             ${this.renderButtons()}`
     }
 
-    renderButtons() {
+    private renderButtons() {
         if (!this.actions) return null
         return html`
             <hr>
@@ -159,7 +159,7 @@ export class FzForm extends LitElement {
             </div>`
     }
 
-    renderError() {
+    private renderError() {
         return html`
             Error(s): 
             <hr>
