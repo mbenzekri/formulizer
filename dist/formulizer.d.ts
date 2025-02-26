@@ -65,7 +65,7 @@ declare class FzForm extends LitElement {
     attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void;
     render(): lit_html.TemplateResult<1>;
     private renderForm;
-    renderButtons(): lit_html.TemplateResult<1> | null;
+    private renderButtons;
     private renderError;
     connectedCallback(): void;
     disconnectedCallback(): void;
@@ -110,6 +110,11 @@ declare abstract class FzElement extends Base {
     abstract check(): void;
     get value(): any;
     set value(val: any);
+    /**
+     * this method is called for to update this.value (and must be done only here)
+     * @param value
+     * @returns
+     */
     private cascadeValue;
     get nullable(): any;
     get key(): string | number;

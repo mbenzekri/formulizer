@@ -59,10 +59,6 @@ export class FzInputString extends FzInputBase {
             case 'uri' :  return 'url'
             default : return 'text'
         }
-        // 'month' : HTML5 un contrôle qui permet de saisir un mois et une année (sans fuseau horaire).
-        // 'week' : HTML5 un contrôle permettant de saisir une date représentée par un numéro de semaine et une année (sans indication de fuseau horaire        }
-        // hidden : un contrôle qui n'est pas affiché mais dont la valeur est envoyée au serveur.
-        // file : un contrôle qui permet de sélectionner un fichier. L'attribut accept définit les types de fichiers qui peuvent être sélectionnés.
     }
     
     convertToInput(value: any) {

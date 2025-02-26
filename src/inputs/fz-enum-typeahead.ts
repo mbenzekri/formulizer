@@ -30,7 +30,7 @@ export class FzEnumTypeahead extends FzEnumBase {
                 />
                 <div id="list" class="dropdown-menu w-100">
                     ${ this.enums?.length == 0 ? html`<a class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : '' }
-                    ${ this.showNullChoice ? html`<a class="dropdown-item" @click="${() => this.select({ label: '<vide>', value: this.empty })}" >&lt;vide&gt;</a>` : '' }
+                    ${ this.showNullChoice ? html`<a class="dropdown-item" @click="${() => this.select({ label: '<vide>', value: this.empty })}" >&lt;empty&gt;</a>` : '' }
                     ${this.enums?.map(item => html`<a class="dropdown-item" @click="${() => this.select(item)}" >${this.boldPrefix(item.label) }</a>`)}
                 </div>
             </div>`

@@ -36,7 +36,7 @@ export const jsonAttributeConverter = {
       try {
         return value ? JSON.parse(value) : null;
       } catch (error) {
-        console.error('Erreur lors du parsing de l\'attribut JSON:', error);
+        console.error('fromAttribute:JSON parsing error:', error);
         return null;
       }
     },
@@ -44,7 +44,7 @@ export const jsonAttributeConverter = {
       try {
         return value != null ? JSON.stringify(value) : null;
       } catch (error) {
-        console.error('Erreur lors de la conversion de la propriété en JSON:', error);
+        console.error('toAttribute: JSON stringifycation failure:', error);
         return null;
       }
     }
@@ -292,8 +292,7 @@ export function getEmptyValue(schema: Pojo) {
     if (!schema) return undefined
     if (schema.basetype == 'array') return []
     if (schema.basetype == 'object') return {}
-    // Ici nous vérifions dans le schema la présence d'un const,
-    // car le validateur ajv vérifie cette présence et renvoi une erreur dans cas contraire
+    // const is a special case (emptyValue is same as not empty)
     if (schema.const) return schema.const
     return schema.nullAllowed ? null : undefined
 }
@@ -323,32 +322,31 @@ export function abstract(schema: Pojo, value: any): string {
 export function formatMsg(key: string, input?: HTMLInputElement): string {
     switch (key) {
         case 'valueMissing':
-            return `champs obligatoire`
+            return `mandatory`
         case 'badInput':
-            return `valeur incorrecte`
+            return `incorrect value`
         case 'patternMismatch':
-            return `format non respecté (patron=${input ? input.getAttribute('pattern') : '?'})`
+            return `invalid pattern=${input ? input.getAttribute('pattern') : '?'})`
         case 'tooLong':
-            return `trop long (max=${input ? input.getAttribute('maxlength') : '?'})`
+            return `too long (max=${input ? input.getAttribute('maxlength') : '?'})`
         case 'tooShort':
-            return `trop court (min=${input ? input.getAttribute('minlength') : '?'})`
+            return `too short (min=${input ? input.getAttribute('minlength') : '?'})`
         case 'rangeOverflow':
-            return `trop grand (max= ${input ? input.getAttribute('max') : '?'})`
+            return `range overflow (max= ${input ? input.getAttribute('max') : '?'})`
         case 'rangeUnderflow':
-            return `trop petit (min=${input ? input.getAttribute('min') : '?'})`
+            return `range underflow (min=${input ? input.getAttribute('min') : '?'})`
         case 'stepMismatch':
-            return `erreur de pas (pas=${input ? input.getAttribute('step') : '?'})`
+            return `step mismatch (pas=${input ? input.getAttribute('step') : '?'})`
         case 'customError':
-            return `erreur spécialisé`
+            return `custom error`
         case 'typeMismatch':
-            return `syntaxe incorrecte`
+            return `syntax error`
         default: return ''
     }
 }
 
 export function cleanJSON(data: Pojo) {
-    // patch nullable pour ne pas rendre d'objet sans propriété ou de tableau vide 
-    // remplacement par null ou undefined
+    // we avoid returning object having only nullish values , or empty arrays
     const replacer = function (this: any, name: string, value: any) {
         const schema = getSchema(value)
         const pschema = getSchema(this)

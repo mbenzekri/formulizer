@@ -135,17 +135,17 @@ export class FzInputSignature extends FzInputBase {
         }
     }
     getOffset(event: any) {
-        // On calcule les offsets du canvas pour les interfaces tactiles
+        // calculate offsets for touch devices
         if (event.touches || event.originalEvent && event.originalEvent.touches) {
             this.offsetX = 0
             this.offsetY = 0;
             let elt = null;
             
-            // On vérifie si originalEvent n'est pas null (originalEvent est présent sur event sur PC)
+            // originalEvent is present on PC 
             if (event.originalEvent) 
                 elt = event.originalEvent.srcElement;
             else {
-                // On est sur tablette (originalEvent n'existe pas sur event quand on est sur tablette)
+                // ORiginal Event absent from touch devices
                 if (event.touches.length > 0)
                     elt = event.touches[0].target
             }
@@ -161,17 +161,13 @@ export class FzInputSignature extends FzInputBase {
     }
     onDown(event: Event) {
         this.drawing = !this.readonly
-        // on calcul les offset
         this.getOffset(event)
-        // On récupère la position courante de la souris
         this.getPos(event);
 
-        // On démarre un nouveau trait
+        // start a new line
         if (this.context && this.currentX) {
             this.context.beginPath();
-            // Point de départ
             this.context.moveTo(this.currentX, this.currentY);
-            // Couleur et épaisseur
             this.context.strokeStyle = "#4bf";
             this.context.lineWidth = 5;
             this.context.lineJoin = 'round';

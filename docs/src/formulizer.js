@@ -122,7 +122,7 @@ const jsonAttributeConverter = {
             return value ? JSON.parse(value) : null;
         }
         catch (error) {
-            console.error('Erreur lors du parsing de l\'attribut JSON:', error);
+            console.error('fromAttribute:JSON parsing error:', error);
             return null;
         }
     },
@@ -131,7 +131,7 @@ const jsonAttributeConverter = {
             return value != null ? JSON.stringify(value) : null;
         }
         catch (error) {
-            console.error('Erreur lors de la conversion de la propriété en JSON:', error);
+            console.error('toAttribute: JSON stringifycation failure:', error);
             return null;
         }
     }
@@ -349,8 +349,7 @@ function getEmptyValue(schema) {
         return [];
     if (schema.basetype == 'object')
         return {};
-    // Ici nous vérifions dans le schema la présence d'un const,
-    // car le validateur ajv vérifie cette présence et renvoi une erreur dans cas contraire
+    // const is a special case (emptyValue is same as not empty)
     if (schema.const)
         return schema.const;
     return schema.nullAllowed ? null : undefined;
@@ -379,31 +378,30 @@ function abstract(schema, value) {
 function formatMsg(key, input) {
     switch (key) {
         case 'valueMissing':
-            return `champs obligatoire`;
+            return `mandatory`;
         case 'badInput':
-            return `valeur incorrecte`;
+            return `incorrect value`;
         case 'patternMismatch':
-            return `format non respecté (patron=${input ? input.getAttribute('pattern') : '?'})`;
+            return `invalid pattern=${input ? input.getAttribute('pattern') : '?'})`;
         case 'tooLong':
-            return `trop long (max=${input ? input.getAttribute('maxlength') : '?'})`;
+            return `too long (max=${input ? input.getAttribute('maxlength') : '?'})`;
         case 'tooShort':
-            return `trop court (min=${input ? input.getAttribute('minlength') : '?'})`;
+            return `too short (min=${input ? input.getAttribute('minlength') : '?'})`;
         case 'rangeOverflow':
-            return `trop grand (max= ${input ? input.getAttribute('max') : '?'})`;
+            return `range overflow (max= ${input ? input.getAttribute('max') : '?'})`;
         case 'rangeUnderflow':
-            return `trop petit (min=${input ? input.getAttribute('min') : '?'})`;
+            return `range underflow (min=${input ? input.getAttribute('min') : '?'})`;
         case 'stepMismatch':
-            return `erreur de pas (pas=${input ? input.getAttribute('step') : '?'})`;
+            return `step mismatch (pas=${input ? input.getAttribute('step') : '?'})`;
         case 'customError':
-            return `erreur spécialisé`;
+            return `custom error`;
         case 'typeMismatch':
-            return `syntaxe incorrecte`;
+            return `syntax error`;
         default: return '';
     }
 }
 function cleanJSON(data) {
-    // patch nullable pour ne pas rendre d'objet sans propriété ou de tableau vide 
-    // remplacement par null ou undefined
+    // we avoid returning object having only nullish values , or empty arrays
     const replacer = function (name, value) {
         const schema = getSchema(value);
         const pschema = getSchema(this);
@@ -13958,11 +13956,11 @@ class FzElement extends Base {
     _dofocus = false;
     _form;
     get value() {
-        // attention ne jamais faire d'effet de bord (modifier this.data dans ce getter)
-        // sauf exception plus bas
+        // Warning side effects is prohibited in this method, never update this.data 
         if (this.data == null)
             return undefined;
-        // exception effet de bord (on initialise les propriété à undefined si elles son absentes)
+        // this is a known exception on side efect prohibition 
+        // We need to initialise properties to 'undefined' if they are not present
         if (this.name && !(this.name in this.data))
             this.data[this.name] = undefined;
         return this.data[this.key];
@@ -13972,24 +13970,28 @@ class FzElement extends Base {
         this.check();
         this.triggerChange();
     }
+    /**
+     * this method is called for to update this.value (and must be done only here)
+     * @param value
+     * @returns
+     */
     cascadeValue(value) {
         const schema = this.schema;
         const form = this.form;
-        // cette fonction est appelé quand un fz-form-field doit mettre a jour sa value 
-        // Deux cas se présentent  
-        // 1 - this.data l'objet ou tableau censé contenir la value est null ou undef
-        // 2 - this data n'est pas null ou undef
-        // CAS 2 : this.data est valué (cas général)
-        // si ce champ à un data ni null ni undef on raccroche simplement la value au parent (this.data)
+        // this.data has a value (not undefined or null)
+        // ---------------------------------------------
+        // we simple set new value (newValue func ensure well constructed values , chaining , default, ..)
         if (this.data) {
             this.data[this.key] = newValue(value, this.data, this.schema);
             return false;
         }
-        // CAS 1 - this.data est null ou undef (c'est a dire que l'imbrication contenant ce champ n'est pas valué)
+        // this.data is nullish
+        // --------------------
+        // we need to set this value and all the nullish ascendant found (cascading sets)
         // c'est le moment de les initialiser...
-        // ceci arrive uniquement dans les cas d'imbrications d'objet ou tableau  
-        // il y a dans le path depuis "form.root" jusqu'à 'this' des champs intermediaire dans 'pointer' à null ou undef 
-        // on doit créer ces valeurs intermédiaires qui ne peuvent etre que des objets ou des tableaux.
+        // imagine if current pointer is #/a/b/c/d/e 
+        // we must check if d,c,b, and a are nullish (suppose d,c,b are nullish)
+        // we will set new newValue() for b,c,d first 
         if (!form) {
             console.error(`cascadeValue root form not found (impossible!!!) => ${this.pointer}`);
             return false;
@@ -14002,22 +14004,21 @@ class FzElement extends Base {
             console.error(`newChild cant change root => ${this.pointer}`);
             return false;
         }
-        // on calcule le 'path' des propriétés endescendant de la racine (#) jusqu'au noeud final data
-        // ex '#/a/b/1/v/12/toto => [#,a,b,1,v,12,toto]
+        // we split pointer to obtain the path as an array of properties or indexes
+        // ex '#/a/b/c/d/e => [#,a,b,c,d,e]
         const properties = this.pointer.split('/').map(name => /^\d+$/.test(name) ? parseInt(name, 10) : name);
-        // on calcule le "path" des schemas pour chaque propriété en remontant 
-        // IMPORTANT! il est impossible de trouver tous les schemas dans l'autre sens 
-        // à cause des types heterogènes dans les tableaux (qui empèche la descente)
+        // for each properties in path we calculate a corresponding schema
+        // because heterogeneous types in arrays we are not allways able to do it
         const schemas = [];
         for (let ischema = schema; ischema; ischema = ischema.parent) {
             schemas.unshift(ischema);
         }
         if (properties.length !== schemas.length) {
-            console.error(`properties vs schemas mismatch when cascading `);
+            // not sure this is possible to happen because if we are ther choices had be done then intermidiary schema/values exists
+            console.error(`cascadeValue fail not all schema found on path `);
             return false;
         }
-        // on calcule le 'path' des valeurs de chaque propriété en descendant 
-        // chaque propriété non valuée est créé (array ou object) jusque qu'au champs final 
+        // we calculate a newValue for each missing property/index  in path in descending order until this target 
         const fields = [];
         let ipointer = '';
         let parent = form.root;
@@ -14064,9 +14065,9 @@ class FzElement extends Base {
                     parent = (type == 'object' || type == 'array') ? parent[key] : null;
             }
         }
-        // on remet à jour tous les champs trouvés
+        // trigger a requestUpdate for each field
         fields.forEach(f => f.requestUpdate());
-        // on remet à jour le champs courant
+        // trigger a requestUpdate for this field
         this.requestUpdate();
         return true;
     }
@@ -14687,8 +14688,8 @@ let FzEnum = class FzEnum extends FzEnumBase {
                 @input="${this.change}" 
                 ?required="${this.required}"
             >
-                ${this.withAdd ? x `<option style="color:red;text-align:center" ?disabled="${this.readonly}" ?selected="${false}" .value="${'~~ADD~~'}">Ajouter ...</option>` : ''}
-                ${this.showNullChoice ? x `<option style="color:red;text-align:center" ?disabled="${this.readonly}" ?selected="${this.isSelected(null)}" .value="${'~~EMPTY~~'}"> ${this.required ? 'Choisir une valeur' : '<vide>'}</option>` : ''}
+                ${this.withAdd ? x `<option style="color:red;text-align:center" ?disabled="${this.readonly}" ?selected="${false}" .value="${'~~ADD~~'}">Add ...</option>` : ''}
+                ${this.showNullChoice ? x `<option style="color:red;text-align:center" ?disabled="${this.readonly}" ?selected="${this.isSelected(null)}" .value="${'~~EMPTY~~'}"> ${this.required ? 'Choose a value...' : '<vide>'}</option>` : ''}
                 ${this.enums?.map(item => x `<option  ?disabled="${this.readonly}"  ?selected="${this.isSelected(item.value)}" .value="${item.value == null ? "" : item.value}"><b>${item.label}</b></option>`)}
             </select>`;
     }
@@ -14963,10 +14964,6 @@ let FzInputString = class FzInputString extends FzInputBase {
             case 'uri': return 'url';
             default: return 'text';
         }
-        // 'month' : HTML5 un contrôle qui permet de saisir un mois et une année (sans fuseau horaire).
-        // 'week' : HTML5 un contrôle permettant de saisir une date représentée par un numéro de semaine et une année (sans indication de fuseau horaire        }
-        // hidden : un contrôle qui n'est pas affiché mais dont la valeur est envoyée au serveur.
-        // file : un contrôle qui permet de sélectionner un fichier. L'attribut accept définit les types de fichiers qui peuvent être sélectionnés.
     }
     convertToInput(value) {
         return (value == null || value == "") ? "" : value.toString();
@@ -15097,16 +15094,16 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
         }
     }
     getOffset(event) {
-        // On calcule les offsets du canvas pour les interfaces tactiles
+        // calculate offsets for touch devices
         if (event.touches || event.originalEvent && event.originalEvent.touches) {
             this.offsetX = 0;
             this.offsetY = 0;
             let elt = null;
-            // On vérifie si originalEvent n'est pas null (originalEvent est présent sur event sur PC)
+            // originalEvent is present on PC 
             if (event.originalEvent)
                 elt = event.originalEvent.srcElement;
             else {
-                // On est sur tablette (originalEvent n'existe pas sur event quand on est sur tablette)
+                // ORiginal Event absent from touch devices
                 if (event.touches.length > 0)
                     elt = event.touches[0].target;
             }
@@ -15121,16 +15118,12 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
     }
     onDown(event) {
         this.drawing = !this.readonly;
-        // on calcul les offset
         this.getOffset(event);
-        // On récupère la position courante de la souris
         this.getPos(event);
-        // On démarre un nouveau trait
+        // start a new line
         if (this.context && this.currentX) {
             this.context.beginPath();
-            // Point de départ
             this.context.moveTo(this.currentX, this.currentY);
-            // Couleur et épaisseur
             this.context.strokeStyle = "#4bf";
             this.context.lineWidth = 5;
             this.context.lineJoin = 'round';
@@ -15311,7 +15304,7 @@ let FzInputFloat = class FzInputFloat extends FzInputBase {
         return '';
     }
     keypress(event) {
-        // anomalie browser sur input number on rejette les separateurs décimaux hors de la langue locale
+        // browser issue on "input type=number' we reject decimal sep not in current locale
         if (/[.,]/.test(event.key) && DECIMAL_SEPARATOR !== event.key) {
             event.preventDefault();
         }
@@ -24467,7 +24460,7 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
                 />
                 <div id="list" class="dropdown-menu w-100">
                     ${this.enums?.length == 0 ? x `<a class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : ''}
-                    ${this.showNullChoice ? x `<a class="dropdown-item" @click="${() => this.select({ label: '<vide>', value: this.empty })}" >&lt;vide&gt;</a>` : ''}
+                    ${this.showNullChoice ? x `<a class="dropdown-item" @click="${() => this.select({ label: '<vide>', value: this.empty })}" >&lt;empty&gt;</a>` : ''}
                     ${this.enums?.map(item => x `<a class="dropdown-item" @click="${() => this.select(item)}" >${this.boldPrefix(item.label)}</a>`)}
                 </div>
             </div>`;
@@ -25643,7 +25636,7 @@ let FzItemDlg = class FzItemDlg extends Base {
             x `<div class="btn-group" role="group">
                     <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
                         @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    ${"Choisir le type d'élément"}
+                    ${"Choose type"}
                     </button> 
                     <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
                         ${this.arraySchema?.items.oneOf.map((schema, i) => x `<a class="dropdown-item"
@@ -26487,7 +26480,7 @@ let FzForm = class FzForm extends r$1 {
             }
             else {
                 this._errors = validateErrors();
-                this.message = "L'attribut 'data' n'est plus valide vis à vis du schema";
+                this.message = "provided value for 'data' attribute doesn't conform to schema";
             }
         }
     }

@@ -58,10 +58,10 @@ export abstract class FzElement extends Base {
     abstract check(): void;
 
     get value(): any {
-        // attention ne jamais faire d'effet de bord (modifier this.data dans ce getter)
-        // sauf exception plus bas
+        // Warning side effects is prohibited in this method, never update this.data 
         if (this.data == null) return undefined
-        // exception effet de bord (on initialise les propriété à undefined si elles son absentes)
+        // this is a known exception on side efect prohibition 
+        // We need to initialise properties to 'undefined' if they are not present
         if (this.name && !(this.name in this.data)) this.data[this.name] = undefined
         return this.data[this.key]
     }
@@ -71,29 +71,31 @@ export abstract class FzElement extends Base {
         this.triggerChange()
     }
 
+    /**
+     * this method is called for to update this.value (and must be done only here)
+     * @param value 
+     * @returns 
+     */
     private cascadeValue(value: any): boolean {
         const schema = this.schema
         const form = this.form
 
-        // cette fonction est appelé quand un fz-form-field doit mettre a jour sa value 
-        // Deux cas se présentent  
-        // 1 - this.data l'objet ou tableau censé contenir la value est null ou undef
-        // 2 - this data n'est pas null ou undef
-
-        // CAS 2 : this.data est valué (cas général)
-        // si ce champ à un data ni null ni undef on raccroche simplement la value au parent (this.data)
+        // this.data has a value (not undefined or null)
+        // ---------------------------------------------
+        // we simple set new value (newValue func ensure well constructed values , chaining , default, ..)
         if (this.data) {
             this.data[this.key] = newValue(value, this.data, this.schema)
             return false
         }
 
-        // CAS 1 - this.data est null ou undef (c'est a dire que l'imbrication contenant ce champ n'est pas valué)
+        // this.data is nullish
+        // --------------------
+        // we need to set this value and all the nullish ascendant found (cascading sets)
         // c'est le moment de les initialiser...
+        // imagine if current pointer is #/a/b/c/d/e 
+        // we must check if d,c,b, and a are nullish (suppose d,c,b are nullish)
+        // we will set new newValue() for b,c,d first 
 
-
-        // ceci arrive uniquement dans les cas d'imbrications d'objet ou tableau  
-        // il y a dans le path depuis "form.root" jusqu'à 'this' des champs intermediaire dans 'pointer' à null ou undef 
-        // on doit créer ces valeurs intermédiaires qui ne peuvent etre que des objets ou des tableaux.
         if (!form) {
             console.error(`cascadeValue root form not found (impossible!!!) => ${this.pointer}`)
             return false
@@ -106,22 +108,21 @@ export abstract class FzElement extends Base {
             console.error(`newChild cant change root => ${this.pointer}`)
             return false
         }
-        // on calcule le 'path' des propriétés endescendant de la racine (#) jusqu'au noeud final data
-        // ex '#/a/b/1/v/12/toto => [#,a,b,1,v,12,toto]
+        // we split pointer to obtain the path as an array of properties or indexes
+        // ex '#/a/b/c/d/e => [#,a,b,c,d,e]
         const properties = this.pointer.split('/').map(name => /^\d+$/.test(name) ? parseInt(name, 10) : name)
 
-        // on calcule le "path" des schemas pour chaque propriété en remontant 
-        // IMPORTANT! il est impossible de trouver tous les schemas dans l'autre sens 
-        // à cause des types heterogènes dans les tableaux (qui empèche la descente)
+        // for each properties in path we calculate a corresponding schema
+        // because heterogeneous types in arrays we are not allways able to do it
         const schemas: Pojo[] = []
         for (let ischema = schema; ischema; ischema = ischema.parent) { schemas.unshift(ischema) }
         if (properties.length !== schemas.length) {
-            console.error(`properties vs schemas mismatch when cascading `)
+            // not sure this is possible to happen because if we are ther choices had be done then intermidiary schema/values exists
+            console.error(`cascadeValue fail not all schema found on path `)
             return false
         }
 
-        // on calcule le 'path' des valeurs de chaque propriété en descendant 
-        // chaque propriété non valuée est créé (array ou object) jusque qu'au champs final 
+        // we calculate a newValue for each missing property/index  in path in descending order until this target 
         const fields: FzElement[] = []
         let ipointer: string = ''
         let parent = form.root
@@ -161,9 +162,9 @@ export abstract class FzElement extends Base {
                     parent = (type == 'object' || type == 'array') ? parent[key] : null
             }
         }
-        // on remet à jour tous les champs trouvés
+        // trigger a requestUpdate for each field
         fields.forEach(f => f.requestUpdate())
-        // on remet à jour le champs courant
+        // trigger a requestUpdate for this field
         this.requestUpdate()
         return true
     }

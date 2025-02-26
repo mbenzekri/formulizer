@@ -35,7 +35,7 @@ export class FzItemDlg extends Base {
                 html`<div class="btn-group" role="group">
                     <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
                         @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    ${"Choisir le type d'élément"}
+                    ${"Choose type"}
                     </button> 
                     <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
                         ${this.arraySchema?.items.oneOf.map((schema: any, i: number) => html`<a class="dropdown-item"

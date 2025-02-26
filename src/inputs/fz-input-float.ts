@@ -60,7 +60,7 @@ export class FzInputFloat extends FzInputBase {
     }
 
     keypress(event: KeyboardEvent ){
-        // anomalie browser sur input number on rejette les separateurs décimaux hors de la langue locale
+        // browser issue on "input type=number' we reject decimal sep not in current locale
         if (/[.,]/.test(event.key) && DECIMAL_SEPARATOR !== event.key) {
             event.preventDefault();
         }

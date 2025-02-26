@@ -82,11 +82,11 @@ export class FzForm extends LitElement {
                 this.requestUpdate()
             } else {
                 this._errors = validateErrors()
-                this.message = "L'attribut 'data' n'est plus valide vis à vis du schema"
+                this.message = "provided value for 'data' attribute doesn't conform to schema"
             }
         } else {
             this._errors = validateErrors()
-            this.message = "L'attribut 'schema' n'est pas un JSON Schema Form valide."
+            this.message = "provided data for 'schema' attribute is not a valid annotated JSON Schema."
         }
     }
 
