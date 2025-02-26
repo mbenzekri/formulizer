@@ -95,7 +95,7 @@ patchImg(md, 100, 100)
 async function markdown(name) {
     // Get description markdown
     const defaultText = "Sorry, no description ..."
-    const markdownText = await fetch(`./tutos/${name}.md`).then(r => r.ok ? r.text() : defaultText).catch(() => defaultText)
+    const markdownText = await fetch(`./examples/${name}.md`).then(r => r.ok ? r.text() : defaultText).catch(() => defaultText)
     const markdownHTML = md.render(markdownText)
     // render the html into the div
     document.getElementById('markdown').innerHTML = markdownHTML;
@@ -180,7 +180,7 @@ const defaultTuto = {
 const goto = async (name) => {
     const subject = name ?? "basic"
     if (subject) {
-        tutodata = await fetch(`./tutos/${subject}.json`).then(r => r.ok ? r.json() : defaultTuto).catch(() => defaultTuto)
+        tutodata = await fetch(`./examples/${subject}.json`).then(r => r.ok ? r.json() : defaultTuto).catch(() => defaultTuto)
         if (tutodata) {
             await init_options(form)
             await init_toc(toc)

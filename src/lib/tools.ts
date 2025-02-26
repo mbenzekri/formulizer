@@ -1,8 +1,4 @@
 import { JSONSchema, Pojo } from "../lib/types"
-// MBZ-TOFIX import draft from "./draft-07-schema.json"
-// MBZ-TOFIX import { Ajv } from "ajv"
-// MBZ-TOFIX import { ValidateFunction, ErrorObject } from "ajv"
-// MBZ-TOFIX import Ajvi18n from "ajv-i18n/localize/fr"
 
 const primitivetypes = new Set<string>(['string', 'integer', 'number', 'boolean', 'array'])
 export function isprimitive(name: string) { return primitivetypes.has(name) }
@@ -14,22 +10,6 @@ export function isenumarray(schema: Pojo) {
     }
     return false
 }
-
-// const ajv = new Ajv({ strictNumbers: false, strictSchema: false, coerceTypes: true })
-
-// MBZ-TOFIX ajv.addFormat("color", /./)
-// MBZ-TOFIX ajv.addFormat("signature", /./)
-// MBZ-TOFIX ajv.addFormat("password", /./)
-// MBZ-TOFIX ajv.addFormat("doc", /./)
-// MBZ-TOFIX ajv.addFormat("uuid", /./)
-// MBZ-TOFIX ajv.addFormat("geo", /./)
-// MBZ-TOFIX ajv.addFormat("markdown", /./)
-// MBZ-TOFIX ajv.addFormat("asset", /./)
-// MBZ-TOFIX ajv.addFormat("date", /./)
-// MBZ-TOFIX ajv.addFormat("time", /./)
-// MBZ-TOFIX ajv.addFormat("date-time", /./)
-// MBZ-TOFIX ajv.addFormat("email", /./)
-
 
 export const jsonAttributeConverter = {
     fromAttribute(value: string | null): unknown {
@@ -85,50 +65,6 @@ export function closestAscendantFrom(selector:string, item: Element): Element | 
         return found ?? closestAscendantFrom(selector, parent);
     }
     return null
-}
-
-//const schemaValidate = ajv.compile(draft)
-//const schemaValidate = ajv.getSchema("http://json-schema.org/draft-07/schema#")
-export function validateSchema(_data: any) {
-    return true
-    // MBZ-TOFIX return schemaValidate ? schemaValidate(data) : false
-}
-
-export function validateErrors() {
-    return []
-    // MBZ-TOFIX Ajvi18n(schemaValidate?.errors)
-    // MBZ-TOFIX return schemaValidate?.errors
-}
-
-class ErrorObject {
-
-    get instancePath() {
-        return "/a/b/c";
-    }
-
-}
-
-export class DataValidator {
-    // MBZ-TOFIX parser: ValidateFunction
-    constructor(_schema: Pojo) {
-        // MBZ-TOFIX this.parser = ajv.compile(schema)
-    }
-    validate(_value: any): boolean {
-        // MBZ-TOFIX const result = this.parser(value)
-        // MBZ-TOFIX if (typeof result === 'boolean') return result
-        return true
-        // MBZ-TOFIX throw (`NE DOIT JAMAIS ARRIVER`)
-    }
-    errors(): ErrorObject[] | null | undefined {
-        // MBZ-TOFIX return this.parser.errors
-        return null
-    }
-
-    errorsText(_errors: ErrorObject[] | null | undefined): string {
-        // MBZ-TOFIX Ajvi18n(errors)
-        // MBZ-TOFIX return ajv.errorsText(errors)
-        return 'an error message'
-    }
 }
 
 /**

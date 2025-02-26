@@ -2,7 +2,8 @@
 import { customElement } from "lit/decorators.js"
 import { html, TemplateResult } from "lit"
 import { repeat } from "lit/directives/repeat.js"
-import { DataValidator, formatMsg, getCircularReplacer } from "../lib/tools";
+import { DataValidator } from "../lib/validation"
+import { formatMsg, getCircularReplacer } from "../lib/tools";
 import { isEmptyValue } from "../lib/tools"
 import { FZCollection } from "./fz-collection";
 

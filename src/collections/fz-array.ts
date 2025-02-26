@@ -2,7 +2,8 @@
 import { customElement,property} from "lit/decorators.js"
 import {  html, css } from "lit"
 import { Pojo } from "../lib/types"
-import { calculateDefault, DataValidator, formatMsg, getCircularReplacer, getSchema, isEmptyValue } from "../lib/tools"
+import { DataValidator } from "../lib/validation"
+import { calculateDefault, formatMsg, getCircularReplacer, getSchema, isEmptyValue } from "../lib/tools"
 import { FZCollection } from "./fz-collection"
 
 /**

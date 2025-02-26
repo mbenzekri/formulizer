@@ -2,7 +2,7 @@
     "type": "object",
     "title": "",
     "properties": {
-        "Search a tutorial...": {
+        "Search examples...": {
             "title": "",
             "type": "string",
             "field": "fz-enum-typeahead",

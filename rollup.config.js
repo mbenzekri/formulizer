@@ -12,6 +12,8 @@ import url from '@rollup/plugin-url';
 import alias from '@rollup/plugin-alias';
 import typescript from '@rollup/plugin-typescript';
 import dts from "rollup-plugin-dts";
+import json from '@rollup/plugin-json';
+import commonjs from '@rollup/plugin-commonjs';
 
 
 import path from "path";
@@ -38,6 +40,8 @@ const commonPlugins = [
   }),
   // Ensures that dependencies are properly resolved before transformation.
   resolve(),
+  json(),      // 👈 Add this before commonjs()
+  commonjs(),  // 👈 must be before typescript()
   typescript({ sourceMap: true }),
   replace({ preventAssignment: false, 'Reflect.decorate': 'undefined' }),
   string({

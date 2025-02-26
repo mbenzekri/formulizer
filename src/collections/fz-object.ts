@@ -4,7 +4,8 @@ import { html, css, TemplateResult } from "lit"
 import { FZCollection } from "./fz-collection"
 import { FzElement } from "../fz-element"
 import { Pojo, FieldOrder } from "../lib/types"
-import { DataValidator, formatMsg, getCircularReplacer, isEmptyValue } from "../lib/tools"
+import { DataValidator } from "../lib/validation"
+import { formatMsg, getCircularReplacer, isEmptyValue } from "../lib/tools"
 
 /**
  * @prop schema

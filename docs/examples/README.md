@@ -20,9 +20,9 @@ This README page is the root of the formulizer documentation.
 Here is some important pages.
 - `<fz-form>` web component API documentation (go there link)
 - JSON Schema keywords and how that impact the form rendering (go there link)
-- Some tutorials : use the search box to select a tutorial (ch. Tutorials)
+- Some examples : use the search box to select an example (ch. Examples)
 
-## The unsurprising "[Hello, world!](./hello.html)" tutorial
+## The unsurprising "[Hello, world!](./hello.html)" tuto
 
 ```html
 <html>

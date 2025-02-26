@@ -3,7 +3,8 @@ import { html, LitElement } from "lit";
 import { property, customElement, state } from "lit/decorators.js";
 import { Pojo } from "./lib/types"
 import { FzElement } from "./fz-element";
-import { validateSchema, validateErrors, DataValidator, jsonAttributeConverter, cleanJSON } from "./lib/tools"
+import { validateSchema, validateErrors, DataValidator } from "./lib/validation"
+import { jsonAttributeConverter, cleanJSON } from "./lib/tools"
 import { SchemaCompiler, DataCompiler } from "./lib/compiler"
 import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { IAsset } from "./inputs/fz-input-asset";
