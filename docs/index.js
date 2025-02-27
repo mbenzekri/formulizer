@@ -206,9 +206,10 @@ const goto = async (name) => {
     }
 }
 
-const done = false
+let done = false
 function renderToc(tocSections) {
     if (done) return
+    done = true
     const toc = document.getElementById('longtoc')
     const htmlSections = []
     for (const section in tocSections) {
