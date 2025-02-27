@@ -506,7 +506,7 @@ class CSOrder extends CompilationStep {
 class CSInsideRef extends CompilationStep {
     private data: Pojo
     constructor(root:JSONSchema, data: Pojo) {
-        super(root,"enumRef")
+        super(root,"refTo")
         this.data = data
     }
     override appliable(schema: JSONSchema) {

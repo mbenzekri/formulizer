@@ -1,7 +1,6 @@
 "use strict"
 // handler when selecting tab 
 function onTabChange(panel) {
-    console.log("Onglet actif : " + panel);
     if (panel == "data-tab") data.innerHTML = JSON.stringify(form.data, undefined, 4).replace(/\n/g, '<br>')
 }
 
@@ -105,8 +104,18 @@ async function markdown(name) {
 async function init_toc(form) {
     // initialize table of content
     const toc_schema = await fetch(`./toc.json`).then(r => r.json())
+    const sections = toc_schema.definitions.toc
+    const enumToc = []
+    for (const section in sections) {
+        for (const chapter in sections[section]) {
+            const title = sections[section][chapter]
+            enumToc.push({value: chapter ,title: `${section} - ${title}`})
+        }
+    }
+    form.options={ ref:() => enumToc }
     form.schema = toc_schema
     form.data = { query: "" }
+    renderToc(sections)
 }
 
 
@@ -168,13 +177,13 @@ const defaultTuto = {
     "form": {
         "type": "object",
         "properties": {
-            "a field": {
-                "type": "string"
+            "field": {
+                "type": "string",
+                "markdown": ["No demo for this chapter"]
             }
         }
     },
-    "data": {
-    }
+    "data": {}
 }
 
 const goto = async (name) => {
@@ -182,8 +191,9 @@ const goto = async (name) => {
     if (subject) {
         tutodata = await fetch(`./examples/${subject}.json`).then(r => r.ok ? r.json() : defaultTuto).catch(() => defaultTuto)
         if (tutodata) {
-            await init_options(form)
             await init_toc(toc)
+            renderToc()
+            await init_options(form)
             form.schema = tutodata.form
             form.data = tutodata.data
             if (timer) clearInterval(timer)
@@ -196,4 +206,29 @@ const goto = async (name) => {
     }
 }
 
+const done = false
+function renderToc(tocSections) {
+    if (done) return
+    const toc = document.getElementById('longtoc')
+    const htmlSections = []
+    for (const section in tocSections) {
+        const htmlChapters = []
+        for (const chapter in tocSections[section]) {
+            const title = tocSections[section][chapter]
+            const line = `<li class="chapter nav-item"><a class="nav-link" onclick="goto('${chapter}')">${title}</a></li>`
+            htmlChapters.push(line)
+        }
+        const htmlSection = `
+            <li class="nav-item">
+                <div class="section nav-link">${section}</div>
+                <ul class="nav flex-column ps-3">
+                    ${ htmlChapters.join('\n')}
+                </ul>
+            </li>
+        `
+        toc.insertAdjacentHTML("beforeend", htmlSection);
+    }
+}
+
 window.addEventListener('load', () => goto("README"))
+

@@ -9,8 +9,6 @@ Formulizer is a W3C-compliant web component:
 - inner content is ignored (please dont put content , may be used later )
 - pass mandatory attributes `schema` and `data` at least
 
-
-
 ## Attributes 
 | name | M | type | description |
 | ---- | - | ---- | ----------- |

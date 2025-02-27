@@ -33684,7 +33684,7 @@ class CSOrder extends CompilationStep {
 class CSInsideRef extends CompilationStep {
     data;
     constructor(root, data) {
-        super(root, "enumRef");
+        super(root, "refTo");
         this.data = data;
     }
     appliable(schema) {
