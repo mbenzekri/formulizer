@@ -154,15 +154,13 @@ export class FzInputDoc extends FzInputBase {
 
     override connectedCallback() {
         super.connectedCallback()
-        this.addEventListener('update', () =>  this.check())
+        this.listen(this, 'update', () =>  this.check())
     }
 
     override async firstUpdated(changedProperties: any) {
         super.firstUpdated(changedProperties)
         this.photoModal = this.shadowRoot?.querySelector('fz-photo-dlg') ?? undefined
-        this.photoModal.addEventListener('close' as any, (evt: CustomEvent) => {
-            this.set(uuidv1(),evt.detail.blob, "photo.png")
-        })
+        this.listen(this.photoModal,'close' as any, evt => this.set(uuidv1(),(evt as CustomEvent).detail.blob, "photo.png") )
         if (this.value != null)  {
             const doc = await this.store.get(this.value)
             if (doc) {

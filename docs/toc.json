@@ -33,8 +33,9 @@
                     "refTo": "Reference to data"
             },
             "Array": {
-                    "array": "Array field",
-                    "enum": "Enum arrays"
+                "array": "Array field",
+                "arrays/minmax": "min/max items",
+                "enum": "Enum arrays"
             },
             "Object": {
                     "object": "Object field",

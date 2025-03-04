@@ -380,6 +380,14 @@ window.nvl = function nvl(templates, ...values) {
     const cleaned = values.map(v => v ?? '');
     return String.raw(templates, cleaned);
 };
+function setGlobalHandler(target, event, value) {
+    if (value) {
+        const fn = window[value]; // Look up the function in the global scope
+        if (typeof fn === 'function') {
+            target.addEventListener(event, fn);
+        }
+    }
+}
 
 const bootstrapCss = i$4 `
 @charset "UTF-8";
@@ -13846,11 +13854,35 @@ const bootstrapIconsCss = i$4 `
 `;
 
 class Base extends r$1 {
+    handlers = [];
     static get styles() {
         return [
             bootstrapCss,
             bootstrapIconsCss,
         ];
+    }
+    listen(target, event, handler, options) {
+        const i = this.handlers.findIndex(item => item.target === target && item.event === event && item.handler === handler);
+        if (i < 0) {
+            this.handlers.push({ target, event, handler });
+            target.addEventListener(event, handler, options);
+        }
+    }
+    unlisten(target, event, handler, options) {
+        const i = this.handlers.findIndex(item => item.target === target && item.event === event && item.handler === handler);
+        if (i >= 0) {
+            this.handlers.splice(i, 1);
+            target.removeEventListener(event, handler, options);
+        }
+    }
+    connectedCallback() {
+        super.connectedCallback();
+    }
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        for (const item of this.handlers) {
+            item.target.removeEventListener(item.event, item.handler);
+        }
     }
 }
 
@@ -13909,7 +13941,6 @@ class FzElement extends Base {
     get message() { return this.#message_accessor_storage; }
     set message(value) { this.#message_accessor_storage = value; }
     _initdone = false;
-    _handlers = {};
     _dofocus = false;
     _form;
     get value() {
@@ -14236,10 +14267,6 @@ class FzElement extends Base {
     disconnectedCallback() {
         super.disconnectedCallback();
         this.form?.removeField(this.schema.pointer, this.pointer);
-        for (const event in this._handlers) {
-            const handlers = this._handlers[event];
-            handlers.forEach(handler => this.removeEventListener(event, handler));
-        }
     }
     requestUpdate(name, oldvalue) {
         super.requestUpdate(name, oldvalue);
@@ -14418,9 +14445,10 @@ class FzInputBase extends FzElement {
      */
     firstUpdated(_changedProperties) {
         // for debug 'F9' output state of field
-        this.input?.addEventListener('keydown', (evt) => this.debugKey(evt));
-        if (this.input)
+        if (this.input) {
+            this.listen(this.input, 'keydown', (evt) => this.debugKey(evt));
             this.input.value = this.convertToInput(this.value);
+        }
         this.check();
     }
     update(changedProps) {
@@ -15000,12 +15028,12 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
         // Gestion des événements
         if (this.canvas) {
             this.context = this.canvas.getContext('2d') ?? undefined;
-            this.canvas.addEventListener('mousedown', (evt) => this.onDown(evt));
-            this.canvas.addEventListener('mousemove', (evt) => this.onMove(evt));
-            this.canvas.addEventListener('mouseup', (evt) => this.onUp(evt));
-            this.canvas.addEventListener('touchstart', (evt) => this.onDown(evt), { passive: false });
-            this.canvas.addEventListener('touchmove', (evt) => this.onMove(evt), { passive: false });
-            this.canvas.addEventListener('touchend', (evt) => this.onUp(evt));
+            this.listen(this.canvas, 'mousedown', evt => this.onDown(evt));
+            this.listen(this.canvas, 'mousemove', evt => this.onMove(evt));
+            this.listen(this.canvas, 'mouseup', evt => this.onUp(evt));
+            this.listen(this.canvas, 'touchstart', evt => this.onDown(evt), { passive: false });
+            this.listen(this.canvas, 'touchmove', evt => this.onMove(evt), { passive: false });
+            this.listen(this.canvas, 'touchend', evt => this.onUp(evt));
         }
         this.content = this.shadowRoot?.getElementById('content') ?? undefined;
         if (this.content) {
@@ -15797,14 +15825,12 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
     }
     connectedCallback() {
         super.connectedCallback();
-        this.addEventListener('update', () => this.check());
+        this.listen(this, 'update', () => this.check());
     }
     async firstUpdated(changedProperties) {
         super.firstUpdated(changedProperties);
         this.photoModal = this.shadowRoot?.querySelector('fz-photo-dlg') ?? undefined;
-        this.photoModal.addEventListener('close', (evt) => {
-            this.set(v1(), evt.detail.blob, "photo.png");
-        });
+        this.listen(this.photoModal, 'close', evt => this.set(v1(), evt.detail.blob, "photo.png"));
         if (this.value != null) {
             const doc = await this.store.get(this.value);
             if (doc) {
@@ -32115,10 +32141,8 @@ let FzArray$1 = class FzArray extends FZCollection {
     }
     connectedCallback() {
         super.connectedCallback();
-        this.addEventListener('update', () => {
-            this.check();
-        });
-        this.addEventListener('toggle-item', (evt) => {
+        this.listen(this, 'update', () => this.check());
+        this.listen(this, 'toggle-item', (evt) => {
             this.close();
             this.eventStop(evt);
         });
@@ -32384,10 +32408,7 @@ let FzObject = class FzObject extends FZCollection {
     }
     connectedCallback() {
         super.connectedCallback();
-        this.addEventListener('update', () => {
-            this.check();
-            this.requestUpdate();
-        });
+        this.listen(this, 'update', _ => (this.check(), this.requestUpdate()));
     }
     firstUpdated(changedProperties) {
         super.firstUpdated(changedProperties);
@@ -32664,9 +32685,7 @@ let FzArray = class FzArray extends FZCollection {
     }
     connectedCallback() {
         super.connectedCallback();
-        this.addEventListener('update', () => {
-            this.check();
-        });
+        this.listen(this, 'update', () => this.check());
     }
     update(changedProperties) {
         if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema).length !== 0) {
@@ -32886,7 +32905,8 @@ let FzBarcodeDialog = class FzBarcodeDialog extends Base {
         }
         this.modal = this.shadowRoot?.querySelector('fz-dialog');
         this.video = this.shadowRoot?.querySelector('video');
-        this.video?.addEventListener("play", _ => this.scan());
+        if (this.video)
+            this.listen(this.video, "play", _ => this.scan());
     }
     async initCamera() {
         try {
@@ -33938,11 +33958,10 @@ class BlobMemory {
  * @prop schema
  * @prop data
  */
-let FzForm = class FzForm extends r$1 {
+let FzForm = class FzForm extends Base {
     static get styles() {
         return [
-            bootstrapCss,
-            bootstrapIconsCss,
+            ...super.styles
         ];
     }
     #i_options_accessor_storage = {};
@@ -33979,25 +33998,23 @@ let FzForm = class FzForm extends r$1 {
     dataPointerFieldMap = new Map();
     schemaPointerFieldMap = new Map();
     message = "";
-    observedChangedHandler;
     constructor() {
         super();
-        this.observedChangedHandler = (e) => this.observedChange(e);
         ["oninit", "onready", "onvaliddata", "oninvaliddata", "onvalidate", "ondismiss"].forEach(event => {
             this.constructor.elementProperties.get(event).converter =
-                (value) => { this.setGlobalHandler(event.substring(2), value); return value; };
+                (value) => { setGlobalHandler(this, event.substring(2), value); return value; };
         });
     }
     get root() { return this.obj.content; }
     get valid() {
-        return this.validator == null ? false : this.validator.validate(this.obj.content);
+        return this.validator?.validate(this.root) ?? false;
     }
     get schema() { return this.i_schema; }
     set schema(value) {
         if (validateSchema(value)) {
             this.i_schema = JSON.parse(JSON.stringify(value));
             this.validator = new DataValidator(this.i_schema);
-            if (this.validator.validate(this.obj.content)) {
+            if (this.valid) {
                 this._errors = null;
                 this.message = "";
                 this.compile();
@@ -34023,7 +34040,7 @@ let FzForm = class FzForm extends r$1 {
             this.asset = this.i_options.asset;
         }
     }
-    get data() { return cleanJSON(this.obj.content); }
+    get data() { return cleanJSON(this.root); }
     set data(value) {
         if (!this.validator) {
             // we do not have a valid JSON Schema unable to work
@@ -34056,7 +34073,7 @@ let FzForm = class FzForm extends r$1 {
     }
     renderForm() {
         return x `
-            ${Array.isArray(this.obj.content)
+            ${Array.isArray(this.root)
             ? x `<fz-array pointer="#" name="content"  .data="${this.obj}" .schema="${this.schema}"></fz-array>`
             : x `<fz-object  pointer="#" name="content" .data="${this.obj}" .schema="${this.schema}"></fz-object>`}
             ${this.renderButtons()}`;
@@ -34081,12 +34098,12 @@ let FzForm = class FzForm extends r$1 {
     }
     connectedCallback() {
         super.connectedCallback();
-        this.addEventListener('observed-changed', this.observedChangedHandler);
+        this.listen(this, 'observed-changed', (e) => this.observedChange(e));
         this.dispatchEvent(new CustomEvent('init'));
     }
     disconnectedCallback() {
         super.disconnectedCallback();
-        this.removeEventListener('observed-changed', this.observedChangedHandler);
+        this.removeEventListener('observed-changed', (e) => this.observedChange(e));
     }
     addField(schemaPointer, dataPointer, field) {
         this.schemaPointerFieldMap.set(schemaPointer, field);
@@ -34149,14 +34166,6 @@ let FzForm = class FzForm extends r$1 {
             console.error(this.message);
         }
         this.dispatchEvent(new CustomEvent('ready'));
-    }
-    setGlobalHandler(event, value) {
-        if (value) {
-            const fn = window[value]; // Look up the function in the global scope
-            if (typeof fn === 'function') {
-                this.addEventListener(event, fn);
-            }
-        }
     }
 };
 __decorate([

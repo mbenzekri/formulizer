@@ -82,13 +82,8 @@ export class FzArray extends FZCollection {
 
     override connectedCallback() {
         super.connectedCallback()
-        this.addEventListener('update', () => {
-            this.check()
-        })
-        this.addEventListener('toggle-item',(evt) => {
-            this.close()
-            this.eventStop(evt)
-        })
+        this.listen(this, 'update', () =>  this.check())
+        this.listen(this, 'toggle-item', evt => (this.close(),this.eventStop(evt)))
     }
     override requestUpdate(name?: PropertyKey | undefined, oldvalue?: unknown): void {
         if (name !== undefined) {

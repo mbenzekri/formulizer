@@ -1,16 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { html, LitElement } from "lit";
+import { html } from "lit";
+import { Base } from "./base"
 import { property, customElement, state } from "lit/decorators.js";
 import { Pojo } from "./lib/types"
 import { FzElement } from "./fz-element";
 import { validateSchema, validateErrors, DataValidator } from "./lib/validation"
-import { jsonAttributeConverter, cleanJSON } from "./lib/tools"
+import { jsonAttributeConverter, cleanJSON, setGlobalHandler } from "./lib/tools"
 import { SchemaCompiler, DataCompiler } from "./lib/compiler"
 import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { IAsset } from "./inputs/fz-input-asset";
-import { bootstrapCss } from "./assets/bootstrap";
-import { bootstrapIconsCss } from "./assets/bootstrap-icons";
-
 
 
 
@@ -20,12 +18,11 @@ import { bootstrapIconsCss } from "./assets/bootstrap-icons";
  */
 
 @customElement("fz-form")
-export class FzForm extends LitElement {
+export class FzForm extends Base {
 
     static override get styles() {
         return [
-            bootstrapCss,
-            bootstrapIconsCss,
+            ...super.styles
         ]
     }
 
@@ -50,25 +47,22 @@ export class FzForm extends LitElement {
     private readonly dataPointerFieldMap: Map<string, FzElement> = new Map()
     private readonly schemaPointerFieldMap: Map<string, FzElement> = new Map()
     private message = ""
-    private readonly observedChangedHandler: (e: Event) => void
 
     constructor() {
         super()
-        this.observedChangedHandler = (e) => this.observedChange(e)
-
             // this is a workaround to convert string with global function name into a handler
             // into corresponding event handler (quite deprecated)
             // ex: HTML: oninit="myFunc" became: this.addEventListener(myFunc)
             // because this cant be used in @property(...) declaration
             ;["oninit", "onready", "onvaliddata", "oninvaliddata", "onvalidate", "ondismiss"].forEach(event => {
                 (this.constructor as any).elementProperties.get(event).converter =
-                    (value: string) => { this.setGlobalHandler(event.substring(2), value); return value }
+                    (value: string) => { setGlobalHandler(this,event.substring(2), value); return value }
             })
     }
 
     get root(): any { return this.obj.content }
     get valid() {
-        return this.validator == null ? false : this.validator.validate(this.obj.content)
+        return this.validator?.validate(this.root) ?? false
     }
 
     get schema() { return this.i_schema }
@@ -76,7 +70,7 @@ export class FzForm extends LitElement {
         if (validateSchema(value)) {
             this.i_schema = JSON.parse(JSON.stringify(value))
             this.validator = new DataValidator(this.i_schema)
-            if (this.validator.validate(this.obj.content)) {
+            if (this.valid) {
                 this._errors = null
                 this.message = ""
                 this.compile()
@@ -103,7 +97,7 @@ export class FzForm extends LitElement {
     }
 
 
-    get data() { return cleanJSON(this.obj.content) }
+    get data() { return cleanJSON(this.root) }
     set data(value: Pojo) {
 
         if (!this.validator) {
@@ -143,7 +137,7 @@ export class FzForm extends LitElement {
 
     private renderForm() {
         return html`
-            ${Array.isArray(this.obj.content)
+            ${Array.isArray(this.root)
                 ? html`<fz-array pointer="#" name="content"  .data="${this.obj}" .schema="${this.schema}"></fz-array>`
                 : html`<fz-object  pointer="#" name="content" .data="${this.obj}" .schema="${this.schema}"></fz-object>`
             }
@@ -171,12 +165,12 @@ export class FzForm extends LitElement {
 
     override connectedCallback() {
         super.connectedCallback()
-        this.addEventListener('observed-changed', this.observedChangedHandler)
+        this.listen(this, 'observed-changed', (e: Event) => this.observedChange(e))
         this.dispatchEvent(new CustomEvent('init'))
     }
     override disconnectedCallback() {
         super.disconnectedCallback()
-        this.removeEventListener('observed-changed', this.observedChangedHandler)
+        this.removeEventListener('observed-changed', (e) => this.observedChange(e))
     }
 
 
@@ -204,7 +198,7 @@ export class FzForm extends LitElement {
      * @param evt 
      * @returns 
      */
-    observedChange(evt: Event) {
+    private observedChange(evt: Event) {
         if (this === evt.composedPath()[0]) return
         const observers: string[] = (evt as CustomEvent).detail.observers
         observers.forEach(pointer => {
@@ -212,13 +206,13 @@ export class FzForm extends LitElement {
             field?.requestUpdate()
         })
     }
-    confirm(evt: Event) {
+    private confirm(evt: Event) {
         evt.preventDefault()
         evt.stopPropagation()
         const event = new CustomEvent('validate');
         this.dispatchEvent(event);
     }
-    cancel(evt: Event) {
+    private cancel(evt: Event) {
         evt.preventDefault()
         evt.stopPropagation()
         const event = new CustomEvent('dismiss');
@@ -245,12 +239,4 @@ export class FzForm extends LitElement {
         this.dispatchEvent(new CustomEvent('ready'))
     }
 
-    private setGlobalHandler(event: string, value: string | null) {
-        if (value) {
-            const fn = (window as any)[value]; // Look up the function in the global scope
-            if (typeof fn === 'function') {
-                this.addEventListener(event, fn)
-            }
-        }
-    }
 }

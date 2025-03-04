@@ -31,6 +31,7 @@
   "author": "M. Ben Zekri",
   "license": "BSD-3-Clause",
   "dependencies": {
+    "@lit/context": "^1.1.4",
     "@types/markdown-it": "^14.1.2",
     "ajv": "^8.17.1",
     "ajv-i18n": "^4.2.0",

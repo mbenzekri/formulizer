@@ -67,10 +67,7 @@ export class FzObject extends FZCollection {
 
     override connectedCallback() {
         super.connectedCallback()
-        this.addEventListener('update', () => {
-            this.check()
-            this.requestUpdate()
-        })
+        this.listen(this, 'update', _ => (this.check(), this.requestUpdate()) )
     }
 
     override firstUpdated(changedProperties: any) {

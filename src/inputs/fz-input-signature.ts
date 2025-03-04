@@ -83,12 +83,12 @@ export class FzInputSignature extends FzInputBase {
         // Gestion des événements
         if (this.canvas) {
             this.context = this.canvas.getContext('2d') ?? undefined
-            this.canvas.addEventListener('mousedown', (evt: MouseEvent) => this.onDown(evt))
-            this.canvas.addEventListener('mousemove', (evt: MouseEvent) => this.onMove(evt))
-            this.canvas.addEventListener('mouseup', (evt: MouseEvent) => this.onUp(evt))
-            this.canvas.addEventListener('touchstart', (evt: TouchEvent) => this.onDown(evt),{passive: false})
-            this.canvas.addEventListener('touchmove', (evt: TouchEvent) => this.onMove(evt),{passive: false})
-            this.canvas.addEventListener('touchend', (evt: TouchEvent) => this.onUp(evt))
+            this.listen(this.canvas,'mousedown', evt => this.onDown(evt))
+            this.listen(this.canvas,'mousemove', evt => this.onMove(evt))
+            this.listen(this.canvas,'mouseup', evt => this.onUp(evt))
+            this.listen(this.canvas,'touchstart', evt => this.onDown(evt),{passive: false})
+            this.listen(this.canvas,'touchmove', evt => this.onMove(evt),{passive: false})
+            this.listen(this.canvas,'touchend', evt => this.onUp(evt))
         }
         this.content = this.shadowRoot?.getElementById('content') ?? undefined
         if (this.content) {

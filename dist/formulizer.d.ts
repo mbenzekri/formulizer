@@ -12,7 +12,12 @@ type StoreItem = {
 };
 
 declare class Base extends LitElement {
+    private handlers;
     static get styles(): lit.CSSResult[];
+    listen(target: EventTarget, event: string, handler: (evt: Event) => void, options?: AddEventListenerOptions | boolean): void;
+    unlisten(target: EventTarget, event: string, handler: (evt: Event) => void, options?: AddEventListenerOptions | boolean): void;
+    connectedCallback(): void;
+    disconnectedCallback(): void;
 }
 
 interface IBlobStore {
@@ -30,7 +35,7 @@ interface IAsset {
  * @prop schema
  * @prop data
  */
-declare class FzForm extends LitElement {
+declare class FzForm extends Base {
     static get styles(): lit.CSSResult[];
     private accessor i_options;
     accessor i_schema: Pojo;
@@ -52,7 +57,6 @@ declare class FzForm extends LitElement {
     private readonly dataPointerFieldMap;
     private readonly schemaPointerFieldMap;
     private message;
-    private readonly observedChangedHandler;
     constructor();
     get root(): any;
     get valid(): boolean;
@@ -80,11 +84,10 @@ declare class FzForm extends LitElement {
      * @param evt
      * @returns
      */
-    observedChange(evt: Event): void;
-    confirm(evt: Event): void;
-    cancel(evt: Event): void;
+    private observedChange;
+    private confirm;
+    private cancel;
     compile(): void;
-    private setGlobalHandler;
 }
 
 /**
@@ -103,7 +106,6 @@ declare abstract class FzElement extends Base {
     accessor valid: boolean;
     accessor message: string;
     private _initdone;
-    private _handlers;
     private _dofocus;
     private _form?;
     abstract renderField(): TemplateResult;

@@ -50,7 +50,6 @@ export abstract class FzElement extends Base {
     @property({ attribute: false }) accessor message = ''
 
     private _initdone = false
-    private _handlers: { [name: string]: ((evt: Event) => void)[] } = {}
     private _dofocus = false
     private _form?: FzForm
 
@@ -383,11 +382,6 @@ export abstract class FzElement extends Base {
     override disconnectedCallback() {
         super.disconnectedCallback()
         this.form?.removeField(this.schema.pointer, this.pointer)
-
-        for (const event in this._handlers) {
-            const handlers = this._handlers[event]
-            handlers.forEach(handler => this.removeEventListener(event, handler))
-        }
     }
 
     override requestUpdate(name?: PropertyKey, oldvalue?: unknown): void {

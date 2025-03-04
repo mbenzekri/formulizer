@@ -41,8 +41,10 @@ export abstract class FzInputBase extends FzElement {
      */
     override firstUpdated(_changedProperties: any) {
         // for debug 'F9' output state of field
-        this.input?.addEventListener('keydown', (evt) => this.debugKey(evt))
-        if (this.input) this.input.value = this.convertToInput(this.value)
+        if (this.input) { 
+            this.listen(this.input,'keydown', (evt: Event) => this.debugKey(evt as KeyboardEvent))
+            this.input.value = this.convertToInput(this.value)
+        }
         this.check()
     }
 

@@ -10,6 +10,22 @@
     <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
     <script type="module" src="./src/formulizer.js"></script>
     <style>
+        @media (min-width: 992px) { /* Large screens (Bootstrap 'lg' breakpoint) */
+            body {
+                overflow: hidden;
+            }
+        }
+
+        /* Apply the thin scrollbar */
+        .scrollable-div::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .scrollable-div::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
         body {
             font-family: "Roboto", sans-serif;
             font-size: 15px;
@@ -117,7 +133,7 @@
             <div class="col-lg-2 p-0 d-flex flex-column d-lg-none">
                 <fz-form id="toc" class="" style="margin: 5px;"></fz-form>
             </div>
-            <div class="toc col-lg-2 p-0 d-flex flex-column d-none d-lg-block">
+            <div class="toc col-lg-2 p-0 d-flex flex-column d-none d-lg-block vh-100 scrollable-div">
                 <h4>Table of Content</h4>
                 <ul id="longtoc" class="nav flex-column"></ul>
             </div>

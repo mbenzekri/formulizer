@@ -67,9 +67,7 @@ export class FzArray extends FZCollection {
 
     override connectedCallback() {
         super.connectedCallback()
-        this.addEventListener('update', () => {
-            this.check()
-        })
+        this.listen(this, 'update', () =>  this.check())
     }
 
     override update(changedProperties: Map<string, unknown>) {

@@ -304,3 +304,12 @@ export function cleanJSON(data: Pojo) {
     const cleaned = values.map(v => v ?? '')
     return String.raw(templates,cleaned)
 }
+
+export function setGlobalHandler(target: EventTarget, event: string, value: string | null) {
+    if (value) {
+        const fn = (window as any)[value]; // Look up the function in the global scope
+        if (typeof fn === 'function') {
+            target.addEventListener(event, fn)
+        }
+    }
+}

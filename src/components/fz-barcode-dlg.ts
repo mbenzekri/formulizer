@@ -69,7 +69,7 @@ export class FzBarcodeDialog extends Base {
         }
         this.modal = this.shadowRoot?.querySelector('fz-dialog')
         this.video = this.shadowRoot?.querySelector('video')
-        this.video?.addEventListener("play", _ => this.scan())
+        if (this.video)  this.listen(this.video, "play", _ => this.scan())
     }
 
     private async initCamera() {
