@@ -2,15 +2,6 @@ import * as lit_html from 'lit-html';
 import * as lit from 'lit';
 import { LitElement, TemplateResult } from 'lit';
 
-type Pojo = {
-    [key: string]: any;
-};
-type StoreItem = {
-    uuid: string;
-    blob: Blob;
-    filename: string;
-};
-
 declare class Base extends LitElement {
     private handlers;
     static get styles(): lit.CSSResult[];
@@ -24,11 +15,6 @@ interface IBlobStore {
     put(uuid: string, blob: Blob, filename: string, pointer: string): Promise<void>;
     remove(uuid: string): Promise<void>;
     get(uuid: string): Promise<StoreItem | undefined>;
-}
-
-interface IAsset {
-    select: (fieldasset: any, value: any, selectCallback: (selected: string) => void) => Promise<void>;
-    done: () => Promise<void>;
 }
 
 /**
@@ -62,8 +48,8 @@ declare class FzForm extends Base {
     get valid(): boolean;
     get schema(): Pojo;
     set schema(value: Pojo);
-    get options(): any;
-    set options(value: any);
+    get options(): IOptions;
+    set options(value: IOptions);
     get data(): Pojo;
     set data(value: Pojo);
     attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void;
@@ -218,6 +204,26 @@ declare abstract class FzElement extends Base {
         raw: readonly string[] | ArrayLike<string>;
     }, ...substitutions: any[]) => any;
 }
+
+interface IAsset {
+    select: (fieldasset: any, value: any, selectCallback: (selected: string) => void) => Promise<void>;
+    done: () => Promise<void>;
+}
+
+type Pojo = {
+    [key: string]: any;
+};
+type StoreItem = {
+    uuid: string;
+    blob: Blob;
+    filename: string;
+};
+type IOptions = {
+    storage?: IBlobStore;
+    userdata?: any;
+    asset?: IAsset;
+    dialect?: string;
+};
 
 declare class FzMarkdownIt extends Base {
     markdown: string;

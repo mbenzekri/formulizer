@@ -32142,10 +32142,7 @@ let FzArray$1 = class FzArray extends FZCollection {
     connectedCallback() {
         super.connectedCallback();
         this.listen(this, 'update', () => this.check());
-        this.listen(this, 'toggle-item', (evt) => {
-            this.close();
-            this.eventStop(evt);
-        });
+        this.listen(this, 'toggle-item', evt => (this.close(), this.eventStop(evt)));
     }
     requestUpdate(name, oldvalue) {
         if (name !== undefined) {
@@ -33255,6 +33252,103 @@ FzItemDlg = __decorate([
     t$4("fz-item-dlg")
 ], FzItemDlg);
 
+class CompilationStep {
+    static sourceCount = 1;
+    root;
+    property;
+    constructor(root, property) {
+        this.root = root;
+        this.property = property;
+    }
+    appliable(_schema, _parent, _name) {
+        // default applied on all schemas
+        return true;
+    }
+    sourceURL(dataProperty) {
+        let source = `_FZ_${this.property}_${dataProperty ?? ''}_${CompilationStep.sourceCount++}.js`.replace(/ +/g, "_");
+        source = source.replace(/[^a-z0-9_]/ig, "");
+        console.log(`builded source :${source}`);
+        return `\n    //# sourceURL=${source}\n`;
+    }
+    error(message) {
+        return Error(`Compilation step ${this.property}: ${message} `);
+    }
+}
+
+class CSUpgradeNullable extends CompilationStep {
+    constructor(root) {
+        super(root, "nullable");
+    }
+    appliable(schema) {
+        return this.property in schema;
+    }
+    apply(schema) {
+        schema.type = Array.isArray(schema.type) ? [...schema.type, "null"] : [schema.type, "null"];
+        schema[this.property] = undefined;
+    }
+}
+class CSUpgradeId extends CompilationStep {
+    constructor(root) {
+        super(root, "$id");
+    }
+    appliable(schema) {
+        return this.property in schema && schema.$id.includes("#");
+    }
+    apply(schema) {
+        const [base, anchor] = schema.$id.split("#");
+        schema.$id = base;
+        schema.$anchor = anchor;
+    }
+}
+class CSUpgradeDependencies extends CompilationStep {
+    constructor(root) {
+        super(root, "dependencies");
+    }
+    appliable(schema) {
+        return this.property in schema;
+    }
+    apply(schema) {
+        schema.dependentRequired = { ...schema[this.property] };
+        schema[this.property] = undefined;
+    }
+}
+class CSUpgradeItems extends CompilationStep {
+    constructor(root) {
+        super(root, "items");
+    }
+    appliable(schema) {
+        return Array.isArray(schema[this.property]);
+    }
+    apply(schema) {
+        schema.prefixItems = schema[this.property];
+        schema[this.property] = undefined;
+    }
+}
+class CSUpgradeAdditionalProperties extends CompilationStep {
+    constructor(root) {
+        super(root, "additionalProperties");
+    }
+    appliable(schema) {
+        return schema[this.property] === false;
+    }
+    apply(schema) {
+        schema.unevaluatedProperties = false;
+        schema[this.property] = undefined;
+    }
+}
+class CSUpgradeRef extends CompilationStep {
+    constructor(root) {
+        super(root, "$ref");
+    }
+    appliable(schema) {
+        return this.property in schema;
+    }
+    apply(schema) {
+        schema.$dynamicRef = schema[this.property];
+        schema[this.property] = undefined;
+    }
+}
+
 /**
  * observers function parse expression to extract observed values and set observers
  * array in corresponding schema.
@@ -33284,23 +33378,42 @@ function observers(root, current, expr) {
  *  !!! be carefull action order is primordial
  */
 class SchemaCompiler {
+    static implemented = ["draft-07", "2019-09", "2020-12"];
+    static unimplemented = ["draft-06", "draft-05", "draft-04", "draft-03", "draft-02"];
+    static DIALECT_DRAF_07 = "http://json-schema.org/draft-07/schema";
+    static DIALECT_2019_09 = "https://json-schema.org/draft/2019-09/schema";
+    static DIALECT_2020_12 = "https://json-schema.org/draft/2020-12/schema";
     root;
+    dialect;
+    steps_pass0;
     steps_pass1;
     steps_pass2;
     errors = [];
     constructor(root, options, data) {
         this.root = root;
+        this.dialect = this.extractDialect(options, root.$schema);
+        if (SchemaCompiler.unimplemented.includes(this.dialect))
+            throw Error(`schema dialect '${this.dialect}' not implemented (implmented are draft-07,2019-09 and 2020-12)`);
+        // upgrade from Draft07 and 2019-09 to 2020-12
+        this.steps_pass0 = [
+            new CSUpgradeRef(this.root),
+            new CSUpgradeAdditionalProperties(this.root),
+            new CSUpgradeDependencies(this.root),
+            new CSUpgradeId(this.root),
+            new CSUpgradeItems(this.root),
+            new CSUpgradeNullable(this.root)
+        ];
         this.steps_pass1 = [
             new CSDefinition(this.root),
+            new CSParent(this.root),
+            new CSPointer(this.root),
+            new CSRoot(this.root),
             new CSTargetType(this.root),
             new CSAppEnum(this.root, options),
             new CSEnum(this.root),
             new CSEnumArray(this.root),
             new CSUniform(this.root),
             new CSObservers(this.root),
-            new CSParent(this.root),
-            new CSPointer(this.root),
-            new CSRoot(this.root),
             new CSRequiredWhen(this.root),
             new CSField(this.root),
             new CSOrder(this.root),
@@ -33319,8 +33432,25 @@ class SchemaCompiler {
             new CSAny(this.root, 'change', () => ''),
         ];
     }
+    extractDialect(options, schemaUri) {
+        switch (true) {
+            case SchemaCompiler.unimplemented.some(draft => schemaUri?.startsWith(`http://json-schema.org/${draft}/schema`)):
+                return SchemaCompiler.unimplemented.find(draft => schemaUri?.includes(draft)) ?? "draft-06";
+            case schemaUri?.startsWith(SchemaCompiler.DIALECT_DRAF_07):
+                return "draft-07";
+            case schemaUri?.startsWith(SchemaCompiler.DIALECT_2019_09):
+                return "2019-09";
+            case schemaUri?.startsWith(SchemaCompiler.DIALECT_2020_12):
+                return "2020-12";
+            case options.dialect && SchemaCompiler.implemented.includes(options.dialect):
+                return options.dialect;
+            default:
+                return "2020-12";
+        }
+    }
     compile() {
         this.errors = [];
+        // this.walkSchema(this.steps_pass0, this.root) // MBZ-TBD upgrade phase draft-07 and 2019-09 to 2020-12
         this.walkSchema(this.steps_pass1, this.root);
         this.walkSchema(this.steps_pass2, this.root);
         return this.errors;
@@ -33353,28 +33483,6 @@ class SchemaCompiler {
             return schema.allOf.forEach((child) => this.walkSchema(steps, child, parent, name));
         if (schema.anyOf)
             return schema.anyOf.forEach((child) => this.walkSchema(steps, child, parent, name));
-    }
-}
-class CompilationStep {
-    static sourceCount = 1;
-    root;
-    property;
-    constructor(root, property) {
-        this.root = root;
-        this.property = property;
-    }
-    appliable(_schema, _parent, _name) {
-        // default applied on all schemas
-        return true;
-    }
-    sourceURL(dataProperty) {
-        let source = `_FZ_${this.property}_${dataProperty ?? ''}_${CompilationStep.sourceCount++}.js`.replace(/ +/g, "_");
-        source = source.replace(/[^a-z0-9_]/ig, "");
-        console.log(`builded source :${source}`);
-        return `\n    //# sourceURL=${source}\n`;
-    }
-    error(message) {
-        return Error(`Compilation step ${this.property}: ${message} `);
     }
 }
 /**
@@ -33412,6 +33520,11 @@ class CSDefinition extends CompilationStep {
  * @param schema shema to comp base type
  */
 class CSTargetType extends CompilationStep {
+    static STRINGKW = ["minLength", "maxLength", "pattern", "format"];
+    static NUMBERKW = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"];
+    static ARRAYKW = ["items", "additionalItems", "minItems", "maxItems", "uniqueItems"];
+    static OBJECTKW = ["required", "properties", "additionalProperties", "patternProperties", "minProperties", "maxProperties", "dependencies"];
+    static ALL = new Set(["string", "integer", "number", "object", "array", "boolean", "null"]);
     constructor(root) {
         super(root, "basetype");
     }
@@ -33419,20 +33532,120 @@ class CSTargetType extends CompilationStep {
         return !(this.property in schema);
     }
     apply(schema, parent, name) {
-        if (Array.isArray(schema.type) && parent && name) {
-            if (schema.type.length > 2) {
+        schema.target = [...(this.infer(schema) ?? [])];
+        switch (schema.target.length) {
+            case 2:
+                if (!schema.target.includes("null")) {
+                    throw Error(`Second type must be "null" : ${pointerSchema(parent, name)}`);
+                }
+                schema.basetype = schema.target.find((t) => t !== "null") ?? schema.target[0];
+                schema.nullAllowed = true;
+                break;
+            case 1:
+                schema.basetype = schema.target[0];
+                schema.nullAllowed = schema.target[0] == "null";
+                break;
+            case 0:
+                schema.basetype = undefined;
+                schema.nullAllowed = false;
+                break;
+            default:
                 throw Error(`multiple types not implemented : ${pointerSchema(parent, name)}`);
-            }
-            if (!schema.type.includes("null")) {
-                throw Error(`Second type must be "null" : ${pointerSchema(parent, name)}`);
-            }
-            schema.basetype = schema.type.find(t => t !== "null") ?? "null";
-            schema.nullAllowed = true;
         }
-        else {
-            schema.basetype = schema.type;
-            schema.nullAllowed = false;
+    }
+    infer(schema) {
+        const possibles = [];
+        // we call all the helpers that infer types for each keyword
+        possibles.push(CSTargetType.ALL);
+        possibles.push(this.constKW(schema));
+        possibles.push(this.typeKW(schema));
+        possibles.push(this.enumKW(schema));
+        possibles.push(this.numberKW(schema));
+        possibles.push(this.stringKW(schema));
+        possibles.push(this.arrayKW(schema));
+        possibles.push(this.objectKW(schema));
+        possibles.push(this.notKW(schema));
+        // Handling "allOf" → intersection of types
+        if (schema.allOf) {
+            const allOfTypes = schema.allOf.map((s) => this.infer(s));
+            possibles.push(this.intersect(allOfTypes));
         }
+        // Handling "anyOf" → union of types
+        if (schema.anyOf) {
+            const anyOfTypes = schema.anyOf.map((s) => this.infer(s));
+            possibles.push(this.union(anyOfTypes));
+        }
+        // Handling "oneOf" → union of types (similar to anyOf)
+        if (schema.oneOf) {
+            const oneOfTypes = schema.oneOf.map((s) => this.infer(s));
+            possibles.push(this.union(oneOfTypes));
+        }
+        const filtered = possibles.filter(value => value != null);
+        return this.intersect(filtered);
+    }
+    notKW(schema) {
+        //  "not" → Compute the complementary set of types
+        return schema.not ? this.complement(this.infer(schema.not)) : null;
+    }
+    enumKW(schema) {
+        // infering type from "enum" keyword correspond to a set of all enums value types
+        if ("enum" in schema && Array.isArray(schema.enum)) {
+            const types = schema.enum.map(value => value == null ? "null" : Array.isArray(value) ? "array" : typeof value);
+            return new Set(types);
+        }
+        return null;
+    }
+    typeKW(schema) {
+        if ("type" in schema) {
+            return new Set(Array.isArray(schema.type) ? schema.type : [schema.type]);
+        }
+        return null;
+    }
+    constKW(schema) {
+        if ("const" in schema) {
+            if (schema.const == null)
+                return new Set(["null"]);
+            if (Array.isArray(schema.const))
+                return new Set(["array"]);
+            const constType = Number.isInteger(schema.const) ? "integer" : typeof schema.const;
+            return new Set([constType]);
+        }
+        return null;
+    }
+    arrayKW(schema) {
+        // if one of this keywords is present then type is contrained to "array"
+        return CSTargetType.ARRAYKW.some(kw => kw in schema)
+            ? new Set(["array"])
+            : null;
+    }
+    numberKW(schema) {
+        // if one of this keywords is present then type is contrained to "number"
+        return CSTargetType.NUMBERKW.some(kw => kw in schema)
+            ? new Set(["number"])
+            : null;
+    }
+    objectKW(schema) {
+        // if one of this keywords is present then type is contrained to "object"
+        return CSTargetType.OBJECTKW.some(kw => kw in schema)
+            ? new Set(["object"])
+            : null;
+    }
+    stringKW(schema) {
+        // if one of this keywords is present then type is contrained to "string"
+        return CSTargetType.STRINGKW.some(kw => kw in schema)
+            ? new Set(["string"])
+            : null;
+    }
+    intersect(sets) {
+        return sets.reduce((acc, set) => new Set([...acc].filter(x => set.has(x))), sets[0]);
+    }
+    complement(set) {
+        if (set == null)
+            return new Set();
+        return new Set([...CSTargetType.ALL].filter(x => !set.has(x)));
+    }
+    union(sets) {
+        return sets.reduce((acc, set) => new Set([...acc, ...set]), new Set());
     }
 }
 /**

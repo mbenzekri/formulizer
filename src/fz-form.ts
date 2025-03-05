@@ -2,7 +2,7 @@
 import { html } from "lit";
 import { Base } from "./base"
 import { property, customElement, state } from "lit/decorators.js";
-import { Pojo } from "./lib/types"
+import { IOptions, Pojo } from "./lib/types"
 import { FzElement } from "./fz-element";
 import { validateSchema, validateErrors, DataValidator } from "./lib/validation"
 import { jsonAttributeConverter, cleanJSON, setGlobalHandler } from "./lib/tools"
@@ -26,7 +26,7 @@ export class FzForm extends Base {
         ]
     }
 
-    @state() private accessor i_options: any = {}
+    @state() private accessor i_options: IOptions = {}
     @property({ type: Object, attribute: "schema", converter: jsonAttributeConverter }) accessor i_schema: Pojo = { type: 'object', properties: [] }
     @property({ type: Boolean, attribute: "actions" }) accessor actions = false
     @property({ type: Boolean, attribute: "readonly" }) accessor readonly = false
@@ -85,8 +85,8 @@ export class FzForm extends Base {
         }
     }
 
-    get options() { return this.i_options }
-    set options(value: any) {
+    get options(): IOptions { return this.i_options }
+    set options(value: IOptions) {
         this.i_options = value
         if (this.i_options?.storage) {
             this.store = new BlobStoreWrapper(this.i_options.storage)

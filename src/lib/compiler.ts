@@ -1,6 +1,7 @@
-import { Pojo, FieldOrder, ExprFunc, JSONSchema } from "./types"
+import { Pojo, FieldOrder, ExprFunc, JSONSchema, IOptions, CompilationStep } from "./types"
 import { derefPointerSchema, pointerSchema, isprimitive, isenumarray, abstract, derefPointerData} from "./tools";
 import { setSchema,setParent,setRoot} from "./tools"
+import { CSUpgradeAdditionalProperties, CSUpgradeDependencies, CSUpgradeId, CSUpgradeItems, CSUpgradeNullable, CSUpgradeRef } from "./upgrade"
 
 /**
  * observers function parse expression to extract observed values and set observers
@@ -31,23 +32,45 @@ export function observers(root: JSONSchema, current: JSONSchema, expr: string): 
  */
 
 export class SchemaCompiler {
+    static implemented = ["draft-07","2019-09","2020-12"]
+    static unimplemented = ["draft-06","draft-05","draft-04","draft-03","draft-02"]
+    static DIALECT_DRAF_07 = "http://json-schema.org/draft-07/schema"
+    static DIALECT_2019_09 = "https://json-schema.org/draft/2019-09/schema"
+    static DIALECT_2020_12 = "https://json-schema.org/draft/2020-12/schema"
     readonly root: JSONSchema
+    readonly dialect: string
+    readonly steps_pass0: CompilationStep[]
     readonly steps_pass1: CompilationStep[]
     readonly steps_pass2: CompilationStep[]
     errors: string[] = []
-    constructor(root: JSONSchema, options: any, data: Pojo) {
+    constructor(root: JSONSchema, options: IOptions, data: Pojo) {
         this.root = root
+        this.dialect = this.extractDialect(options,root.$schema)
+
+        if (SchemaCompiler.unimplemented.includes(this.dialect)) 
+            throw Error(`schema dialect '${this.dialect}' not implemented (implmented are draft-07,2019-09 and 2020-12)`)
+
+        // upgrade from Draft07 and 2019-09 to 2020-12
+        this.steps_pass0 = [
+            new CSUpgradeRef(this.root),
+            new CSUpgradeAdditionalProperties(this.root),
+            new CSUpgradeDependencies(this.root),
+            new CSUpgradeId(this.root),
+            new CSUpgradeItems(this.root),
+            new CSUpgradeNullable(this.root)
+        ]
+
         this.steps_pass1 = [
             new CSDefinition(this.root),
+            new CSParent(this.root,),
+            new CSPointer(this.root,),
+            new CSRoot(this.root),
             new CSTargetType(this.root,),
             new CSAppEnum(this.root,options,),
             new CSEnum(this.root,),
             new CSEnumArray(this.root,),
             new CSUniform(this.root,), 
             new CSObservers(this.root,),
-            new CSParent(this.root,),
-            new CSPointer(this.root,),
-            new CSRoot(this.root),
             new CSRequiredWhen(this.root,),
             new CSField(this.root),
             new CSOrder(this.root),
@@ -68,12 +91,33 @@ export class SchemaCompiler {
         ]
 
     }
+    extractDialect(options: IOptions, schemaUri?: string) {
+        switch (true) {
+            case SchemaCompiler.unimplemented.some(draft => schemaUri?.startsWith(`http://json-schema.org/${draft}/schema`)):
+                return SchemaCompiler.unimplemented.find(draft => schemaUri?.includes(draft)) ?? "draft-06"
+                break 
+            case schemaUri?.startsWith(SchemaCompiler.DIALECT_DRAF_07):
+                return "draft-07"
+                break 
+            case schemaUri?.startsWith(SchemaCompiler.DIALECT_2019_09):
+                return "2019-09"
+                break 
+            case schemaUri?.startsWith(SchemaCompiler.DIALECT_2020_12):
+                return "2020-12"
+                break 
+            case options.dialect && SchemaCompiler.implemented.includes(options.dialect):
+                return options.dialect
+            default:
+                return "2020-12" 
+        }
+    }
     compile() {
         this.errors = []
+        // this.walkSchema(this.steps_pass0, this.root) // MBZ-TBD upgrade phase draft-07 and 2019-09 to 2020-12
         this.walkSchema(this.steps_pass1, this.root)
         this.walkSchema(this.steps_pass2, this.root)
         return this.errors
-    }
+    }    
 
     walkSchema(steps: CompilationStep[], schema: JSONSchema, parent?: JSONSchema, name?: string): void {
 
@@ -101,41 +145,6 @@ export class SchemaCompiler {
 
 }
 
-export abstract class CompilationStep {
-
-    private static sourceCount = 1
-
-    readonly root: JSONSchema
-    readonly property: string
-
-    constructor(root: JSONSchema, property: string) {
-        this.root = root
-        this.property = property
-    }
-
-    appliable(_schema: JSONSchema, _parent?: JSONSchema, _name?: string): boolean {
-        // default applied on all schemas
-        return true
-    }
-
-    /**
-     * @param schema shema to compile the property
-     * @param parent parent schema to compile containing propery <name> the property
-     * @param name name of the property to compile in <parent> 
-     */
-    abstract apply(schema: JSONSchema, parent?: JSONSchema, name?: string): void;
-
-    sourceURL(dataProperty?: string) {
-        let source = `_FZ_${this.property}_${ dataProperty ?? ''}_${CompilationStep.sourceCount++}.js`.replace(/ +/g,"_")
-        source = source.replace(/[^a-z0-9_]/ig,"")
-        console.log(`builded source :${source}`)
-        return `\n    //# sourceURL=${source}\n`
-    }
-
-    error(message: string) {
-        return Error(`Compilation step ${this.property}: ${message} `)
-    }
-}
 
 
 /**
@@ -180,6 +189,11 @@ class CSDefinition extends CompilationStep {
  */
 class CSTargetType extends CompilationStep {
 
+    static STRINGKW = ["minLength", "maxLength", "pattern", "format"]
+    static NUMBERKW = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"]
+    static ARRAYKW = ["items", "additionalItems", "minItems", "maxItems", "uniqueItems"]
+    static OBJECTKW = ["required", "properties", "additionalProperties", "patternProperties", "minProperties", "maxProperties", "dependencies"]
+    static ALL = new Set(["string","integer","number","object","array","boolean","null"])
     constructor(root: JSONSchema) {
         super (root,"basetype")
     }
@@ -189,23 +203,129 @@ class CSTargetType extends CompilationStep {
     }
 
     override apply(schema: JSONSchema, parent?: JSONSchema, name?: string) {
-        if (Array.isArray(schema.type) && parent && name) {
-            if (schema.type.length > 2) {
+        schema.target = [...(this.infer(schema) ?? [])]
+        switch (schema.target.length) {
+            case 2:
+                if (!schema.target.includes("null")) {
+                    throw Error(`Second type must be "null" : ${pointerSchema(parent, name)}`)
+                }
+                schema.basetype = schema.target.find((t: string) => t !== "null") ?? schema.target[0]
+                schema.nullAllowed = true
+                break
+            case 1:
+                schema.basetype = schema.target[0]
+                schema.nullAllowed = schema.target[0] == "null"
+                break
+            case 0:
+                schema.basetype = undefined
+                schema.nullAllowed = false
+                break
+            default:
                 throw Error(`multiple types not implemented : ${pointerSchema(parent, name)}`)
-            }
-
-            if (!schema.type.includes("null")) {
-                throw Error(`Second type must be "null" : ${pointerSchema(parent, name)}`)
-            }
-            schema.basetype = schema.type.find(t => t !== "null") ?? "null"
-            schema.nullAllowed = true
-        }
-        else {
-            schema.basetype = schema.type
-            schema.nullAllowed = false
         }
     }
 
+    infer(schema: JSONSchema): Set<string>|null {
+
+        const possibles:(Set<string>|null)[] = []
+        // we call all the helpers that infer types for each keyword
+        possibles.push(CSTargetType.ALL)    
+        possibles.push(this.constKW(schema))    
+        possibles.push(this.typeKW(schema))
+        possibles.push(this.enumKW(schema))    
+        possibles.push(this.numberKW(schema))
+        possibles.push(this.stringKW(schema))
+        possibles.push(this.arrayKW(schema))
+        possibles.push(this.objectKW(schema))    
+        possibles.push(this.notKW(schema))    
+        // Handling "allOf" → intersection of types
+        if (schema.allOf) {
+            const allOfTypes = schema.allOf.map((s: JSONSchema) => this.infer(s));
+            possibles.push(this.intersect(allOfTypes));
+        }
+
+        // Handling "anyOf" → union of types
+        if (schema.anyOf) {
+            const anyOfTypes = schema.anyOf.map((s: JSONSchema) => this.infer(s));
+            possibles.push(this.union(anyOfTypes));
+        }
+
+        // Handling "oneOf" → union of types (similar to anyOf)
+        if (schema.oneOf) {
+            const oneOfTypes = schema.oneOf.map((s: JSONSchema) => this.infer(s));
+            possibles.push(this.union(oneOfTypes));
+        }
+        const filtered = possibles.filter(value => value !=  null) 
+        return this.intersect(filtered)
+    }
+
+    private notKW(schema: JSONSchema) {
+        //  "not" → Compute the complementary set of types
+        return schema.not ? this.complement(this.infer(schema.not)) : null
+    }
+
+    private enumKW(schema: JSONSchema) {
+        // infering type from "enum" keyword correspond to a set of all enums value types
+        if ("enum" in schema && Array.isArray(schema.enum)) {
+            const types = schema.enum.map(value => value == null ? "null" : Array.isArray(value) ? "array" : typeof value )
+            return new Set(types)
+        }
+        return null
+    }
+    
+    private typeKW(schema: JSONSchema) {
+        if ("type" in schema) {
+            return new Set( Array.isArray(schema.type) ? schema.type : [schema.type]) as Set<string>
+        }
+        return null
+    }
+
+    private constKW(schema: JSONSchema) {
+        if ("const" in schema) {
+            if (schema.const == null) return new Set(["null"]);
+            if (Array.isArray(schema.const)) return new Set(["array"]);
+            const constType = Number.isInteger(schema.const) ? "integer" : typeof schema.const;
+            return new Set([constType]);
+        }
+        return null;
+    }
+    
+    private arrayKW(schema: JSONSchema) {
+        // if one of this keywords is present then type is contrained to "array"
+        return CSTargetType.ARRAYKW.some(kw => kw in schema) 
+            ? new Set(["array"]) 
+            : null
+    }
+    private numberKW(schema: JSONSchema) {
+        // if one of this keywords is present then type is contrained to "number"
+        return CSTargetType.NUMBERKW.some(kw => kw in schema) 
+            ? new Set(["number"])
+            : null
+    }
+    private objectKW(schema: JSONSchema) {
+        // if one of this keywords is present then type is contrained to "object"
+        return CSTargetType.OBJECTKW.some(kw => kw in schema) 
+            ? new Set(["object"]) 
+            : null
+    }
+    private stringKW(schema: JSONSchema) {
+        // if one of this keywords is present then type is contrained to "string"
+        return CSTargetType.STRINGKW.some(kw => kw in schema)
+            ? new Set(["string"]) 
+            : null
+    }
+
+    private intersect(sets: Set<string>[]): Set<string> {
+        return sets.reduce((acc, set) => new Set([...acc].filter(x => set.has(x))), sets[0]);
+    }
+    
+    private complement(set: Set<string>|null): Set<string> {
+        if (set == null) return new Set()
+        return new Set([...CSTargetType.ALL].filter(x => !set.has(x)));
+    }
+    private union(sets: Set<string>[]): Set<string> {
+        return sets.reduce((acc, set) => new Set([...acc, ...set]), new Set());
+    }    
 }
 /**
  * Adds a oneOf enum schema obtained through options.ref callback 
