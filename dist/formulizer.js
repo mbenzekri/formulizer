@@ -34026,7 +34026,8 @@ class CSTemplate extends CompilationStep {
         return this.property in schema && typeof schema[this.property] == "string";
     }
     apply(schema, _parent, name) {
-        const expression = schema[this.property](schema)[this.property] = this.defunc;
+        const expression = schema[this.property];
+        schema[this.property] = this.defunc;
         if (typeof expression == 'string') {
             const code = `
                 ${this.sourceURL(name)}
@@ -34152,13 +34153,13 @@ class DataCompiler {
             (data, schema, pdata, _pschema) => {
                 setSchema(data, schema);
                 setParent(data, pdata);
-                setRoot(data, this.data.content);
+                setRoot(data, this.data);
             }
         ];
     }
     compile() {
         this.errors = [];
-        this.walkData(this.data.content, this.schema);
+        this.walkData(this.data, this.schema);
         return this.errors;
     }
     walkData(data, schema, pdata, pschema) {

@@ -2,6 +2,7 @@
     "form": {
         "type": "object",
         "title": "Oh no! Thinking of leaving?",
+        "abstract": "",
         "properties": {
             "reason": {
                 "type": "string",
@@ -23,7 +24,8 @@
                     "**We’d love to keep you! Here’s a special 50% discount just for you.**",
                     "## $$$..."
                 ],
-                "visible": "$`1/reason` === 'Too expensive'"
+                "visible": "$`1/reason` === 'Too expensive'",
+                "transient": true
             }
         }
     },

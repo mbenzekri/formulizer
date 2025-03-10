@@ -22,7 +22,7 @@ Here is some important pages.
 - JSON Schema keywords and how that impact the form rendering (go there link)
 - Some examples : use the search box to select an example (ch. Examples)
 
-## The unsurprising "[Hello, world!](./hello.html)" tuto
+## 💡 The unsurprising "[Hello, world!](./hello.html)" tuto
 
 ```html
 <html>

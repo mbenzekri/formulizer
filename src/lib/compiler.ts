@@ -640,11 +640,11 @@ class CSTemplate extends CompilationStep {
         this.defunc = defunc
     }
     override appliable(schema: Schema) {
-        return this.property in schema && typeof (schema as any)[this.property] == "string"
+        return this.property in schema && typeof schema[this.property] == "string"
     }
     override apply(schema: Schema, _parent: Schema, name:string) {
-        const expression = (schema as any)[this.property]
-        (schema as any)[this.property] = this.defunc
+        const expression = schema[this.property]
+        ;(schema as any)[this.property] = this.defunc
         if (typeof expression == 'string') {
             const code = `
                 ${this.sourceURL(name)}
@@ -677,7 +677,7 @@ class CSBool extends CompilationStep {
         this.defunc = defunc
     }
     override appliable(schema: Schema) {
-        return this.property in schema && ["string","boolean"].includes(typeof (schema as any)[this.property])
+        return this.property in schema && ["string","boolean"].includes(typeof schema[this.property])
     }
     override apply(schema: Schema, _parent: Schema, name: string) {
         const expression = schema[this.property]
@@ -773,13 +773,13 @@ export class DataCompiler {
             (data, schema, pdata, _pschema) => {
                 setSchema(data, schema)
                 setParent(data, pdata)
-                setRoot(data, this.data.content)
+                setRoot(data, this.data)
             }
         ]
     }
     compile() {
         this.errors = []
-        this.walkData(this.data.content, this.schema)
+        this.walkData(this.data, this.schema)
         return this.errors
     }
 

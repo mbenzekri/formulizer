@@ -2,112 +2,51 @@
     "form": {
 
         "definitions" : {
-            "contact" : {
+            "profile" : {
                 "type": "object",
                 "collapsed" : true,
                 "properties": {
-                    "civilite": {
-                        "type": "string",
-                        "title": "Civilite",
-                        "enum": [
-                            "M.",
-                            "Mme."
-                        ]
+                    "firstname": {
+                        "type": "string"
                     },
-                    "nom": {
-                        "type": "string",
-                        "title": "Nom",
-                        "maxLength": 256
-                    },
-                    "prenom": {
-                        "type": "string",
-                        "title": "Prénom",
-                        "maxLength": 256
-                    },
-                    "telfixe": {
-                        "type": "string",
-                        "title": "N° fixe",
-                        "pattern": "^[0-9]{10}"
-                    },
-                    "telmob": {
-                        "type": "string",
-                        "title": "N° mobile",
-                        "pattern": "^[0-9]{10}"
+                    "lastname": {
+                        "type": "string"
                     },
                     "email": {
                         "type": "string",
-                        "title": "Email",
                         "format": "email"
-                    },
-                    "adresse": {
-                        "type": "string",
-                        "title": "Adresse complète",
-                        "maxLength": 256
                     }
                 }
             }
         },
         "type": "object",
-        "title": "propriété 'abstract'",
+        "title": "abstract keyword",
         "properties": {
-            "desc" : {
-                "type" : "string",
-                "format" : "markdown",
-                "expression": [
-                    "**Usage** :", 
-                    "- le mot clé abstract est utilisable sur tous les type de champs",
-                    "- il permet d'afficher un résumé lisible de la propriété dans différentes situation",
-                    "- lorsque la propriété est de type 'object' le résumé s'affiche en haut du panneau encadrant (voir ['collapsed'](#collapsed))." ,
-                    "- lorsque l'objet est référencé, l'abstract est présenté à la place de la valeur (voir 'array')" ,
-                    "- la valeur doit etre un [gabarit de texte](https://github.com/Suezenv/pi-sami-form/wiki/JSON-Schema-Form#les-gabarits-de-texte) représentant le résumé à afficher",
-                    "- en l'absence de la propriété 'abstract' un résumé par défaut est calculé",
-                    "\\`\\`\\`",
-                    "\"nom\" :{",
-                    "   \"type\" : \"object\", ",
-                    "   \"abstract\" : \"${schema.parent.properties.calculated.abstract.expression}\", ",
-                    "   ...",
-                    "}",
-                    "\\`\\`\\`",
-                    "**Demo**:",
-                    "* le premier objet contient une propriété 'abstract' présentant le prénom et nom du contact",
-                    "* le second n'a pas de propriété abstract, le résumé par défaut est présenté",
-                    "* le dernier presente un abstract pour un objet vide (null)",
-                    "vous pouvez cliquer sur les bandeau pour dévoiler le contenu des objets",
-                    "----"
-                ]
-            },
-            "calculated": { 
-                "$ref" : "#/definitions/contact",
-                "title": "calculated (click me)",
-                "abstract": "contact ${ $`0/prenom` } ${$`0/nom` }"
+            "user": { 
+                "$ref" : "#/definitions/profile",
+                "title": "user defined",
+                "abstract": "contact ${ $`0/firstname` } ${$`0/lastname` }"
             },
             "default": {
-                "$ref" : "#/definitions/contact",
-                "title": "default (click me)"
+                "$ref" : "#/definitions/profile",
+                "title": "default abstract"
             },
             "empty": {
-                "$ref" : "#/definitions/contact",
-                "title": "empty (click me)"
+                "$ref" : "#/definitions/profile",
+                "title": "empty"
             }
         }
     },
     "data": {
-        "calculated": {
-            "civilite": "M.",
-            "prenom": "Jules",
-            "nom": "Beaufils",
-            "telfixe": "0123456789",
-            "telmob": "0987654321",
-            "adresse": "24 rue Henri Martin, Paris"
+        "user": {
+            "firstname": "Bob",
+            "lastname": "Razowski",
+            "email": "bob@monster.cie"
         },
         "default": {
-            "civilite": "M.",
-            "prenom": "Jules",
-            "nom": "Beaufils",
-            "telfixe": "0123456789",
-            "telmob": "0987654321",
-            "adresse": "24 rue Henri Martin, Paris"
-        },
-        "empty": {}
+            "firstname": "James P.",
+            "lastname": "Sullivan",
+            "email": "sulli@monster.cie"
+        }
     }
 }
