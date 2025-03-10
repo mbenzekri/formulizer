@@ -1,29 +1,33 @@
 {
     "form": {
         "type": "object",
-        "title": "Demo visible (test change conformity)",
+        "title": "Oh no! Thinking of leaving?",
         "properties": {
-            "conformity": {
-                "type": "string",
-                "title": "Conformity status",
-                "enum" :  ["Conform", "Not Conform", "Not Conform, bypass"],
-                "default" : "Conform"
-            },
             "reason": {
                 "type": "string",
-                "title": "Not conform reason",
-                "maxLength": 500,
-                "visible": "$`1/conformity` !== 'Conform'"
+                "title": "Help us improve",
+                "enum" :  ["Doesn’t fit my needs", "Too expensive", "I don’t need it anymore", "other"],
+                "default" : "Doesn’t fit my needs"
             },
-            "bypass": {
+            "comment": {
                 "type": "string",
-                "title": "Why you bypass",
+                "title": "Tell us more",
                 "maxLength": 500,
-                "visible": "$`1/conformity` == 'Not Conform, bypass'"
+                "visible": "$`1/reason` === 'other'"
+            },
+            "offer": {
+                "type": "string",
+                "format": "markdown",
+                "expression": [
+                    "## $$$...",
+                    "**We’d love to keep you! Here’s a special 50% discount just for you.**",
+                    "## $$$..."
+                ],
+                "visible": "$`1/reason` === 'Too expensive'"
             }
         }
     },
     "data": {
-        "conformity" : "Not Conform"
+        "reason" : "Doesn’t fit my needs"
     }
 }

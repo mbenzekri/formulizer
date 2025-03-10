@@ -5,10 +5,11 @@ import { property, customElement, state } from "lit/decorators.js";
 import { IOptions, Pojo } from "./lib/types"
 import { FzElement } from "./fz-element";
 import { validateSchema, validateErrors, DataValidator } from "./lib/validation"
-import { jsonAttributeConverter, cleanJSON, setGlobalHandler } from "./lib/tools"
+import { cleanJSON, setGlobalHandler } from "./lib/tools"
 import { SchemaCompiler, DataCompiler } from "./lib/compiler"
 import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { IAsset } from "./inputs/fz-input-asset";
+import { Schema, schemaAttrConverter, DEFAULT_SCHEMA } from "./lib/schema";
 
 
 
@@ -27,7 +28,7 @@ export class FzForm extends Base {
     }
 
     @state() private accessor i_options: IOptions = {}
-    @property({ type: Object, attribute: "schema", converter: jsonAttributeConverter }) accessor i_schema: Pojo = { type: 'object', properties: [] }
+    @property({ type: Object, attribute: "schema", converter: schemaAttrConverter }) accessor i_schema = DEFAULT_SCHEMA
     @property({ type: Boolean, attribute: "actions" }) accessor actions = false
     @property({ type: Boolean, attribute: "readonly" }) accessor readonly = false
     @property({ type: Boolean, attribute: "checkin" }) accessor checkIn = false
@@ -66,9 +67,9 @@ export class FzForm extends Base {
     }
 
     get schema() { return this.i_schema }
-    set schema(value: Pojo) {
+    set schema(value: Schema) {
         if (validateSchema(value)) {
-            this.i_schema = JSON.parse(JSON.stringify(value))
+            this.i_schema = new Schema(JSON.parse(JSON.stringify(value)))
             this.validator = new DataValidator(this.i_schema)
             if (this.valid) {
                 this._errors = null
@@ -126,7 +127,7 @@ export class FzForm extends Base {
         super.attributeChangedCallback(name, oldValue, newValue);
         if (name === 'schema') {
             // Utilise le converter instance-spécifique pour convertir l'attribut
-            const converted = jsonAttributeConverter.fromAttribute(newValue) as Pojo
+            const converted = schemaAttrConverter.fromAttribute(newValue)
             this.schema = converted
         }
     }

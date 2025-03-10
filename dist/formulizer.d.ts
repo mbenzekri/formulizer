@@ -24,7 +24,7 @@ interface IBlobStore {
 declare class FzForm extends Base {
     static get styles(): lit.CSSResult[];
     private accessor i_options;
-    accessor i_schema: Pojo;
+    accessor i_schema: Schema;
     accessor actions: boolean;
     accessor readonly: boolean;
     accessor checkIn: boolean;
@@ -46,8 +46,8 @@ declare class FzForm extends Base {
     constructor();
     get root(): any;
     get valid(): boolean;
-    get schema(): Pojo;
-    set schema(value: Pojo);
+    get schema(): Schema;
+    set schema(value: Schema);
     get options(): IOptions;
     set options(value: IOptions);
     get data(): Pojo;
@@ -85,7 +85,7 @@ declare class FzForm extends Base {
  */
 declare abstract class FzElement extends Base {
     accessor pointer: string;
-    accessor schema: Pojo;
+    accessor schema: Schema;
     accessor data: Pojo;
     accessor name: string | null;
     accessor index: number | null;
@@ -104,12 +104,12 @@ declare abstract class FzElement extends Base {
      * @returns
      */
     private cascadeValue;
-    get nullable(): any;
+    get nullable(): unknown;
     get key(): string | number;
     /**
      * calculate label for this field
      */
-    get label(): any;
+    get label(): string | number | null;
     /**
      * return true if this field is item of array, false otherwise
      */
@@ -162,7 +162,7 @@ declare abstract class FzElement extends Base {
      * this method is used by composed fields (fz-array and fz-object)
      * @param key
      */
-    renderItem(schema: Pojo, key: string | number): TemplateResult;
+    renderItem(schema: Schema, key: string | number): TemplateResult;
     connectedCallback(): void;
     disconnectedCallback(): void;
     requestUpdate(name?: PropertyKey, oldvalue?: unknown): void;
@@ -192,8 +192,8 @@ declare abstract class FzElement extends Base {
     /**
      * calculate an abstract string (summary) for this field or a property/item of field
      */
-    abstract(key?: string | number, itemschema?: Pojo): string;
-    evalExpr(attribute: string, schema?: Pojo, value?: any, parent?: any, key?: string | number): any;
+    abstract(key?: string | number, itemschema?: Schema): string;
+    evalExpr(attribute: keyof Schema, schema?: Pojo, value?: any, parent?: any, key?: string | number): any;
     /**
      * return tagged template '$' for pointer derefencing in expression or code used in schema
      * the pointer derefencing is done relativatly to this.data
@@ -210,8 +210,18 @@ interface IAsset {
     done: () => Promise<void>;
 }
 
+type ExprFunc<T> = (schema: Schema, value: any, parent: Pojo, property: string | number, userdata: object) => T | null;
 type Pojo = {
     [key: string]: any;
+};
+type FieldOrder = {
+    tabnum: number;
+    groupnum: number;
+    fieldnum: number;
+    fieldname: string;
+    schema: Pojo;
+    tabname: string;
+    groupname: string;
 };
 type StoreItem = {
     uuid: string;
@@ -224,6 +234,116 @@ type IOptions = {
     asset?: IAsset;
     dialect?: string;
 };
+
+declare class JSONSchema {
+    [key: string]: any;
+}
+type SchemaPrimitive = "null" | "boolean" | "object" | "array" | "number" | "string" | "integer";
+declare class JSONSchemaDraft07 {
+    $id?: string;
+    $schema?: string;
+    $ref?: string;
+    $comment?: string;
+    type?: SchemaPrimitive | SchemaPrimitive[];
+    enum?: (string | number | boolean | null)[];
+    const?: any;
+    multipleOf?: number;
+    maximum?: number;
+    exclusiveMaximum?: number;
+    minimum?: number;
+    exclusiveMinimum?: number;
+    maxLength?: number;
+    minLength?: number;
+    pattern?: string;
+    items?: Schema;
+    additionalItems?: Schema;
+    maxItems?: number;
+    minItems?: number;
+    uniqueItems?: boolean;
+    contains?: Schema;
+    maxProperties?: number;
+    minProperties?: number;
+    required?: string[];
+    properties?: Record<string, Schema>;
+    patternProperties?: Record<string, Schema>;
+    additionalProperties?: boolean | Schema;
+    dependencies?: Record<string, Schema | string[]>;
+    propertyNames?: Schema;
+    if?: Schema;
+    then?: Schema;
+    else?: Schema;
+    allOf?: Schema[];
+    anyOf?: Schema[];
+    oneOf?: Schema[];
+    not?: Schema;
+    definitions?: Record<string, Schema>;
+    title?: string;
+    description?: string;
+    default?: any;
+    examples?: any[];
+    format?: string;
+    root: Schema;
+    parent?: Schema;
+    basetype: string;
+    pointer: string;
+    nullAllowed?: boolean;
+    transient?: boolean;
+    observers: string[];
+    target: string[];
+    enumRef?: string;
+    isenum: boolean;
+    filter?: Function;
+    isenumarray: boolean;
+    homogeneous: boolean;
+    requiredWhen: string | Function;
+    field: string;
+    refTo?: {} | ExprFunc<any>;
+    order?: FieldOrder[];
+    abstract?: string | ExprFunc<string>;
+    case?: string | ExprFunc<boolean>;
+    visible?: string | ExprFunc<boolean>;
+    readonly?: string | ExprFunc<boolean>;
+    collapsed?: string | ExprFunc<boolean>;
+    orderBy?: string | ExprFunc<any>;
+    expression?: string | ExprFunc<any>;
+    change?: string | ExprFunc<any>;
+    nullable: boolean;
+    addTo?: boolean;
+    assets?: string;
+    preview?: boolean;
+    mimetype?: string;
+}
+declare class Schema extends JSONSchemaDraft07 {
+    constructor(schema: JSONSchema);
+    /**
+     * default abstract calculation
+     */
+    _abstract(value: any): string;
+    static _abstractFunc(): (schema: Schema, value: any) => string;
+    _default(parent: any): any;
+    /**
+     * get the schema corresponding to a jsonpointer (absolute or relative)
+     * @param root root schema for absolute pointer
+     * @param current current schema for relative pointer
+     * @param pointer pointer to dereference
+     * @returns
+     */
+    _deref(pointer: string): Schema | undefined;
+    /**
+     * observers function parse expression to extract observed values and set observers
+     * array in corresponding schema.
+     * a value is observed by using the pointer dereference operation in expresions: $`#/a/b/c`
+     * the observer is the Object desribed by the schema and the objserved value is the value
+     * pointed by $`...`
+     * @param root schema for absolute pointers in expr
+     * @param current schema for relative pointer in expr
+     * @param expr function body or arrow function body to parse
+     */
+    _addObservers(expr: string): void;
+    _toJSON(): string;
+    static wrapSchema(schema: JSONSchema): Schema;
+    static wrapSchema(schema: JSONSchema, parent: JSONSchema, name: string): Schema;
+}
 
 declare class FzMarkdownIt extends Base {
     markdown: string;

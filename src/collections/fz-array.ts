@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement,property} from "lit/decorators.js"
 import {  html, css } from "lit"
-import { Pojo } from "../lib/types"
 import { DataValidator } from "../lib/validation"
-import { calculateDefault, formatMsg, getCircularReplacer, getSchema, isEmptyValue } from "../lib/tools"
+import { formatMsg, getCircularReplacer, getSchema, isArray, isEmptyValue, isFunction } from "../lib/tools"
 import { FZCollection } from "./fz-collection"
+import { EMPTY_SCHEMA, Schema } from "../lib/schema"
 
 /**
  * @prop schema
@@ -16,8 +16,8 @@ import { FZCollection } from "./fz-collection"
 export class FzArray extends FZCollection {
 
     @property({ attribute: false }) accessor current: number | null = null
-    private schemas: Pojo[] = []
-    private currentSchema?: Pojo
+    private schemas: Schema[] = []
+    private currentSchema?: Schema
     private content?: HTMLElement
     private validator!: DataValidator
     get nomore(): boolean {
@@ -112,7 +112,7 @@ export class FzArray extends FZCollection {
                                             ${this.currentSchema?.title || "Ajouter"}
                                             </button> 
                                             <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-                                                ${this.schema.items.oneOf.map((schema: any, i: number) => html`<a class="dropdown-item"
+                                                ${this.schema.items?.oneOf?.map((schema: any, i: number) => html`<a class="dropdown-item"
                                                     @click="${() => this.selectSchema(i)}" >${schema.title || "Type" + i}</a>`)}
                                             </div>
                                         </div>`
@@ -215,9 +215,9 @@ export class FzArray extends FZCollection {
         this.triggerChange()
         this.check()
     }
-    private addItem(schema: Pojo, edit = true) {
+    private addItem(schema: Schema, edit = true) {
         if (this.value == null) this.value = []
-        const value = calculateDefault(this.data, schema)
+        const value =  schema._default(this.data)
         this.value.push(value)
         this.schemas.push(schema)
         if (edit) this.open(this.value.length-1)
@@ -245,17 +245,17 @@ export class FzArray extends FZCollection {
         }
     }
     private selectSchema(index: number) {
-        this.currentSchema = this.schema.items.oneOf[index]
+        this.currentSchema = this.schema.items?.oneOf?.[index]
         this.closeDropdown()
         this.requestUpdate()
     }
     private solveSchemas(force = false) {
-        if (!this.schema?.items) return
+        if (!isArray(this.schema?.items)) return
         if (!force && this.currentSchema && this.schemas) return
-        if (!this.currentSchema) this.currentSchema = this.schema.homogeneous ?  this.schema.items : this.schema.items.oneOf[0]
+        if (!this.currentSchema) this.currentSchema = this.schema.homogeneous ?  this.schema.items : (this.schema.items.oneOf?.[0] ?? EMPTY_SCHEMA)
         this.schemas = this.value == null ? [] : this.schema.homogeneous
             ? this.value.map(() => this.schema.items)
-            : this.value.map((value: any) => getSchema(value) ?? this.schema.items.oneOf.find((schema: any) => schema.case && schema.case(null, value, this.data, this.key, this.derefFunc)))
+            : this.value.map((value: any) => getSchema(value) ?? this.schema.items?.oneOf?.find((schema) => isFunction(schema.case) && schema.case(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc)))
     }
     private solveOrder() {
         if (this.value == null) return

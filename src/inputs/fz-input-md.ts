@@ -12,7 +12,7 @@ export class FzInputMarkdown extends FzInputBase {
 
     override renderField() {
         return html`
-            <div class="form-group row"><markdown-it .markdown="${this.value}"></markdown-it></div>
+            <div class="form-group row"><markdown-it .markdown="${this.value ?? ''}"></markdown-it></div>
         `
     }
 

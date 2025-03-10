@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
 import {  html, css } from "lit"
-import { isEmptyValue } from "../lib/tools"
+import { isEmptyValue, isNumber } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
+import { ifDefined } from "lit/directives/if-defined.js";
 
 /**
  * @prop schema
@@ -73,8 +74,8 @@ export class FzRange extends FzInputBase {
                     ?disabled="${this.readonly}"
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
-                    .min="${this.min}"
-                    .max="${this.max}"
+                    min="${ifDefined(this.min)}"
+                    max="${ifDefined(this.max)}"
                     step="1"
                     ?required="${this.required}"
                 />
@@ -87,19 +88,19 @@ export class FzRange extends FzInputBase {
         super.change()
         this.requestUpdate()
     }
-    get max() {  
-        if (this.schema.maximumExclusive && 'maximum' in this.schema) return this.schema.maximum-1
-        if ('maximum' in this.schema) return this.schema.maximum
-        return ''
+    get max(): number | undefined{
+        if (isNumber(this.schema.maximum)) return this.schema.maximum
+        if (isNumber(this.schema.exclusiveMaximum)) return this.schema.exclusiveMaximum
+        return
     }
-    get min() { 
-        if (this.schema.minimumExclusive && 'minimum' in this.schema) return this.schema.minimum+1
-        if ('minimum' in this.schema) return this.schema.minimum
-        return ''
+    get min() {
+        if (isNumber(this.schema.minimum)) return this.schema.minimum
+        if (isNumber(this.schema.exclusiveMinimum)) return this.schema.exclusiveMinimum
+        return
     }
-    keypress(event: KeyboardEvent ){
-        if (!/[-0123456789]/.test(event.key)) return event.preventDefault();
-        if (this.min >= 0 && event.key === '-') return event.preventDefault();
+    keypress( ){
+        // if (!/[-0123456789]/.test(event.key)) return event.preventDefault();
+        // if (this.min >= 0 && event.key === '-') return event.preventDefault();
         return
    }
 

@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
 import {  html, css } from "lit"
-import { isEmptyValue } from "../lib/tools"
+import { isEmptyValue, isNumber } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base"
+import { ifDefined } from "lit/directives/if-defined.js"
 
 const DECIMAL_SEPARATOR = (1.1).toLocaleString().substring(1, 2)
 /**
@@ -40,23 +41,23 @@ export class FzInputFloat extends FzInputBase {
                     id="input"
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
-                    .min="${this.min}"
-                    .max="${this.max}"
+                    min="${ifDefined(this.min)}"
+                    max="${ifDefined(this.max)}"
                     step="1e-12"
                     ?required="${this.required}"
                     @keypress="${this.keypress}"
                 />
             </div>`
     }
-    get max() {
-        if (this.schema.maximumExclusive && 'maximum' in this.schema) return this.schema.maximum - 1e-12
-        if ('maximum' in this.schema) return this.schema.maximum
-        return ''
+    get max(): number | undefined{
+        if (isNumber(this.schema.maximum)) return this.schema.maximum
+        if (isNumber(this.schema.exclusiveMaximum)) return this.schema.exclusiveMaximum
+        return
     }
     get min() {
-        if (this.schema.minimumExclusive && 'minimum' in this.schema) return this.schema.minimum + 1e-12
-        if ('minimum' in this.schema) return this.schema.minimum
-        return ''
+        if (isNumber(this.schema.minimum)) return this.schema.minimum
+        if (isNumber(this.schema.exclusiveMinimum)) return this.schema.exclusiveMinimum
+        return
     }
 
     keypress(event: KeyboardEvent ){

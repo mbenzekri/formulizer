@@ -92,8 +92,8 @@ export class FzObject extends FZCollection {
     private renderSingle(itemTemplates: TemplateResult[], fields: FieldOrder[], fieldpos: number): number {
         // render single item
         const fieldname = fields[fieldpos].fieldname
-        const schema = this.schema.properties[fieldname]
-        itemTemplates.push(this.renderItem(schema, fieldname))
+        const schema = this.schema.properties?.[fieldname]
+        itemTemplates.push(schema ? this.renderItem(schema, fieldname) : html``)
         fieldpos += 1
         return fieldpos
     }
@@ -105,8 +105,8 @@ export class FzObject extends FZCollection {
         // render group items
         for (; fieldpos < fields.length && groupnum === fields[fieldpos].groupnum; fieldpos++) {
             const fieldname = fields[fieldpos].fieldname
-            const schema = this.schema.properties[fieldname]
-            group.push(this.renderItem(schema, fieldname))
+            const schema = this.schema.properties?.[fieldname]
+            group.push(schema ? this.renderItem(schema, fieldname) : html``)
         }
         // render group
         itemTemplates.push(html`
@@ -125,10 +125,18 @@ export class FzObject extends FZCollection {
         // render group items
         for (; fieldpos < fields.length && groupnum === fields[fieldpos].groupnum; fieldpos++) {
             const fieldname = fields[fieldpos].fieldname
-            const schema = this.schema.properties[fieldname]
+            const schema = this.schema.properties?.[fieldname]
             const hidden = this.activegroup[tabname] !== groupname
             group.push(
-                html`<div class="tab-pane active container" style="margin:0;max-width:100%"  id="content" ?hidden="${hidden}" data-tabname="${tabname}" data-groupname="${groupname}">${this.renderItem(schema, fieldname)}</div>`
+                html`<div 
+                        class="tab-pane active container" 
+                        style="margin:0;max-width:100%"  
+                        id="content" 
+                        ?hidden="${hidden}" 
+                        data-tabname="${tabname}" 
+                        data-groupname="${groupname}">
+                        ${schema ? this.renderItem(schema, fieldname) : ''}
+                    </div>`
             )
         }
         // render group
@@ -222,7 +230,7 @@ export class FzObject extends FZCollection {
 
     override fields(): FzElement[] {
         const fields: FzElement[] = []
-        const tags = (Object.values(this.schema.properties) as Pojo[])
+        const tags = (Object.values(this.schema.properties ?? {}) as Pojo[])
             .map((property: Pojo) => property.field).join(', ')
         const list = this.shadowRoot?.querySelectorAll(tags)
         list?.forEach((elem: Element) => fields.push(elem as FzElement))

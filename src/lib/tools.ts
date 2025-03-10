@@ -1,54 +1,41 @@
-import { JSONSchema, Pojo } from "../lib/types"
+import { Pojo } from "../lib/types"
+import { Schema } from "../lib/schema"
 
-const primitivetypes = new Set<string>(['string', 'integer', 'number', 'boolean', 'array'])
-export function isprimitive(name: string) { return primitivetypes.has(name) }
+export function isArray(value: any): value is Array<any> {
+    return Array.isArray(value)
+}
 
-export function isenumarray(schema: Pojo) {
-    if (schema.basetype === 'array' && schema.uniqueItems) {
-        if (schema.items.oneOf) return !!schema.items.oneOf.every((sch: Pojo) => 'const' in sch)
-        else if (schema.items.anyOf) return !!schema.anyOf.every((sch: Pojo) => 'const' in sch)
-    }
-    return false
+export function isNumber(value: any): value is Number {
+    return typeof value === "number" && !isNaN(value)
+}
+
+
+export function isObject(value: unknown): value is Record<string,any> {
+    return typeof value === "object" && value !== null;
+}
+
+export function isFunction(value: unknown): value is Function {
+    return typeof value === "function" && value !== null;
 }
 
 export const jsonAttributeConverter = {
     fromAttribute(value: string | null): unknown {
-      try {
-        return value ? JSON.parse(value) : null;
-      } catch (error) {
-        console.error('fromAttribute:JSON parsing error:', error);
-        return null;
-      }
+        try {
+            return value ? JSON.parse(value) : null;
+        } catch (error) {
+            console.error('fromAttribute:JSON parsing error:', error);
+            return null;
+        }
     },
     toAttribute(value: unknown): string | null {
-      try {
-        return value != null ? JSON.stringify(value) : null;
-      } catch (error) {
-        console.error('toAttribute: JSON stringifycation failure:', error);
-        return null;
-      }
-    }
-  };
-  
-
-export function calculateDefault(parent: any, schema: Pojo): any {
-    switch (true) {
-        case ("const" in schema):
-            return schema.const
-        case isprimitive(schema.basetype) && 'default' in schema:
-            return schema.default
-        case schema.basetype === 'object': {
-            return Object.entries(schema.properties as Pojo).reduce((object, [key, property]) => {
-                if (property.default)  object[key] = newValue(JSON.parse(JSON.stringify(property.default)),object,property)
-                else object[key] = object.required?.includes[key] ? calculateDefault(object, property) : newValue(getEmptyValue(property), object, property)
-                return object
-            }, newValue({}, parent, schema) as any)
+        try {
+            return value != null ? JSON.stringify(value) : null;
+        } catch (error) {
+            console.error('toAttribute: JSON stringifycation failure:', error);
+            return null;
         }
-        case schema.basetype === 'array':
-            return newValue([], parent, schema)
-        default: return newValue(getEmptyValue(schema), parent, schema)
     }
-}
+};
 
 /**
  * find in the ancestors of an element a webcomponent matching a given selector
@@ -57,45 +44,14 @@ export function calculateDefault(parent: any, schema: Pojo): any {
  * @returns Element corresponding to selector, null otherwise
  */
 
-export function closestAscendantFrom(selector:string, item: Element): Element | null {
+export function closestAscendantFrom(selector: string, item: Element): Element | null {
     if (item instanceof Element) {
-        const elem = item.assignedSlot ?? item 
+        const elem = item.assignedSlot ?? item
         const found = elem.closest(selector)
         const parent = (elem.getRootNode() as ShadowRoot).host
         return found ?? closestAscendantFrom(selector, parent);
     }
     return null
-}
-
-/**
- * get the schema corresponding to a jsonpointer (absolute or relative)
- * @param root root schema for absolute pointer
- * @param current current schema for relative pointer
- * @param pointer pointer to dereference
- * @returns 
- */
-export function derefPointerSchema(root: Pojo, current: Pojo, pointer: string): Pojo | null {
-    const tokens = pointer.split(/\//)
-    const relative = /^\d+$/.test(tokens[0])
-    let base = relative ? current : root
-    if (relative) {
-        const count = parseInt(tokens[0])
-        for (let i = 0; i < count; i++) base = base.parent
-        if (!base) {
-            console.error(`in context ${current.pointer} enable to dereference pointer ${pointer} (not enough ascendant')`)
-            return null
-        }
-    }
-    tokens.shift()
-    for (const token of tokens) {
-        const prev = base
-        base = (token === '*') ? base.items : base.properties[token]
-        if (!base) {
-            console.error(`in context ${current.pointer} enable to dereference pointer ${pointer}(property '${token}' not found in ${prev.pointer})`)
-            return null
-        }
-    }
-    return base
 }
 
 /**
@@ -128,7 +84,6 @@ export function derefPointerData(root: Pojo, parent: Pojo, key: string | number,
         base = base[key]
     }
     return base
-
 }
 
 export function pointerData(parent: Pojo | null, key: string | number | null, prev = ""): string {
@@ -140,7 +95,7 @@ export function pointerData(parent: Pojo | null, key: string | number | null, pr
     return pointerData(getParent(parent), prev)
 }
 
-export function pointerSchema(parent?: JSONSchema, property?: string, prev = ""): string {
+export function pointerSchema(parent?: Schema, property?: string, prev = ""): string {
     if (!parent) return (property ? property : "")
     if (!property) return ""
     const root = parent.root
@@ -164,13 +119,6 @@ function setHiddenProperty(data: any, property: symbol, value: any) {
     return data
 }
 
-// export function initChild(data: any, parent: any , schema: Pojo) {
-//     setSchema(data,schema)
-//     setParent(data,parent)
-//     setRoot(data,getRoot(parent))
-//     return data
-// }
-
 export function newValue(value: any, parent: any, schema: Pojo) {
     setSchema(value, schema)
     setParent(value, parent)
@@ -183,7 +131,7 @@ export function setSchema(data: any, schema: Pojo) {
     return setHiddenProperty(data, SCHEMASYM, schema)
 }
 
-export function getSchema(data: any) {
+export function getSchema(data: any): Schema {
     return data?.[SCHEMASYM]
 }
 
@@ -233,27 +181,27 @@ export function getEmptyValue(schema: Pojo) {
     return schema.nullAllowed ? null : undefined
 }
 
-/**
- * default abstract calculator
- * @param schema shema of the value to abstract
- * @param schema value abstract
- */
-export function abstract(schema: Pojo, value: any): string {
-    switch (true) {
-        case schema == null || isEmptyValue(value) || value == null: return '~'
-        case Array.isArray(value):
-            return (value as Array<any>)
-                .map((item: any) => item ? abstract(schema.items, item) : item)
-                .filter((v: any) => v)
-                .join(',')
-        case typeof value === 'object':
-            return schema.properties ? Object.keys(schema.properties)
-                .filter((property: string) => !(value[property] == null))
-                .map((property: string) => abstract(schema.properties[property], value[property]))
-                .join(',') : ""
-        default: return value
-    }
-}
+// /**
+//  * default abstract calculator
+//  * @param schema shema of the value to abstract
+//  * @param schema value abstract
+//  */
+// export function abstract(schema: Pojo, value: any): string {
+//     switch (true) {
+//         case schema == null || isEmptyValue(value) || value == null: return '~'
+//         case Array.isArray(value):
+//             return (value as Array<any>)
+//                 .map((item: any) => item ? abstract(schema.items, item) : item)
+//                 .filter((v: any) => v)
+//                 .join(',')
+//         case typeof value === 'object':
+//             return schema.properties ? Object.keys(schema.properties)
+//                 .filter((property: string) => !(value[property] == null))
+//                 .map((property: string) => abstract(schema.properties[property], value[property]))
+//                 .join(',') : ""
+//         default: return value
+//     }
+// }
 
 export function formatMsg(key: string, input?: HTMLInputElement): string {
     switch (key) {
@@ -302,7 +250,7 @@ export function cleanJSON(data: Pojo) {
 
 (window as any).nvl = function nvl(templates: { raw: readonly string[] | ArrayLike<string> }, ...values: any[]) {
     const cleaned = values.map(v => v ?? '')
-    return String.raw(templates,cleaned)
+    return String.raw(templates, cleaned)
 }
 
 export function setGlobalHandler(target: EventTarget, event: string, value: string | null) {

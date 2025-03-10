@@ -1,28 +1,7 @@
-import { Pojo, FieldOrder, ExprFunc, JSONSchema, IOptions, CompilationStep } from "./types"
-import { derefPointerSchema, pointerSchema, isprimitive, isenumarray, abstract, derefPointerData} from "./tools";
+import { Pojo, FieldOrder, ExprFunc, IOptions } from "./types"
+import { pointerSchema, derefPointerData} from "./tools";
 import { setSchema,setParent,setRoot} from "./tools"
-import { CSUpgradeAdditionalProperties, CSUpgradeDependencies, CSUpgradeId, CSUpgradeItems, CSUpgradeNullable, CSUpgradeRef } from "./upgrade"
-
-/**
- * observers function parse expression to extract observed values and set observers
- * array in corresponding schema.
- * a value is observed by using the pointer dereference operation in expresions: $`#/a/b/c`
- * the observer is the Object desribed by the schema and the objserved value is the value 
- * pointed by $`...`
- * @param root schema for absolute pointers in expr
- * @param current schema for relative pointer in expr
- * @param expr function body or arrow function body to parse 
- */
-export function observers(root: JSONSchema, current: JSONSchema, expr: string): void {
-    if (!root || !current) return
-    const POINTER_RE = /\$\`([^`]+)`/g
-    let matches
-    while ((matches = POINTER_RE.exec(expr)) != null) {
-        const pointer = matches[1]
-        const observedschema = derefPointerSchema(root, current, pointer)
-        if (observedschema && !observedschema.observers.includes(current.pointer)) observedschema.observers.push(current.pointer)
-    }
-}
+import { Schema, CompilationStep, isprimitive, isenumarray,  } from "./schema";
 
 /**
  * class to compile schema for fz-form 
@@ -37,13 +16,11 @@ export class SchemaCompiler {
     static DIALECT_DRAF_07 = "http://json-schema.org/draft-07/schema"
     static DIALECT_2019_09 = "https://json-schema.org/draft/2019-09/schema"
     static DIALECT_2020_12 = "https://json-schema.org/draft/2020-12/schema"
-    readonly root: JSONSchema
+    readonly root: Schema
     readonly dialect: string
-    readonly steps_pass0: CompilationStep[]
-    readonly steps_pass1: CompilationStep[]
-    readonly steps_pass2: CompilationStep[]
+    readonly passes: CompilationStep[][]
     errors: string[] = []
-    constructor(root: JSONSchema, options: IOptions, data: Pojo) {
+    constructor(root: Schema, options: IOptions, data: Pojo) {
         this.root = root
         this.dialect = this.extractDialect(options,root.$schema)
 
@@ -51,43 +28,45 @@ export class SchemaCompiler {
             throw Error(`schema dialect '${this.dialect}' not implemented (implmented are draft-07,2019-09 and 2020-12)`)
 
         // upgrade from Draft07 and 2019-09 to 2020-12
-        this.steps_pass0 = [
-            new CSUpgradeRef(this.root),
-            new CSUpgradeAdditionalProperties(this.root),
-            new CSUpgradeDependencies(this.root),
-            new CSUpgradeId(this.root),
-            new CSUpgradeItems(this.root),
-            new CSUpgradeNullable(this.root)
-        ]
+        this.passes = [
 
-        this.steps_pass1 = [
-            new CSDefinition(this.root),
-            new CSParent(this.root,),
-            new CSPointer(this.root,),
-            new CSRoot(this.root),
-            new CSTargetType(this.root,),
-            new CSAppEnum(this.root,options,),
-            new CSEnum(this.root,),
-            new CSEnumArray(this.root,),
-            new CSUniform(this.root,), 
-            new CSObservers(this.root,),
-            new CSRequiredWhen(this.root,),
-            new CSField(this.root),
-            new CSOrder(this.root),
-        ]
-        this.steps_pass2 = [
-            new CSInsideRef(this.root, data),
-            new CSTemplate(this.root,'abstract',abstract),
-            new CSBool(this.root,'case',() => false),
-            new CSBool(this.root,'visible',() => true),
-            new CSBool(this.root,'readonly',() => false),
-            new CSBool(this.root,'requiredWhen',() => false),
-            new CSBool(this.root,'collapsed',() => false),
-            new CSBool(this.root,'filter', () => true),
-            new CSAny(this.root,'orderBy',() => true),
-            new CSAny(this.root,'expression',() => ''),
-            new CSAny(this.root,'change',() => ''),
-
+            // MBZ-TBD upgrade phase draft-07 and 2019-09 to 2020-12
+            // [
+            //     new CSUpgradeRef(this.root),
+            //     new CSUpgradeAdditionalProperties(this.root),
+            //     new CSUpgradeDependencies(this.root),
+            //     new CSUpgradeId(this.root),
+            //     new CSUpgradeItems(this.root),
+            //     new CSUpgradeNullable(this.root)
+            // ],
+            [
+                new CSDefinition(this.root),
+                new CSParent(this.root,),
+                new CSPointer(this.root,),
+                new CSRoot(this.root),
+                new CSTargetType(this.root,),
+                new CSAppEnum(this.root,options,),
+                new CSEnum(this.root,),
+                new CSEnumArray(this.root,),
+                new CSUniform(this.root,), 
+                new CSObservers(this.root,),
+                new CSRequiredWhen(this.root,),
+                new CSField(this.root),
+                new CSOrder(this.root),
+            ],
+            [
+                new CSInsideRef(this.root, data),
+                new CSTemplate(this.root,'abstract',Schema._abstractFunc()),
+                new CSBool(this.root,'case',() => false),
+                new CSBool(this.root,'visible',() => true),
+                new CSBool(this.root,'readonly',() => false),
+                new CSBool(this.root,'requiredWhen',() => false),
+                new CSBool(this.root,'collapsed',() => false),
+                new CSBool(this.root,'filter', () => true),
+                new CSAny(this.root,'orderBy',() => true),
+                new CSAny(this.root,'expression',() => ''),
+                new CSAny(this.root,'change',() => ''),
+            ]
         ]
 
     }
@@ -113,13 +92,13 @@ export class SchemaCompiler {
     }
     compile() {
         this.errors = []
-        // this.walkSchema(this.steps_pass0, this.root) // MBZ-TBD upgrade phase draft-07 and 2019-09 to 2020-12
-        this.walkSchema(this.steps_pass1, this.root)
-        this.walkSchema(this.steps_pass2, this.root)
+        for (const pass of this.passes) {
+            this.walkSchema(pass, this.root)
+        }
         return this.errors
     }    
 
-    walkSchema(steps: CompilationStep[], schema: JSONSchema, parent?: JSONSchema, name?: string): void {
+    walkSchema(steps: CompilationStep[], schema: Schema, parent?: Schema, name?: string): void {
 
         for (const step of steps) {
             try {
@@ -130,7 +109,7 @@ export class SchemaCompiler {
                 this.errors.push(String(e))
             }
         }
-        if (schema.properties) return Object.entries(schema.properties as JSONSchema[]).forEach(
+        if (schema.properties) return Object.entries(schema.properties).forEach(
             ([name, child]) => this.walkSchema(steps, child, schema, name))
         if (schema.items) {
             if (schema.items.oneOf) return this.walkSchema(steps, schema.items, schema, '*')
@@ -138,9 +117,9 @@ export class SchemaCompiler {
             if (schema.items.anyOf) return this.walkSchema(steps, schema.items, schema, '*')
             return this.walkSchema(steps, schema.items, schema, '*')
         }
-        if (schema.oneOf) return schema.oneOf.forEach((child: Pojo) => this.walkSchema(steps, child, parent, name))
-        if (schema.allOf) return schema.allOf.forEach((child: Pojo) => this.walkSchema(steps, child, parent, name))
-        if (schema.anyOf) return schema.anyOf.forEach((child: Pojo) => this.walkSchema(steps, child, parent, name))
+        if (schema.oneOf) return schema.oneOf.forEach((child: Schema) => this.walkSchema(steps, child, parent, name))
+        if (schema.allOf) return schema.allOf.forEach((child: Schema) => this.walkSchema(steps, child, parent, name))
+        if (schema.anyOf) return schema.anyOf.forEach((child: Schema) => this.walkSchema(steps, child, parent, name))
     }
 
 }
@@ -153,20 +132,20 @@ export class SchemaCompiler {
  */
 class CSDefinition extends CompilationStep {
 
-    constructor(root: JSONSchema) {
+    constructor(root: Schema) {
         super (root,"$ref")
     }
 
-    override apply(schema: JSONSchema): void {
-        const properties: { [key: string]: any } = schema.properties
+    override apply(schema: Schema): void {
+        const properties = schema.properties
         properties && Object.entries(properties).forEach(
             ([pname, pschema]) => pschema.$ref && (properties[pname] = this.definition(pschema))
         )
         schema.items && schema.items.$ref && (schema.items = this.definition(schema.items))
-        schema.items && schema.items.oneOf && (schema.items.oneOf = schema.items.oneOf.map((schema: Pojo) => schema.$ref ? this.definition(schema) : schema))
+        schema.items && schema.items.oneOf && (schema.items.oneOf = schema.items.oneOf.map((schema: Schema) => schema.$ref ? this.definition(schema) : schema))
     }
 
-    definition(schema: JSONSchema) {
+    definition(schema: Schema) {
         const ref = schema.$ref as string
         if (!ref.startsWith("#/definitions/"))
             throw this.error(`only '#/definitions/<name>' allowed => ${ref}]`)
@@ -174,9 +153,9 @@ class CSDefinition extends CompilationStep {
             throw this.error(`No "definitions" property in root schema`)
         const defname = ref.split("/")[2];
         if (defname in this.root.definitions) {
-            const deforig: Pojo = this.root.definitions[defname]
-            const defcopy: Pojo = Object.assign({}, deforig)
-            Object.entries(schema).forEach(([n, v]) => (n !== '$ref') && (defcopy[n] = v))
+            const deforig: Schema = this.root.definitions[defname]
+            const defcopy: Schema = Object.assign({}, deforig)
+            Object.entries(schema).forEach(([n, v]) => (n !== '$ref') && ((defcopy as any)[n] = v))
             return defcopy
         }
         throw this.error(`No definitions found in schema for ${ref}`)
@@ -194,15 +173,15 @@ class CSTargetType extends CompilationStep {
     static ARRAYKW = ["items", "additionalItems", "minItems", "maxItems", "uniqueItems"]
     static OBJECTKW = ["required", "properties", "additionalProperties", "patternProperties", "minProperties", "maxProperties", "dependencies"]
     static ALL = new Set(["string","integer","number","object","array","boolean","null"])
-    constructor(root: JSONSchema) {
+    constructor(root: Schema) {
         super (root,"basetype")
     }
 
-    override appliable(schema: JSONSchema) {
+    override appliable(schema: Schema) {
         return !(this.property in schema)
     }
 
-    override apply(schema: JSONSchema, parent?: JSONSchema, name?: string) {
+    override apply(schema: Schema, parent?: Schema, name?: string) {
         schema.target = [...(this.infer(schema) ?? [])]
         switch (schema.target.length) {
             case 2:
@@ -217,7 +196,7 @@ class CSTargetType extends CompilationStep {
                 schema.nullAllowed = schema.target[0] == "null"
                 break
             case 0:
-                schema.basetype = undefined
+                schema.basetype = "null"
                 schema.nullAllowed = false
                 break
             default:
@@ -225,7 +204,7 @@ class CSTargetType extends CompilationStep {
         }
     }
 
-    infer(schema: JSONSchema): Set<string>|null {
+    infer(schema: Schema): Set<string>|null {
 
         const possibles:(Set<string>|null)[] = []
         // we call all the helpers that infer types for each keyword
@@ -240,31 +219,31 @@ class CSTargetType extends CompilationStep {
         possibles.push(this.notKW(schema))    
         // Handling "allOf" → intersection of types
         if (schema.allOf) {
-            const allOfTypes = schema.allOf.map((s: JSONSchema) => this.infer(s));
+            const allOfTypes = schema.allOf.map((s: Schema) => this.infer(s)).filter(x => x != null);
             possibles.push(this.intersect(allOfTypes));
         }
 
         // Handling "anyOf" → union of types
         if (schema.anyOf) {
-            const anyOfTypes = schema.anyOf.map((s: JSONSchema) => this.infer(s));
+            const anyOfTypes = schema.anyOf.map((s: Schema) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x );
             possibles.push(this.union(anyOfTypes));
         }
 
         // Handling "oneOf" → union of types (similar to anyOf)
         if (schema.oneOf) {
-            const oneOfTypes = schema.oneOf.map((s: JSONSchema) => this.infer(s));
+            const oneOfTypes = schema.oneOf.map((s: Schema) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x );;
             possibles.push(this.union(oneOfTypes));
         }
         const filtered = possibles.filter(value => value !=  null) 
         return this.intersect(filtered)
     }
 
-    private notKW(schema: JSONSchema) {
+    private notKW(schema: Schema) {
         //  "not" → Compute the complementary set of types
         return schema.not ? this.complement(this.infer(schema.not)) : null
     }
 
-    private enumKW(schema: JSONSchema) {
+    private enumKW(schema: Schema) {
         // infering type from "enum" keyword correspond to a set of all enums value types
         if ("enum" in schema && Array.isArray(schema.enum)) {
             const types = schema.enum.map(value => value == null ? "null" : Array.isArray(value) ? "array" : typeof value )
@@ -273,14 +252,14 @@ class CSTargetType extends CompilationStep {
         return null
     }
     
-    private typeKW(schema: JSONSchema) {
+    private typeKW(schema: Schema) {
         if ("type" in schema) {
             return new Set( Array.isArray(schema.type) ? schema.type : [schema.type]) as Set<string>
         }
         return null
     }
 
-    private constKW(schema: JSONSchema) {
+    private constKW(schema: Schema) {
         if ("const" in schema) {
             if (schema.const == null) return new Set(["null"]);
             if (Array.isArray(schema.const)) return new Set(["array"]);
@@ -290,25 +269,25 @@ class CSTargetType extends CompilationStep {
         return null;
     }
     
-    private arrayKW(schema: JSONSchema) {
+    private arrayKW(schema: Schema) {
         // if one of this keywords is present then type is contrained to "array"
         return CSTargetType.ARRAYKW.some(kw => kw in schema) 
             ? new Set(["array"]) 
             : null
     }
-    private numberKW(schema: JSONSchema) {
+    private numberKW(schema: Schema) {
         // if one of this keywords is present then type is contrained to "number"
         return CSTargetType.NUMBERKW.some(kw => kw in schema) 
             ? new Set(["number"])
             : null
     }
-    private objectKW(schema: JSONSchema) {
+    private objectKW(schema: Schema) {
         // if one of this keywords is present then type is contrained to "object"
         return CSTargetType.OBJECTKW.some(kw => kw in schema) 
             ? new Set(["object"]) 
             : null
     }
-    private stringKW(schema: JSONSchema) {
+    private stringKW(schema: Schema) {
         // if one of this keywords is present then type is contrained to "string"
         return CSTargetType.STRINGKW.some(kw => kw in schema)
             ? new Set(["string"]) 
@@ -334,15 +313,15 @@ class CSTargetType extends CompilationStep {
 class CSAppEnum extends CompilationStep {
     private options: any
 
-    constructor(root: JSONSchema, options: any) {
+    constructor(root: Schema, options: any) {
         super(root,"enumRef")
         this.options = options
     }
 
-    override appliable(schema: JSONSchema) { // when property absent
+    override appliable(schema: Schema) { // when property absent
         return this.property in schema
     }
-    override apply(schema: JSONSchema): void {
+    override apply(schema: Schema): void {
         if (!this.options.ref)
             throw Error(`missing 'enumRef' function in options`)
         const list = this.options.ref(schema.enumRef)
@@ -361,14 +340,14 @@ class CSAppEnum extends CompilationStep {
  */
 class CSEnum extends CompilationStep {
 
-    constructor(root: JSONSchema) {
+    constructor(root: Schema) {
         super (root,"isenum")
     }
 
-    override appliable(schema: JSONSchema) { // when property absent
+    override appliable(schema: Schema) { // when property absent
         return !(this.property in schema)
     }
-    override apply(schema: JSONSchema): void {
+    override apply(schema: Schema): void {
         schema.isenum = false;
         switch (true) {
             // allow only primitive types to be enums
@@ -390,14 +369,14 @@ class CSEnum extends CompilationStep {
  */
 class CSEnumArray extends CompilationStep {
 
-    constructor(root: JSONSchema) {
+    constructor(root: Schema) {
         super (root,"isenumarray")
     }
 
-    override appliable(schema: JSONSchema) {  
+    override appliable(schema: Schema) {  
         return !(this.property in schema)
     }
-    override apply(schema: JSONSchema): void {
+    override apply(schema: Schema): void {
         schema.isenumarray = isprimitive(schema.basetype) && isenumarray(schema)
     }
 }
@@ -408,16 +387,16 @@ class CSEnumArray extends CompilationStep {
  */
 class CSUniform extends CompilationStep {
 
-    constructor(root: JSONSchema) {
+    constructor(root: Schema) {
         super (root,"homogeneous")
     }
 
-    override appliable(schema: JSONSchema) {
+    override appliable(schema: Schema) {
         return !(this.property in schema) && schema.basetype === "array"
     }
 
-    override apply(schema: JSONSchema): void {
-        schema.homogeneous = schema.items.oneOf ? false : true
+    override apply(schema: Schema): void {
+        schema.homogeneous = schema.items?.oneOf ? false : true
     }
 }
 
@@ -432,14 +411,14 @@ class CSUniform extends CompilationStep {
  */
 class CSObservers extends CompilationStep {
 
-    constructor(root: JSONSchema) {
+    constructor(root: Schema) {
         super (root,"observers")
     }
 
-    override appliable(schema: JSONSchema) {
+    override appliable(schema: Schema) {
         return !(this.property in schema)
     }
-    override apply(schema: JSONSchema): void {
+    override apply(schema: Schema): void {
         schema.observers = []
     }
 }
@@ -450,14 +429,14 @@ class CSObservers extends CompilationStep {
  */
 class CSParent extends CompilationStep {
 
-    constructor(root: JSONSchema) {
+    constructor(root: Schema) {
         super (root,"parent")
     }
 
-    override appliable(schema: JSONSchema) {
+    override appliable(schema: Schema) {
         return !(this.property in schema)
     }
-    override apply(schema: JSONSchema,parent: JSONSchema): void {
+    override apply(schema: Schema,parent: Schema): void {
         schema.parent = parent
     }
 }
@@ -469,14 +448,14 @@ class CSParent extends CompilationStep {
  */
 class CSPointer extends CompilationStep {
 
-    constructor(root: JSONSchema) {
+    constructor(root: Schema) {
         super (root,"pointer")
     }
 
-    override appliable(schema: JSONSchema) {
+    override appliable(schema: Schema) {
         return !(this.property in schema)
     }
-    override apply(schema: JSONSchema,parent: JSONSchema, name: string): void {
+    override apply(schema: Schema,parent: Schema, name: string): void {
         schema.pointer = parent ? `${parent.pointer}/${name}` : `#`
     }
 }
@@ -487,14 +466,14 @@ class CSPointer extends CompilationStep {
  */
 class CSRoot extends CompilationStep {
 
-    constructor(root: JSONSchema) {
+    constructor(root: Schema) {
         super (root,"root")
     }
 
-    override appliable(schema: JSONSchema) {
+    override appliable(schema: Schema) {
         return !(this.property in schema)
     }
-    override apply(schema: JSONSchema): void {
+    override apply(schema: Schema): void {
         schema.root = this.root
     }
 }
@@ -505,16 +484,16 @@ class CSRoot extends CompilationStep {
  */
 class CSRequiredWhen extends CompilationStep {
 
-    constructor(root: JSONSchema) {
+    constructor(root: Schema) {
         super (root,"requiredWhen")
     }
 
-    override appliable(schema: JSONSchema) {
+    override appliable(schema: Schema) {
         return schema.basetype === "object" && schema.properties != null && schema.required != null
     }
-    override apply(schema: JSONSchema): void {
-        schema.required.forEach((name: any) => {
-            if (name in schema.properties) schema.properties[name].requiredWhen = "true"
+    override apply(schema: Schema): void {
+        schema.required?.forEach((name: any) => {
+            if (schema.properties && name in schema.properties) schema.properties[name].requiredWhen = "true"
         })
     }
 }
@@ -526,15 +505,15 @@ class CSRequiredWhen extends CompilationStep {
  */
 class CSField extends CompilationStep {
 
-    constructor(root: JSONSchema) {
+    constructor(root: Schema) {
         super (root,"field")
     }
 
-    override appliable(schema: JSONSchema) {
+    override appliable(schema: Schema) {
         return !(this.property in schema)
     }
 
-    override apply(schema: JSONSchema) {
+    override apply(schema: Schema) {
         if ("const" in schema) return schema.field = 'fz-constant'
         if (schema.refTo && isprimitive(schema.basetype)) {
             if (!schema.filter) schema.filter = () => true
@@ -543,12 +522,12 @@ class CSField extends CompilationStep {
         if (schema.isenum) {
             if (!schema.filter) schema.filter = () => true
             switch (true) {
-                case schema.enum?.length <= 3: return schema.field = 'fz-enum-check'
-                case schema.oneOf?.length <= 3: return schema.field = 'fz-enum-check'
-                case schema.anyOf?.length <= 3: return schema.field = 'fz-enum-check'
-                case schema.enum?.length <= 20: return schema.field = 'fz-enum'
-                case schema.oneOf?.length <= 20: return schema.field = 'fz-enum'
-                case schema.anyOf?.length <= 20: return schema.field = 'fz-enum'
+                case schema.enum && schema.enum?.length <= 3: return schema.field = 'fz-enum-check'
+                case schema.oneOf && schema.oneOf?.length <= 3: return schema.field = 'fz-enum-check'
+                case schema.anyOf && schema.anyOf?.length <= 3: return schema.field = 'fz-enum-check'
+                case schema.enum && schema.enum?.length <= 20: return schema.field = 'fz-enum'
+                case schema.oneOf && schema.oneOf?.length <= 20: return schema.field = 'fz-enum'
+                case schema.anyOf && schema.anyOf?.length <= 20: return schema.field = 'fz-enum'
                 default: return schema.field = 'fz-enum-typeahead'
             }
         }
@@ -579,7 +558,7 @@ class CSField extends CompilationStep {
                     case "markdown": return schema.field = 'fz-markdown'
                     case "asset": return schema.field = 'fz-asset'
                 }
-                if (!schema.format && schema.maxLength > 256) return schema.field = 'fz-textarea'
+                if (!schema.format && schema.maxLength && schema.maxLength > 256) return schema.field = 'fz-textarea'
                 return schema.field = 'fz-string'
         }
         return schema.field = 'fz-error'    
@@ -591,14 +570,14 @@ class CSField extends CompilationStep {
  */
 class CSOrder extends CompilationStep {
 
-    constructor(root: JSONSchema) {
+    constructor(root: Schema) {
         super (root,"order")
     }
 
-    override appliable(schema: JSONSchema) {
+    override appliable(schema: Schema) {
         return !(this.property in schema) && schema.basetype === 'object' && schema.properties != null
     }
-    override apply(schema: JSONSchema) {
+    override apply(schema: Schema) {
         const properties = schema.properties
         const groupmap: Map<string, number> = new Map()
         const tabmap: Map<string, number> = new Map()
@@ -625,19 +604,19 @@ class CSOrder extends CompilationStep {
 
 class CSInsideRef extends CompilationStep {
     private data: Pojo
-    constructor(root:JSONSchema, data: Pojo) {
+    constructor(root:Schema, data: Pojo) {
         super(root,"refTo")
         this.data = data
     }
-    override appliable(schema: JSONSchema) {
+    override appliable(schema: Schema) {
         return this.property in schema && typeof schema.refTo !== "function"
     }
-    override apply(schema: JSONSchema) {
+    override apply(schema: Schema) {
         const refto = schema.refTo as string
         schema.refTo = () => null
         const pointer = refto.replace(/\/[^/]+$/, '')
         const refname = refto.substr(pointer.length + 1)
-        observers(this.root, schema, `$\`${pointer}\``)
+        schema._addObservers(`$\`${pointer}\``)
         schema.refTo = (_schema: Pojo, _value: any, parent: any, property: string, _$: any) => {
             const refarray = derefPointerData(this.data.content, parent, property, pointer)
             if (!refarray) return null
@@ -656,16 +635,16 @@ class CSInsideRef extends CompilationStep {
  */
 class CSTemplate extends CompilationStep {
     private defunc:  ExprFunc<string>
-    constructor(root: JSONSchema,property: string,defunc: ExprFunc<string>) {
+    constructor(root: Schema,property: keyof Schema,defunc: ExprFunc<string>) {
         super(root, property)
         this.defunc = defunc
     }
-    override appliable(schema: JSONSchema) {
-        return this.property in schema && typeof schema[this.property] == "string"
+    override appliable(schema: Schema) {
+        return this.property in schema && typeof (schema as any)[this.property] == "string"
     }
-    override apply(schema: JSONSchema, _parent: JSONSchema, name:string) {
-        const expression = schema[this.property]
-        schema[this.property] = this.defunc
+    override apply(schema: Schema, _parent: Schema, name:string) {
+        const expression = (schema as any)[this.property]
+        (schema as any)[this.property] = this.defunc
         if (typeof expression == 'string') {
             const code = `
                 ${this.sourceURL(name)}
@@ -677,9 +656,9 @@ class CSTemplate extends CompilationStep {
                 return ''
             `
             try {
-                observers(this.root, schema, expression)
-                schema[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code)
-                schema[this.property].expression = expression
+                schema._addObservers(expression)
+                ;(schema as any)[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code)
+                ;(schema as any)[this.property].expression = expression
             } catch (e) {
                 throw Error(`unable to compile ${this.property} expression "${expression}" due to ::\n\t=>${String(e)}`)
             }
@@ -693,18 +672,18 @@ class CSTemplate extends CompilationStep {
  */
 class CSBool extends CompilationStep {
     private defunc:  ExprFunc<boolean>
-    constructor(root: JSONSchema,property: string,defunc: ExprFunc<boolean>) {
+    constructor(root: Schema,property: keyof Schema,defunc: ExprFunc<boolean>) {
         super(root, property)
         this.defunc = defunc
     }
-    override appliable(schema: JSONSchema) {
-        return this.property in schema && ["string","boolean"].includes(typeof schema[this.property])
+    override appliable(schema: Schema) {
+        return this.property in schema && ["string","boolean"].includes(typeof (schema as any)[this.property])
     }
-    override apply(schema: JSONSchema, _parent: JSONSchema, name: string) {
+    override apply(schema: Schema, _parent: Schema, name: string) {
         const expression = schema[this.property]
-        schema[this.property] = this.defunc
+        ;(schema as any)[this.property] = this.defunc
         if (typeof expression == 'boolean' || expression === null) {
-            schema[this.property] = expression === null ? () => null : () => expression
+            (schema as any)[this.property] = expression === null ? () => null : () => expression
         } else if (typeof expression == 'string') {
             const code = `
             ${this.sourceURL(name)}
@@ -717,8 +696,8 @@ class CSBool extends CompilationStep {
                 return true
             `
             try {
-                observers(this.root, schema, expression)
-                schema[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code)
+                schema._addObservers(expression)
+                ;(schema as any)[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code)
                 schema[this.property].expression = expression
             } catch (e) {
                 throw Error(`unable to compile ${this.property} expression "${expression}" due to ::\n\t=>${String(e)}`)
@@ -730,17 +709,17 @@ class CSBool extends CompilationStep {
 
 class CSAny extends CompilationStep {
     private defunc:  ExprFunc<any>
-    constructor(root: JSONSchema,property: string,defunc: ExprFunc<any>) {
+    constructor(root: Schema,property: keyof Schema,defunc: ExprFunc<any>) {
         super(root, property)
         this.defunc = defunc
     }
-    override appliable(schema: JSONSchema) {
+    override appliable(schema: Schema) {
         return this.property in schema && typeof schema[this.property] !== "function" 
 
     }
-    override apply(schema: JSONSchema, _parent: JSONSchema, name: string) {
+    override apply(schema: Schema, _parent: Schema, name: string) {
         const expression = schema[this.property]
-        schema[this.property] = this.defunc
+        ;(schema as any)[this.property] = this.defunc
         let code = "return null"
         switch (true) {
             case typeof expression == 'boolean':
@@ -764,9 +743,9 @@ class CSAny extends CompilationStep {
             ${this.sourceURL(name)}
         `
         try {
-            if (Array.isArray(expression)) expression.forEach((expr: string) => observers(this.root, schema, expr))
-            if (typeof expression == 'string') observers(this.root, schema, expression)
-            schema[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", body)
+            if (Array.isArray(expression)) expression.forEach((expr: string) => schema._addObservers(expr))
+            if (typeof expression == 'string') schema._addObservers(expression)
+            ;(schema as any)[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", body)
             schema[this.property].expression = expression
         } catch (e) {
             console.error(`unable to compile ${this.property} expression "${expression}" due to ::\n\t=>${String(e)}`)
@@ -779,13 +758,15 @@ class CSAny extends CompilationStep {
  * compilation process is a in-depth walkthrough schema applying in order compile time actions
  * be carefull action order is primordial
  */
+
+
 export class DataCompiler {
     data: Pojo
-    schema: JSONSchema
-    steps: ((data: Pojo, schema: JSONSchema, pdata?: Pojo, pschema?: JSONSchema) =>void)[]
+    schema: Schema
+    steps: ((data: Pojo, schema: Schema, pdata?: Pojo, pschema?: Schema) =>void)[]
     errors: string[] = []
 
-    constructor(data: Pojo, schema: JSONSchema) {
+    constructor(data: Pojo, schema: Schema) {
         this.data = data
         this.schema = schema
         this.steps = [
@@ -802,7 +783,7 @@ export class DataCompiler {
         return this.errors
     }
 
-    walkData(data: Pojo, schema: Pojo, pdata?: Pojo, pschema?: Pojo) {
+    walkData(data: Pojo, schema: Schema, pdata?: Pojo, pschema?: Schema) {
         if (schema == null || data == null) return
         try {
             this.steps.forEach(action => action(data, schema, pdata, pschema))
@@ -811,17 +792,19 @@ export class DataCompiler {
         }
         if (Array.isArray(data)) {
             if (schema.homogeneous) {
-                data.forEach((item: Pojo) => this.walkData(item, schema.items, data, schema))
+                for (const item of data) {
+                    if (schema.items) this.walkData(item, schema.items, data, schema)
+                }
             } else {
                 data.forEach((item: any, i: any) => {
-                    schema.items.oneOf.forEach((schema: any) => {
+                    schema.items?.oneOf?.forEach((schema: any) => {
                         if (schema.case && schema.case(null, item, data, i, () => null)) this.walkData(item, schema, data, schema)
                     })
                 })
             }
             return
         }
-        if (typeof data === 'object') {
+        if (typeof data === 'object' && schema.properties) {
             for (const property in data) {
                 const propschema = schema.properties[property]
                 this.walkData(data[property], propschema, data, schema)

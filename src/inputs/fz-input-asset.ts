@@ -3,6 +3,7 @@ import { customElement } from "lit/decorators.js"
 import { html } from "lit"
 import { isEmptyValue } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
+import { ifDefined } from "lit/directives/if-defined.js";
 
 enum SelectionState {
     idle, selecting
@@ -31,7 +32,7 @@ export class FzInputAsset extends FzInputBase {
         return isEmptyValue(value) ? this.empty : value.toString();
     }
 
-    get assets() { return this.schema.assets.split(","); }
+    get assets() { return (this.schema.assets ?? "").split(","); }
     get asset() { return this.form.asset }
 
     renderInput() {
@@ -42,7 +43,7 @@ export class FzInputAsset extends FzInputBase {
                     type="text"
                     id="input"
                     @input="${this.change}"
-                    placeholder="${this.label}"
+                    placeholder="${ifDefined(this.label)}"
                     readonly
                 />
                 <button

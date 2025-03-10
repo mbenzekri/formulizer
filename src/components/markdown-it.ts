@@ -5,7 +5,7 @@ import MarkdownIt from "markdown-it"
 import { Base } from "../base"
 
 const md = new MarkdownIt({
-    html: false,                // Enable HTML tags in source
+    html: true,                // Enable HTML tags in source
     xhtmlOut: false,            // Use '/' to close single tags (<br />). This is only for full CommonMark compatibility.
     breaks: false,              // Convert '\n' in paragraphs into <br>
     langPrefix: 'language-',    // CSS language prefix for fenced blocks. Can be useful for external highlighters.

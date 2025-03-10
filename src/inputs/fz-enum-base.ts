@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { html, TemplateResult } from "lit"
 import { FzItemDlg } from "../components/fz-item-dlg";
-import { getSchema, isEmptyValue } from "../lib/tools"
+import { getSchema, isEmptyValue, isFunction } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 
 export type EnumItem = { label: string; value: any }
@@ -91,7 +91,7 @@ export abstract class FzEnumBase extends FzInputBase {
                     const ok = this.evalExpr('filter', schema, item, refarray, index)
                     if (ok) {
                         const value = item[refname]
-                        const label = schema?.abstract(schema, item, refarray, index, this.derefFunc) ?? value
+                        const label = isFunction(schema?.abstract) ? schema.abstract(schema, item, refarray, index, this.derefFunc) : value
                         list.push({ label, value })
                     }
                     return list

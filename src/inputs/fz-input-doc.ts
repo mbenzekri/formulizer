@@ -45,7 +45,7 @@ export class FzInputDoc extends FzInputBase {
     private filename?: string
 
     get hasPreview(): boolean {
-        return this.schema.preview
+        return !!this.schema.preview
     }
 
     get mimetype(): string {

@@ -1,6 +1,6 @@
 import JsonSchemaDraft  from "../assets/draft-07-schema.json"
 import Ajv from "ajv";
-import { JSONSchema } from "./types"
+import { Schema } from "./schema"
 
 import { ValidateFunction, ErrorObject } from "ajv"
 import Ajvi18n from "ajv-i18n/localize/fr"
@@ -33,7 +33,7 @@ export function validateErrors() {
 
 export class DataValidator {
     parser: ValidateFunction
-    constructor(schema: JSONSchema) {
+    constructor(schema: Schema) {
         this.parser = ajv.compile(schema)
     }
     validate(value: any): boolean {

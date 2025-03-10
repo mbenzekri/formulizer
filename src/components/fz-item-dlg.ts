@@ -1,18 +1,18 @@
 import { html, css } from "lit"
 import { property, customElement } from "lit/decorators.js"
 import { FzDialog } from "./dialog"
-import { Pojo } from "../lib/types"
-import { calculateDefault, getSchema } from "../lib/tools"
+import { getSchema } from "../lib/tools"
 import { FzElement } from "../fz-element"
 import { Base } from "../base"
+import { Schema } from "../lib/schema"
 
 
 @customElement("fz-item-dlg")
 export class FzItemDlg extends Base {
     @property({ type: Object }) accessor  reference:  { pointer: string, refname: string, refarray: any[] } | null = null
     private modal?: FzDialog | null
-    private arraySchema?: Pojo
-    private itemSchema?: Pojo
+    private arraySchema?: Schema
+    private itemSchema?: Schema
     private array?: any[]
     private index?: number
     private pointer?: string
@@ -31,7 +31,7 @@ export class FzItemDlg extends Base {
     override render() {
         return html`
             <fz-dialog modal-title="Ajouter un element ..." @click="${this.stopEvent}" @close="${this.close}" > 
-                ${(this.itemSchema != null || this.arraySchema?.items.oneOf == null) ? '' :
+                ${(this.itemSchema != null || this.arraySchema?.items?.oneOf == null) ? '' :
                 html`<div class="btn-group" role="group">
                     <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
                         @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -67,9 +67,9 @@ export class FzItemDlg extends Base {
         menu?.style.setProperty("display", menu?.style.display == "block" ? "none" : "block")
     }
 
-    addItem(schema: Pojo) {
+    addItem(schema: Schema) {
         this.itemSchema = schema
-        const value = calculateDefault(this.array, this.itemSchema)
+        const value = this.itemSchema._default(this.array)
         this.index = this.array?.length
         this.array?.push(value)
         this.modal?.valid()
@@ -101,7 +101,7 @@ export class FzItemDlg extends Base {
     open() {
         if (this.modal) this.modal.open()
         if (this.arraySchema?.homogeneous && this.index === undefined) {
-            this.addItem(this.arraySchema?.items)
+            this.arraySchema?.items && this.addItem(this.arraySchema?.items)
         }
 
     }

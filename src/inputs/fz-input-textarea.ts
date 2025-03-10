@@ -19,7 +19,7 @@ export class FzInputTextarea extends FzInputBase {
             <textarea  
                 class="form-control" 
                 id="input"
-                placeholder="${this.label}"
+                placeholder="${ifDefined(this.label)}"
                 .value="${this.value}" 
                 ?readonly="${this.readonly}"
                 @input="${this.change}"
@@ -33,7 +33,7 @@ export class FzInputTextarea extends FzInputBase {
     get minlength() { return this.schema.minLength }
     get maxlength() { return this.schema.maxLength }
     get pattern() { return this.schema.pattern }
-    get password() {return !!this.schema.options?.password }
+    //get password() {return !!this.schema.options?.password }
     
     convertToInput(value: any) {
         return value == null ? null : value.toString()

@@ -88,56 +88,17 @@ const t$2=globalThis,i$2=t$2.trustedTypes,s$1=i$2?i$2.createPolicy("lit-html",{c
  * SPDX-License-Identifier: BSD-3-Clause
  */let r$1 = class r extends b{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0;}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const s=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=B(s,this.renderRoot,this.renderOptions);}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(true);}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(false);}render(){return T}};r$1._$litElement$=true,r$1["finalized"]=true,globalThis.litElementHydrateSupport?.({LitElement:r$1});const i$1=globalThis.litElementPolyfillSupport;i$1?.({LitElement:r$1});(globalThis.litElementVersions??=[]).push("4.1.1");
 
-const primitivetypes = new Set(['string', 'integer', 'number', 'boolean', 'array']);
-function isprimitive(name) { return primitivetypes.has(name); }
-function isenumarray(schema) {
-    if (schema.basetype === 'array' && schema.uniqueItems) {
-        if (schema.items.oneOf)
-            return !!schema.items.oneOf.every((sch) => 'const' in sch);
-        else if (schema.items.anyOf)
-            return !!schema.anyOf.every((sch) => 'const' in sch);
-    }
-    return false;
+function isArray(value) {
+    return Array.isArray(value);
 }
-const jsonAttributeConverter = {
-    fromAttribute(value) {
-        try {
-            return value ? JSON.parse(value) : null;
-        }
-        catch (error) {
-            console.error('fromAttribute:JSON parsing error:', error);
-            return null;
-        }
-    },
-    toAttribute(value) {
-        try {
-            return value != null ? JSON.stringify(value) : null;
-        }
-        catch (error) {
-            console.error('toAttribute: JSON stringifycation failure:', error);
-            return null;
-        }
-    }
-};
-function calculateDefault(parent, schema) {
-    switch (true) {
-        case ("const" in schema):
-            return schema.const;
-        case isprimitive(schema.basetype) && 'default' in schema:
-            return schema.default;
-        case schema.basetype === 'object': {
-            return Object.entries(schema.properties).reduce((object, [key, property]) => {
-                if (property.default)
-                    object[key] = newValue(JSON.parse(JSON.stringify(property.default)), object, property);
-                else
-                    object[key] = object.required?.includes[key] ? calculateDefault(object, property) : newValue(getEmptyValue(property), object, property);
-                return object;
-            }, newValue({}, parent, schema));
-        }
-        case schema.basetype === 'array':
-            return newValue([], parent, schema);
-        default: return newValue(getEmptyValue(schema), parent, schema);
-    }
+function isNumber$1(value) {
+    return typeof value === "number" && !isNaN(value);
+}
+function isObject$1(value) {
+    return typeof value === "object" && value !== null;
+}
+function isFunction$1(value) {
+    return typeof value === "function" && value !== null;
 }
 /**
  * find in the ancestors of an element a webcomponent matching a given selector
@@ -153,37 +114,6 @@ function closestAscendantFrom(selector, item) {
         return found ?? closestAscendantFrom(selector, parent);
     }
     return null;
-}
-/**
- * get the schema corresponding to a jsonpointer (absolute or relative)
- * @param root root schema for absolute pointer
- * @param current current schema for relative pointer
- * @param pointer pointer to dereference
- * @returns
- */
-function derefPointerSchema(root, current, pointer) {
-    const tokens = pointer.split(/\//);
-    const relative = /^\d+$/.test(tokens[0]);
-    let base = relative ? current : root;
-    if (relative) {
-        const count = parseInt(tokens[0]);
-        for (let i = 0; i < count; i++)
-            base = base.parent;
-        if (!base) {
-            console.error(`in context ${current.pointer} enable to dereference pointer ${pointer} (not enough ascendant')`);
-            return null;
-        }
-    }
-    tokens.shift();
-    for (const token of tokens) {
-        const prev = base;
-        base = (token === '*') ? base.items : base.properties[token];
-        if (!base) {
-            console.error(`in context ${current.pointer} enable to dereference pointer ${pointer}(property '${token}' not found in ${prev.pointer})`);
-            return null;
-        }
-    }
-    return base;
 }
 /**
  * get the data corresponding to a jsonpointer (absolute or relative)
@@ -243,12 +173,6 @@ function setHiddenProperty(data, property, value) {
     }
     return data;
 }
-// export function initChild(data: any, parent: any , schema: Pojo) {
-//     setSchema(data,schema)
-//     setParent(data,parent)
-//     setRoot(data,getRoot(parent))
-//     return data
-// }
 function newValue(value, parent, schema) {
     setSchema(value, schema);
     setParent(value, parent);
@@ -311,27 +235,27 @@ function getEmptyValue(schema) {
         return schema.const;
     return schema.nullAllowed ? null : undefined;
 }
-/**
- * default abstract calculator
- * @param schema shema of the value to abstract
- * @param schema value abstract
- */
-function abstract(schema, value) {
-    switch (true) {
-        case schema == null || isEmptyValue(value) || value == null: return '~';
-        case Array.isArray(value):
-            return value
-                .map((item) => item ? abstract(schema.items, item) : item)
-                .filter((v) => v)
-                .join(',');
-        case typeof value === 'object':
-            return schema.properties ? Object.keys(schema.properties)
-                .filter((property) => !(value[property] == null))
-                .map((property) => abstract(schema.properties[property], value[property]))
-                .join(',') : "";
-        default: return value;
-    }
-}
+// /**
+//  * default abstract calculator
+//  * @param schema shema of the value to abstract
+//  * @param schema value abstract
+//  */
+// export function abstract(schema: Pojo, value: any): string {
+//     switch (true) {
+//         case schema == null || isEmptyValue(value) || value == null: return '~'
+//         case Array.isArray(value):
+//             return (value as Array<any>)
+//                 .map((item: any) => item ? abstract(schema.items, item) : item)
+//                 .filter((v: any) => v)
+//                 .join(',')
+//         case typeof value === 'object':
+//             return schema.properties ? Object.keys(schema.properties)
+//                 .filter((property: string) => !(value[property] == null))
+//                 .map((property: string) => abstract(schema.properties[property], value[property]))
+//                 .join(',') : ""
+//         default: return value
+//     }
+// }
 function formatMsg(key, input) {
     switch (key) {
         case 'valueMissing':
@@ -13886,6 +13810,268 @@ class Base extends r$1 {
     }
 }
 
+const SchemaAnnotation = ["parent", "root",];
+class JSONSchemaDraft07 {
+    $id;
+    $schema;
+    $ref;
+    $comment;
+    type;
+    enum;
+    const;
+    multipleOf;
+    maximum;
+    exclusiveMaximum;
+    minimum;
+    exclusiveMinimum;
+    maxLength;
+    minLength;
+    pattern;
+    items; //  | Schema[];  // TO BE FIXED LATER
+    additionalItems;
+    maxItems;
+    minItems;
+    uniqueItems;
+    contains;
+    maxProperties;
+    minProperties;
+    required;
+    properties;
+    patternProperties; // this is ignored by formulizer (except for validation)
+    additionalProperties;
+    dependencies;
+    propertyNames;
+    if;
+    then;
+    else;
+    allOf;
+    anyOf;
+    oneOf;
+    not;
+    definitions;
+    title;
+    description;
+    default;
+    examples;
+    format;
+    // Fz Annotations
+    root;
+    parent;
+    basetype;
+    pointer;
+    nullAllowed;
+    transient;
+    observers;
+    target;
+    enumRef;
+    isenum;
+    filter;
+    isenumarray;
+    homogeneous;
+    requiredWhen;
+    field;
+    refTo;
+    order;
+    abstract;
+    case;
+    visible;
+    readonly;
+    collapsed;
+    orderBy;
+    expression;
+    change;
+    nullable;
+    addTo;
+    assets;
+    preview;
+    mimetype;
+}
+// Define the prototype separately with explicit type annotation
+class Schema extends JSONSchemaDraft07 {
+    constructor(schema) {
+        super();
+        return Schema.wrapSchema(schema);
+    }
+    /**
+     * default abstract calculation
+     */
+    _abstract(value) {
+        if (isEmptyValue(value) || value == null)
+            return '~';
+        if (isArray(value) && this.items instanceof Schema && this.items != null) {
+            const items = this.items;
+            return (value)
+                .map((item) => items._abstract(item))
+                .filter((v) => v)
+                .join(',');
+        }
+        if (isArray(value) && isArray(this.items)) {
+            //const items = this.items
+            return '';
+        }
+        if (isObject$1(this.properties)) {
+            const properties = this.properties;
+            return this.properties ? Object.keys(this.properties)
+                .filter((property) => value[property] != null)
+                .map((property) => properties[property]._abstract(value[property]))
+                .join(',') : "";
+        }
+        return String(value);
+    }
+    static _abstractFunc() {
+        return (schema, value) => schema._abstract(value);
+    }
+    _default(parent) {
+        switch (true) {
+            case ("const" in this):
+                return this.const;
+            case isprimitive(this.basetype) && 'default' in this:
+                return this.default;
+            case this.basetype === 'object': {
+                return Object.entries(this.properties).reduce((object, [key, property]) => {
+                    if (property.default)
+                        object[key] = newValue(JSON.parse(JSON.stringify(property.default)), object, property);
+                    else
+                        object[key] = object.required?.includes[key] ? property._default(object) : newValue(getEmptyValue(property), object, property);
+                    return object;
+                }, newValue({}, parent, this));
+            }
+            case this.basetype === 'array':
+                return newValue([], parent, this);
+            default: return newValue(getEmptyValue(this), parent, this);
+        }
+    }
+    /**
+     * get the schema corresponding to a jsonpointer (absolute or relative)
+     * @param root root schema for absolute pointer
+     * @param current current schema for relative pointer
+     * @param pointer pointer to dereference
+     * @returns
+     */
+    _deref(pointer) {
+        const tokens = pointer.split(/\//);
+        const relative = /^\d+$/.test(tokens[0]);
+        let base = relative ? this : this.root;
+        if (relative) {
+            const count = parseInt(tokens[0]);
+            for (let i = 0; i < count; i++)
+                base = base?.parent;
+            if (!base) {
+                console.error(`in context ${this.pointer} enable to dereference pointer ${pointer} (not enough ascendant')`);
+                return;
+            }
+        }
+        tokens.shift();
+        for (const token of tokens) {
+            const prev = base;
+            base = (token === '*') ? base.items : base.properties?.[token];
+            if (!base) {
+                console.error(`in context ${this.pointer} enable to dereference pointer ${pointer}(property '${token}' not found in ${prev.pointer})`);
+                return;
+            }
+        }
+        return base;
+    }
+    /**
+     * observers function parse expression to extract observed values and set observers
+     * array in corresponding schema.
+     * a value is observed by using the pointer dereference operation in expresions: $`#/a/b/c`
+     * the observer is the Object desribed by the schema and the objserved value is the value
+     * pointed by $`...`
+     * @param root schema for absolute pointers in expr
+     * @param current schema for relative pointer in expr
+     * @param expr function body or arrow function body to parse
+     */
+    _addObservers(expr) {
+        const POINTER_RE = /\$\`([^`]+)`/g;
+        let matches;
+        while ((matches = POINTER_RE.exec(expr)) != null) {
+            const pointer = matches[1];
+            const observedschema = this._deref(pointer);
+            if (observedschema != null && !observedschema.observers.includes(this.pointer)) {
+                observedschema.observers.push(this.pointer);
+            }
+        }
+    }
+    _toJSON() {
+        return JSON.stringify(this, (key, value) => SchemaAnnotation.includes(key) ? undefined : value);
+    }
+    static wrapSchema(schema, parent, name) {
+        if (schema.properties)
+            for (const name of Object.keys(schema.properties)) {
+                schema.properties[name] = Schema.wrapSchema(schema.properties[name], schema, name);
+            }
+        if (schema.items) {
+            schema.items = Schema.wrapSchema(schema.items, schema, '*');
+        }
+        if (parent && name) {
+            if (schema.oneOf)
+                schema.oneOf = schema.oneOf.map((child) => Schema.wrapSchema(child, parent, name));
+            if (schema.allOf)
+                schema.allOf = schema.allOf.map((child) => Schema.wrapSchema(child, parent, name));
+            if (schema.anyOf)
+                schema.anyOf = schema.anyOf.map((child) => Schema.wrapSchema(child, parent, name));
+        }
+        Object.setPrototypeOf(schema, Schema.prototype);
+        return schema;
+    }
+}
+class CompilationStep {
+    static sourceCount = 1;
+    root;
+    property;
+    constructor(root, property) {
+        this.root = root;
+        this.property = property;
+    }
+    appliable(_schema, _parent, _name) {
+        // default applied on all schemas
+        return true;
+    }
+    sourceURL(dataProperty) {
+        let source = `_FZ_${this.property}_${dataProperty ?? ''}_${CompilationStep.sourceCount++}.js`.replace(/ +/g, "_");
+        source = source.replace(/[^a-z0-9_]/ig, "");
+        console.log(`builded source :${source}`);
+        return `\n    //# sourceURL=${source}\n`;
+    }
+    error(message) {
+        return Error(`Compilation step ${this.property}: ${message} `);
+    }
+}
+const primitivetypes = new Set(['string', 'integer', 'number', 'boolean', 'array']);
+function isprimitive(name) { return !!name && primitivetypes.has(name); }
+function isenumarray(schema) {
+    if (schema.basetype === 'array' && schema.uniqueItems) {
+        if (schema.items.oneOf)
+            return !!schema.items.oneOf.every((sch) => 'const' in sch);
+        else if (schema.items.anyOf)
+            return !!schema.anyOf.every((sch) => 'const' in sch);
+    }
+    return false;
+}
+const schemaAttrConverter = {
+    fromAttribute(value) {
+        try {
+            return value != null ? new Schema(JSON.parse(value)) : DEFAULT_SCHEMA;
+        }
+        catch (error) {
+            console.error('fromAttribute:JSON parsing error:', error);
+        }
+        return DEFAULT_SCHEMA;
+    },
+    toAttribute(value) {
+        try {
+            return value != null ? value._toJSON() : null;
+        }
+        catch (error) {
+            console.error('toAttribute: JSON stringifycation failure:', error);
+            return null;
+        }
+    }
+};
+const DEFAULT_SCHEMA = new Schema({ type: "object", "properties": {} });
+const EMPTY_SCHEMA = new Schema({});
+
 const fiedtypes = [
     "fz-array",
     "fz-asset",
@@ -13922,7 +14108,7 @@ class FzElement extends Base {
     #pointer_accessor_storage = '#';
     get pointer() { return this.#pointer_accessor_storage; }
     set pointer(value) { this.#pointer_accessor_storage = value; }
-    #schema_accessor_storage = {};
+    #schema_accessor_storage = EMPTY_SCHEMA;
     get schema() { return this.#schema_accessor_storage; }
     set schema(value) { this.#schema_accessor_storage = value; }
     #data_accessor_storage = {};
@@ -14342,22 +14528,22 @@ class FzElement extends Base {
                 return "~";
             text = this.schema.abstract
                 ? this.evalExpr("abstract")
-                : abstract(this.schema, this.value);
+                : this.schema._abstract(this.value);
         }
-        else if (itemschema && itemschema.refTo) {
-            const refto = itemschema.refTo(itemschema, this.value[key], this.data, this.name, this.derefFunc);
+        else if (itemschema && isFunction$1(itemschema.refTo)) {
+            const refto = itemschema.refTo(itemschema, this.value[key], this.data, this.key, this.derefFunc);
             const index = refto.refarray.findIndex((x) => x[refto.refname] === this.value[key]);
             const value = refto.refarray[index];
             const schema = getSchema(value);
-            text = schema?.abstract
+            text = isFunction$1(schema.abstract)
                 ? schema.abstract(schema, value, refto.refarray, index, this.derefFunc)
-                : abstract(schema, this.value[key]);
+                : schema._abstract(this.value[key]);
         }
         else {
-            const schema = (typeof key === 'string') ? this.schema.properties[key] : itemschema;
-            text = schema?.abstract
-                ? schema.abstract(schema, this.value[key], this.data, this.name, this.derefFunc)
-                : abstract(schema, this.value[key]);
+            const schema = (typeof key === 'string') ? this.schema.properties?.[key] : itemschema;
+            text = isFunction$1(schema?.abstract)
+                ? schema.abstract(schema, this.value[key], this.data, this.key, this.derefFunc)
+                : schema?._abstract(this.value[key]);
         }
         return text.length > 200 ? text.substring(0, 200) + '...' : text;
     }
@@ -14601,7 +14787,7 @@ class FzEnumBase extends FzInputBase {
                     const ok = this.evalExpr('filter', schema, item, refarray, index);
                     if (ok) {
                         const value = item[refname];
-                        const label = schema?.abstract(schema, item, refarray, index, this.derefFunc) ?? value;
+                        const label = isFunction$1(schema?.abstract) ? schema.abstract(schema, item, refarray, index, this.derefFunc) : value;
                         list.push({ label, value });
                     }
                     return list;
@@ -14745,10 +14931,10 @@ let FzInputDate = class FzInputDate extends FzInputBase {
         />`;
     }
     get min() {
-        return this.schema.min;
+        return this.schema.minimum;
     }
     get max() {
-        return this.schema.max;
+        return this.schema.maximum;
     }
     convertToInput(value) {
         const isore = /\d\d\d\d-\d\d-\d\d/;
@@ -14791,10 +14977,10 @@ let FzInputDatetime = class FzInputDatetime extends FzInputBase {
         />`;
     }
     get min() {
-        return this.schema.min;
+        return this.schema.minimum;
     }
     get max() {
-        return this.schema.max;
+        return this.schema.maximum;
     }
     convertToInput(value) {
         const isore = /\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ?/;
@@ -14871,7 +15057,7 @@ let FzInputTextarea = class FzInputTextarea extends FzInputBase {
             <textarea  
                 class="form-control" 
                 id="input"
-                placeholder="${this.label}"
+                placeholder="${o$1(this.label)}"
                 .value="${this.value}" 
                 ?readonly="${this.readonly}"
                 @input="${this.change}"
@@ -14885,7 +15071,7 @@ let FzInputTextarea = class FzInputTextarea extends FzInputBase {
     get minlength() { return this.schema.minLength; }
     get maxlength() { return this.schema.maxLength; }
     get pattern() { return this.schema.pattern; }
-    get password() { return !!this.schema.options?.password; }
+    //get password() {return !!this.schema.options?.password }
     convertToInput(value) {
         return value == null ? null : value.toString();
     }
@@ -15266,8 +15452,8 @@ let FzInputFloat = class FzInputFloat extends FzInputBase {
                     id="input"
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
-                    .min="${this.min}"
-                    .max="${this.max}"
+                    min="${o$1(this.min)}"
+                    max="${o$1(this.max)}"
                     step="1e-12"
                     ?required="${this.required}"
                     @keypress="${this.keypress}"
@@ -15275,18 +15461,18 @@ let FzInputFloat = class FzInputFloat extends FzInputBase {
             </div>`;
     }
     get max() {
-        if (this.schema.maximumExclusive && 'maximum' in this.schema)
-            return this.schema.maximum - 1e-12;
-        if ('maximum' in this.schema)
+        if (isNumber$1(this.schema.maximum))
             return this.schema.maximum;
-        return '';
+        if (isNumber$1(this.schema.exclusiveMaximum))
+            return this.schema.exclusiveMaximum;
+        return;
     }
     get min() {
-        if (this.schema.minimumExclusive && 'minimum' in this.schema)
-            return this.schema.minimum + 1e-12;
-        if ('minimum' in this.schema)
+        if (isNumber$1(this.schema.minimum))
             return this.schema.minimum;
-        return '';
+        if (isNumber$1(this.schema.exclusiveMinimum))
+            return this.schema.exclusiveMinimum;
+        return;
     }
     keypress(event) {
         // browser issue on "input type=number' we reject decimal sep not in current locale
@@ -15373,8 +15559,8 @@ let FzRange = class FzRange extends FzInputBase {
                     ?disabled="${this.readonly}"
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
-                    .min="${this.min}"
-                    .max="${this.max}"
+                    min="${o$1(this.min)}"
+                    max="${o$1(this.max)}"
                     step="1"
                     ?required="${this.required}"
                 />
@@ -15388,24 +15574,22 @@ let FzRange = class FzRange extends FzInputBase {
         this.requestUpdate();
     }
     get max() {
-        if (this.schema.maximumExclusive && 'maximum' in this.schema)
-            return this.schema.maximum - 1;
-        if ('maximum' in this.schema)
+        if (isNumber$1(this.schema.maximum))
             return this.schema.maximum;
-        return '';
+        if (isNumber$1(this.schema.exclusiveMaximum))
+            return this.schema.exclusiveMaximum;
+        return;
     }
     get min() {
-        if (this.schema.minimumExclusive && 'minimum' in this.schema)
-            return this.schema.minimum + 1;
-        if ('minimum' in this.schema)
+        if (isNumber$1(this.schema.minimum))
             return this.schema.minimum;
-        return '';
+        if (isNumber$1(this.schema.exclusiveMinimum))
+            return this.schema.exclusiveMinimum;
+        return;
     }
-    keypress(event) {
-        if (!/[-0123456789]/.test(event.key))
-            return event.preventDefault();
-        if (this.min >= 0 && event.key === '-')
-            return event.preventDefault();
+    keypress() {
+        // if (!/[-0123456789]/.test(event.key)) return event.preventDefault();
+        // if (this.min >= 0 && event.key === '-') return event.preventDefault();
         return;
     }
     convertToInput(value) {
@@ -15510,32 +15694,30 @@ let FzInputInteger = class FzInputInteger extends FzInputBase {
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
                     @keypress="${this.keypress}"
-                    .min="${this.min}"
-                    .max="${this.max}"
+                    min="${o$1(this.min)}"
+                    max="${o$1(this.max)}"
                     step="1"
                     ?required="${this.required}"
                 />
             </div>`;
     }
     get max() {
-        if (this.schema.maximumExclusive && 'maximum' in this.schema)
-            return this.schema.maximum - 1;
-        if ('maximum' in this.schema)
+        if (isNumber$1(this.schema.maximum))
             return this.schema.maximum;
-        return '';
+        if (isNumber$1(this.schema.exclusiveMaximum))
+            return this.schema.exclusiveMaximum;
+        return;
     }
     get min() {
-        if (this.schema.minimumExclusive && 'minimum' in this.schema)
-            return this.schema.minimum + 1;
-        if ('minimum' in this.schema)
+        if (isNumber$1(this.schema.minimum))
             return this.schema.minimum;
-        return '';
+        if (isNumber$1(this.schema.exclusiveMinimum))
+            return this.schema.exclusiveMinimum;
+        return;
     }
-    keypress(event) {
-        if (!/[-0123456789]/.test(event.key))
-            return event.preventDefault();
-        if (this.min >= 0 && event.key === '-')
-            return event.preventDefault();
+    keypress(_event) {
+        // if (!/[-0123456789]/.test(event.key)) return event.preventDefault();
+        // if (this.min >= 0 && event.key === '-') return event.preventDefault();
         return;
     }
     convertToInput(value) {
@@ -15728,7 +15910,7 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
     url = '';
     filename;
     get hasPreview() {
-        return this.schema.preview;
+        return !!this.schema.preview;
     }
     get mimetype() {
         return (this.schema.mimetype) ? this.schema.mimetype : FzInputDoc_1.docTypes.join(', ');
@@ -24260,7 +24442,7 @@ MarkdownIt.prototype.renderInline = function (src, env) {
 };
 
 const md = new MarkdownIt({
-    html: false, // Enable HTML tags in source
+    html: true, // Enable HTML tags in source
     xhtmlOut: false, // Use '/' to close single tags (<br />). This is only for full CommonMark compatibility.
     breaks: false, // Convert '\n' in paragraphs into <br>
     langPrefix: 'language-', // CSS language prefix for fenced blocks. Can be useful for external highlighters.
@@ -24382,7 +24564,7 @@ let FzInputMarkdown = class FzInputMarkdown extends FzInputBase {
     }
     renderField() {
         return x `
-            <div class="form-group row"><markdown-it .markdown="${this.value}"></markdown-it></div>
+            <div class="form-group row"><markdown-it .markdown="${this.value ?? ''}"></markdown-it></div>
         `;
     }
     convertToInput(value) {
@@ -32170,7 +32352,7 @@ let FzArray$1 = class FzArray extends FZCollection {
                                             ${this.currentSchema?.title || "Ajouter"}
                                             </button> 
                                             <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-                                                ${this.schema.items.oneOf.map((schema, i) => x `<a class="dropdown-item"
+                                                ${this.schema.items?.oneOf?.map((schema, i) => x `<a class="dropdown-item"
                                                     @click="${() => this.selectSchema(i)}" >${schema.title || "Type" + i}</a>`)}
                                             </div>
                                         </div>`}
@@ -32273,7 +32455,7 @@ let FzArray$1 = class FzArray extends FZCollection {
     addItem(schema, edit = true) {
         if (this.value == null)
             this.value = [];
-        const value = calculateDefault(this.data, schema);
+        const value = schema._default(this.data);
         this.value.push(value);
         this.schemas.push(schema);
         if (edit)
@@ -32299,20 +32481,20 @@ let FzArray$1 = class FzArray extends FZCollection {
         }
     }
     selectSchema(index) {
-        this.currentSchema = this.schema.items.oneOf[index];
+        this.currentSchema = this.schema.items?.oneOf?.[index];
         this.closeDropdown();
         this.requestUpdate();
     }
     solveSchemas(force = false) {
-        if (!this.schema?.items)
+        if (!isArray(this.schema?.items))
             return;
         if (!force && this.currentSchema && this.schemas)
             return;
         if (!this.currentSchema)
-            this.currentSchema = this.schema.homogeneous ? this.schema.items : this.schema.items.oneOf[0];
+            this.currentSchema = this.schema.homogeneous ? this.schema.items : (this.schema.items.oneOf?.[0] ?? EMPTY_SCHEMA);
         this.schemas = this.value == null ? [] : this.schema.homogeneous
             ? this.value.map(() => this.schema.items)
-            : this.value.map((value) => getSchema(value) ?? this.schema.items.oneOf.find((schema) => schema.case && schema.case(null, value, this.data, this.key, this.derefFunc)));
+            : this.value.map((value) => getSchema(value) ?? this.schema.items?.oneOf?.find((schema) => isFunction$1(schema.case) && schema.case(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc)));
     }
     solveOrder() {
         if (this.value == null)
@@ -32426,8 +32608,8 @@ let FzObject = class FzObject extends FZCollection {
     renderSingle(itemTemplates, fields, fieldpos) {
         // render single item
         const fieldname = fields[fieldpos].fieldname;
-        const schema = this.schema.properties[fieldname];
-        itemTemplates.push(this.renderItem(schema, fieldname));
+        const schema = this.schema.properties?.[fieldname];
+        itemTemplates.push(schema ? this.renderItem(schema, fieldname) : x ``);
         fieldpos += 1;
         return fieldpos;
     }
@@ -32438,8 +32620,8 @@ let FzObject = class FzObject extends FZCollection {
         // render group items
         for (; fieldpos < fields.length && groupnum === fields[fieldpos].groupnum; fieldpos++) {
             const fieldname = fields[fieldpos].fieldname;
-            const schema = this.schema.properties[fieldname];
-            group.push(this.renderItem(schema, fieldname));
+            const schema = this.schema.properties?.[fieldname];
+            group.push(schema ? this.renderItem(schema, fieldname) : x ``);
         }
         // render group
         itemTemplates.push(x `
@@ -32457,9 +32639,17 @@ let FzObject = class FzObject extends FZCollection {
         // render group items
         for (; fieldpos < fields.length && groupnum === fields[fieldpos].groupnum; fieldpos++) {
             const fieldname = fields[fieldpos].fieldname;
-            const schema = this.schema.properties[fieldname];
+            const schema = this.schema.properties?.[fieldname];
             const hidden = this.activegroup[tabname] !== groupname;
-            group.push(x `<div class="tab-pane active container" style="margin:0;max-width:100%"  id="content" ?hidden="${hidden}" data-tabname="${tabname}" data-groupname="${groupname}">${this.renderItem(schema, fieldname)}</div>`);
+            group.push(x `<div 
+                        class="tab-pane active container" 
+                        style="margin:0;max-width:100%"  
+                        id="content" 
+                        ?hidden="${hidden}" 
+                        data-tabname="${tabname}" 
+                        data-groupname="${groupname}">
+                        ${schema ? this.renderItem(schema, fieldname) : ''}
+                    </div>`);
         }
         // render group
         itemTemplates.push(x `${group}`);
@@ -32549,7 +32739,7 @@ let FzObject = class FzObject extends FZCollection {
     }
     fields() {
         const fields = [];
-        const tags = Object.values(this.schema.properties)
+        const tags = Object.values(this.schema.properties ?? {})
             .map((property) => property.field).join(', ');
         const list = this.shadowRoot?.querySelectorAll(tags);
         list?.forEach((elem) => fields.push(elem));
@@ -33174,7 +33364,7 @@ let FzItemDlg = class FzItemDlg extends Base {
     render() {
         return x `
             <fz-dialog modal-title="Ajouter un element ..." @click="${this.stopEvent}" @close="${this.close}" > 
-                ${(this.itemSchema != null || this.arraySchema?.items.oneOf == null) ? '' :
+                ${(this.itemSchema != null || this.arraySchema?.items?.oneOf == null) ? '' :
             x `<div class="btn-group" role="group">
                     <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
                         @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -33211,7 +33401,7 @@ let FzItemDlg = class FzItemDlg extends Base {
     }
     addItem(schema) {
         this.itemSchema = schema;
-        const value = calculateDefault(this.array, this.itemSchema);
+        const value = this.itemSchema._default(this.array);
         this.index = this.array?.length;
         this.array?.push(value);
         this.modal?.valid();
@@ -33240,7 +33430,7 @@ let FzItemDlg = class FzItemDlg extends Base {
         if (this.modal)
             this.modal.open();
         if (this.arraySchema?.homogeneous && this.index === undefined) {
-            this.addItem(this.arraySchema?.items);
+            this.arraySchema?.items && this.addItem(this.arraySchema?.items);
         }
     }
 };
@@ -33252,125 +33442,6 @@ FzItemDlg = __decorate([
     t$4("fz-item-dlg")
 ], FzItemDlg);
 
-class CompilationStep {
-    static sourceCount = 1;
-    root;
-    property;
-    constructor(root, property) {
-        this.root = root;
-        this.property = property;
-    }
-    appliable(_schema, _parent, _name) {
-        // default applied on all schemas
-        return true;
-    }
-    sourceURL(dataProperty) {
-        let source = `_FZ_${this.property}_${dataProperty ?? ''}_${CompilationStep.sourceCount++}.js`.replace(/ +/g, "_");
-        source = source.replace(/[^a-z0-9_]/ig, "");
-        console.log(`builded source :${source}`);
-        return `\n    //# sourceURL=${source}\n`;
-    }
-    error(message) {
-        return Error(`Compilation step ${this.property}: ${message} `);
-    }
-}
-
-class CSUpgradeNullable extends CompilationStep {
-    constructor(root) {
-        super(root, "nullable");
-    }
-    appliable(schema) {
-        return this.property in schema;
-    }
-    apply(schema) {
-        schema.type = Array.isArray(schema.type) ? [...schema.type, "null"] : [schema.type, "null"];
-        schema[this.property] = undefined;
-    }
-}
-class CSUpgradeId extends CompilationStep {
-    constructor(root) {
-        super(root, "$id");
-    }
-    appliable(schema) {
-        return this.property in schema && schema.$id.includes("#");
-    }
-    apply(schema) {
-        const [base, anchor] = schema.$id.split("#");
-        schema.$id = base;
-        schema.$anchor = anchor;
-    }
-}
-class CSUpgradeDependencies extends CompilationStep {
-    constructor(root) {
-        super(root, "dependencies");
-    }
-    appliable(schema) {
-        return this.property in schema;
-    }
-    apply(schema) {
-        schema.dependentRequired = { ...schema[this.property] };
-        schema[this.property] = undefined;
-    }
-}
-class CSUpgradeItems extends CompilationStep {
-    constructor(root) {
-        super(root, "items");
-    }
-    appliable(schema) {
-        return Array.isArray(schema[this.property]);
-    }
-    apply(schema) {
-        schema.prefixItems = schema[this.property];
-        schema[this.property] = undefined;
-    }
-}
-class CSUpgradeAdditionalProperties extends CompilationStep {
-    constructor(root) {
-        super(root, "additionalProperties");
-    }
-    appliable(schema) {
-        return schema[this.property] === false;
-    }
-    apply(schema) {
-        schema.unevaluatedProperties = false;
-        schema[this.property] = undefined;
-    }
-}
-class CSUpgradeRef extends CompilationStep {
-    constructor(root) {
-        super(root, "$ref");
-    }
-    appliable(schema) {
-        return this.property in schema;
-    }
-    apply(schema) {
-        schema.$dynamicRef = schema[this.property];
-        schema[this.property] = undefined;
-    }
-}
-
-/**
- * observers function parse expression to extract observed values and set observers
- * array in corresponding schema.
- * a value is observed by using the pointer dereference operation in expresions: $`#/a/b/c`
- * the observer is the Object desribed by the schema and the objserved value is the value
- * pointed by $`...`
- * @param root schema for absolute pointers in expr
- * @param current schema for relative pointer in expr
- * @param expr function body or arrow function body to parse
- */
-function observers(root, current, expr) {
-    if (!root || !current)
-        return;
-    const POINTER_RE = /\$\`([^`]+)`/g;
-    let matches;
-    while ((matches = POINTER_RE.exec(expr)) != null) {
-        const pointer = matches[1];
-        const observedschema = derefPointerSchema(root, current, pointer);
-        if (observedschema && !observedschema.observers.includes(current.pointer))
-            observedschema.observers.push(current.pointer);
-    }
-}
 /**
  * class to compile schema for fz-form
  * compilation process is a in-depth walkthrough schema applying in order all
@@ -33385,9 +33456,7 @@ class SchemaCompiler {
     static DIALECT_2020_12 = "https://json-schema.org/draft/2020-12/schema";
     root;
     dialect;
-    steps_pass0;
-    steps_pass1;
-    steps_pass2;
+    passes;
     errors = [];
     constructor(root, options, data) {
         this.root = root;
@@ -33395,41 +33464,44 @@ class SchemaCompiler {
         if (SchemaCompiler.unimplemented.includes(this.dialect))
             throw Error(`schema dialect '${this.dialect}' not implemented (implmented are draft-07,2019-09 and 2020-12)`);
         // upgrade from Draft07 and 2019-09 to 2020-12
-        this.steps_pass0 = [
-            new CSUpgradeRef(this.root),
-            new CSUpgradeAdditionalProperties(this.root),
-            new CSUpgradeDependencies(this.root),
-            new CSUpgradeId(this.root),
-            new CSUpgradeItems(this.root),
-            new CSUpgradeNullable(this.root)
-        ];
-        this.steps_pass1 = [
-            new CSDefinition(this.root),
-            new CSParent(this.root),
-            new CSPointer(this.root),
-            new CSRoot(this.root),
-            new CSTargetType(this.root),
-            new CSAppEnum(this.root, options),
-            new CSEnum(this.root),
-            new CSEnumArray(this.root),
-            new CSUniform(this.root),
-            new CSObservers(this.root),
-            new CSRequiredWhen(this.root),
-            new CSField(this.root),
-            new CSOrder(this.root),
-        ];
-        this.steps_pass2 = [
-            new CSInsideRef(this.root, data),
-            new CSTemplate(this.root, 'abstract', abstract),
-            new CSBool(this.root, 'case', () => false),
-            new CSBool(this.root, 'visible', () => true),
-            new CSBool(this.root, 'readonly', () => false),
-            new CSBool(this.root, 'requiredWhen', () => false),
-            new CSBool(this.root, 'collapsed', () => false),
-            new CSBool(this.root, 'filter', () => true),
-            new CSAny(this.root, 'orderBy', () => true),
-            new CSAny(this.root, 'expression', () => ''),
-            new CSAny(this.root, 'change', () => ''),
+        this.passes = [
+            // MBZ-TBD upgrade phase draft-07 and 2019-09 to 2020-12
+            // [
+            //     new CSUpgradeRef(this.root),
+            //     new CSUpgradeAdditionalProperties(this.root),
+            //     new CSUpgradeDependencies(this.root),
+            //     new CSUpgradeId(this.root),
+            //     new CSUpgradeItems(this.root),
+            //     new CSUpgradeNullable(this.root)
+            // ],
+            [
+                new CSDefinition(this.root),
+                new CSParent(this.root),
+                new CSPointer(this.root),
+                new CSRoot(this.root),
+                new CSTargetType(this.root),
+                new CSAppEnum(this.root, options),
+                new CSEnum(this.root),
+                new CSEnumArray(this.root),
+                new CSUniform(this.root),
+                new CSObservers(this.root),
+                new CSRequiredWhen(this.root),
+                new CSField(this.root),
+                new CSOrder(this.root),
+            ],
+            [
+                new CSInsideRef(this.root, data),
+                new CSTemplate(this.root, 'abstract', Schema._abstractFunc()),
+                new CSBool(this.root, 'case', () => false),
+                new CSBool(this.root, 'visible', () => true),
+                new CSBool(this.root, 'readonly', () => false),
+                new CSBool(this.root, 'requiredWhen', () => false),
+                new CSBool(this.root, 'collapsed', () => false),
+                new CSBool(this.root, 'filter', () => true),
+                new CSAny(this.root, 'orderBy', () => true),
+                new CSAny(this.root, 'expression', () => ''),
+                new CSAny(this.root, 'change', () => ''),
+            ]
         ];
     }
     extractDialect(options, schemaUri) {
@@ -33450,9 +33522,9 @@ class SchemaCompiler {
     }
     compile() {
         this.errors = [];
-        // this.walkSchema(this.steps_pass0, this.root) // MBZ-TBD upgrade phase draft-07 and 2019-09 to 2020-12
-        this.walkSchema(this.steps_pass1, this.root);
-        this.walkSchema(this.steps_pass2, this.root);
+        for (const pass of this.passes) {
+            this.walkSchema(pass, this.root);
+        }
         return this.errors;
     }
     walkSchema(steps, schema, parent, name) {
@@ -33546,7 +33618,7 @@ class CSTargetType extends CompilationStep {
                 schema.nullAllowed = schema.target[0] == "null";
                 break;
             case 0:
-                schema.basetype = undefined;
+                schema.basetype = "null";
                 schema.nullAllowed = false;
                 break;
             default:
@@ -33567,17 +33639,17 @@ class CSTargetType extends CompilationStep {
         possibles.push(this.notKW(schema));
         // Handling "allOf" → intersection of types
         if (schema.allOf) {
-            const allOfTypes = schema.allOf.map((s) => this.infer(s));
+            const allOfTypes = schema.allOf.map((s) => this.infer(s)).filter(x => x != null);
             possibles.push(this.intersect(allOfTypes));
         }
         // Handling "anyOf" → union of types
         if (schema.anyOf) {
-            const anyOfTypes = schema.anyOf.map((s) => this.infer(s));
+            const anyOfTypes = schema.anyOf.map((s) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x);
             possibles.push(this.union(anyOfTypes));
         }
         // Handling "oneOf" → union of types (similar to anyOf)
         if (schema.oneOf) {
-            const oneOfTypes = schema.oneOf.map((s) => this.infer(s));
+            const oneOfTypes = schema.oneOf.map((s) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x);
             possibles.push(this.union(oneOfTypes));
         }
         const filtered = possibles.filter(value => value != null);
@@ -33727,7 +33799,7 @@ class CSUniform extends CompilationStep {
         return !(this.property in schema) && schema.basetype === "array";
     }
     apply(schema) {
-        schema.homogeneous = schema.items.oneOf ? false : true;
+        schema.homogeneous = schema.items?.oneOf ? false : true;
     }
 }
 /**
@@ -33807,8 +33879,8 @@ class CSRequiredWhen extends CompilationStep {
         return schema.basetype === "object" && schema.properties != null && schema.required != null;
     }
     apply(schema) {
-        schema.required.forEach((name) => {
-            if (name in schema.properties)
+        schema.required?.forEach((name) => {
+            if (schema.properties && name in schema.properties)
                 schema.properties[name].requiredWhen = "true";
         });
     }
@@ -33836,12 +33908,12 @@ class CSField extends CompilationStep {
             if (!schema.filter)
                 schema.filter = () => true;
             switch (true) {
-                case schema.enum?.length <= 3: return schema.field = 'fz-enum-check';
-                case schema.oneOf?.length <= 3: return schema.field = 'fz-enum-check';
-                case schema.anyOf?.length <= 3: return schema.field = 'fz-enum-check';
-                case schema.enum?.length <= 20: return schema.field = 'fz-enum';
-                case schema.oneOf?.length <= 20: return schema.field = 'fz-enum';
-                case schema.anyOf?.length <= 20: return schema.field = 'fz-enum';
+                case schema.enum && schema.enum?.length <= 3: return schema.field = 'fz-enum-check';
+                case schema.oneOf && schema.oneOf?.length <= 3: return schema.field = 'fz-enum-check';
+                case schema.anyOf && schema.anyOf?.length <= 3: return schema.field = 'fz-enum-check';
+                case schema.enum && schema.enum?.length <= 20: return schema.field = 'fz-enum';
+                case schema.oneOf && schema.oneOf?.length <= 20: return schema.field = 'fz-enum';
+                case schema.anyOf && schema.anyOf?.length <= 20: return schema.field = 'fz-enum';
                 default: return schema.field = 'fz-enum-typeahead';
             }
         }
@@ -33873,7 +33945,7 @@ class CSField extends CompilationStep {
                     case "markdown": return schema.field = 'fz-markdown';
                     case "asset": return schema.field = 'fz-asset';
                 }
-                if (!schema.format && schema.maxLength > 256)
+                if (!schema.format && schema.maxLength && schema.maxLength > 256)
                     return schema.field = 'fz-textarea';
                 return schema.field = 'fz-string';
         }
@@ -33928,7 +34000,7 @@ class CSInsideRef extends CompilationStep {
         schema.refTo = () => null;
         const pointer = refto.replace(/\/[^/]+$/, '');
         const refname = refto.substr(pointer.length + 1);
-        observers(this.root, schema, `$\`${pointer}\``);
+        schema._addObservers(`$\`${pointer}\``);
         schema.refTo = (_schema, _value, parent, property, _$) => {
             const refarray = derefPointerData(this.data.content, parent, property, pointer);
             if (!refarray)
@@ -33954,8 +34026,7 @@ class CSTemplate extends CompilationStep {
         return this.property in schema && typeof schema[this.property] == "string";
     }
     apply(schema, _parent, name) {
-        const expression = schema[this.property];
-        schema[this.property] = this.defunc;
+        const expression = schema[this.property](schema)[this.property] = this.defunc;
         if (typeof expression == 'string') {
             const code = `
                 ${this.sourceURL(name)}
@@ -33967,7 +34038,7 @@ class CSTemplate extends CompilationStep {
                 return ''
             `;
             try {
-                observers(this.root, schema, expression);
+                schema._addObservers(expression);
                 schema[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code);
                 schema[this.property].expression = expression;
             }
@@ -34007,7 +34078,7 @@ class CSBool extends CompilationStep {
                 return true
             `;
             try {
-                observers(this.root, schema, expression);
+                schema._addObservers(expression);
                 schema[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code);
                 schema[this.property].expression = expression;
             }
@@ -34053,9 +34124,9 @@ class CSAny extends CompilationStep {
         `;
         try {
             if (Array.isArray(expression))
-                expression.forEach((expr) => observers(this.root, schema, expr));
+                expression.forEach((expr) => schema._addObservers(expr));
             if (typeof expression == 'string')
-                observers(this.root, schema, expression);
+                schema._addObservers(expression);
             schema[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", body);
             schema[this.property].expression = expression;
         }
@@ -34101,11 +34172,14 @@ class DataCompiler {
         }
         if (Array.isArray(data)) {
             if (schema.homogeneous) {
-                data.forEach((item) => this.walkData(item, schema.items, data, schema));
+                for (const item of data) {
+                    if (schema.items)
+                        this.walkData(item, schema.items, data, schema);
+                }
             }
             else {
                 data.forEach((item, i) => {
-                    schema.items.oneOf.forEach((schema) => {
+                    schema.items?.oneOf?.forEach((schema) => {
                         if (schema.case && schema.case(null, item, data, i, () => null))
                             this.walkData(item, schema, data, schema);
                     });
@@ -34113,7 +34187,7 @@ class DataCompiler {
             }
             return;
         }
-        if (typeof data === 'object') {
+        if (typeof data === 'object' && schema.properties) {
             for (const property in data) {
                 const propschema = schema.properties[property];
                 this.walkData(data[property], propschema, data, schema);
@@ -34180,7 +34254,7 @@ let FzForm = class FzForm extends Base {
     #i_options_accessor_storage = {};
     get i_options() { return this.#i_options_accessor_storage; }
     set i_options(value) { this.#i_options_accessor_storage = value; }
-    #i_schema_accessor_storage = { type: 'object', properties: [] };
+    #i_schema_accessor_storage = DEFAULT_SCHEMA;
     get i_schema() { return this.#i_schema_accessor_storage; }
     set i_schema(value) { this.#i_schema_accessor_storage = value; }
     #actions_accessor_storage = false;
@@ -34225,7 +34299,7 @@ let FzForm = class FzForm extends Base {
     get schema() { return this.i_schema; }
     set schema(value) {
         if (validateSchema(value)) {
-            this.i_schema = JSON.parse(JSON.stringify(value));
+            this.i_schema = new Schema(JSON.parse(JSON.stringify(value)));
             this.validator = new DataValidator(this.i_schema);
             if (this.valid) {
                 this._errors = null;
@@ -34277,7 +34351,7 @@ let FzForm = class FzForm extends Base {
         super.attributeChangedCallback(name, oldValue, newValue);
         if (name === 'schema') {
             // Utilise le converter instance-spécifique pour convertir l'attribut
-            const converted = jsonAttributeConverter.fromAttribute(newValue);
+            const converted = schemaAttrConverter.fromAttribute(newValue);
             this.schema = converted;
         }
     }
@@ -34386,7 +34460,7 @@ __decorate([
     __metadata("design:type", Object)
 ], FzForm.prototype, "i_options", null);
 __decorate([
-    n$1({ type: Object, attribute: "schema", converter: jsonAttributeConverter }),
+    n$1({ type: Object, attribute: "schema", converter: schemaAttrConverter }),
     __metadata("design:type", Object)
 ], FzForm.prototype, "i_schema", null);
 __decorate([

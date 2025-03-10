@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property } from "lit/decorators.js"
 import { html, css, TemplateResult } from "lit"
-import { derefPointerData, abstract, getEmptyValue, isEmptyValue, newValue, getSchema, closestAscendantFrom } from "./lib/tools"
+import { derefPointerData, getEmptyValue, isEmptyValue, newValue, getSchema, closestAscendantFrom, isFunction } from "./lib/tools"
 import { Pojo } from "./lib/types"
 import { FzForm } from "./fz-form"
 import { Base } from "./base"
+import { EMPTY_SCHEMA, Schema } from "./lib/schema"
 
 const fiedtypes = [
     "fz-array",
@@ -42,7 +43,7 @@ const fieldtypeslist = fiedtypes.join(',')
 export abstract class FzElement extends Base {
 
     @property({ type: String }) accessor pointer = '#'
-    @property({ type: Object }) accessor schema: Pojo = {}
+    @property({ type: Object }) accessor schema  = EMPTY_SCHEMA
     @property({ type: Object }) accessor data: Pojo = {}
     @property({ type: String }) accessor name: string | null = null
     @property({ type: Number }) accessor index: number | null = null
@@ -113,8 +114,8 @@ export abstract class FzElement extends Base {
 
         // for each properties in path we calculate a corresponding schema
         // because heterogeneous types in arrays we are not allways able to do it
-        const schemas: Pojo[] = []
-        for (let ischema = schema; ischema; ischema = ischema.parent) { schemas.unshift(ischema) }
+        const schemas: Schema[] = []
+        for (let ischema: Schema | undefined = schema; ischema; ischema = ischema.parent) { schemas.unshift(ischema) }
         if (properties.length !== schemas.length) {
             // not sure this is possible to happen because if we are ther choices had be done then intermidiary schema/values exists
             console.error(`cascadeValue fail not all schema found on path `)
@@ -336,7 +337,7 @@ export abstract class FzElement extends Base {
      * this method is used by composed fields (fz-array and fz-object)
      * @param key 
      */
-    renderItem(schema: Pojo, key: string | number): TemplateResult {
+    renderItem(schema: Schema, key: string | number): TemplateResult {
         let name: string | null = null;;
         let index: number | null = null;
         if (!this.schema) return html``
@@ -460,31 +461,31 @@ export abstract class FzElement extends Base {
      * calculate an abstract string (summary) for this field or a property/item of field
      */
 
-    abstract(key?: string | number, itemschema?: Pojo): string {
+    abstract(key?: string | number, itemschema?: Schema): string {
         let text
         if (key === null || key === undefined) {
             if (this.isEmpty) return "~"
             text = this.schema.abstract
                 ? this.evalExpr("abstract")
-                : abstract(this.schema, this.value)
-        } else if (itemschema && itemschema.refTo) {
-            const refto = itemschema.refTo(itemschema, this.value[key], this.data, this.name, this.derefFunc)
+                : this.schema._abstract(this.value)
+        } else if (itemschema && isFunction(itemschema.refTo)) {
+            const refto = itemschema.refTo(itemschema, this.value[key], this.data, this.key, this.derefFunc)
             const index = refto.refarray.findIndex((x: any) => x[refto.refname] === this.value[key])
             const value = refto.refarray[index]
             const schema = getSchema(value)
-            text = schema?.abstract
+            text = isFunction(schema.abstract)
                 ? schema.abstract(schema, value, refto.refarray, index, this.derefFunc)
-                : abstract(schema, this.value[key])
+                : schema._abstract(this.value[key])
         } else {
-            const schema = (typeof key === 'string') ? this.schema.properties[key] : itemschema
-            text = schema?.abstract
-                ? schema.abstract(schema, this.value[key], this.data, this.name, this.derefFunc)
-                : abstract(schema, this.value[key])
+            const schema = (typeof key === 'string') ? this.schema.properties?.[key] : itemschema
+            text = isFunction(schema?.abstract)
+                ? schema.abstract(schema, this.value[key], this.data, this.key, this.derefFunc)
+                : schema?._abstract(this.value[key])
         }
         return text.length > 200 ? text.substring(0, 200) + '...' : text
     }
 
-    evalExpr(attribute: string, schema?: Pojo, value?: any, parent?: any, key?: string | number) {
+    evalExpr(attribute: keyof Schema, schema?: Pojo, value?: any, parent?: any, key?: string | number) {
         if (typeof this.schema?.[attribute] != "function") return null
         if (schema != null) {
             return this.schema[attribute](schema, value, parent, key, this.derefFunc, this.form?.options.userdata)
