@@ -3,7 +3,7 @@ import Ajv from "ajv";
 import { Schema } from "./schema"
 
 import { ValidateFunction, ErrorObject } from "ajv"
-import Ajvi18n from "ajv-i18n/localize/fr"
+import Ajvi18n from "ajv-i18n/localize/en"
 const ajv = new Ajv({ strictNumbers: false, strictSchema: false, coerceTypes: true })
 
 ajv.addFormat("color", /./)
@@ -39,7 +39,7 @@ export class DataValidator {
     validate(value: any): boolean {
         const result = this.parser(value)
         if (typeof result === 'boolean') return result
-        throw (`Validation result not boolean, This is unlikely to happen, but happens  ${result}`)
+        throw (`Schema validation result not boolean (not expected) ${result}`)
     }
     errors(): ErrorObject[] | null | undefined {
         return this.parser.errors

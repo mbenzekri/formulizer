@@ -35,13 +35,14 @@ declare class FzForm extends Base {
     oninvaliddata: string | null;
     onvalidate: string | null;
     ondismiss: string | null;
-    private accessor _errors;
     private readonly obj;
     store: IBlobStore;
     asset: IAsset;
-    private validator;
     private readonly dataPointerFieldMap;
     private readonly schemaPointerFieldMap;
+    private schemaErrors;
+    private dataErrors;
+    private validator;
     private message;
     constructor();
     get root(): any;
@@ -53,7 +54,7 @@ declare class FzForm extends Base {
     get data(): Pojo;
     set data(value: Pojo);
     attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void;
-    render(): lit_html.TemplateResult<1>;
+    render(): lit_html.TemplateResult<1> | lit_html.TemplateResult<1>[];
     private renderForm;
     private renderButtons;
     private renderError;
@@ -210,6 +211,17 @@ interface IAsset {
     done: () => Promise<void>;
 }
 
+type JSONValue = string | number | boolean | null | JSONObject | JSONArray;
+interface JSONObject {
+    [key: string]: JSONValue;
+}
+interface JSONArray extends Array<JSONValue> {
+}
+
+type EnumOption = {
+    value: JSONValue;
+    title: string;
+};
 type ExprFunc<T> = (schema: Schema, value: any, parent: Pojo, property: string | number, userdata: object) => T | null;
 type Pojo = {
     [key: string]: any;
@@ -297,7 +309,7 @@ declare class JSONSchemaDraft07 {
     homogeneous: boolean;
     requiredWhen: string | Function;
     field: string;
-    refTo?: {} | ExprFunc<any>;
+    refTo?: string | ExprFunc<any>;
     order?: FieldOrder[];
     abstract?: string | ExprFunc<string>;
     case?: string | ExprFunc<boolean>;
@@ -342,7 +354,7 @@ declare class Schema extends JSONSchemaDraft07 {
     _addObservers(expr: string): void;
     _toJSON(): string;
     static wrapSchema(schema: JSONSchema): Schema;
-    static wrapSchema(schema: JSONSchema, parent: JSONSchema, name: string): Schema;
+    static inferEnums(schema: Schema): EnumOption[] | null;
 }
 
 declare class FzMarkdownIt extends Base {

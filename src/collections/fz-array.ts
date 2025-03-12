@@ -2,7 +2,7 @@
 import { customElement,property} from "lit/decorators.js"
 import {  html, css } from "lit"
 import { DataValidator } from "../lib/validation"
-import { formatMsg, getCircularReplacer, getSchema, isArray, isEmptyValue, isFunction } from "../lib/tools"
+import { formatMsg, getCircularReplacer, getSchema, isEmptyValue, isFunction, isObject } from "../lib/tools"
 import { FZCollection } from "./fz-collection"
 import { EMPTY_SCHEMA, Schema } from "../lib/schema"
 
@@ -250,7 +250,7 @@ export class FzArray extends FZCollection {
         this.requestUpdate()
     }
     private solveSchemas(force = false) {
-        if (!isArray(this.schema?.items)) return
+        if (!isObject(this.schema.items)) return
         if (!force && this.currentSchema && this.schemas) return
         if (!this.currentSchema) this.currentSchema = this.schema.homogeneous ?  this.schema.items : (this.schema.items.oneOf?.[0] ?? EMPTY_SCHEMA)
         this.schemas = this.value == null ? [] : this.schema.homogeneous

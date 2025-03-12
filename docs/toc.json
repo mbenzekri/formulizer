@@ -1,36 +1,37 @@
 {
     "definitions": {
         "toc": {
-            "General": { 
-                    "README": "What is Formulizer",
-                    "api": "Component API",
-                    "definition": "Reusable definitions"
+            "General": {
+                "README": "What is Formulizer",
+                "api": "Component API",
+                "definition": "Reusable definitions",
+                "typenull": "typenull"
             },
-            "Keywords" : {
-                    "title": "title",
-                    "abstract": "absract",
-                    "visible": "visible",
-                    "default": "Default values",
-                    "expression": "Calculated fields",
-                    "nullable": "nullable",
-                    "readonly": "readonly",
-                    "required": "required",
-                    "notvalidate": "notvalidate",
-                    "typenull": "typenull"
+            "Keywords": {
+                "title": "title",
+                "abstract": "abstract",
+                "visible": "visible",
+                "default": "default",
+                "expression": "expression",
+                "nullable": "nullable",
+                "readonly": "readonly",
+                "required": "required"
             },
             "Primitive": {
-                    "format": "'format' keyword",
-                    "basic": "Basic fields",
-                    "boolean": "'boolean' field",
-                    "documents": "Document field",
-                    "range": "Integer Range",
-                    "signature": "Handwritten Signature"
+                "format": "'format' keyword",
+                "basic": "Basic fields",
+                "boolean": "'boolean' field",
+                "documents": "Document field",
+                "range": "Integer Range",
+                "signature": "Handwritten Signature"
             },
             "Enumerations": {
-                    "enum": "Simple enums fields",
-                    "typeahead": "Typeahead field",
-                    "refs": "App defined",
-                    "refTo": "Reference to data"
+                "enum_basic": "Minimal",
+                "enum_labeled": "Labeled",
+                "enum": "Simple enums fields",
+                "typeahead": "Typeahead field",
+                "refs": "App defined",
+                "refTo": "Reference to data"
             },
             "Array": {
                 "array": "Array field",
@@ -38,15 +39,15 @@
                 "enum": "Enum arrays"
             },
             "Object": {
-                    "object": "Object field",
-                    "collapsed": "Open / Collapse",
-                    "group": "Group your fields",
-                    "tab": "Tab for groups",
-                    "inline": "Inline fields"
+                "object": "Object field",
+                "collapsed": "Open / Collapse",
+                "group": "Group your fields",
+                "tab": "Tab for groups",
+                "inline": "Inline fields"
             },
             "Miscellaneous": {
-                    "pick": "Pick data from your app",
-                    "markdown": "Use markdown"
+                "pick": "Pick data from your app",
+                "markdown": "Use markdown"
             }
         }
     },
@@ -62,5 +63,3 @@
         }
     }
 }
-
-

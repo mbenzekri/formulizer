@@ -1,6 +1,6 @@
 ## Keyword: `visible`
 
-The `visible` keyword controls whether a field is **shown or hidden** in your form.
+>The `visible` keyword controls whether a field is **shown or hidden** in your form.
 
 
 ## ✅ **Always Visible (Default)**

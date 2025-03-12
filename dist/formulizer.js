@@ -95,10 +95,21 @@ function isNumber$1(value) {
     return typeof value === "number" && !isNaN(value);
 }
 function isObject$1(value) {
-    return typeof value === "object" && value !== null;
+    return value !== null && typeof value === "object" && !isArray(value);
 }
 function isFunction$1(value) {
     return typeof value === "function" && value !== null;
+}
+function intersect(sets) {
+    return sets.reduce((acc, set) => new Set([...acc].filter(x => set.has(x))), sets[0]);
+}
+function complement(set, full) {
+    if (set == null)
+        return new Set();
+    return new Set([...full].filter(x => !set.has(x)));
+}
+function union(sets) {
+    return sets.reduce((acc, set) => new Set([...acc, ...set]), new Set());
 }
 /**
  * find in the ancestors of an element a webcomponent matching a given selector
@@ -13827,7 +13838,7 @@ class JSONSchemaDraft07 {
     maxLength;
     minLength;
     pattern;
-    items; //  | Schema[];  // TO BE FIXED LATER
+    items; //  | Schema[];                      // tuple case NOT IMPLEMENTED : TO BE FIXED LATER
     additionalItems;
     maxItems;
     minItems;
@@ -13837,8 +13848,8 @@ class JSONSchemaDraft07 {
     minProperties;
     required;
     properties;
-    patternProperties; // this is ignored by formulizer (except for validation)
-    additionalProperties;
+    patternProperties; // IGNORED by formulizer (except for validation)
+    additionalProperties; // IGNORED by formulizer (except for validation)
     dependencies;
     propertyNames;
     if;
@@ -13996,24 +14007,62 @@ class Schema extends JSONSchemaDraft07 {
     _toJSON() {
         return JSON.stringify(this, (key, value) => SchemaAnnotation.includes(key) ? undefined : value);
     }
-    static wrapSchema(schema, parent, name) {
-        if (schema.properties)
-            for (const name of Object.keys(schema.properties)) {
-                schema.properties[name] = Schema.wrapSchema(schema.properties[name], schema, name);
-            }
-        if (schema.items) {
-            schema.items = Schema.wrapSchema(schema.items, schema, '*');
-        }
-        if (parent && name) {
-            if (schema.oneOf)
-                schema.oneOf = schema.oneOf.map((child) => Schema.wrapSchema(child, parent, name));
-            if (schema.allOf)
-                schema.allOf = schema.allOf.map((child) => Schema.wrapSchema(child, parent, name));
-            if (schema.anyOf)
-                schema.anyOf = schema.anyOf.map((child) => Schema.wrapSchema(child, parent, name));
-        }
+    static wrapSchema(schema) {
         Object.setPrototypeOf(schema, Schema.prototype);
+        if (isObject$1(schema.properties))
+            Object.values(schema.properties).forEach((child) => Schema.wrapSchema(child));
+        if (isArray(schema.items))
+            schema.items.forEach((child) => Schema.wrapSchema(child));
+        if (isObject$1(schema.items))
+            Schema.wrapSchema(schema.items);
+        if (isArray(schema.oneOf))
+            schema.oneOf.forEach((child) => Schema.wrapSchema(child));
+        if (isArray(schema.anyOf))
+            schema.anyOf.forEach((child) => Schema.wrapSchema(child));
+        if (isArray(schema.allOf))
+            schema.allOf.forEach((child) => Schema.wrapSchema(child));
+        if (schema.not)
+            Schema.wrapSchema(schema.not);
         return schema;
+    }
+    static inferEnums(schema) {
+        // Exclude nullish schema, "array" and "object" from being enums
+        if (!schema ||
+            typeof schema !== "object" ||
+            schema.type === "array" ||
+            schema.type === "object")
+            return null;
+        // ✅ Direct "enum" keyword
+        if (Array.isArray(schema.enum)) {
+            return schema.enum.map(value => ({ value, title: JSON.stringify(value) }));
+        }
+        // ✅ "const" keyword (supports primitives, objects, and arrays)
+        if (schema.const !== undefined) {
+            return [{ value: schema.const, title: schema.title ?? JSON.stringify(schema.const) }];
+        }
+        // ✅ "oneOf" / "anyOf" with `const` values
+        if (Array.isArray(schema.oneOf)) {
+            return schema.oneOf.flatMap(item => Schema.inferEnums(item) ?? []);
+        }
+        if (Array.isArray(schema.anyOf)) {
+            return schema.anyOf.flatMap(item => Schema.inferEnums(item) || []);
+        }
+        // ✅ "allOf": If one of the subschemas defines an enum, use that
+        if (Array.isArray(schema.allOf)) {
+            for (const subschema of schema.allOf) {
+                const values = Schema.inferEnums(subschema);
+                if (values)
+                    return values;
+            }
+        }
+        // ❌ Exclude values from `not` (Negation)
+        if (schema.not) {
+            const excluded = Schema.inferEnums(schema.not);
+            if (excluded) {
+                return Schema.inferEnums(schema)?.filter(item => !excluded.some(e => e.value === item.value)) ?? null;
+            }
+        }
+        return null;
     }
 }
 class CompilationStep {
@@ -32012,13 +32061,13 @@ function requireAjv () {
 var ajvExports = requireAjv();
 var Ajv = /*@__PURE__*/getDefaultExportFromCjs(ajvExports);
 
-var fr;
-var hasRequiredFr;
+var en;
+var hasRequiredEn;
 
-function requireFr () {
-	if (hasRequiredFr) return fr;
-	hasRequiredFr = 1;
-	fr = function localize_fr(errors) {
+function requireEn () {
+	if (hasRequiredEn) return en;
+	hasRequiredEn = 1;
+	en = function localize_en(errors) {
 	  if (!(errors && errors.length)) return
 	  for (const e of errors) {
 	    let out;
@@ -32027,33 +32076,39 @@ function requireFr () {
 	      case "items":
 	        out = "";
 	        var n = e.params.limit;
-	        out += "ne doit pas contenir plus de " + n + " élémént";
+	        out += "must NOT have more than " + n + " item";
 	        if (n != 1) {
 	          out += "s";
 	        }
 	        break
 	      case "additionalProperties":
-	        out = "ne doit pas contenir de propriétés additionnelles";
+	        out = "must NOT have additional properties";
 	        break
 	      case "anyOf":
-	        out = 'doit correspondre à un schéma de "anyOf"';
+	        out = 'must match a schema in "anyOf"';
 	        break
 	      case "const":
-	        out = "doit être égal à la constante";
+	        out = "must be equal to constant";
 	        break
 	      case "contains":
-	        out = "doit contenir un élément valide";
+	        out = "must contain a valid item";
 	        break
 	      case "dependencies":
 	      case "dependentRequired":
 	        out = "";
 	        var n = e.params.depsCount;
+	        out += "must have propert";
+	        if (n == 1) {
+	          out += "y";
+	        } else {
+	          out += "ies";
+	        }
 	        out +=
-	          "doit avoir la propriété " +
+	          " " +
 	          e.params.deps +
-	          " quand la propriété " +
+	          " when property " +
 	          e.params.property +
-	          " est présente";
+	          " is present";
 	        break
 	      case "discriminator":
 	        switch (e.params.error) {
@@ -32064,43 +32119,43 @@ function requireFr () {
 	            out = 'value of tag "' + e.params.tag + '" must be in oneOf';
 	            break
 	          default:
-	            out = 'doit être valide selon le critère "' + e.keyword + '"';
+	            out = 'must pass "' + e.keyword + '" keyword validation';
 	        }
 	        break
 	      case "enum":
-	        out = "doit être égal à une des valeurs prédéfinies";
+	        out = "must be equal to one of the allowed values";
 	        break
 	      case "false schema":
-	        out = 'le schema est "false"';
+	        out = "boolean schema is false";
 	        break
 	      case "format":
-	        out = 'doit correspondre au format "' + e.params.format + '"';
+	        out = 'must match format "' + e.params.format + '"';
 	        break
 	      case "formatMaximum":
 	      case "formatExclusiveMaximum":
 	        out = "";
 	        var cond = e.params.comparison + " " + e.params.limit;
-	        out += "doit être " + cond;
+	        out += "must be " + cond;
 	        break
 	      case "formatMinimum":
 	      case "formatExclusiveMinimum":
 	        out = "";
 	        var cond = e.params.comparison + " " + e.params.limit;
-	        out += "doit être " + cond;
+	        out += "must be " + cond;
 	        break
 	      case "if":
-	        out = 'doit correspondre au schéma "' + e.params.failingKeyword + '"';
+	        out = 'must match "' + e.params.failingKeyword + '" schema';
 	        break
 	      case "maximum":
 	      case "exclusiveMaximum":
 	        out = "";
 	        var cond = e.params.comparison + " " + e.params.limit;
-	        out += "doit être " + cond;
+	        out += "must be " + cond;
 	        break
 	      case "maxItems":
 	        out = "";
 	        var n = e.params.limit;
-	        out += "ne doit pas contenir plus de " + n + " élément";
+	        out += "must NOT have more than " + n + " item";
 	        if (n != 1) {
 	          out += "s";
 	        }
@@ -32108,7 +32163,7 @@ function requireFr () {
 	      case "maxLength":
 	        out = "";
 	        var n = e.params.limit;
-	        out += "ne doit pas dépasser " + n + " caractère";
+	        out += "must NOT be longer than " + n + " character";
 	        if (n != 1) {
 	          out += "s";
 	        }
@@ -32116,21 +32171,23 @@ function requireFr () {
 	      case "maxProperties":
 	        out = "";
 	        var n = e.params.limit;
-	        out += "ne doit pas contenir plus de " + n + " propriété";
-	        if (n != 1) {
-	          out += "s";
+	        out += "must NOT have more than " + n + " propert";
+	        if (n == 1) {
+	          out += "y";
+	        } else {
+	          out += "ies";
 	        }
 	        break
 	      case "minimum":
 	      case "exclusiveMinimum":
 	        out = "";
 	        var cond = e.params.comparison + " " + e.params.limit;
-	        out += "doit être " + cond;
+	        out += "must be " + cond;
 	        break
 	      case "minItems":
 	        out = "";
 	        var n = e.params.limit;
-	        out += "ne doit pas contenir moins de " + n + " élément";
+	        out += "must NOT have less than " + n + " item";
 	        if (n != 1) {
 	          out += "s";
 	        }
@@ -32138,7 +32195,7 @@ function requireFr () {
 	      case "minLength":
 	        out = "";
 	        var n = e.params.limit;
-	        out += "ne doit pas faire moins de " + n + " caractère";
+	        out += "must NOT be shorter than " + n + " character";
 	        if (n != 1) {
 	          out += "s";
 	        }
@@ -32146,37 +32203,39 @@ function requireFr () {
 	      case "minProperties":
 	        out = "";
 	        var n = e.params.limit;
-	        out += "ne doit pas contenir moins de " + n + " propriété";
-	        if (n != 1) {
-	          out += "s";
+	        out += "must NOT have less than " + n + " propert";
+	        if (n == 1) {
+	          out += "y";
+	        } else {
+	          out += "ies";
 	        }
 	        break
 	      case "multipleOf":
-	        out = "doit être un multiple de " + e.params.multipleOf;
+	        out = "must be a multiple of " + e.params.multipleOf;
 	        break
 	      case "not":
-	        out = 'est invalide selon le schéma "not"';
+	        out = 'must NOT be valid according to schema in "not"';
 	        break
 	      case "oneOf":
-	        out = 'doit correspondre à exactement un schéma de "oneOf"';
+	        out = 'must match exactly one schema in "oneOf"';
 	        break
 	      case "pattern":
-	        out = 'doit correspondre au format "' + e.params.pattern + '"';
+	        out = 'must match pattern "' + e.params.pattern + '"';
 	        break
 	      case "patternRequired":
 	        out =
-	          'la propriété doit correspondre au format "' +
+	          'must have property matching pattern "' +
 	          e.params.missingPattern +
 	          '"';
 	        break
 	      case "propertyNames":
-	        out = "le nom de propriété est invalide";
+	        out = "property name is invalid";
 	        break
 	      case "required":
-	        out = "requiert la propriété " + e.params.missingProperty;
+	        out = "must have required property " + e.params.missingProperty;
 	        break
 	      case "type":
-	        out = "doit être de type " + e.params.type;
+	        out = "must be " + e.params.type;
 	        break
 	      case "unevaluatedItems":
 	        out = "";
@@ -32191,23 +32250,23 @@ function requireFr () {
 	        break
 	      case "uniqueItems":
 	        out =
-	          "ne doit pas contenir de doublons (les éléments ## " +
+	          "must NOT have duplicate items (items ## " +
 	          e.params.j +
-	          " et " +
+	          " and " +
 	          e.params.i +
-	          " sont identiques)";
+	          " are identical)";
 	        break
 	      default:
-	        out = 'doit être valide selon le critère "' + e.keyword + '"';
+	        out = 'must pass "' + e.keyword + '" keyword validation';
 	    }
 	    e.message = out;
 	  }
 	};
-	return fr;
+	return en;
 }
 
-var frExports = requireFr();
-var Ajvi18n = /*@__PURE__*/getDefaultExportFromCjs(frExports);
+var enExports = requireEn();
+var Ajvi18n = /*@__PURE__*/getDefaultExportFromCjs(enExports);
 
 const ajv = new Ajv({ strictNumbers: false, strictSchema: false, coerceTypes: true });
 ajv.addFormat("color", /./);
@@ -32240,7 +32299,7 @@ class DataValidator {
         const result = this.parser(value);
         if (typeof result === 'boolean')
             return result;
-        throw (`Validation result not boolean, This is unlikely to happen, but happens  ${result}`);
+        throw (`Schema validation result not boolean (not expected) ${result}`);
     }
     errors() {
         return this.parser.errors;
@@ -32486,7 +32545,7 @@ let FzArray$1 = class FzArray extends FZCollection {
         this.requestUpdate();
     }
     solveSchemas(force = false) {
-        if (!isArray(this.schema?.items))
+        if (!isObject$1(this.schema.items))
             return;
         if (!force && this.currentSchema && this.schemas)
             return;
@@ -33575,16 +33634,15 @@ class CSDefinition extends CompilationStep {
         const ref = schema.$ref;
         if (!ref.startsWith("#/definitions/"))
             throw this.error(`only '#/definitions/<name>' allowed => ${ref}]`);
-        if (!this.root.definitions)
+        if (this.root.definitions == null)
             throw this.error(`No "definitions" property in root schema`);
         const defname = ref.split("/")[2];
-        if (defname in this.root.definitions) {
-            const deforig = this.root.definitions[defname];
-            const defcopy = Object.assign({}, deforig);
-            Object.entries(schema).forEach(([n, v]) => (n !== '$ref') && (defcopy[n] = v));
-            return defcopy;
-        }
-        throw this.error(`No definitions found in schema for ${ref}`);
+        if (this.root.definitions[defname] == null)
+            throw this.error(`No definitions found in schema for ${ref}`);
+        const deforig = this.root.definitions[defname];
+        const defcopy = Object.assign({}, deforig);
+        Object.entries(schema).forEach(([n, v]) => (n !== '$ref') && (defcopy[n] = v));
+        return Schema.wrapSchema(defcopy);
     }
 }
 /**
@@ -33640,24 +33698,24 @@ class CSTargetType extends CompilationStep {
         // Handling "allOf" → intersection of types
         if (schema.allOf) {
             const allOfTypes = schema.allOf.map((s) => this.infer(s)).filter(x => x != null);
-            possibles.push(this.intersect(allOfTypes));
+            possibles.push(intersect(allOfTypes));
         }
         // Handling "anyOf" → union of types
         if (schema.anyOf) {
             const anyOfTypes = schema.anyOf.map((s) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x);
-            possibles.push(this.union(anyOfTypes));
+            possibles.push(union(anyOfTypes));
         }
         // Handling "oneOf" → union of types (similar to anyOf)
         if (schema.oneOf) {
             const oneOfTypes = schema.oneOf.map((s) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x);
-            possibles.push(this.union(oneOfTypes));
+            possibles.push(union(oneOfTypes));
         }
         const filtered = possibles.filter(value => value != null);
-        return this.intersect(filtered);
+        return intersect(filtered);
     }
     notKW(schema) {
         //  "not" → Compute the complementary set of types
-        return schema.not ? this.complement(this.infer(schema.not)) : null;
+        return schema.not ? complement(this.infer(schema.not), CSTargetType.ALL) : null;
     }
     enumKW(schema) {
         // infering type from "enum" keyword correspond to a set of all enums value types
@@ -33707,17 +33765,6 @@ class CSTargetType extends CompilationStep {
         return CSTargetType.STRINGKW.some(kw => kw in schema)
             ? new Set(["string"])
             : null;
-    }
-    intersect(sets) {
-        return sets.reduce((acc, set) => new Set([...acc].filter(x => set.has(x))), sets[0]);
-    }
-    complement(set) {
-        if (set == null)
-            return new Set();
-        return new Set([...CSTargetType.ALL].filter(x => !set.has(x)));
-    }
-    union(sets) {
-        return sets.reduce((acc, set) => new Set([...acc, ...set]), new Set());
     }
 }
 /**
@@ -34001,7 +34048,7 @@ class CSInsideRef extends CompilationStep {
         const pointer = refto.replace(/\/[^/]+$/, '');
         const refname = refto.substr(pointer.length + 1);
         schema._addObservers(`$\`${pointer}\``);
-        schema.refTo = (_schema, _value, parent, property, _$) => {
+        schema.refTo = (_schema, _value, parent, property, _userdata) => {
             const refarray = derefPointerData(this.data.content, parent, property, pointer);
             if (!refarray)
                 return null;
@@ -34276,15 +34323,14 @@ let FzForm = class FzForm extends Base {
     oninvaliddata = null;
     onvalidate = null;
     ondismiss = null;
-    #_errors_accessor_storage = null;
-    get _errors() { return this.#_errors_accessor_storage; }
-    set _errors(value) { this.#_errors_accessor_storage = value; }
     obj = { content: {} };
     store = new BlobMemory();
     asset;
-    validator;
     dataPointerFieldMap = new Map();
     schemaPointerFieldMap = new Map();
+    schemaErrors = [];
+    dataErrors = [];
+    validator;
     message = "";
     constructor() {
         super();
@@ -34299,24 +34345,11 @@ let FzForm = class FzForm extends Base {
     }
     get schema() { return this.i_schema; }
     set schema(value) {
-        if (validateSchema(value)) {
-            this.i_schema = new Schema(JSON.parse(JSON.stringify(value)));
-            this.validator = new DataValidator(this.i_schema);
-            if (this.valid) {
-                this._errors = null;
-                this.message = "";
-                this.compile();
-                this.requestUpdate();
-            }
-            else {
-                this._errors = validateErrors();
-                this.message = "provided value for 'data' attribute doesn't conform to schema";
-            }
-        }
-        else {
-            this._errors = validateErrors();
-            this.message = "provided data for 'schema' attribute is not a valid annotated JSON Schema.";
-        }
+        this.i_schema = validateSchema(value) ? new Schema(JSON.parse(JSON.stringify(value))) : DEFAULT_SCHEMA;
+        this.schemaErrors = validateErrors();
+        this.validator = new DataValidator(this.i_schema);
+        this.compile();
+        this.requestUpdate();
     }
     get options() { return this.i_options; }
     set options(value) {
@@ -34330,21 +34363,12 @@ let FzForm = class FzForm extends Base {
     }
     get data() { return cleanJSON(this.root); }
     set data(value) {
-        if (!this.validator) {
-            // we do not have a valid JSON Schema unable to work
-            this.message = "Unable to accept data because provided JSON Schema is not valid.";
+        // dont accept data before having a valid JSON
+        if (this.schemaErrors.length > 0)
             return;
-        }
-        if (this.checkIn && !this.validator.validate(value)) {
-            // data must be valid (checkin true)
-            this._errors = this.validator?.errors() || null;
-            this.message = "provided data is not conform to schema (checkin activated)";
-            return;
-        }
-        // data accepted without validation (checkin false)
-        this.message = "";
-        this._errors = null;
-        this.obj.content = value;
+        // data must be valid (if checkin option is true)
+        this.dataErrors = this.checkIn && this.validator.validate(value) ? this.validator?.errors() ?? [] : [];
+        this.obj.content = this.dataErrors.length == 0 ? value : {};
         this.compile();
         this.requestUpdate();
     }
@@ -34357,7 +34381,8 @@ let FzForm = class FzForm extends Base {
         }
     }
     render() {
-        return !this._errors?.length ? this.renderForm() : this.renderError();
+        const failed = this.schemaErrors.length > 0 || this.dataErrors.length > 0;
+        return failed ? this.renderError() : this.renderForm();
     }
     renderForm() {
         return x `
@@ -34377,12 +34402,12 @@ let FzForm = class FzForm extends Base {
             </div>`;
     }
     renderError() {
-        return x `
-            Error(s): 
-            <hr>
-            <p class="error-message"> ${this.message}</p>
-            <pre><ol>${this._errors?.map(error => x `<li>Dans la propriété : ${(error.dataPath == undefined) ? error.instancePath : error.dataPath} : ${error.keyword} ➜ ${error.message}</li>`)}
-            </ol></pre>`;
+        const formatError = (e) => x `<li>property : ${(e.dataPath == undefined) ? e.instancePath : e.dataPath} : ${e.keyword} ➜ ${e.message}</li>`;
+        return [
+            x `<hr>`,
+            this.schemaErrors.length ? x `<pre><ol> Schema errors : ${this.schemaErrors.map(formatError)} </ol></pre>` : x ``,
+            this.dataErrors.length ? x `<pre><ol> Data errors : ${this.dataErrors.map(formatError)} </ol></pre>` : x ``
+        ];
     }
     connectedCallback() {
         super.connectedCallback();
@@ -34504,10 +34529,6 @@ __decorate([
     n$1({ type: String, attribute: 'ondismiss', converter: (v) => v }),
     __metadata("design:type", Object)
 ], FzForm.prototype, "ondismiss", void 0);
-__decorate([
-    r$3(),
-    __metadata("design:type", Object)
-], FzForm.prototype, "_errors", null);
 FzForm = __decorate([
     t$4("fz-form"),
     __metadata("design:paramtypes", [])

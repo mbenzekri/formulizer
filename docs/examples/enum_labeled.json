@@ -1,0 +1,22 @@
+{
+    "form": {
+        "$id": "https://formulizer/examples/enum_labeled.json",
+        "type": "object",
+        "title": "Labeled enum",
+        "properties": {
+            "dwarfnumber": {
+                "title": "DWarf",
+                "oneOf": [
+                    { "const": 1, "title": "Doc" },
+                    { "const": 2, "title": "Sneezy" },
+                    { "const": 3, "title": "Sleepy" },
+                    { "const": 4, "title": "Grumpy" },
+                    { "const": 5, "title": "Happy" },
+                    { "const": 6, "title": "Bashful" },
+                    { "const": 7, "title": "Dopey" }
+                ]
+            }
+        }
+    },
+    "data": {}
+}

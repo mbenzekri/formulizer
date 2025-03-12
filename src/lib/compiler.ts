@@ -1,5 +1,5 @@
 import { Pojo, FieldOrder, ExprFunc, IOptions } from "./types"
-import { pointerSchema, derefPointerData} from "./tools";
+import { pointerSchema, derefPointerData, complement, intersect, union} from "./tools";
 import { setSchema,setParent,setRoot} from "./tools"
 import { Schema, CompilationStep, isprimitive, isenumarray,  } from "./schema";
 
@@ -149,16 +149,16 @@ class CSDefinition extends CompilationStep {
         const ref = schema.$ref as string
         if (!ref.startsWith("#/definitions/"))
             throw this.error(`only '#/definitions/<name>' allowed => ${ref}]`)
-        if (!this.root.definitions)
+        if (this.root.definitions == null)
             throw this.error(`No "definitions" property in root schema`)
         const defname = ref.split("/")[2];
-        if (defname in this.root.definitions) {
-            const deforig: Schema = this.root.definitions[defname]
-            const defcopy: Schema = Object.assign({}, deforig)
-            Object.entries(schema).forEach(([n, v]) => (n !== '$ref') && ((defcopy as any)[n] = v))
-            return defcopy
-        }
-        throw this.error(`No definitions found in schema for ${ref}`)
+        if (this.root.definitions[defname] == null)
+            throw this.error(`No definitions found in schema for ${ref}`)
+
+        const deforig: Schema = this.root.definitions[defname]
+        const defcopy: Schema = Object.assign({}, deforig)
+        Object.entries(schema).forEach(([n, v]) => (n !== '$ref') && ((defcopy as any)[n] = v))
+        return Schema.wrapSchema(defcopy)
     }
 }
 
@@ -220,27 +220,27 @@ class CSTargetType extends CompilationStep {
         // Handling "allOf" → intersection of types
         if (schema.allOf) {
             const allOfTypes = schema.allOf.map((s: Schema) => this.infer(s)).filter(x => x != null);
-            possibles.push(this.intersect(allOfTypes));
+            possibles.push(intersect(allOfTypes));
         }
 
         // Handling "anyOf" → union of types
         if (schema.anyOf) {
             const anyOfTypes = schema.anyOf.map((s: Schema) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x );
-            possibles.push(this.union(anyOfTypes));
+            possibles.push(union(anyOfTypes));
         }
 
         // Handling "oneOf" → union of types (similar to anyOf)
         if (schema.oneOf) {
             const oneOfTypes = schema.oneOf.map((s: Schema) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x );;
-            possibles.push(this.union(oneOfTypes));
+            possibles.push(union(oneOfTypes));
         }
         const filtered = possibles.filter(value => value !=  null) 
-        return this.intersect(filtered)
+        return intersect(filtered)
     }
 
     private notKW(schema: Schema) {
         //  "not" → Compute the complementary set of types
-        return schema.not ? this.complement(this.infer(schema.not)) : null
+        return schema.not ? complement(this.infer(schema.not),CSTargetType.ALL) : null
     }
 
     private enumKW(schema: Schema) {
@@ -294,17 +294,6 @@ class CSTargetType extends CompilationStep {
             : null
     }
 
-    private intersect(sets: Set<string>[]): Set<string> {
-        return sets.reduce((acc, set) => new Set([...acc].filter(x => set.has(x))), sets[0]);
-    }
-    
-    private complement(set: Set<string>|null): Set<string> {
-        if (set == null) return new Set()
-        return new Set([...CSTargetType.ALL].filter(x => !set.has(x)));
-    }
-    private union(sets: Set<string>[]): Set<string> {
-        return sets.reduce((acc, set) => new Set([...acc, ...set]), new Set());
-    }    
 }
 /**
  * Adds a oneOf enum schema obtained through options.ref callback 
@@ -617,7 +606,7 @@ class CSInsideRef extends CompilationStep {
         const pointer = refto.replace(/\/[^/]+$/, '')
         const refname = refto.substr(pointer.length + 1)
         schema._addObservers(`$\`${pointer}\``)
-        schema.refTo = (_schema: Pojo, _value: any, parent: any, property: string, _$: any) => {
+        schema.refTo = (_schema: Schema, _value: any, parent: Pojo, property: string | number, _userdata: object) => {
             const refarray = derefPointerData(this.data.content, parent, property, pointer)
             if (!refarray) return null
             if (!Array.isArray(refarray)) {
@@ -628,7 +617,6 @@ class CSInsideRef extends CompilationStep {
         }
     }
 }
-
 
 /**
  * compile a given property written as template literal  

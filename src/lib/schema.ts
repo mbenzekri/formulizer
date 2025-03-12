@@ -1,5 +1,5 @@
 import { getEmptyValue, isArray, isEmptyValue, isObject, newValue } from "./tools";
-import { ExprFunc, FieldOrder, Pojo } from "./types";
+import { EnumOption, ExprFunc, FieldOrder, Pojo } from "./types";
 
 
 // // Define the method structure as a Type
@@ -14,7 +14,7 @@ import { ExprFunc, FieldOrder, Pojo } from "./types";
 export class JSONSchema {
     [key: string]: any
 }
-const SchemaAnnotation = [ "parent",  "root", ]
+const SchemaAnnotation = ["parent", "root",]
 type SchemaPrimitive = "null" | "boolean" | "object" | "array" | "number" | "string" | "integer"
 
 class JSONSchemaDraft07 {
@@ -37,7 +37,7 @@ class JSONSchemaDraft07 {
     minLength?: number;
     pattern?: string;
 
-    items?: Schema;//  | Schema[];  // TO BE FIXED LATER
+    items?: Schema;//  | Schema[];                      // tuple case NOT IMPLEMENTED : TO BE FIXED LATER
     additionalItems?: Schema;
     maxItems?: number;
     minItems?: number;
@@ -48,8 +48,8 @@ class JSONSchemaDraft07 {
     minProperties?: number;
     required?: string[];
     properties?: Record<string, Schema>;
-    patternProperties?: Record<string, Schema>; // this is ignored by formulizer (except for validation)
-    additionalProperties?: boolean | Schema;
+    patternProperties?: Record<string, Schema>;         // IGNORED by formulizer (except for validation)
+    additionalProperties?: boolean | Schema;            // IGNORED by formulizer (except for validation)
     dependencies?: Record<string, Schema | string[]>;
     propertyNames?: Schema;
 
@@ -85,7 +85,7 @@ class JSONSchemaDraft07 {
     homogeneous!: boolean;
     requiredWhen!: string | Function;
     field!: string;
-    refTo?: {} | ExprFunc<any>;
+    refTo?: string | ExprFunc<any>;
     order?: FieldOrder[];
     abstract?: string | ExprFunc<string>;
     case?: string | ExprFunc<boolean>;
@@ -119,7 +119,7 @@ export class Schema extends JSONSchemaDraft07 {
         if (isArray(value) && this.items instanceof Schema && this.items != null) {
             const items = this.items
             return (value)
-                .map((item) =>  items._abstract(item))
+                .map((item) => items._abstract(item))
                 .filter((v: any) => v)
                 .join(',')
         }
@@ -218,25 +218,64 @@ export class Schema extends JSONSchemaDraft07 {
             (key: any, value: any) => SchemaAnnotation.includes(key) ? undefined : value
         )
     }
-    static wrapSchema(schema: JSONSchema): Schema;
-    static wrapSchema(schema: JSONSchema, parent: JSONSchema, name: string): Schema;
-    static wrapSchema(schema: JSONSchema, parent?: JSONSchema, name?: string): Schema {
-        if (schema.properties)
-            for (const name of Object.keys(schema.properties)) {
-                schema.properties[name] = Schema.wrapSchema(schema.properties[name], schema, name)
-            }
-        if (schema.items) {
-            schema.items = Schema.wrapSchema(schema.items, schema, '*')
-        }
-        if (parent && name) {
-            if (schema.oneOf) schema.oneOf = schema.oneOf.map((child: JSONSchema) => Schema.wrapSchema(child, parent, name))
-            if (schema.allOf) schema.allOf = schema.allOf.map((child: JSONSchema) => Schema.wrapSchema(child, parent, name))
-            if (schema.anyOf) schema.anyOf = schema.anyOf.map((child: JSONSchema) => Schema.wrapSchema(child, parent, name))
+
+    static wrapSchema(schema: JSONSchema) {
+        Object.setPrototypeOf(schema, Schema.prototype)
+        if (isObject(schema.properties)) Object.values(schema.properties).forEach((child)  => Schema.wrapSchema(child)) 
+        if (isArray(schema.items))  schema.items.forEach((child)  => Schema.wrapSchema(child)) 
+        if (isObject(schema.items)) Schema.wrapSchema(schema.items)
+        if (isArray(schema.oneOf)) schema.oneOf.forEach((child)  => Schema.wrapSchema(child)) 
+        if (isArray(schema.anyOf)) schema.anyOf.forEach((child)  => Schema.wrapSchema(child)) 
+        if (isArray(schema.allOf)) schema.allOf.forEach((child)  => Schema.wrapSchema(child)) 
+        if (schema.not) Schema.wrapSchema(schema.not)
+        return schema as Schema
+    }
+
+    static inferEnums(schema: Schema): EnumOption[] | null {
+        // Exclude nullish schema, "array" and "object" from being enums
+        if (!schema ||
+            typeof schema !== "object" ||
+            schema.type === "array" ||
+            schema.type === "object"
+        ) return null;
+
+        // ✅ Direct "enum" keyword
+        if (Array.isArray(schema.enum)) {
+            return schema.enum.map(value => ({ value, title: JSON.stringify(value) }));
         }
 
-        Object.setPrototypeOf(schema, Schema.prototype);
-        return schema as Schema;
+        // ✅ "const" keyword (supports primitives, objects, and arrays)
+        if (schema.const !== undefined) {
+            return [{ value: schema.const, title: schema.title ?? JSON.stringify(schema.const) }];
+        }
+
+        // ✅ "oneOf" / "anyOf" with `const` values
+        if (Array.isArray(schema.oneOf)) {
+            return schema.oneOf.flatMap(item => Schema.inferEnums(item) ?? []);
+        }
+
+        if (Array.isArray(schema.anyOf)) {
+            return schema.anyOf.flatMap(item => Schema.inferEnums(item) || []);
+        }
+
+        // ✅ "allOf": If one of the subschemas defines an enum, use that
+        if (Array.isArray(schema.allOf)) {
+            for (const subschema of schema.allOf) {
+                const values = Schema.inferEnums(subschema);
+                if (values) return values;
+            }
+        }
+        // ❌ Exclude values from `not` (Negation)
+        if (schema.not) {
+            const excluded = Schema.inferEnums(schema.not);
+            if (excluded) {
+                return Schema.inferEnums(schema)?.filter(item => !excluded.some(e => e.value === item.value)) ?? null
+            }
+        }
+
+        return null;
     }
+
 }
 
 export abstract class CompilationStep {

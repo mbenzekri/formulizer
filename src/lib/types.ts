@@ -18,7 +18,11 @@ interface JSONArray extends Array<JSONValue> {}
 
 export { JSONValue, JSONObject, JSONArray }
 
-
+export type EnumOption = {
+    value: JSONValue;
+    title: string;
+  
+} 
 
 export type ExprFunc<T> = (schema: Schema, value: any, parent: Pojo, property: string | number, userdata: object) => T | null
 export type Pojo = { [key: string]: any }

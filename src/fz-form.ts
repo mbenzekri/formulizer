@@ -39,14 +39,16 @@ export class FzForm extends Base {
     @property({ type: String, attribute: 'oninvaliddata', converter: (v) => v }) oninvaliddata: string | null = null;
     @property({ type: String, attribute: 'onvalidate', converter: (v) => v }) onvalidate: string | null = null;
     @property({ type: String, attribute: 'ondismiss', converter: (v) => v }) ondismiss: string | null = null;
-    @state() private accessor _errors: Array<any> | null = null
 
     private readonly obj = { content: {} }
     public store: IBlobStore = new BlobMemory()
     public asset!: IAsset
-    private validator!: DataValidator
     private readonly dataPointerFieldMap: Map<string, FzElement> = new Map()
     private readonly schemaPointerFieldMap: Map<string, FzElement> = new Map()
+
+    private schemaErrors: Array<any> = []
+    private dataErrors: Array<any> = []
+    private validator!: DataValidator
     private message = ""
 
     constructor() {
@@ -68,22 +70,11 @@ export class FzForm extends Base {
 
     get schema() { return this.i_schema }
     set schema(value: Schema) {
-        if (validateSchema(value)) {
-            this.i_schema = new Schema(JSON.parse(JSON.stringify(value)))
-            this.validator = new DataValidator(this.i_schema)
-            if (this.valid) {
-                this._errors = null
-                this.message = ""
-                this.compile()
-                this.requestUpdate()
-            } else {
-                this._errors = validateErrors()
-                this.message = "provided value for 'data' attribute doesn't conform to schema"
-            }
-        } else {
-            this._errors = validateErrors()
-            this.message = "provided data for 'schema' attribute is not a valid annotated JSON Schema."
-        }
+        this.i_schema = validateSchema(value) ? new Schema(JSON.parse(JSON.stringify(value))) : DEFAULT_SCHEMA
+        this.schemaErrors = validateErrors()
+        this.validator = new DataValidator(this.i_schema)
+        this.compile()
+        this.requestUpdate()
     }
 
     get options(): IOptions { return this.i_options }
@@ -100,28 +91,14 @@ export class FzForm extends Base {
 
     get data() { return cleanJSON(this.root) }
     set data(value: Pojo) {
-
-        if (!this.validator) {
-            // we do not have a valid JSON Schema unable to work
-            this.message = "Unable to accept data because provided JSON Schema is not valid."
-            return
-        }
-
-        if (this.checkIn && !this.validator.validate(value)) {
-            // data must be valid (checkin true)
-            this._errors = this.validator?.errors() || null
-            this.message = "provided data is not conform to schema (checkin activated)"
-            return
-        }
-
-        // data accepted without validation (checkin false)
-        this.message = ""
-        this._errors = null
-        this.obj.content = value
+        // dont accept data before having a valid JSON
+        if (this.schemaErrors.length > 0)  return
+        // data must be valid (if checkin option is true)
+        this.dataErrors = this.checkIn && this.validator.validate(value) ? this.validator?.errors() ?? []  : []
+        this.obj.content = this.dataErrors.length == 0 ? value : {}
         this.compile()
         this.requestUpdate()
     }
-
 
     override attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
         super.attributeChangedCallback(name, oldValue, newValue);
@@ -133,7 +110,8 @@ export class FzForm extends Base {
     }
 
     override render() {
-        return !this._errors?.length ? this.renderForm() : this.renderError()
+        const failed = this.schemaErrors.length > 0 || this.dataErrors.length > 0
+        return failed ? this.renderError() : this.renderForm() 
     }
 
     private renderForm() {
@@ -156,12 +134,13 @@ export class FzForm extends Base {
     }
 
     private renderError() {
-        return html`
-            Error(s): 
-            <hr>
-            <p class="error-message"> ${this.message}</p>
-            <pre><ol>${this._errors?.map(error => html`<li>Dans la propriété : ${(error.dataPath == undefined) ? error.instancePath : error.dataPath} : ${error.keyword} ➜ ${error.message}</li>`)}
-            </ol></pre>`
+        const formatError = (e:any) =>
+            html`<li>property : ${(e.dataPath == undefined) ? e.instancePath : e.dataPath} : ${e.keyword} ➜ ${e.message}</li>`
+        return [ 
+            html`<hr>`,
+            this.schemaErrors.length ? html`<pre><ol> Schema errors : ${this.schemaErrors.map(formatError)} </ol></pre>` : html``,
+            this.dataErrors.length ? html`<pre><ol> Data errors : ${this.dataErrors.map(formatError)} </ol></pre>` : html``
+        ]
     }
 
     override connectedCallback() {

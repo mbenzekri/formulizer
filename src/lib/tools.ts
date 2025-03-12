@@ -11,12 +11,25 @@ export function isNumber(value: any): value is Number {
 
 
 export function isObject(value: unknown): value is Record<string,any> {
-    return typeof value === "object" && value !== null;
+    return value !== null && typeof value === "object" && !isArray(value) ;
 }
 
 export function isFunction(value: unknown): value is Function {
     return typeof value === "function" && value !== null;
 }
+
+export function intersect(sets: Set<string>[]): Set<string> {
+    return sets.reduce((acc, set) => new Set([...acc].filter(x => set.has(x))), sets[0]);
+}
+
+export function complement(set: Set<string>|null,full: Set<string>): Set<string> {
+    if (set == null) return new Set()
+    return new Set([...full].filter(x => !set.has(x)));
+}
+export function union(sets: Set<string>[]): Set<string> {
+    return sets.reduce((acc, set) => new Set([...acc, ...set]), new Set());
+}    
+
 
 export const jsonAttributeConverter = {
     fromAttribute(value: string | null): unknown {

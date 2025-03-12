@@ -4,6 +4,7 @@ JSON Schema driven WebComponent to display dynamic form (Bootstrap UI 5)
 
 ## TODO LIST
 
+- Enums not fully working (fix all the examples)
 - reference to data example not working
 - ISSUE: in the documentation click chapter "'format' keyword" then "Basic fields"
     the field geolocation from previous form stay displayed in second form

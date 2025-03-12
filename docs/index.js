@@ -179,7 +179,8 @@ const defaultTuto = {
         "properties": {
             "field": {
                 "type": "string",
-                "markdown": ["No demo for this chapter"]
+                "format": "markdown",
+                "expression": ["No demo for this chapter"]
             }
         }
     },
