@@ -87,8 +87,8 @@ export abstract class FzEnumBase extends FzInputBase {
                 }, [])
                 break
             }
-            case this.schema.enumRef != null && this.form.options.ref != null: {
-                this.enums = this.form.options.ref(this.schema.enumRef)
+            case this.schema.enumRef != null && this.form.options.enums != null: {
+                this.enums = this.form.options.enums(this.schema.enumRef)
                 break
             }
             default: {
