@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property } from "lit/decorators.js"
 import { html, css, TemplateResult } from "lit"
-import { derefPointerData, getEmptyValue, isEmptyValue, newValue, getSchema, closestAscendantFrom, isFunction } from "./lib/tools"
+import { derefPointerData, isEmptyValue, newValue, getSchema, closestAscendantFrom, isFunction } from "./lib/tools"
 import { Pojo } from "./lib/types"
 import { FzForm } from "./fz-form"
 import { Base } from "./base"
@@ -227,7 +227,7 @@ export abstract class FzElement extends Base {
     }
 
 
-    get empty() { return getEmptyValue(this.schema) }
+    get empty() { return this.schema._empty() }
     get isEmpty() { return isEmptyValue(this.value) }
     // get pointer() { return pointerData(this.data,this.key) }
 

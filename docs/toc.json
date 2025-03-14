@@ -17,13 +17,13 @@
                 "readonly": "readonly",
                 "required": "required"
             },
-            "Primitive": {
-                "format": "'format' keyword",
-                "basic": "Basic fields",
-                "boolean": "'boolean' field",
-                "documents": "Document field",
-                "range": "Integer Range",
-                "signature": "Handwritten Signature"
+            "Primitives": {
+                "basic": "basic",
+                "format": "format",
+                "boolean": "boolean",
+                "documents": "document",
+                "range": "range",
+                "signature": "signature"
             },
             "Enumerations": {
                 "enum/basics": "basics",

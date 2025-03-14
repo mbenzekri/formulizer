@@ -1,4 +1,4 @@
-import { getEmptyValue, isArray, isEmptyValue, isObject, isPrimitive, newValue } from "./tools";
+import { isArray, isEmptyValue, isObject, isPrimitive, newValue } from "./tools";
 import { EnumItem, ExprFunc, FieldOrder, Pojo } from "./types";
 
 
@@ -151,13 +151,13 @@ export class Schema extends JSONSchemaDraft07 {
                     if (property.default)
                         object[key] = newValue(JSON.parse(JSON.stringify(property.default)), object, property)
                     else
-                        object[key] = object.required?.includes[key] ? property._default(object) : newValue(getEmptyValue(property), object, property)
+                        object[key] = object.required?.includes[key] ? property._default(object) : newValue(property.empty(), object, property)
                     return object
                 }, newValue({}, parent, this) as any)
             }
             case this.basetype === 'array':
                 return newValue([], parent, this)
-            default: return newValue(getEmptyValue(this), parent, this)
+            default: return newValue(this._empty(), parent, this)
         }
     }
     /**
@@ -272,6 +272,14 @@ export class Schema extends JSONSchemaDraft07 {
         return;
     }
 
+    _empty() {
+        if (this.basetype == 'array') return []
+        if (this.basetype == 'object') return {}
+        // const is a special case (emptyValue is same as not empty)
+        if (this.const) return this.const
+        return this.nullAllowed ? null : undefined
+    }
+    
 }
 
 export abstract class CompilationStep {

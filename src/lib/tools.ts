@@ -214,37 +214,6 @@ export function isEmptyValue(value: any): boolean {
     return false
 }
 
-export function getEmptyValue(schema: Pojo) {
-    if (!schema) return undefined
-    if (schema.basetype == 'array') return []
-    if (schema.basetype == 'object') return {}
-    // const is a special case (emptyValue is same as not empty)
-    if (schema.const) return schema.const
-    return schema.nullAllowed ? null : undefined
-}
-
-// /**
-//  * default abstract calculator
-//  * @param schema shema of the value to abstract
-//  * @param schema value abstract
-//  */
-// export function abstract(schema: Pojo, value: any): string {
-//     switch (true) {
-//         case schema == null || isEmptyValue(value) || value == null: return '~'
-//         case Array.isArray(value):
-//             return (value as Array<any>)
-//                 .map((item: any) => item ? abstract(schema.items, item) : item)
-//                 .filter((v: any) => v)
-//                 .join(',')
-//         case typeof value === 'object':
-//             return schema.properties ? Object.keys(schema.properties)
-//                 .filter((property: string) => !(value[property] == null))
-//                 .map((property: string) => abstract(schema.properties[property], value[property]))
-//                 .join(',') : ""
-//         default: return value
-//     }
-// }
-
 export function formatMsg(key: string, input?: HTMLInputElement): string {
     switch (key) {
         case 'valueMissing':
@@ -278,15 +247,15 @@ export function cleanJSON(data: Pojo) {
         const pschema = getSchema(this)
         if (pschema?.properties?.[name]?.transient) return undefined
         if (schema && Array.isArray(value) && value.length === 0) {
-            return schema.nullAllowed ? null : undefined
+            return undefined
         }
-        if (schema && value != null && typeof value === "object" && Object.keys(value).every(key => value[key] == null)) {
-            return schema.nullAllowed ? null : undefined
+        if (schema && value != undefined && typeof value === "object" && Object.keys(value).every(key => value[key] === undefined)) {
+            return undefined
         }
         return value;
     }
     const jsonstr = JSON.stringify(data, replacer)
-    const jsonobj = jsonstr == null ? null : JSON.parse(jsonstr)
+    const jsonobj = jsonstr == null ? undefined : JSON.parse(jsonstr)
     return jsonobj
 }
 

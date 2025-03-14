@@ -1,7 +1,7 @@
 "use strict"
 // handler when selecting tab 
-function onTabChange(panel) {
-    if (panel == "data-tab") data.innerHTML = JSON.stringify(form.data, undefined, 4).replace(/\n/g, '<br>')
+function onTabChange() {
+    data.innerHTML = JSON.stringify(form.data, undefined, 4).replace(/\n/g, '<br>')
 }
 
 // add the handler on each tab
@@ -186,6 +186,10 @@ const defaultTuto = {
     },
     "data": {}
 }
+const updateData = () =>  {
+    console.log("handling data `update`")
+    data.innerHTML = JSON.stringify(form.data, undefined, 4).replace(/\n/g, '<br>')
+}
 
 const goto = async (name) => {
     const subject = name ?? "basic"
@@ -199,9 +203,8 @@ const goto = async (name) => {
             form.data = tutodata.data
             if (timer) clearInterval(timer)
             schema.innerHTML = JSON.stringify(tutodata.form, ignoreProperties, 4).replace(/\n/g, '<br>')
-            form.addEventListener('update', () => {
-                data.innerHTML = JSON.stringify(form.data, undefined, 4).replace(/\n/g, '<br>')
-            })
+            form.addEventListener('update', updateData )
+            updateData()
         }
         markdown(subject)
     }

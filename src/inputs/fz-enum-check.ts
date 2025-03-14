@@ -12,16 +12,16 @@ export class FZEnumCheck extends FzEnumBase {
     override toField() {
         if (isNull(this.radios)) return
         this.radios.forEach(r => { r.checked = false; r.removeAttribute("checked") })
-        if (isNull(this.value) || isNull(this.enums))  {
+        if (this.value === undefined || isNull(this.enums))  {
             this.selected = -1
         } else {
-            this.selected = this.enums.findIndex(item => item.value == this.value) 
+            this.selected = this.enums.findIndex(item => item.value === this.value) 
             if (this.selected > 0)  this.radios[this.selected].checked = true
         }
     }
 
     override toValue() {
-        if ( notNull(this.selected) && notNull(this.enums)) {
+        if ( this.selected >= 0 && notNull(this.enums)) {
             this.value = this.enums[this.selected].value
         }
     }

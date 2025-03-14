@@ -159,6 +159,7 @@ declare class Schema extends JSONSchemaDraft07 {
     _toJSON(): string;
     static wrapSchema(schema: JSONSchema): Schema;
     static inferEnums(schema: Schema): EnumItem[] | undefined;
+    _empty(): any;
 }
 
 /**

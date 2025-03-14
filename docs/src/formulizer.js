@@ -255,39 +255,6 @@ function isEmptyValue(value) {
         return value.length === 0;
     return false;
 }
-function getEmptyValue(schema) {
-    if (!schema)
-        return undefined;
-    if (schema.basetype == 'array')
-        return [];
-    if (schema.basetype == 'object')
-        return {};
-    // const is a special case (emptyValue is same as not empty)
-    if (schema.const)
-        return schema.const;
-    return schema.nullAllowed ? null : undefined;
-}
-// /**
-//  * default abstract calculator
-//  * @param schema shema of the value to abstract
-//  * @param schema value abstract
-//  */
-// export function abstract(schema: Pojo, value: any): string {
-//     switch (true) {
-//         case schema == null || isEmptyValue(value) || value == null: return '~'
-//         case Array.isArray(value):
-//             return (value as Array<any>)
-//                 .map((item: any) => item ? abstract(schema.items, item) : item)
-//                 .filter((v: any) => v)
-//                 .join(',')
-//         case typeof value === 'object':
-//             return schema.properties ? Object.keys(schema.properties)
-//                 .filter((property: string) => !(value[property] == null))
-//                 .map((property: string) => abstract(schema.properties[property], value[property]))
-//                 .join(',') : ""
-//         default: return value
-//     }
-// }
 function formatMsg(key, input) {
     switch (key) {
         case 'valueMissing':
@@ -321,15 +288,15 @@ function cleanJSON(data) {
         if (pschema?.properties?.[name]?.transient)
             return undefined;
         if (schema && Array.isArray(value) && value.length === 0) {
-            return schema.nullAllowed ? null : undefined;
+            return undefined;
         }
-        if (schema && value != null && typeof value === "object" && Object.keys(value).every(key => value[key] == null)) {
-            return schema.nullAllowed ? null : undefined;
+        if (schema && value != undefined && typeof value === "object" && Object.keys(value).every(key => value[key] === undefined)) {
+            return undefined;
         }
         return value;
     };
     const jsonstr = JSON.stringify(data, replacer);
-    const jsonobj = jsonstr == null ? null : JSON.parse(jsonstr);
+    const jsonobj = jsonstr == null ? undefined : JSON.parse(jsonstr);
     return jsonobj;
 }
 window.nvl = function nvl(templates, ...values) {
@@ -13964,13 +13931,13 @@ class Schema extends JSONSchemaDraft07 {
                     if (property.default)
                         object[key] = newValue(JSON.parse(JSON.stringify(property.default)), object, property);
                     else
-                        object[key] = object.required?.includes[key] ? property._default(object) : newValue(getEmptyValue(property), object, property);
+                        object[key] = object.required?.includes[key] ? property._default(object) : newValue(property.empty(), object, property);
                     return object;
                 }, newValue({}, parent, this));
             }
             case this.basetype === 'array':
                 return newValue([], parent, this);
-            default: return newValue(getEmptyValue(this), parent, this);
+            default: return newValue(this._empty(), parent, this);
         }
     }
     /**
@@ -14081,6 +14048,16 @@ class Schema extends JSONSchemaDraft07 {
             return Schema.inferEnums(schema)?.filter(item => !excluded.some(e => e.value === item.value));
         }
         return;
+    }
+    _empty() {
+        if (this.basetype == 'array')
+            return [];
+        if (this.basetype == 'object')
+            return {};
+        // const is a special case (emptyValue is same as not empty)
+        if (this.const)
+            return this.const;
+        return this.nullAllowed ? null : undefined;
     }
 }
 class CompilationStep {
@@ -14365,7 +14342,7 @@ class FzElement extends Base {
             return true;
         return (this.data && this.schema.readonly) ? this.evalExpr("readonly") : false;
     }
-    get empty() { return getEmptyValue(this.schema); }
+    get empty() { return this.schema._empty(); }
     get isEmpty() { return isEmptyValue(this.value); }
     // get pointer() { return pointerData(this.data,this.key) }
     /**
@@ -14946,17 +14923,17 @@ let FZEnumCheck = class FZEnumCheck extends FzEnumBase {
         if (isNull(this.radios))
             return;
         this.radios.forEach(r => { r.checked = false; r.removeAttribute("checked"); });
-        if (isNull(this.value) || isNull(this.enums)) {
+        if (this.value === undefined || isNull(this.enums)) {
             this.selected = -1;
         }
         else {
-            this.selected = this.enums.findIndex(item => item.value == this.value);
+            this.selected = this.enums.findIndex(item => item.value === this.value);
             if (this.selected > 0)
                 this.radios[this.selected].checked = true;
         }
     }
     toValue() {
-        if (notNull(this.selected) && notNull(this.enums)) {
+        if (this.selected >= 0 && notNull(this.enums)) {
             this.value = this.enums[this.selected].value;
         }
     }
@@ -15478,34 +15455,51 @@ let FzInputBoolean = class FzInputBoolean extends FzInputBase {
     renderInput() {
         return x `
             <div class="form-group row">
-                <div class="col-sm-3"></div> 
-                <div class="col-sm-9">
-                    <input 
-                        class="form-check-input" 
-                        type="checkbox"
-                        id="input"
-                        @keypress="${this.toggle}"
-                        ?disabled="${this.readonly}"
-                        @click="${this.toggle}"
-                        ?required="${this.required}"
-                    />
-                    <label class="form-check-label" for="input" style="text-decoration-line:${!this.value ? 'line-through' : 'none'}">&nbsp;${this.label}</label>
+                <div class="col-sm-12">
+                    <div class="form-check d-flex">
+                        <input 
+                            id="input"
+                            type="checkbox"
+                            ?disabled="${this.readonly}"
+                            ?required="${this.required}"
+                            @change="${super.change}"
+                            class="form-check-input align-self-start" 
+                        />
+                        <label class="form-check-label   ms-2" for="input">${super.label}</label>
+                    </div>
                 </div>
             </div>
         `;
     }
-    toggle() {
-        super.change();
-        this.requestUpdate();
-    }
+    get label() { return ""; }
     toField() {
-        if (notNull(this.input)) {
-            this.input.checked = isEmptyValue(this.value) ? this.empty : !!this.value;
+        if (isNull(this.input))
+            return;
+        switch (true) {
+            case this.value === undefined:
+                // Always treat undefined as "not set" (indeterminate)
+                this.input.indeterminate = true;
+                this.input.checked = false;
+                break;
+            case this.value === null && this.schema.nullAllowed:
+                // Only treat null as indeterminate if null is allowed
+                this.input.indeterminate = true;
+                this.input.checked = false;
+                break;
+            default:
+                // Standard true/false mapping
+                this.input.indeterminate = false;
+                this.input.checked = !!this.value;
         }
     }
     toValue() {
-        if (notNull(this.input)) {
-            this.value = this.input.checked ? true : false;
+        if (isNull(this.input))
+            return;
+        if (this.input.indeterminate) {
+            this.value = this.schema.nullAllowed ? null : undefined;
+        }
+        else {
+            this.value = !!this.input.checked;
         }
     }
 };
