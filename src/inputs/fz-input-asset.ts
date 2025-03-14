@@ -1,16 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement } from "lit/decorators.js"
 import { html } from "lit"
-import { isEmptyValue } from "../lib/tools"
+import { isEmptyValue, notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 import { ifDefined } from "lit/directives/if-defined.js";
 
 enum SelectionState {
     idle, selecting
-}
-export interface IAsset {
-    select: (fieldasset: any, value: any, selectCallback: (selected:string) => void) => Promise<void>,
-    done: () => Promise<void>
 }
 
 /**
@@ -25,12 +21,17 @@ export class FzInputAsset extends FzInputBase {
     private state = SelectionState.idle
     private oldValue = ""
 
-    convertToInput(value: any) {
-        return (value == null) ? "" : value.toString()
+    override toField(): void {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "")
+        }
     }
-    convertToValue(value: any) {
-        return isEmptyValue(value) ? this.empty : value.toString();
+    override toValue(): void {
+        if (notNull(this.input)) {
+            this.value = isEmptyValue(this.input.value) ? this.empty : String(this.input.value)
+        }
     }
+
 
     get assets() { return (this.schema.assets ?? "").split(","); }
     get asset() { return this.form.asset }
@@ -39,12 +40,12 @@ export class FzInputAsset extends FzInputBase {
         return html`
             <div class="input-group">
                 <input
-                    class="form-control"
-                    type="text"
                     id="input"
+                    type="text"
                     @input="${this.change}"
-                    placeholder="${ifDefined(this.label)}"
+                    placeholder="${ifDefined(this.label ?? "")}"
                     readonly
+                    class="form-control"
                 />
                 <button
                     type="button"
@@ -76,11 +77,6 @@ export class FzInputAsset extends FzInputBase {
                 </button>
             </div>
         `
-    }
-
-    override change() {
-        super.change()
-        this.requestUpdate()
     }
 
     override firstUpdated(changedProperties: any): void {

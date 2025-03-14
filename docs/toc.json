@@ -26,12 +26,13 @@
                 "signature": "Handwritten Signature"
             },
             "Enumerations": {
-                "enum_basic": "Minimal",
-                "enum_labeled": "Labeled",
-                "enum": "Simple enums fields",
-                "typeahead": "Typeahead field",
-                "refs": "App defined",
-                "refTo": "Reference to data"
+                "enum/basics": "basics",
+                "enum/labeled": "labeled",
+                "enum/filter": "filtering",
+                "enum/simple": "simple",
+                "enum/typeahead": "typeahead",
+                "enum/user": "user defined",
+                "enum/from": "from the data"
             },
             "Array": {
                 "array": "Array field",

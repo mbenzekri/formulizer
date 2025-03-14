@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
 import {  html } from "lit"
-import { isEmptyValue } from "../lib/tools"
+import { isEmptyValue, notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 
 @customElement("fz-boolean")
@@ -31,10 +31,14 @@ export class FzInputBoolean extends FzInputBase {
         this.requestUpdate()
     }
 
-    convertToInput(_value: any) {
-        return (this.input && this.input.checked) ? true : false
+    override toField() {
+        if (notNull(this.input)) {
+            this.input.checked = isEmptyValue(this.value) ? this.empty : !!this.value
+        }
     }
-    convertToValue(value: any) {
-        return isEmptyValue(value) ? this.empty : !!value;
+    override toValue() {
+        if (notNull(this.input)) {
+            this.value = this.input.checked ? true : false
+        } 
     }
 }

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
 import {  html, css } from "lit"
-import { isEmptyValue } from "../lib/tools"
+import { notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 
 /**
@@ -12,6 +12,17 @@ import { FzInputBase } from "./fz-input-base";
  */
 @customElement("fz-geolocation")
 export class FzInputGeolocation extends FzInputBase {
+
+    override toField(): void {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "")
+        }
+    }
+    override toValue(): void {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.value) ? this.input.value : undefined 
+        }
+    }
 
     static override get styles() {
         return [
@@ -30,7 +41,7 @@ export class FzInputGeolocation extends FzInputBase {
                     class="form-control"
                     type="text"
                     id="input"
-                    @input="${this.change}"
+                    readonly
                     placeholder="${this.label}"
                     ?readonly="${this.readonly}" 
                 />
@@ -53,28 +64,16 @@ export class FzInputGeolocation extends FzInputBase {
             </div>`
     }
 
-    override change() {
-        super.change()
-        this.requestUpdate()
-    }
-
-    convertToInput(value: any) {
-        return (value == "" || value == null) ? null : value.toString()
-    }
-    convertToValue(value: any) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
-
     geolocate() { 
         navigator.geolocation.getCurrentPosition((position: any) => {
-            this.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`
-            this.requestUpdate()
+            this.input.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`
+            this.change()
         });
     }
 
     override remove() {
-        this.value = null
-        this.requestUpdate()
+        this.input.value = ""
+        this.change()
     }
 
 }

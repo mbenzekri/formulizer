@@ -2,13 +2,12 @@
 import { html } from "lit";
 import { Base } from "./base"
 import { property, customElement, state } from "lit/decorators.js";
-import { IOptions, Pojo } from "./lib/types"
+import { IAsset, IOptions, Pojo } from "./lib/types"
 import { FzElement } from "./fz-element";
 import { validateSchema, validateErrors, DataValidator } from "./lib/validation"
 import { cleanJSON, setGlobalHandler } from "./lib/tools"
 import { SchemaCompiler, DataCompiler } from "./lib/compiler"
 import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
-import { IAsset } from "./inputs/fz-input-asset";
 import { Schema, schemaAttrConverter, DEFAULT_SCHEMA } from "./lib/schema";
 
 

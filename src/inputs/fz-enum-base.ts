@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { html, TemplateResult } from "lit"
 import { FzItemDlg } from "../components/fz-item-dlg";
-import { getSchema, isEmptyValue, isFunction } from "../lib/tools"
+import { getSchema, isArray, isFunction } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
+import { Schema } from "../lib/schema";
+import { EnumItem } from "../lib/types";
 
-export type EnumItem = { label: string; value: any }
 
 export abstract class FzEnumBase extends FzInputBase {
 
@@ -12,11 +13,8 @@ export abstract class FzEnumBase extends FzInputBase {
     protected enums?: EnumItem[]
     protected refenum: { pointer: string, refname: string, refarray: any[] } | null = null
 
-    renderInput() {
-        this.evalEnums()
-        return html`
-            ${ this.withAdd ? html`<fz-item-dlg  @click="${this.eventStop}" .reference="${this.refenum}" @close="${this.close}"></fz-item-dlg>` : "" }
-            ${this.renderEnum()}`
+    get modal() {
+        return this.shadowRoot?.querySelector('fz-item-dlg') as FzItemDlg
     }
 
     get withAdd() {
@@ -33,9 +31,13 @@ export abstract class FzEnumBase extends FzInputBase {
         return show
     }
 
-    get modal() {
-        return this.shadowRoot?.querySelector('fz-item-dlg') as FzItemDlg
+    renderInput() {
+        this.evalEnums()
+        return html`
+            ${ this.withAdd ? html`<fz-item-dlg  @click="${this.eventStop}" .reference="${this.refenum}" @close="${this.close}"></fz-item-dlg>` : "" }
+            ${this.renderEnum()}`
     }
+
 
     close(evt: CustomEvent) {
         if (evt.detail.dismissed) {
@@ -59,31 +61,18 @@ export abstract class FzEnumBase extends FzInputBase {
             this.modal.open()
             this.modal.reference = this.refenum
             this.modal.requestUpdate()
-        } 
-        super.change()
+        } else {
+            super.change()
+        }
     }
 
     isSelected(value: any) { return this.value === value }
-
-    convertToInput(value: any) {
-        if (value == null) return null
-        switch (this.schema.basetype) {
-            case 'integer': return isNaN(value) ? null : parseInt(value, 10)
-            case 'number': return isNaN(value) ? null : parseFloat(value)
-            case 'boolean': return !!value
-        }
-        return String(value)
-    }
-
-    convertToValue(value: any) {
-        return (value === "~~ADD~~" || value === "~~EMPTY~~" || isEmptyValue(value)) ? this.empty : value;
-    }
 
     evalEnums() {
         this.enums = []
         this.refenum = this.schema.refTo && this.evalExpr("refTo")
         switch (true) {
-            case !!(this.refenum && this.refenum.refname && Array.isArray(this.refenum.refarray)):
+            case this.refenum?.refname != null && isArray(this.refenum.refarray): {
                 const refname = this.refenum?.refname ?? 'id'
                 const refarray = this.refenum?.refarray
                 this.enums = refarray?.reduce((list: any[], item: any, index: number) => {
@@ -97,27 +86,19 @@ export abstract class FzEnumBase extends FzInputBase {
                     return list
                 }, [])
                 break
-            case !!(this.schema.enum):
-                this.enums = this.schema.enum.reduce((list: any[], value: any) => {
-                    const ok = this.evalExpr('filter', this.schema, value, this.data, this.key)
-                    if (ok) list.push({ label: String(value), value })
+            }
+            case this.schema.enumRef != null && this.form.options.ref != null: {
+                this.enums = this.form.options.ref(this.schema.enumRef)
+                break
+            }
+            default: {
+                const unfiltered = Schema.inferEnums(this.schema)
+                this.enums = unfiltered?.reduce((list: EnumItem[], item) => {
+                    const ok = this.evalExpr('filter', this.schema, item.value, this.data, this.key)
+                    if (ok) list.push(item)
                     return list
                 }, [])
-                break
-            case !!(this.schema.oneOf):
-                this.enums = this.schema.oneOf.reduce((list: any[], type: any) => {
-                    const ok = this.evalExpr('filter', type, type.const, this.data, this.key)
-                    if (ok) list.push({ label: type.title ?? type.description ?? type.const, value: type.const })
-                    return list
-                }, [])
-                break
-            case !!(this.schema.anyOf):
-                this.enums = this.schema.anyOf.reduce((list: any[], type: any) => {
-                    const ok = this.evalExpr('filter', type, type.const, this.data, this.key)
-                    if (ok) list.push({ label: type.title ?? type.description ?? type.const, value: type.const })
-                    return list
-                }, [])
-                break
+            }
         }
     }
 }

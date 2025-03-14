@@ -4,7 +4,7 @@ import { html, css } from "lit";
 import { customElement } from "lit/decorators.js";
 import { IBlobStore } from "../lib/storage";
 import { v1 as uuidv1 } from "uuid"
-import { isEmptyValue } from "../lib/tools"
+import { notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 
 /**
@@ -16,6 +16,17 @@ import { FzInputBase } from "./fz-input-base";
  */
  @customElement("fz-document")
 export class FzInputDoc extends FzInputBase {
+
+    override toField(): void {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "")
+        }
+    }
+    override toValue(): void {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.value) ? this.input.value : undefined 
+        }
+    }
 
     private static docTypes = [
         // Documents images
@@ -144,14 +155,6 @@ export class FzInputDoc extends FzInputBase {
         this.requestUpdate()
     }
 
-    override convertToInput(value: any) {
-        return (value == null) ? "" : value
-    }
-
-    override convertToValue(value: any) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
-
     override connectedCallback() {
         super.connectedCallback()
         this.listen(this, 'update', () =>  this.check())
@@ -204,7 +207,6 @@ export class FzInputDoc extends FzInputBase {
         this.setUrl(blob)
         if (this.value) await this.store.put(this.value, blob, this.filename, this.pointer)
         this.change()
-        this.requestUpdate()
     }
 
     private async save(event: any) {
@@ -217,7 +219,6 @@ export class FzInputDoc extends FzInputBase {
         this.url = ""
         this.filename = ""
         this.change()
-        this.requestUpdate()
     }
 
 }

@@ -2,7 +2,7 @@
 import { customElement} from "lit/decorators.js"
 import {  html } from "lit"
 import {ifDefined} from 'lit/directives/if-defined.js';
-import { isEmptyValue } from "../lib/tools"
+import { notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 
 function iso(date = new Date()) {
@@ -18,17 +18,29 @@ function iso(date = new Date()) {
 @customElement("fz-datetime")
 export class FzInputDatetime extends FzInputBase {
 
+    override toField() {
+        if (notNull(this.input)) {
+            const redate = /\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ?/
+            this.input.valueAsDate = redate.test(this.value) ? new Date(this.value.substring(0, 16))  : null
+        }
+    }
+
+    override toValue() {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.valueAsDate) ? iso(this.input.valueAsDate) : undefined 
+        }
+    }
+
     renderInput() {
         return html`<input 
-            class="form-control" 
-            type="datetime-local" 
             id="input" 
-            .value="${this.value}"
+            type="datetime-local" 
+            @input="${this.change}"
             min="${ifDefined(this.min)}"
             max="${ifDefined(this.max)}"
             ?readonly="${this.readonly}" 
-            @input="${this.change}"
             ?required="${this.required}"
+            class="form-control" 
         />`
     }
 
@@ -38,25 +50,5 @@ export class FzInputDatetime extends FzInputBase {
 
     get max() {
         return this.schema.maximum
-    }
-
-    convertToInput(value: any): any {
-        const isore = /\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ?/
-        let res: any = "";
-        switch(true) {
-            case typeof value === 'string' && isore.test(value) : 
-                res = value.substring(0, 16)
-                break
-            case typeof value === 'number' : 
-                res = new Date(value).toISOString().substring(0, 16)
-                break
-            case value instanceof Date :
-                res = value.toISOString().substring(0, 16)
-                break
-        }
-        return res
-    }
-    convertToValue(value: any): any {
-        return isEmptyValue(value) ? this.empty : iso(new Date(value))
     }
 }

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
-import {  html, css } from "lit"
-import { isEmptyValue, isNumber } from "../lib/tools"
+import { html, css } from "lit"
+import { isNumber, notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 import { ifDefined } from "lit/directives/if-defined.js";
 
@@ -13,6 +13,17 @@ import { ifDefined } from "lit/directives/if-defined.js";
  */
 @customElement("fz-range")
 export class FzRange extends FzInputBase {
+
+    override toField(): void {
+        if (notNull(this.input)) {
+          this.input.valueAsNumber = isNumber(this.value)? Math.floor(this.value) : NaN 
+        }
+    }
+    override toValue(): void {
+        if (notNull(this.input)) {
+          this.value = isNumber(this.input.valueAsNumber) ? this.input.valueAsNumber : undefined
+        }
+    }
 
     static override get styles() {
         return [
@@ -67,9 +78,8 @@ export class FzRange extends FzInputBase {
         return html`
             <div class="input-group">
                 <input 
-                    class="form-control" 
-                    type="range"  
                     id="input" 
+                    type="range"  
                     .value="${this.value}" 
                     ?disabled="${this.readonly}"
                     ?readonly="${this.readonly}"
@@ -78,15 +88,12 @@ export class FzRange extends FzInputBase {
                     max="${ifDefined(this.max)}"
                     step="1"
                     ?required="${this.required}"
+                    class="form-control" 
                 />
                 <div class="input-group-append" style="max-width:5em" >
                     <span class="input-group-text" >${this.value}</span>
                 </div>
             </div>`
-    }
-    override change() {
-        super.change()
-        this.requestUpdate()
     }
     get max(): number | undefined{
         if (isNumber(this.schema.maximum)) return this.schema.maximum
@@ -104,15 +111,4 @@ export class FzRange extends FzInputBase {
         return
    }
 
-   convertToInput(value: any) {
-        switch(true) {
-            case typeof value === 'string' : return isNaN(parseInt(value, 10)) ? null : parseInt(value, 10)
-            case typeof value === 'number' : return Math.floor(value)
-            default: return null
-        }
-    }
-
-    convertToValue(value: any) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
 }

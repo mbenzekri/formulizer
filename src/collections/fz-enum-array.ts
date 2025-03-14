@@ -4,7 +4,6 @@ import { html, TemplateResult } from "lit"
 import { repeat } from "lit/directives/repeat.js"
 import { DataValidator } from "../lib/validation"
 import { formatMsg, getCircularReplacer } from "../lib/tools";
-import { isEmptyValue } from "../lib/tools"
 import { FZCollection } from "./fz-collection";
 
 /**
@@ -17,6 +16,13 @@ import { FZCollection } from "./fz-collection";
 export class FzArray extends FZCollection {
     private content?: HTMLElement
     private validator!: DataValidator
+
+    override toField(): void {
+        // all is done at rendering
+    }
+    override toValue(): void {
+        // items are updated but array reference doesn't change 
+    }
 
     override renderField(): TemplateResult {
         return html`
@@ -87,13 +93,6 @@ export class FzArray extends FZCollection {
             if (pos >= 0) this.value.splice(pos, 1)
         }
         else { this.value.push(value) }
-    }
-
-    convertToInput(_value: any) {
-        throw new Error("IMPOSSIBLE : PAS D'INPUT POUR LES ENUM-ARRAY!")
-    }
-    convertToValue(value: any) {
-        return isEmptyValue(value) ? this.empty : value;
     }
 
     getItems() {

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
-import {  html } from "lit"
-import { isEmptyValue } from "../lib/tools"
+import { html } from "lit"
+import { notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 
 function iso(date = new Date()) {
@@ -16,7 +16,16 @@ function iso(date = new Date()) {
  */
 @customElement("fz-time")
 export class FzInputTime extends FzInputBase {
-
+    override toField() {
+        if (notNull(this.input)) {
+            this.input.valueAsDate =  new Date(this.value)
+        }
+    }
+    override toValue() {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.valueAsDate) ? iso(this.input.valueAsDate) : undefined
+        }
+    }
     renderInput() {
         return html`
             <input 
@@ -31,15 +40,5 @@ export class FzInputTime extends FzInputBase {
             />`
     }
 
-    convertToInput(value: any) {
-        switch (true) {
-            case typeof value === 'string' : return (value == null) ? null : value
-            case typeof value === 'number' : return iso(new Date(value))
-            case value instanceof Date : return iso(value)
-        }
-        return null
-    }
-    convertToValue(value: any) {
-        return isEmptyValue(value) ? this.empty : iso(new Date(value));
-    }
+
 }

@@ -1,0 +1,36 @@
+{
+    "form": {
+        "type": "object",
+        "title": "Demo enum",
+        "properties": {
+            "europe": {
+                "type": "boolean",
+                "title": "Only Europe"
+            },
+            "country": {
+                "type": "string",
+                "filter": " $`1/europe` ? value.includes('(UE)') : true",
+                "enum": [
+                    "France (UE)",
+                    "Germany (UE)",
+                    "Spain (UE)",
+                    "Italy (UE)",
+                    "United Kingdom",
+                    "United States",
+                    "Canada",
+                    "Brazil",
+                    "Argentina",
+                    "Mexico",
+                    "China",
+                    "Japan",
+                    "India",
+                    "Russia",
+                    "Australia",
+                    "South Africa"
+                  ]
+            }
+
+        }
+    },
+    "data": {}
+}

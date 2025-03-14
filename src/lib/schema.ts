@@ -1,5 +1,5 @@
-import { getEmptyValue, isArray, isEmptyValue, isObject, newValue } from "./tools";
-import { EnumOption, ExprFunc, FieldOrder, Pojo } from "./types";
+import { getEmptyValue, isArray, isEmptyValue, isObject, isPrimitive, newValue } from "./tools";
+import { EnumItem, ExprFunc, FieldOrder, Pojo } from "./types";
 
 
 // // Define the method structure as a Type
@@ -144,7 +144,7 @@ export class Schema extends JSONSchemaDraft07 {
         switch (true) {
             case ("const" in this):
                 return this.const
-            case isprimitive(this.basetype) && 'default' in this:
+            case isPrimitive(this,true) && 'default' in this:
                 return this.default
             case this.basetype === 'object': {
                 return Object.entries(this.properties as Pojo).reduce((object, [key, property]) => {
@@ -231,25 +231,23 @@ export class Schema extends JSONSchemaDraft07 {
         return schema as Schema
     }
 
-    static inferEnums(schema: Schema): EnumOption[] | null {
+    static inferEnums(schema: Schema): EnumItem[] | undefined {
         // Exclude nullish schema, "array" and "object" from being enums
-        if (!schema ||
-            typeof schema !== "object" ||
-            schema.type === "array" ||
-            schema.type === "object"
-        ) return null;
+        if (!isObject(schema) || !isPrimitive(schema,true)) return;
 
-        // ✅ Direct "enum" keyword
-        if (Array.isArray(schema.enum)) {
-            return schema.enum.map(value => ({ value, title: JSON.stringify(value) }));
+        // Direct "enum" keyword
+        if (isArray(schema.enum)) {
+            return schema.enum.map(value => ({ value, title: String(value) }));
         }
 
-        // ✅ "const" keyword (supports primitives, objects, and arrays)
+        // "const" keyword (supports primitives, objects, and arrays)
         if (schema.const !== undefined) {
-            return [{ value: schema.const, title: schema.title ?? JSON.stringify(schema.const) }];
+            const value = schema.const
+            const title =  String(schema.title ?? schema.const)
+            return [{ value, title }];
         }
 
-        // ✅ "oneOf" / "anyOf" with `const` values
+        // "oneOf" / "anyOf" with `const` values
         if (Array.isArray(schema.oneOf)) {
             return schema.oneOf.flatMap(item => Schema.inferEnums(item) ?? []);
         }
@@ -258,22 +256,20 @@ export class Schema extends JSONSchemaDraft07 {
             return schema.anyOf.flatMap(item => Schema.inferEnums(item) || []);
         }
 
-        // ✅ "allOf": If one of the subschemas defines an enum, use that
+        // "allOf": If one of the subschemas defines an enum, use that
         if (Array.isArray(schema.allOf)) {
             for (const subschema of schema.allOf) {
                 const values = Schema.inferEnums(subschema);
                 if (values) return values;
             }
         }
-        // ❌ Exclude values from `not` (Negation)
+        // Exclude values from `not` (Negation)
         if (schema.not) {
-            const excluded = Schema.inferEnums(schema.not);
-            if (excluded) {
-                return Schema.inferEnums(schema)?.filter(item => !excluded.some(e => e.value === item.value)) ?? null
-            }
+            const excluded = Schema.inferEnums(schema.not) ?? [];
+            return Schema.inferEnums(schema)?.filter(item => !excluded.some(e => e.value === item.value))
         }
 
-        return null;
+        return;
     }
 
 }
@@ -313,11 +309,6 @@ export abstract class CompilationStep {
         return Error(`Compilation step ${this.property}: ${message} `)
     }
 }
-
-
-
-const primitivetypes = new Set<string>(['string', 'integer', 'number', 'boolean', 'array'])
-export function isprimitive(name?: string) { return !!name && primitivetypes.has(name) }
 
 export function isenumarray(schema: Pojo) {
     if (schema.basetype === 'array' && schema.uniqueItems) {

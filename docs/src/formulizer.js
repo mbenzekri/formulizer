@@ -42,52 +42,65 @@ const t$4=t=>(e,o)=>{ void 0!==o?o.addInitializer((()=>{customElements.define(t,
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const t$3=globalThis,e$7=t$3.ShadowRoot&&(void 0===t$3.ShadyCSS||t$3.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,s$2=Symbol(),o$5=new WeakMap;let n$3 = class n{constructor(t,e,o){if(this._$cssResult$=true,o!==s$2)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e;}get styleSheet(){let t=this.o;const s=this.t;if(e$7&&void 0===t){const e=void 0!==s&&1===s.length;e&&(t=o$5.get(s)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),e&&o$5.set(s,t));}return t}toString(){return this.cssText}};const r$6=t=>new n$3("string"==typeof t?t:t+"",void 0,s$2),i$4=(t,...e)=>{const o=1===t.length?t[0]:e.reduce(((e,s,o)=>e+(t=>{if(true===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(s)+t[o+1]),t[0]);return new n$3(o,t,s$2)},S$1=(s,o)=>{if(e$7)s.adoptedStyleSheets=o.map((t=>t instanceof CSSStyleSheet?t:t.styleSheet));else for(const e of o){const o=document.createElement("style"),n=t$3.litNonce;void 0!==n&&o.setAttribute("nonce",n),o.textContent=e.cssText,s.appendChild(o);}},c$3=e$7?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const s of t.cssRules)e+=s.cssText;return r$6(e)})(t):t;
+const t$3=globalThis,e$8=t$3.ShadowRoot&&(void 0===t$3.ShadyCSS||t$3.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,s$2=Symbol(),o$6=new WeakMap;let n$4 = class n{constructor(t,e,o){if(this._$cssResult$=true,o!==s$2)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e;}get styleSheet(){let t=this.o;const s=this.t;if(e$8&&void 0===t){const e=void 0!==s&&1===s.length;e&&(t=o$6.get(s)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),e&&o$6.set(s,t));}return t}toString(){return this.cssText}};const r$7=t=>new n$4("string"==typeof t?t:t+"",void 0,s$2),i$5=(t,...e)=>{const o=1===t.length?t[0]:e.reduce(((e,s,o)=>e+(t=>{if(true===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(s)+t[o+1]),t[0]);return new n$4(o,t,s$2)},S$1=(s,o)=>{if(e$8)s.adoptedStyleSheets=o.map((t=>t instanceof CSSStyleSheet?t:t.styleSheet));else for(const e of o){const o=document.createElement("style"),n=t$3.litNonce;void 0!==n&&o.setAttribute("nonce",n),o.textContent=e.cssText,s.appendChild(o);}},c$3=e$8?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const s of t.cssRules)e+=s.cssText;return r$7(e)})(t):t;
 
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */const{is:i$3,defineProperty:e$6,getOwnPropertyDescriptor:r$5,getOwnPropertyNames:h$1,getOwnPropertySymbols:o$4,getPrototypeOf:n$2}=Object,a$1=globalThis,c$2=a$1.trustedTypes,l$1=c$2?c$2.emptyScript:"",p$2=a$1.reactiveElementPolyfillSupport,d$1=(t,s)=>t,u$3={toAttribute(t,s){switch(s){case Boolean:t=t?l$1:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t);}return t},fromAttribute(t,s){let i=t;switch(s){case Boolean:i=null!==t;break;case Number:i=null===t?null:Number(t);break;case Object:case Array:try{i=JSON.parse(t);}catch(t){i=null;}}return i}},f$1=(t,s)=>!i$3(t,s),y$1={attribute:true,type:String,converter:u$3,reflect:false,hasChanged:f$1};Symbol.metadata??=Symbol("metadata"),a$1.litPropertyMetadata??=new WeakMap;class b extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??=[]).push(t);}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,s=y$1){if(s.state&&(s.attribute=false),this._$Ei(),this.elementProperties.set(t,s),!s.noAccessor){const i=Symbol(),r=this.getPropertyDescriptor(t,i,s);void 0!==r&&e$6(this.prototype,t,r);}}static getPropertyDescriptor(t,s,i){const{get:e,set:h}=r$5(this.prototype,t)??{get(){return this[s]},set(t){this[s]=t;}};return {get(){return e?.call(this)},set(s){const r=e?.call(this);h.call(this,s),this.requestUpdate(t,r,i);},configurable:true,enumerable:true}}static getPropertyOptions(t){return this.elementProperties.get(t)??y$1}static _$Ei(){if(this.hasOwnProperty(d$1("elementProperties")))return;const t=n$2(this);t.finalize(),void 0!==t.l&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties);}static finalize(){if(this.hasOwnProperty(d$1("finalized")))return;if(this.finalized=true,this._$Ei(),this.hasOwnProperty(d$1("properties"))){const t=this.properties,s=[...h$1(t),...o$4(t)];for(const i of s)this.createProperty(i,t[i]);}const t=this[Symbol.metadata];if(null!==t){const s=litPropertyMetadata.get(t);if(void 0!==s)for(const[t,i]of s)this.elementProperties.set(t,i);}this._$Eh=new Map;for(const[t,s]of this.elementProperties){const i=this._$Eu(t,s);void 0!==i&&this._$Eh.set(i,t);}this.elementStyles=this.finalizeStyles(this.styles);}static finalizeStyles(s){const i=[];if(Array.isArray(s)){const e=new Set(s.flat(1/0).reverse());for(const s of e)i.unshift(c$3(s));}else void 0!==s&&i.push(c$3(s));return i}static _$Eu(t,s){const i=s.attribute;return  false===i?void 0:"string"==typeof i?i:"string"==typeof t?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=false,this.hasUpdated=false,this._$Em=null,this._$Ev();}_$Ev(){this._$ES=new Promise((t=>this.enableUpdating=t)),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach((t=>t(this)));}addController(t){(this._$EO??=new Set).add(t),void 0!==this.renderRoot&&this.isConnected&&t.hostConnected?.();}removeController(t){this._$EO?.delete(t);}_$E_(){const t=new Map,s=this.constructor.elementProperties;for(const i of s.keys())this.hasOwnProperty(i)&&(t.set(i,this[i]),delete this[i]);t.size>0&&(this._$Ep=t);}createRenderRoot(){const t=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return S$1(t,this.constructor.elementStyles),t}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(true),this._$EO?.forEach((t=>t.hostConnected?.()));}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach((t=>t.hostDisconnected?.()));}attributeChangedCallback(t,s,i){this._$AK(t,i);}_$EC(t,s){const i=this.constructor.elementProperties.get(t),e=this.constructor._$Eu(t,i);if(void 0!==e&&true===i.reflect){const r=(void 0!==i.converter?.toAttribute?i.converter:u$3).toAttribute(s,i.type);this._$Em=t,null==r?this.removeAttribute(e):this.setAttribute(e,r),this._$Em=null;}}_$AK(t,s){const i=this.constructor,e=i._$Eh.get(t);if(void 0!==e&&this._$Em!==e){const t=i.getPropertyOptions(e),r="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==t.converter?.fromAttribute?t.converter:u$3;this._$Em=e,this[e]=r.fromAttribute(s,t.type),this._$Em=null;}}requestUpdate(t,s,i){if(void 0!==t){if(i??=this.constructor.getPropertyOptions(t),!(i.hasChanged??f$1)(this[t],s))return;this.P(t,s,i);} false===this.isUpdatePending&&(this._$ES=this._$ET());}P(t,s,i){this._$AL.has(t)||this._$AL.set(t,s),true===i.reflect&&this._$Em!==t&&(this._$Ej??=new Set).add(t);}async _$ET(){this.isUpdatePending=true;try{await this._$ES;}catch(t){Promise.reject(t);}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[t,s]of this._$Ep)this[t]=s;this._$Ep=void 0;}const t=this.constructor.elementProperties;if(t.size>0)for(const[s,i]of t) true!==i.wrapped||this._$AL.has(s)||void 0===this[s]||this.P(s,this[s],i);}let t=false;const s=this._$AL;try{t=this.shouldUpdate(s),t?(this.willUpdate(s),this._$EO?.forEach((t=>t.hostUpdate?.())),this.update(s)):this._$EU();}catch(s){throw t=false,this._$EU(),s}t&&this._$AE(s);}willUpdate(t){}_$AE(t){this._$EO?.forEach((t=>t.hostUpdated?.())),this.hasUpdated||(this.hasUpdated=true,this.firstUpdated(t)),this.updated(t);}_$EU(){this._$AL=new Map,this.isUpdatePending=false;}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return  true}update(t){this._$Ej&&=this._$Ej.forEach((t=>this._$EC(t,this[t]))),this._$EU();}updated(t){}firstUpdated(t){}}b.elementStyles=[],b.shadowRootOptions={mode:"open"},b[d$1("elementProperties")]=new Map,b[d$1("finalized")]=new Map,p$2?.({ReactiveElement:b}),(a$1.reactiveElementVersions??=[]).push("2.0.4");
+ */const{is:i$4,defineProperty:e$7,getOwnPropertyDescriptor:r$6,getOwnPropertyNames:h$1,getOwnPropertySymbols:o$5,getPrototypeOf:n$3}=Object,a$1=globalThis,c$2=a$1.trustedTypes,l$1=c$2?c$2.emptyScript:"",p$2=a$1.reactiveElementPolyfillSupport,d$1=(t,s)=>t,u$3={toAttribute(t,s){switch(s){case Boolean:t=t?l$1:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t);}return t},fromAttribute(t,s){let i=t;switch(s){case Boolean:i=null!==t;break;case Number:i=null===t?null:Number(t);break;case Object:case Array:try{i=JSON.parse(t);}catch(t){i=null;}}return i}},f$1=(t,s)=>!i$4(t,s),y$1={attribute:true,type:String,converter:u$3,reflect:false,hasChanged:f$1};Symbol.metadata??=Symbol("metadata"),a$1.litPropertyMetadata??=new WeakMap;class b extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??=[]).push(t);}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,s=y$1){if(s.state&&(s.attribute=false),this._$Ei(),this.elementProperties.set(t,s),!s.noAccessor){const i=Symbol(),r=this.getPropertyDescriptor(t,i,s);void 0!==r&&e$7(this.prototype,t,r);}}static getPropertyDescriptor(t,s,i){const{get:e,set:h}=r$6(this.prototype,t)??{get(){return this[s]},set(t){this[s]=t;}};return {get(){return e?.call(this)},set(s){const r=e?.call(this);h.call(this,s),this.requestUpdate(t,r,i);},configurable:true,enumerable:true}}static getPropertyOptions(t){return this.elementProperties.get(t)??y$1}static _$Ei(){if(this.hasOwnProperty(d$1("elementProperties")))return;const t=n$3(this);t.finalize(),void 0!==t.l&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties);}static finalize(){if(this.hasOwnProperty(d$1("finalized")))return;if(this.finalized=true,this._$Ei(),this.hasOwnProperty(d$1("properties"))){const t=this.properties,s=[...h$1(t),...o$5(t)];for(const i of s)this.createProperty(i,t[i]);}const t=this[Symbol.metadata];if(null!==t){const s=litPropertyMetadata.get(t);if(void 0!==s)for(const[t,i]of s)this.elementProperties.set(t,i);}this._$Eh=new Map;for(const[t,s]of this.elementProperties){const i=this._$Eu(t,s);void 0!==i&&this._$Eh.set(i,t);}this.elementStyles=this.finalizeStyles(this.styles);}static finalizeStyles(s){const i=[];if(Array.isArray(s)){const e=new Set(s.flat(1/0).reverse());for(const s of e)i.unshift(c$3(s));}else void 0!==s&&i.push(c$3(s));return i}static _$Eu(t,s){const i=s.attribute;return  false===i?void 0:"string"==typeof i?i:"string"==typeof t?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=false,this.hasUpdated=false,this._$Em=null,this._$Ev();}_$Ev(){this._$ES=new Promise((t=>this.enableUpdating=t)),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach((t=>t(this)));}addController(t){(this._$EO??=new Set).add(t),void 0!==this.renderRoot&&this.isConnected&&t.hostConnected?.();}removeController(t){this._$EO?.delete(t);}_$E_(){const t=new Map,s=this.constructor.elementProperties;for(const i of s.keys())this.hasOwnProperty(i)&&(t.set(i,this[i]),delete this[i]);t.size>0&&(this._$Ep=t);}createRenderRoot(){const t=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return S$1(t,this.constructor.elementStyles),t}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(true),this._$EO?.forEach((t=>t.hostConnected?.()));}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach((t=>t.hostDisconnected?.()));}attributeChangedCallback(t,s,i){this._$AK(t,i);}_$EC(t,s){const i=this.constructor.elementProperties.get(t),e=this.constructor._$Eu(t,i);if(void 0!==e&&true===i.reflect){const r=(void 0!==i.converter?.toAttribute?i.converter:u$3).toAttribute(s,i.type);this._$Em=t,null==r?this.removeAttribute(e):this.setAttribute(e,r),this._$Em=null;}}_$AK(t,s){const i=this.constructor,e=i._$Eh.get(t);if(void 0!==e&&this._$Em!==e){const t=i.getPropertyOptions(e),r="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==t.converter?.fromAttribute?t.converter:u$3;this._$Em=e,this[e]=r.fromAttribute(s,t.type),this._$Em=null;}}requestUpdate(t,s,i){if(void 0!==t){if(i??=this.constructor.getPropertyOptions(t),!(i.hasChanged??f$1)(this[t],s))return;this.P(t,s,i);} false===this.isUpdatePending&&(this._$ES=this._$ET());}P(t,s,i){this._$AL.has(t)||this._$AL.set(t,s),true===i.reflect&&this._$Em!==t&&(this._$Ej??=new Set).add(t);}async _$ET(){this.isUpdatePending=true;try{await this._$ES;}catch(t){Promise.reject(t);}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[t,s]of this._$Ep)this[t]=s;this._$Ep=void 0;}const t=this.constructor.elementProperties;if(t.size>0)for(const[s,i]of t) true!==i.wrapped||this._$AL.has(s)||void 0===this[s]||this.P(s,this[s],i);}let t=false;const s=this._$AL;try{t=this.shouldUpdate(s),t?(this.willUpdate(s),this._$EO?.forEach((t=>t.hostUpdate?.())),this.update(s)):this._$EU();}catch(s){throw t=false,this._$EU(),s}t&&this._$AE(s);}willUpdate(t){}_$AE(t){this._$EO?.forEach((t=>t.hostUpdated?.())),this.hasUpdated||(this.hasUpdated=true,this.firstUpdated(t)),this.updated(t);}_$EU(){this._$AL=new Map,this.isUpdatePending=false;}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return  true}update(t){this._$Ej&&=this._$Ej.forEach((t=>this._$EC(t,this[t]))),this._$EU();}updated(t){}firstUpdated(t){}}b.elementStyles=[],b.shadowRootOptions={mode:"open"},b[d$1("elementProperties")]=new Map,b[d$1("finalized")]=new Map,p$2?.({ReactiveElement:b}),(a$1.reactiveElementVersions??=[]).push("2.0.4");
 
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */const o$3={attribute:true,type:String,converter:u$3,reflect:false,hasChanged:f$1},r$4=(t=o$3,e,r)=>{const{kind:n,metadata:i}=r;let s=globalThis.litPropertyMetadata.get(i);if(void 0===s&&globalThis.litPropertyMetadata.set(i,s=new Map),s.set(r.name,t),"accessor"===n){const{name:o}=r;return {set(r){const n=e.get.call(this);e.set.call(this,r),this.requestUpdate(o,n,t);},init(e){return void 0!==e&&this.P(o,void 0,t),e}}}if("setter"===n){const{name:o}=r;return function(r){const n=this[o];e.call(this,r),this.requestUpdate(o,n,t);}}throw Error("Unsupported decorator location: "+n)};function n$1(t){return (e,o)=>"object"==typeof o?r$4(t,e,o):((t,e,o)=>{const r=e.hasOwnProperty(o);return e.constructor.createProperty(o,r?{...t,wrapped:true}:t),r?Object.getOwnPropertyDescriptor(e,o):void 0})(t,e,o)}
+ */const o$4={attribute:true,type:String,converter:u$3,reflect:false,hasChanged:f$1},r$5=(t=o$4,e,r)=>{const{kind:n,metadata:i}=r;let s=globalThis.litPropertyMetadata.get(i);if(void 0===s&&globalThis.litPropertyMetadata.set(i,s=new Map),s.set(r.name,t),"accessor"===n){const{name:o}=r;return {set(r){const n=e.get.call(this);e.set.call(this,r),this.requestUpdate(o,n,t);},init(e){return void 0!==e&&this.P(o,void 0,t),e}}}if("setter"===n){const{name:o}=r;return function(r){const n=this[o];e.call(this,r),this.requestUpdate(o,n,t);}}throw Error("Unsupported decorator location: "+n)};function n$2(t){return (e,o)=>"object"==typeof o?r$5(t,e,o):((t,e,o)=>{const r=e.hasOwnProperty(o);return e.constructor.createProperty(o,r?{...t,wrapped:true}:t),r?Object.getOwnPropertyDescriptor(e,o):void 0})(t,e,o)}
 
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */function r$3(r){return n$1({...r,state:true,attribute:false})}
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-const e$5=(e,t,c)=>(c.configurable=true,c.enumerable=true,c);
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */function e$4(e,r){return (n,s,i)=>{const o=t=>t.renderRoot?.querySelector(e)??null;return e$5(n,s,{get(){return o(this)}})}}
+ */function r$4(r){return n$2({...r,state:true,attribute:false})}
 
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const t$2=globalThis,i$2=t$2.trustedTypes,s$1=i$2?i$2.createPolicy("lit-html",{createHTML:t=>t}):void 0,e$3="$lit$",h=`lit$${Math.random().toFixed(9).slice(2)}$`,o$2="?"+h,n=`<${o$2}>`,r$2=document,l=()=>r$2.createComment(""),c$1=t=>null===t||"object"!=typeof t&&"function"!=typeof t,a=Array.isArray,u$2=t=>a(t)||"function"==typeof t?.[Symbol.iterator],d="[ \t\n\f\r]",f=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,v$1=/-->/g,_=/>/g,m$1=RegExp(`>|${d}(?:([^\\s"'>=/]+)(${d}*=${d}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),p$1=/'/g,g=/"/g,$=/^(?:script|style|textarea|title)$/i,y=t=>(i,...s)=>({_$litType$:t,strings:i,values:s}),x=y(1),T=Symbol.for("lit-noChange"),E=Symbol.for("lit-nothing"),A=new WeakMap,C=r$2.createTreeWalker(r$2,129);function P$1(t,i){if(!a(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==s$1?s$1.createHTML(i):i}const V=(t,i)=>{const s=t.length-1,o=[];let r,l=2===i?"<svg>":3===i?"<math>":"",c=f;for(let i=0;i<s;i++){const s=t[i];let a,u,d=-1,y=0;for(;y<s.length&&(c.lastIndex=y,u=c.exec(s),null!==u);)y=c.lastIndex,c===f?"!--"===u[1]?c=v$1:void 0!==u[1]?c=_:void 0!==u[2]?($.test(u[2])&&(r=RegExp("</"+u[2],"g")),c=m$1):void 0!==u[3]&&(c=m$1):c===m$1?">"===u[0]?(c=r??f,d=-1):void 0===u[1]?d=-2:(d=c.lastIndex-u[2].length,a=u[1],c=void 0===u[3]?m$1:'"'===u[3]?g:p$1):c===g||c===p$1?c=m$1:c===v$1||c===_?c=f:(c=m$1,r=void 0);const x=c===m$1&&t[i+1].startsWith("/>")?" ":"";l+=c===f?s+n:d>=0?(o.push(a),s.slice(0,d)+e$3+s.slice(d)+h+x):s+h+(-2===d?i:x);}return [P$1(t,l+(t[s]||"<?>")+(2===i?"</svg>":3===i?"</math>":"")),o]};class N{constructor({strings:t,_$litType$:s},n){let r;this.parts=[];let c=0,a=0;const u=t.length-1,d=this.parts,[f,v]=V(t,s);if(this.el=N.createElement(f,n),C.currentNode=this.el.content,2===s||3===s){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes);}for(;null!==(r=C.nextNode())&&d.length<u;){if(1===r.nodeType){if(r.hasAttributes())for(const t of r.getAttributeNames())if(t.endsWith(e$3)){const i=v[a++],s=r.getAttribute(t).split(h),e=/([.?@])?(.*)/.exec(i);d.push({type:1,index:c,name:e[2],strings:s,ctor:"."===e[1]?H:"?"===e[1]?I:"@"===e[1]?L:k}),r.removeAttribute(t);}else t.startsWith(h)&&(d.push({type:6,index:c}),r.removeAttribute(t));if($.test(r.tagName)){const t=r.textContent.split(h),s=t.length-1;if(s>0){r.textContent=i$2?i$2.emptyScript:"";for(let i=0;i<s;i++)r.append(t[i],l()),C.nextNode(),d.push({type:2,index:++c});r.append(t[s],l());}}}else if(8===r.nodeType)if(r.data===o$2)d.push({type:2,index:c});else {let t=-1;for(;-1!==(t=r.data.indexOf(h,t+1));)d.push({type:7,index:c}),t+=h.length-1;}c++;}}static createElement(t,i){const s=r$2.createElement("template");return s.innerHTML=t,s}}function S(t,i,s=t,e){if(i===T)return i;let h=void 0!==e?s._$Co?.[e]:s._$Cl;const o=c$1(i)?void 0:i._$litDirective$;return h?.constructor!==o&&(h?._$AO?.(false),void 0===o?h=void 0:(h=new o(t),h._$AT(t,s,e)),void 0!==e?(s._$Co??=[])[e]=h:s._$Cl=h),void 0!==h&&(i=S(t,h._$AS(t,i.values),h,e)),i}let M$1 = class M{constructor(t,i){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=i;}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:i},parts:s}=this._$AD,e=(t?.creationScope??r$2).importNode(i,true);C.currentNode=e;let h=C.nextNode(),o=0,n=0,l=s[0];for(;void 0!==l;){if(o===l.index){let i;2===l.type?i=new R(h,h.nextSibling,this,t):1===l.type?i=new l.ctor(h,l.name,l.strings,this,t):6===l.type&&(i=new z(h,this,t)),this._$AV.push(i),l=s[++n];}o!==l?.index&&(h=C.nextNode(),o++);}return C.currentNode=r$2,e}p(t){let i=0;for(const s of this._$AV) void 0!==s&&(void 0!==s.strings?(s._$AI(t,s,i),i+=s.strings.length-2):s._$AI(t[i])),i++;}};class R{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,i,s,e){this.type=2,this._$AH=E,this._$AN=void 0,this._$AA=t,this._$AB=i,this._$AM=s,this.options=e,this._$Cv=e?.isConnected??true;}get parentNode(){let t=this._$AA.parentNode;const i=this._$AM;return void 0!==i&&11===t?.nodeType&&(t=i.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,i=this){t=S(this,t,i),c$1(t)?t===E||null==t||""===t?(this._$AH!==E&&this._$AR(),this._$AH=E):t!==this._$AH&&t!==T&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):u$2(t)?this.k(t):this._(t);}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t));}_(t){this._$AH!==E&&c$1(this._$AH)?this._$AA.nextSibling.data=t:this.T(r$2.createTextNode(t)),this._$AH=t;}$(t){const{values:i,_$litType$:s}=t,e="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=N.createElement(P$1(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===e)this._$AH.p(i);else {const t=new M$1(e,this),s=t.u(this.options);t.p(i),this.T(s),this._$AH=t;}}_$AC(t){let i=A.get(t.strings);return void 0===i&&A.set(t.strings,i=new N(t)),i}k(t){a(this._$AH)||(this._$AH=[],this._$AR());const i=this._$AH;let s,e=0;for(const h of t)e===i.length?i.push(s=new R(this.O(l()),this.O(l()),this,this.options)):s=i[e],s._$AI(h),e++;e<i.length&&(this._$AR(s&&s._$AB.nextSibling,e),i.length=e);}_$AR(t=this._$AA.nextSibling,i){for(this._$AP?.(false,true,i);t&&t!==this._$AB;){const i=t.nextSibling;t.remove(),t=i;}}setConnected(t){ void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t));}}class k{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,i,s,e,h){this.type=1,this._$AH=E,this._$AN=void 0,this.element=t,this.name=i,this._$AM=e,this.options=h,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=E;}_$AI(t,i=this,s,e){const h=this.strings;let o=false;if(void 0===h)t=S(this,t,i,0),o=!c$1(t)||t!==this._$AH&&t!==T,o&&(this._$AH=t);else {const e=t;let n,r;for(t=h[0],n=0;n<h.length-1;n++)r=S(this,e[s+n],i,n),r===T&&(r=this._$AH[n]),o||=!c$1(r)||r!==this._$AH[n],r===E?t=E:t!==E&&(t+=(r??"")+h[n+1]),this._$AH[n]=r;}o&&!e&&this.j(t);}j(t){t===E?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"");}}class H extends k{constructor(){super(...arguments),this.type=3;}j(t){this.element[this.name]=t===E?void 0:t;}}class I extends k{constructor(){super(...arguments),this.type=4;}j(t){this.element.toggleAttribute(this.name,!!t&&t!==E);}}class L extends k{constructor(t,i,s,e,h){super(t,i,s,e,h),this.type=5;}_$AI(t,i=this){if((t=S(this,t,i,0)??E)===T)return;const s=this._$AH,e=t===E&&s!==E||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,h=t!==E&&(s===E||e);e&&this.element.removeEventListener(this.name,this,s),h&&this.element.addEventListener(this.name,this,t),this._$AH=t;}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t);}}class z{constructor(t,i,s){this.element=t,this.type=6,this._$AN=void 0,this._$AM=i,this.options=s;}get _$AU(){return this._$AM._$AU}_$AI(t){S(this,t);}}const Z$1={I:R},j=t$2.litHtmlPolyfillSupport;j?.(N,R),(t$2.litHtmlVersions??=[]).push("3.2.1");const B=(t,i,s)=>{const e=s?.renderBefore??i;let h=e._$litPart$;if(void 0===h){const t=s?.renderBefore??null;e._$litPart$=h=new R(i.insertBefore(l(),t),t,void 0,s??{});}return h._$AI(t),h};
+const e$6=(e,t,c)=>(c.configurable=true,c.enumerable=true,c);
 
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */let r$1 = class r extends b{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0;}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const s=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=B(s,this.renderRoot,this.renderOptions);}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(true);}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(false);}render(){return T}};r$1._$litElement$=true,r$1["finalized"]=true,globalThis.litElementHydrateSupport?.({LitElement:r$1});const i$1=globalThis.litElementPolyfillSupport;i$1?.({LitElement:r$1});(globalThis.litElementVersions??=[]).push("4.1.1");
+ */function e$5(e,r){return (n,s,i)=>{const o=t=>t.renderRoot?.querySelector(e)??null;return e$6(n,s,{get(){return o(this)}})}}
 
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+let e$4;function r$3(r){return (n,o)=>e$6(n,o,{get(){return (this.renderRoot??(e$4??=document.createDocumentFragment())).querySelectorAll(r)}})}
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const t$2=globalThis,i$3=t$2.trustedTypes,s$1=i$3?i$3.createPolicy("lit-html",{createHTML:t=>t}):void 0,e$3="$lit$",h=`lit$${Math.random().toFixed(9).slice(2)}$`,o$3="?"+h,n$1=`<${o$3}>`,r$2=document,l=()=>r$2.createComment(""),c$1=t=>null===t||"object"!=typeof t&&"function"!=typeof t,a=Array.isArray,u$2=t=>a(t)||"function"==typeof t?.[Symbol.iterator],d="[ \t\n\f\r]",f=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,v$1=/-->/g,_=/>/g,m$1=RegExp(`>|${d}(?:([^\\s"'>=/]+)(${d}*=${d}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),p$1=/'/g,g=/"/g,$=/^(?:script|style|textarea|title)$/i,y=t=>(i,...s)=>({_$litType$:t,strings:i,values:s}),x=y(1),T=Symbol.for("lit-noChange"),E=Symbol.for("lit-nothing"),A=new WeakMap,C=r$2.createTreeWalker(r$2,129);function P$1(t,i){if(!a(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==s$1?s$1.createHTML(i):i}const V=(t,i)=>{const s=t.length-1,o=[];let r,l=2===i?"<svg>":3===i?"<math>":"",c=f;for(let i=0;i<s;i++){const s=t[i];let a,u,d=-1,y=0;for(;y<s.length&&(c.lastIndex=y,u=c.exec(s),null!==u);)y=c.lastIndex,c===f?"!--"===u[1]?c=v$1:void 0!==u[1]?c=_:void 0!==u[2]?($.test(u[2])&&(r=RegExp("</"+u[2],"g")),c=m$1):void 0!==u[3]&&(c=m$1):c===m$1?">"===u[0]?(c=r??f,d=-1):void 0===u[1]?d=-2:(d=c.lastIndex-u[2].length,a=u[1],c=void 0===u[3]?m$1:'"'===u[3]?g:p$1):c===g||c===p$1?c=m$1:c===v$1||c===_?c=f:(c=m$1,r=void 0);const x=c===m$1&&t[i+1].startsWith("/>")?" ":"";l+=c===f?s+n$1:d>=0?(o.push(a),s.slice(0,d)+e$3+s.slice(d)+h+x):s+h+(-2===d?i:x);}return [P$1(t,l+(t[s]||"<?>")+(2===i?"</svg>":3===i?"</math>":"")),o]};class N{constructor({strings:t,_$litType$:s},n){let r;this.parts=[];let c=0,a=0;const u=t.length-1,d=this.parts,[f,v]=V(t,s);if(this.el=N.createElement(f,n),C.currentNode=this.el.content,2===s||3===s){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes);}for(;null!==(r=C.nextNode())&&d.length<u;){if(1===r.nodeType){if(r.hasAttributes())for(const t of r.getAttributeNames())if(t.endsWith(e$3)){const i=v[a++],s=r.getAttribute(t).split(h),e=/([.?@])?(.*)/.exec(i);d.push({type:1,index:c,name:e[2],strings:s,ctor:"."===e[1]?H:"?"===e[1]?I:"@"===e[1]?L:k}),r.removeAttribute(t);}else t.startsWith(h)&&(d.push({type:6,index:c}),r.removeAttribute(t));if($.test(r.tagName)){const t=r.textContent.split(h),s=t.length-1;if(s>0){r.textContent=i$3?i$3.emptyScript:"";for(let i=0;i<s;i++)r.append(t[i],l()),C.nextNode(),d.push({type:2,index:++c});r.append(t[s],l());}}}else if(8===r.nodeType)if(r.data===o$3)d.push({type:2,index:c});else {let t=-1;for(;-1!==(t=r.data.indexOf(h,t+1));)d.push({type:7,index:c}),t+=h.length-1;}c++;}}static createElement(t,i){const s=r$2.createElement("template");return s.innerHTML=t,s}}function S(t,i,s=t,e){if(i===T)return i;let h=void 0!==e?s._$Co?.[e]:s._$Cl;const o=c$1(i)?void 0:i._$litDirective$;return h?.constructor!==o&&(h?._$AO?.(false),void 0===o?h=void 0:(h=new o(t),h._$AT(t,s,e)),void 0!==e?(s._$Co??=[])[e]=h:s._$Cl=h),void 0!==h&&(i=S(t,h._$AS(t,i.values),h,e)),i}let M$1 = class M{constructor(t,i){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=i;}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:i},parts:s}=this._$AD,e=(t?.creationScope??r$2).importNode(i,true);C.currentNode=e;let h=C.nextNode(),o=0,n=0,l=s[0];for(;void 0!==l;){if(o===l.index){let i;2===l.type?i=new R(h,h.nextSibling,this,t):1===l.type?i=new l.ctor(h,l.name,l.strings,this,t):6===l.type&&(i=new z(h,this,t)),this._$AV.push(i),l=s[++n];}o!==l?.index&&(h=C.nextNode(),o++);}return C.currentNode=r$2,e}p(t){let i=0;for(const s of this._$AV) void 0!==s&&(void 0!==s.strings?(s._$AI(t,s,i),i+=s.strings.length-2):s._$AI(t[i])),i++;}};class R{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,i,s,e){this.type=2,this._$AH=E,this._$AN=void 0,this._$AA=t,this._$AB=i,this._$AM=s,this.options=e,this._$Cv=e?.isConnected??true;}get parentNode(){let t=this._$AA.parentNode;const i=this._$AM;return void 0!==i&&11===t?.nodeType&&(t=i.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,i=this){t=S(this,t,i),c$1(t)?t===E||null==t||""===t?(this._$AH!==E&&this._$AR(),this._$AH=E):t!==this._$AH&&t!==T&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):u$2(t)?this.k(t):this._(t);}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t));}_(t){this._$AH!==E&&c$1(this._$AH)?this._$AA.nextSibling.data=t:this.T(r$2.createTextNode(t)),this._$AH=t;}$(t){const{values:i,_$litType$:s}=t,e="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=N.createElement(P$1(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===e)this._$AH.p(i);else {const t=new M$1(e,this),s=t.u(this.options);t.p(i),this.T(s),this._$AH=t;}}_$AC(t){let i=A.get(t.strings);return void 0===i&&A.set(t.strings,i=new N(t)),i}k(t){a(this._$AH)||(this._$AH=[],this._$AR());const i=this._$AH;let s,e=0;for(const h of t)e===i.length?i.push(s=new R(this.O(l()),this.O(l()),this,this.options)):s=i[e],s._$AI(h),e++;e<i.length&&(this._$AR(s&&s._$AB.nextSibling,e),i.length=e);}_$AR(t=this._$AA.nextSibling,i){for(this._$AP?.(false,true,i);t&&t!==this._$AB;){const i=t.nextSibling;t.remove(),t=i;}}setConnected(t){ void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t));}}class k{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,i,s,e,h){this.type=1,this._$AH=E,this._$AN=void 0,this.element=t,this.name=i,this._$AM=e,this.options=h,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=E;}_$AI(t,i=this,s,e){const h=this.strings;let o=false;if(void 0===h)t=S(this,t,i,0),o=!c$1(t)||t!==this._$AH&&t!==T,o&&(this._$AH=t);else {const e=t;let n,r;for(t=h[0],n=0;n<h.length-1;n++)r=S(this,e[s+n],i,n),r===T&&(r=this._$AH[n]),o||=!c$1(r)||r!==this._$AH[n],r===E?t=E:t!==E&&(t+=(r??"")+h[n+1]),this._$AH[n]=r;}o&&!e&&this.j(t);}j(t){t===E?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"");}}class H extends k{constructor(){super(...arguments),this.type=3;}j(t){this.element[this.name]=t===E?void 0:t;}}class I extends k{constructor(){super(...arguments),this.type=4;}j(t){this.element.toggleAttribute(this.name,!!t&&t!==E);}}class L extends k{constructor(t,i,s,e,h){super(t,i,s,e,h),this.type=5;}_$AI(t,i=this){if((t=S(this,t,i,0)??E)===T)return;const s=this._$AH,e=t===E&&s!==E||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,h=t!==E&&(s===E||e);e&&this.element.removeEventListener(this.name,this,s),h&&this.element.addEventListener(this.name,this,t),this._$AH=t;}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t);}}class z{constructor(t,i,s){this.element=t,this.type=6,this._$AN=void 0,this._$AM=i,this.options=s;}get _$AU(){return this._$AM._$AU}_$AI(t){S(this,t);}}const Z$1={I:R},j=t$2.litHtmlPolyfillSupport;j?.(N,R),(t$2.litHtmlVersions??=[]).push("3.2.1");const B=(t,i,s)=>{const e=s?.renderBefore??i;let h=e._$litPart$;if(void 0===h){const t=s?.renderBefore??null;e._$litPart$=h=new R(i.insertBefore(l(),t),t,void 0,s??{});}return h._$AI(t),h};
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */let r$1 = class r extends b{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0;}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const s=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=B(s,this.renderRoot,this.renderOptions);}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(true);}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(false);}render(){return T}};r$1._$litElement$=true,r$1["finalized"]=true,globalThis.litElementHydrateSupport?.({LitElement:r$1});const i$2=globalThis.litElementPolyfillSupport;i$2?.({LitElement:r$1});(globalThis.litElementVersions??=[]).push("4.1.1");
+
+function notNull(value) {
+    return value != null;
+}
+function isNull(value) {
+    return value == null;
+}
 function isArray(value) {
     return Array.isArray(value);
 }
@@ -99,6 +112,14 @@ function isObject$1(value) {
 }
 function isFunction$1(value) {
     return typeof value === "function" && value !== null;
+}
+const primitiveornulltypes = new Set(['string', 'integer', 'number', 'boolean', 'null']);
+function isPrimitive(value, ornull) {
+    if (isObject$1(value) && value.target.every(t => primitiveornulltypes.has(t)))
+        return true;
+    if (typeof value == "string" && primitiveornulltypes.has(value))
+        return true;
+    return false;
 }
 function intersect(sets) {
     return sets.reduce((acc, set) => new Set([...acc].filter(x => set.has(x))), sets[0]);
@@ -324,7 +345,7 @@ function setGlobalHandler(target, event, value) {
     }
 }
 
-const bootstrapCss = i$4 `
+const bootstrapCss = i$5 `
 @charset "UTF-8";
 /*!
  * Bootstrap  v5.3.3 (https://getbootstrap.com/)
@@ -12402,7 +12423,7 @@ Promise.all(fonts.map(font => font.load())).then((fonts) => {
     });
     console.log("FONTS LOADED");
 });
-const bootstrapIconsCss = i$4 `
+const bootstrapIconsCss = i$5 `
   [class^="bi-"]::before,
   [class*=" bi-"]::before {
     display: inline-block;
@@ -13936,7 +13957,7 @@ class Schema extends JSONSchemaDraft07 {
         switch (true) {
             case ("const" in this):
                 return this.const;
-            case isprimitive(this.basetype) && 'default' in this:
+            case isPrimitive(this) && 'default' in this:
                 return this.default;
             case this.basetype === 'object': {
                 return Object.entries(this.properties).reduce((object, [key, property]) => {
@@ -14027,27 +14048,26 @@ class Schema extends JSONSchemaDraft07 {
     }
     static inferEnums(schema) {
         // Exclude nullish schema, "array" and "object" from being enums
-        if (!schema ||
-            typeof schema !== "object" ||
-            schema.type === "array" ||
-            schema.type === "object")
-            return null;
-        // ✅ Direct "enum" keyword
-        if (Array.isArray(schema.enum)) {
-            return schema.enum.map(value => ({ value, title: JSON.stringify(value) }));
+        if (!isObject$1(schema) || !isPrimitive(schema))
+            return;
+        // Direct "enum" keyword
+        if (isArray(schema.enum)) {
+            return schema.enum.map(value => ({ value, title: String(value) }));
         }
-        // ✅ "const" keyword (supports primitives, objects, and arrays)
+        // "const" keyword (supports primitives, objects, and arrays)
         if (schema.const !== undefined) {
-            return [{ value: schema.const, title: schema.title ?? JSON.stringify(schema.const) }];
+            const value = schema.const;
+            const title = String(schema.title ?? schema.const);
+            return [{ value, title }];
         }
-        // ✅ "oneOf" / "anyOf" with `const` values
+        // "oneOf" / "anyOf" with `const` values
         if (Array.isArray(schema.oneOf)) {
             return schema.oneOf.flatMap(item => Schema.inferEnums(item) ?? []);
         }
         if (Array.isArray(schema.anyOf)) {
             return schema.anyOf.flatMap(item => Schema.inferEnums(item) || []);
         }
-        // ✅ "allOf": If one of the subschemas defines an enum, use that
+        // "allOf": If one of the subschemas defines an enum, use that
         if (Array.isArray(schema.allOf)) {
             for (const subschema of schema.allOf) {
                 const values = Schema.inferEnums(subschema);
@@ -14055,14 +14075,12 @@ class Schema extends JSONSchemaDraft07 {
                     return values;
             }
         }
-        // ❌ Exclude values from `not` (Negation)
+        // Exclude values from `not` (Negation)
         if (schema.not) {
-            const excluded = Schema.inferEnums(schema.not);
-            if (excluded) {
-                return Schema.inferEnums(schema)?.filter(item => !excluded.some(e => e.value === item.value)) ?? null;
-            }
+            const excluded = Schema.inferEnums(schema.not) ?? [];
+            return Schema.inferEnums(schema)?.filter(item => !excluded.some(e => e.value === item.value));
         }
-        return null;
+        return;
     }
 }
 class CompilationStep {
@@ -14087,8 +14105,6 @@ class CompilationStep {
         return Error(`Compilation step ${this.property}: ${message} `);
     }
 }
-const primitivetypes = new Set(['string', 'integer', 'number', 'boolean', 'array']);
-function isprimitive(name) { return !!name && primitivetypes.has(name); }
 function isenumarray(schema) {
     if (schema.basetype === 'array' && schema.uniqueItems) {
         if (schema.items.oneOf)
@@ -14188,10 +14204,10 @@ class FzElement extends Base {
             this.data[this.name] = undefined;
         return this.data[this.key];
     }
-    set value(val) {
-        this.cascadeValue(val);
-        this.check();
-        this.triggerChange();
+    set value(value) {
+        if (value === this.value)
+            return;
+        this.cascadeValue(value);
     }
     /**
      * this method is called for to update this.value (and must be done only here)
@@ -14309,7 +14325,7 @@ class FzElement extends Base {
      * calculate label for this field
      */
     get label() {
-        return this.isItem ? (this.index != null ? this.index + 1 : '-') : (this.schema.title || this.schema.description || this.name);
+        return (this.isItem ? String(this.index != null ? this.index + 1 : '-') : this.schema.title ?? this.name) ?? "";
     }
     /**
      * return true if this field is item of array, false otherwise
@@ -14380,7 +14396,7 @@ class FzElement extends Base {
     static get styles() {
         return [
             ...super.styles,
-            i$4 `
+            i$5 `
             .invalid {
                 border: 1px solid rgba(220,53,69) !important;
             }
@@ -14538,11 +14554,18 @@ class FzElement extends Base {
     }
     /**
      *  'change' handler when changes occurs on inputed value
-     * - update the model value of the field
-     * - check to update validity
+     * - update the model value from the field
+     * - eval 'change' keyword
+     * - process a validation
+     * - triggers needed cha,ge events for update and observers
      */
     change() {
+        // changed occurs evaluate change keyword extension
+        this.toValue();
+        this.evalExpr("change");
+        // validation and error dispatching
         this.check();
+        // signal field update for ascendant
         const event = new CustomEvent('update', {
             detail: {
                 data: this.data,
@@ -14553,9 +14576,7 @@ class FzElement extends Base {
             composed: true
         });
         this.dispatchEvent(event);
-    }
-    triggerChange() {
-        this.evalExpr("change");
+        // signal field update for observers
         if (this.schema.observers && this.schema.observers.length) {
             this.dispatchEvent(new CustomEvent('observed-changed', {
                 detail: {
@@ -14566,6 +14587,7 @@ class FzElement extends Base {
                 composed: true
             }));
         }
+        this.requestUpdate();
     }
     /**
      * calculate an abstract string (summary) for this field or a property/item of field
@@ -14618,31 +14640,31 @@ class FzElement extends Base {
     }
 }
 __decorate([
-    n$1({ type: String }),
+    n$2({ type: String }),
     __metadata("design:type", Object)
 ], FzElement.prototype, "pointer", null);
 __decorate([
-    n$1({ type: Object }),
+    n$2({ type: Object }),
     __metadata("design:type", Object)
 ], FzElement.prototype, "schema", null);
 __decorate([
-    n$1({ type: Object }),
+    n$2({ type: Object }),
     __metadata("design:type", Object)
 ], FzElement.prototype, "data", null);
 __decorate([
-    n$1({ type: String }),
+    n$2({ type: String }),
     __metadata("design:type", Object)
 ], FzElement.prototype, "name", null);
 __decorate([
-    n$1({ type: Number }),
+    n$2({ type: Number }),
     __metadata("design:type", Object)
 ], FzElement.prototype, "index", null);
 __decorate([
-    n$1({ attribute: false }),
+    n$2({ attribute: false }),
     __metadata("design:type", Object)
 ], FzElement.prototype, "valid", null);
 __decorate([
-    n$1({ attribute: false }),
+    n$2({ attribute: false }),
     __metadata("design:type", Object)
 ], FzElement.prototype, "message", null);
 
@@ -14676,34 +14698,14 @@ class FzInputBase extends FzElement {
     }
     /**
      * on first updated set listeners
-     * @param _changedProperties (unused)
      */
     firstUpdated(_changedProperties) {
         // for debug 'F9' output state of field
-        if (this.input) {
-            this.listen(this.input, 'keydown', (evt) => this.debugKey(evt));
-            this.input.value = this.convertToInput(this.value);
-        }
-        this.check();
-    }
-    update(changedProps) {
-        super.update(changedProps);
         if (this.input)
-            this.input.value = this.convertToInput(this.value);
-    }
-    /**
-     * generic change method is ok, but some special cases must be managed
-     * for specific input types
-     */
-    change() {
-        if (this.input) {
-            // cas particulier des 'boolean' qui fonctionnent differements des input.value
-            if (this.schema.basetype === 'boolean')
-                this.value = this.input.checked;
-            else
-                this.value = this.convertToValue(this.input.valueAsNumber ? this.input.valueAsNumber : this.input.value);
-        }
-        super.change();
+            this.listen(this.input, 'keydown', (evt) => this.debugKey(evt));
+        // initialize input from value
+        this.toField();
+        this.check();
     }
     /**
      * overide focus for all input based fields
@@ -14764,11 +14766,8 @@ class FzInputBase extends FzElement {
 class FzEnumBase extends FzInputBase {
     enums;
     refenum = null;
-    renderInput() {
-        this.evalEnums();
-        return x `
-            ${this.withAdd ? x `<fz-item-dlg  @click="${this.eventStop}" .reference="${this.refenum}" @close="${this.close}"></fz-item-dlg>` : ""}
-            ${this.renderEnum()}`;
+    get modal() {
+        return this.shadowRoot?.querySelector('fz-item-dlg');
     }
     get withAdd() {
         return (this.schema.refTo && this.schema.addTo);
@@ -14781,8 +14780,11 @@ class FzEnumBase extends FzInputBase {
             !this.schema.anyOf?.some((item) => item.const === null));
         return show;
     }
-    get modal() {
-        return this.shadowRoot?.querySelector('fz-item-dlg');
+    renderInput() {
+        this.evalEnums();
+        return x `
+            ${this.withAdd ? x `<fz-item-dlg  @click="${this.eventStop}" .reference="${this.refenum}" @close="${this.close}"></fz-item-dlg>` : ""}
+            ${this.renderEnum()}`;
     }
     close(evt) {
         if (evt.detail.dismissed) {
@@ -14808,27 +14810,16 @@ class FzEnumBase extends FzInputBase {
             this.modal.reference = this.refenum;
             this.modal.requestUpdate();
         }
-        super.change();
+        else {
+            super.change();
+        }
     }
     isSelected(value) { return this.value === value; }
-    convertToInput(value) {
-        if (value == null)
-            return null;
-        switch (this.schema.basetype) {
-            case 'integer': return isNaN(value) ? null : parseInt(value, 10);
-            case 'number': return isNaN(value) ? null : parseFloat(value);
-            case 'boolean': return !!value;
-        }
-        return String(value);
-    }
-    convertToValue(value) {
-        return (value === "~~ADD~~" || value === "~~EMPTY~~" || isEmptyValue(value)) ? this.empty : value;
-    }
     evalEnums() {
         this.enums = [];
         this.refenum = this.schema.refTo && this.evalExpr("refTo");
         switch (true) {
-            case !!(this.refenum && this.refenum.refname && Array.isArray(this.refenum.refarray)):
+            case this.refenum?.refname != null && isArray(this.refenum.refarray): {
                 const refname = this.refenum?.refname ?? 'id';
                 const refarray = this.refenum?.refarray;
                 this.enums = refarray?.reduce((list, item, index) => {
@@ -14842,30 +14833,20 @@ class FzEnumBase extends FzInputBase {
                     return list;
                 }, []);
                 break;
-            case !!(this.schema.enum):
-                this.enums = this.schema.enum.reduce((list, value) => {
-                    const ok = this.evalExpr('filter', this.schema, value, this.data, this.key);
+            }
+            case this.schema.enumRef != null && this.form.options.ref != null: {
+                this.enums = this.form.options.ref(this.schema.enumRef);
+                break;
+            }
+            default: {
+                const unfiltered = Schema.inferEnums(this.schema);
+                this.enums = unfiltered?.reduce((list, item) => {
+                    const ok = this.evalExpr('filter', this.schema, item.value, this.data, this.key);
                     if (ok)
-                        list.push({ label: String(value), value });
+                        list.push(item);
                     return list;
                 }, []);
-                break;
-            case !!(this.schema.oneOf):
-                this.enums = this.schema.oneOf.reduce((list, type) => {
-                    const ok = this.evalExpr('filter', type, type.const, this.data, this.key);
-                    if (ok)
-                        list.push({ label: type.title ?? type.description ?? type.const, value: type.const });
-                    return list;
-                }, []);
-                break;
-            case !!(this.schema.anyOf):
-                this.enums = this.schema.anyOf.reduce((list, type) => {
-                    const ok = this.evalExpr('filter', type, type.const, this.data, this.key);
-                    if (ok)
-                        list.push({ label: type.title ?? type.description ?? type.const, value: type.const });
-                    return list;
-                }, []);
-                break;
+            }
         }
     }
 }
@@ -14875,13 +14856,13 @@ class FzEnumBase extends FzInputBase {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const t$1={ATTRIBUTE:1,CHILD:2},e$2=t=>(...e)=>({_$litDirective$:t,values:e});class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,e,i){this._$Ct=t,this._$AM=e,this._$Ci=i;}_$AS(t,e){return this.update(t,e)}update(t,e){return this.render(...e)}}
+const t$1={ATTRIBUTE:1,CHILD:2},e$2=t=>(...e)=>({_$litDirective$:t,values:e});let i$1 = class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,e,i){this._$Ct=t,this._$AM=e,this._$Ci=i;}_$AS(t,e){return this.update(t,e)}update(t,e){return this.render(...e)}};
 
 /**
  * @license
  * Copyright 2018 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */const e$1=e$2(class extends i{constructor(t){if(super(t),t.type!==t$1.ATTRIBUTE||"class"!==t.name||t.strings?.length>2)throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.")}render(t){return " "+Object.keys(t).filter((s=>t[s])).join(" ")+" "}update(s,[i]){if(void 0===this.st){this.st=new Set,void 0!==s.strings&&(this.nt=new Set(s.strings.join(" ").split(/\s/).filter((t=>""!==t))));for(const t in i)i[t]&&!this.nt?.has(t)&&this.st.add(t);return this.render(i)}const r=s.element.classList;for(const t of this.st)t in i||(r.remove(t),this.st.delete(t));for(const t in i){const s=!!i[t];s===this.st.has(t)||this.nt?.has(t)||(s?(r.add(t),this.st.add(t)):(r.remove(t),this.st.delete(t)));}return T}});
+ */const e$1=e$2(class extends i$1{constructor(t){if(super(t),t.type!==t$1.ATTRIBUTE||"class"!==t.name||t.strings?.length>2)throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.")}render(t){return " "+Object.keys(t).filter((s=>t[s])).join(" ")+" "}update(s,[i]){if(void 0===this.st){this.st=new Set,void 0!==s.strings&&(this.nt=new Set(s.strings.join(" ").split(/\s/).filter((t=>""!==t))));for(const t in i)i[t]&&!this.nt?.has(t)&&this.st.add(t);return this.render(i)}const r=s.element.classList;for(const t of this.st)t in i||(r.remove(t),this.st.delete(t));for(const t in i){const s=!!i[t];s===this.st.has(t)||this.nt?.has(t)||(s?(r.add(t),this.st.add(t)):(r.remove(t),this.st.delete(t)));}return T}});
 
 /**
  * @prop schema
@@ -14890,10 +14871,32 @@ const t$1={ATTRIBUTE:1,CHILD:2},e$2=t=>(...e)=>({_$litDirective$:t,values:e});cl
  * @prop index
  */
 let FzEnum = class FzEnum extends FzEnumBase {
+    #selected_accessor_storage = -1;
+    get selected() { return this.#selected_accessor_storage; }
+    set selected(value) { this.#selected_accessor_storage = value; }
+    #options_accessor_storage = [];
+    get options() { return this.#options_accessor_storage; }
+    set options(value) { this.#options_accessor_storage = value; }
+    toField() {
+        this.options.forEach(r => r.selected = false);
+        if (isNull(this.value) || isNull(this.enums)) {
+            this.selected = -1;
+        }
+        else {
+            this.selected = this.enums.findIndex(item => item.value == this.value);
+            if (this.selected >= 0)
+                this.options[this.selected].selected = true;
+        }
+    }
+    toValue() {
+        if (notNull(this.enums) && this.selected >= 0) {
+            this.value = this.enums[this.selected].value;
+        }
+    }
     static get styles() {
         return [
             ...super.styles,
-            i$4 `
+            i$5 `
             .readonly {
                 background-color: #ececec
             }`
@@ -14902,52 +14905,94 @@ let FzEnum = class FzEnum extends FzEnumBase {
     renderEnum() {
         return x `
             <select 
-                class="${e$1({ 'form-select': true, 'readonly': this.readonly })}"
                 id="input" 
-                .value="${this.value}" 
-                @input="${this.change}" 
+                @change="${this.select}" 
                 ?required="${this.required}"
+                class="${e$1({ 'form-select': true, 'readonly': this.readonly })}"
             >
                 ${this.withAdd ? x `<option style="color:red;text-align:center" ?disabled="${this.readonly}" ?selected="${false}" .value="${'~~ADD~~'}">Add ...</option>` : ''}
                 ${this.showNullChoice ? x `<option style="color:red;text-align:center" ?disabled="${this.readonly}" ?selected="${this.isSelected(null)}" .value="${'~~EMPTY~~'}"> ${this.required ? 'Choose a value...' : '<vide>'}</option>` : ''}
-                ${this.enums?.map(item => x `<option  ?disabled="${this.readonly}"  ?selected="${this.isSelected(item.value)}" .value="${item.value == null ? "" : item.value}"><b>${item.label}</b></option>`)}
+                ${this.enums?.map((item, i) => x `
+                    <option id="option" ?disabled="${this.readonly}"  ?selected="${this.selected === i}">
+                        <b>${item.title}</b>
+                    </option>`)}
             </select>`;
     }
+    select() {
+        this.options.forEach((o, i) => o.selected ? (this.selected = i) : null);
+        this.change();
+    }
 };
+__decorate([
+    n$2({ type: Number, attribute: false }),
+    __metadata("design:type", Number)
+], FzEnum.prototype, "selected", null);
+__decorate([
+    r$3("option"),
+    __metadata("design:type", Array)
+], FzEnum.prototype, "options", null);
 FzEnum = __decorate([
     t$4("fz-enum")
 ], FzEnum);
 
 let FZEnumCheck = class FZEnumCheck extends FzEnumBase {
+    #selected_accessor_storage = -1;
+    get selected() { return this.#selected_accessor_storage; }
+    set selected(value) { this.#selected_accessor_storage = value; }
+    #radios_accessor_storage = [];
+    get radios() { return this.#radios_accessor_storage; }
+    set radios(value) { this.#radios_accessor_storage = value; }
+    toField() {
+        if (isNull(this.radios))
+            return;
+        this.radios.forEach(r => { r.checked = false; r.removeAttribute("checked"); });
+        if (isNull(this.value) || isNull(this.enums)) {
+            this.selected = -1;
+        }
+        else {
+            this.selected = this.enums.findIndex(item => item.value == this.value);
+            if (this.selected > 0)
+                this.radios[this.selected].checked = true;
+        }
+    }
+    toValue() {
+        if (notNull(this.selected) && notNull(this.enums)) {
+            this.value = this.enums[this.selected].value;
+        }
+    }
     renderEnum() {
         return x `
             ${this.enums?.map((item, i) => x `
                 <div class="form-check form-check-inline">
                     <input 
+                        type="radio"
+                        name="group" 
+                        .value=${item.value} 
+                        ?disabled=${this.readonly}
+                        @click="${() => this.select(i)}"
+                        ?required=${this.required}
+                        ?checked="${this.selected == i}"
                         class="form-check-input" 
-                        type="radio" 
-                        name="input" 
-                        id="${i}-input" 
-                        .value="${item.value}" 
-                        ?disabled="${this.readonly}"
-                        @click="${this.select}" 
-                        ?required="${this.required}"
-                        ?checked="${this.isSelected(item.value)}"
                     />
-                    <label class="form-check-label" for="input${i}">${item.label}</label>
+                    <label class="form-check-label" for="${i}-input">${item.title}</label>
                 </div>`)}`;
     }
-    select(event) {
-        event.stopPropagation();
-        event.stopImmediatePropagation();
+    select(index) {
         if (this.readonly)
             return;
-        const input = event.target;
-        const index = parseInt(input.id, 10);
-        this.value = this.convertToValue(this.enums?.[index].value);
-        this.requestUpdate();
+        this.selected = index;
+        this.radios[this.selected].checked = true;
+        this.change();
     }
 };
+__decorate([
+    n$2({ type: Number, attribute: false }),
+    __metadata("design:type", Number)
+], FZEnumCheck.prototype, "selected", null);
+__decorate([
+    r$3("input"),
+    __metadata("design:type", Array)
+], FZEnumCheck.prototype, "radios", null);
 FZEnumCheck = __decorate([
     t$4("fz-enum-check")
 ], FZEnumCheck);
@@ -14956,7 +15001,7 @@ FZEnumCheck = __decorate([
  * @license
  * Copyright 2018 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */const o$1=o=>o??E;
+ */const o$2=o=>o??E;
 
 function iso$2(date = new Date()) {
     return date.toISOString().substring(0, 10);
@@ -14968,14 +15013,26 @@ function iso$2(date = new Date()) {
  * @prop index
  */
 let FzInputDate = class FzInputDate extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            const redate = /\d\d\d\d-\d\d-\d\d/;
+            this.input.valueAsDate = redate.test(this.value) ? new Date(this.value) : null;
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.valueAsDate) ? iso$2(this.input.valueAsDate) : undefined;
+        }
+    }
     renderInput() {
-        return x `<input 
+        return x `<input
+            id="input" 
             class="form-control" 
-            type="date" id="input"
+            type="date" 
             ?readonly="${this.readonly}" 
             @input="${this.change}"
-            min="${o$1(this.min)}"
-            max="${o$1(this.max)}"
+            min="${o$2(this.min)}"
+            max="${o$2(this.max)}"
             ?required="${this.required}"
         />`;
     }
@@ -14984,18 +15041,6 @@ let FzInputDate = class FzInputDate extends FzInputBase {
     }
     get max() {
         return this.schema.maximum;
-    }
-    convertToInput(value) {
-        const isore = /\d\d\d\d-\d\d-\d\d/;
-        switch (true) {
-            case typeof value === 'string' && isore.test(value): return iso$2(new Date(value));
-            case typeof value === 'number': return iso$2(new Date(value));
-            case value instanceof Date: return iso$2(value);
-            default: return "";
-        }
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : iso$2(new Date(value));
     }
 };
 FzInputDate = __decorate([
@@ -15012,17 +15057,27 @@ function iso$1(date = new Date()) {
  * @prop index
  */
 let FzInputDatetime = class FzInputDatetime extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            const redate = /\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ?/;
+            this.input.valueAsDate = redate.test(this.value) ? new Date(this.value.substring(0, 16)) : null;
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.valueAsDate) ? iso$1(this.input.valueAsDate) : undefined;
+        }
+    }
     renderInput() {
         return x `<input 
-            class="form-control" 
-            type="datetime-local" 
             id="input" 
-            .value="${this.value}"
-            min="${o$1(this.min)}"
-            max="${o$1(this.max)}"
-            ?readonly="${this.readonly}" 
+            type="datetime-local" 
             @input="${this.change}"
+            min="${o$2(this.min)}"
+            max="${o$2(this.max)}"
+            ?readonly="${this.readonly}" 
             ?required="${this.required}"
+            class="form-control" 
         />`;
     }
     get min() {
@@ -15030,25 +15085,6 @@ let FzInputDatetime = class FzInputDatetime extends FzInputBase {
     }
     get max() {
         return this.schema.maximum;
-    }
-    convertToInput(value) {
-        const isore = /\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ?/;
-        let res = "";
-        switch (true) {
-            case typeof value === 'string' && isore.test(value):
-                res = value.substring(0, 16);
-                break;
-            case typeof value === 'number':
-                res = new Date(value).toISOString().substring(0, 16);
-                break;
-            case value instanceof Date:
-                res = value.toISOString().substring(0, 16);
-                break;
-        }
-        return res;
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : iso$1(new Date(value));
     }
 };
 FzInputDatetime = __decorate([
@@ -15065,6 +15101,16 @@ function iso(date = new Date()) {
  * @prop index
  */
 let FzInputTime = class FzInputTime extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            this.input.valueAsDate = new Date(this.value);
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.valueAsDate) ? iso(this.input.valueAsDate) : undefined;
+        }
+    }
     renderInput() {
         return x `
             <input 
@@ -15078,17 +15124,6 @@ let FzInputTime = class FzInputTime extends FzInputBase {
                 ?required="${this.required}"
             />`;
     }
-    convertToInput(value) {
-        switch (true) {
-            case typeof value === 'string': return (value == null) ? null : value;
-            case typeof value === 'number': return iso(new Date(value));
-            case value instanceof Date: return iso(value);
-        }
-        return null;
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : iso(new Date(value));
-    }
 };
 FzInputTime = __decorate([
     t$4("fz-time")
@@ -15101,18 +15136,28 @@ FzInputTime = __decorate([
  * @prop index
  */
 let FzInputTextarea = class FzInputTextarea extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "");
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.value) ? this.input.value : undefined;
+        }
+    }
     renderInput() {
         return x `
             <textarea  
                 class="form-control" 
                 id="input"
-                placeholder="${o$1(this.label)}"
+                placeholder="${o$2(this.label)}"
                 .value="${this.value}" 
                 ?readonly="${this.readonly}"
                 @input="${this.change}"
                 @keypress="${this.change}"
-                minlength="${o$1(this.minlength)}"
-                maxlength="${o$1(this.maxlength)}"
+                minlength="${o$2(this.minlength)}"
+                maxlength="${o$2(this.maxlength)}"
                 ?required="${this.required}"
                 rows="5"
             ></textarea>`;
@@ -15120,13 +15165,6 @@ let FzInputTextarea = class FzInputTextarea extends FzInputBase {
     get minlength() { return this.schema.minLength; }
     get maxlength() { return this.schema.maxLength; }
     get pattern() { return this.schema.pattern; }
-    //get password() {return !!this.schema.options?.password }
-    convertToInput(value) {
-        return value == null ? null : value.toString();
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : value.toString();
-    }
 };
 FzInputTextarea = __decorate([
     t$4("fz-textarea")
@@ -15139,10 +15177,20 @@ FzInputTextarea = __decorate([
  * @prop index
  */
 let FzInputString = class FzInputString extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "");
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.value) ? this.input.value : this.empty;
+        }
+    }
     static get styles() {
         return [
             ...super.styles,
-            i$4 `
+            i$5 `
             input[type="color"] {
                 height: 38px
             }`
@@ -15159,19 +15207,15 @@ let FzInputString = class FzInputString extends FzInputBase {
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
                     @keypress="${this.change}"
-                    minlength="${o$1(this.minlength)}"
-                    maxlength="${o$1(this.maxlength)}"
-                    pattern="${o$1(this.pattern)}"
+                    minlength="${o$2(this.minlength)}"
+                    maxlength="${o$2(this.maxlength)}"
+                    pattern="${o$2(this.pattern)}"
                     ?required="${this.required}"
                 />
                 <div ?hidden="${this.type !== 'color' || this.value == undefined}" class="input-group-append" style="max-width:5em" >
                     <span class="input-group-text" >${this.value}</span>
                 </div>
             </div>`;
-    }
-    change() {
-        super.change();
-        this.requestUpdate();
     }
     get minlength() { return this.schema.minLength; }
     get maxlength() { return this.schema.maxLength; }
@@ -15184,12 +15228,6 @@ let FzInputString = class FzInputString extends FzInputBase {
             case 'uri': return 'url';
             default: return 'text';
         }
-    }
-    convertToInput(value) {
-        return (value == null || value == "") ? "" : value.toString();
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : value.toString();
     }
 };
 FzInputString = __decorate([
@@ -15228,10 +15266,20 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
     currentX = 0;
     currentY = 0;
     drawing = false;
+    toField() {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "");
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.value) ? this.input.value : undefined;
+        }
+    }
     static get styles() {
         return [
             ...super.styles,
-            i$4 `
+            i$5 `
             img {border: 0}
             .readonly {background-color: rgb(235,235,228)}
             `
@@ -15250,12 +15298,6 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
                 <button ?hidden="${this.state === 'read'}" ?disabled="${this.isblank}" type="button" class="col-sm-3 btn btn-primary btn-sm" @click="${this.validate}">Valider</button>
                 <button ?hidden="${this.state === 'read'}" ?disabled="${this.isblank}" type="button" class="col-sm-3 btn btn-primary btn-sm" @click="${this.clear}">Effacer</button>
             </div>`;
-    }
-    convertToInput(value) {
-        return (value == null || value == "") ? null : value.toString();
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : value;
     }
     firstUpdated(changedProperties) {
         super.firstUpdated(changedProperties);
@@ -15407,7 +15449,6 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
             if (this.image)
                 this.image.src = dataurl;
             this.change();
-            this.requestUpdate();
         }
     }
     clear() {
@@ -15422,11 +15463,11 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
     }
 };
 __decorate([
-    n$1({ attribute: false }),
+    n$2({ attribute: false }),
     __metadata("design:type", Object)
 ], FzInputSignature.prototype, "disabled", null);
 __decorate([
-    n$1({ attribute: false }),
+    n$2({ attribute: false }),
     __metadata("design:type", String)
 ], FzInputSignature.prototype, "state", null);
 FzInputSignature = __decorate([
@@ -15457,11 +15498,15 @@ let FzInputBoolean = class FzInputBoolean extends FzInputBase {
         super.change();
         this.requestUpdate();
     }
-    convertToInput(_value) {
-        return (this.input && this.input.checked) ? true : false;
+    toField() {
+        if (notNull(this.input)) {
+            this.input.checked = isEmptyValue(this.value) ? this.empty : !!this.value;
+        }
     }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : !!value;
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = this.input.checked ? true : false;
+        }
     }
 };
 FzInputBoolean = __decorate([
@@ -15476,10 +15521,20 @@ const DECIMAL_SEPARATOR = (1.1).toLocaleString().substring(1, 2);
  * @prop index
  */
 let FzInputFloat = class FzInputFloat extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            this.input.valueAsNumber = isNumber$1(this.value) ? this.value : NaN;
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = isNumber$1(this.input.valueAsNumber) ? this.input.valueAsNumber : undefined;
+        }
+    }
     static get styles() {
         return [
             ...super.styles,
-            i$4 `
+            i$5 `
             /* Chrome, Safari, Edge, Opera */
             input::-webkit-outer-spin-button,
             input::-webkit-inner-spin-button {
@@ -15501,8 +15556,8 @@ let FzInputFloat = class FzInputFloat extends FzInputBase {
                     id="input"
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
-                    min="${o$1(this.min)}"
-                    max="${o$1(this.max)}"
+                    min="${o$2(this.min)}"
+                    max="${o$2(this.max)}"
                     step="1e-12"
                     ?required="${this.required}"
                     @keypress="${this.keypress}"
@@ -15529,12 +15584,6 @@ let FzInputFloat = class FzInputFloat extends FzInputBase {
             event.preventDefault();
         }
     }
-    convertToInput(value) {
-        return isNaN(value) ? null : value;
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) || isNaN(value) ? this.empty : value;
-    }
 };
 FzInputFloat = __decorate([
     t$4("fz-float")
@@ -15547,10 +15596,20 @@ FzInputFloat = __decorate([
  * @prop index
  */
 let FzRange = class FzRange extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            this.input.valueAsNumber = isNumber$1(this.value) ? Math.floor(this.value) : NaN;
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = isNumber$1(this.input.valueAsNumber) ? this.input.valueAsNumber : undefined;
+        }
+    }
     static get styles() {
         return [
             ...super.styles,
-            i$4 `
+            i$5 `
           input[type=range]::-webkit-slider-runnable-track {
             background: lightgray;
             border: 0.2px solid rgba(1, 1, 1, 0.3);
@@ -15601,26 +15660,22 @@ let FzRange = class FzRange extends FzInputBase {
         return x `
             <div class="input-group">
                 <input 
-                    class="form-control" 
-                    type="range"  
                     id="input" 
+                    type="range"  
                     .value="${this.value}" 
                     ?disabled="${this.readonly}"
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
-                    min="${o$1(this.min)}"
-                    max="${o$1(this.max)}"
+                    min="${o$2(this.min)}"
+                    max="${o$2(this.max)}"
                     step="1"
                     ?required="${this.required}"
+                    class="form-control" 
                 />
                 <div class="input-group-append" style="max-width:5em" >
                     <span class="input-group-text" >${this.value}</span>
                 </div>
             </div>`;
-    }
-    change() {
-        super.change();
-        this.requestUpdate();
     }
     get max() {
         if (isNumber$1(this.schema.maximum))
@@ -15641,16 +15696,6 @@ let FzRange = class FzRange extends FzInputBase {
         // if (this.min >= 0 && event.key === '-') return event.preventDefault();
         return;
     }
-    convertToInput(value) {
-        switch (true) {
-            case typeof value === 'string': return isNaN(parseInt(value, 10)) ? null : parseInt(value, 10);
-            case typeof value === 'number': return Math.floor(value);
-            default: return null;
-        }
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
 };
 FzRange = __decorate([
     t$4("fz-range")
@@ -15663,10 +15708,20 @@ FzRange = __decorate([
  * @prop index
  */
 let FzInputGeolocation = class FzInputGeolocation extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "");
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.value) ? this.input.value : undefined;
+        }
+    }
     static get styles() {
         return [
             ...super.styles,
-            i$4 `
+            i$5 `
             input[type="color"] {
                 height: 38px
             }`
@@ -15679,7 +15734,7 @@ let FzInputGeolocation = class FzInputGeolocation extends FzInputBase {
                     class="form-control"
                     type="text"
                     id="input"
-                    @input="${this.change}"
+                    readonly
                     placeholder="${this.label}"
                     ?readonly="${this.readonly}" 
                 />
@@ -15701,25 +15756,15 @@ let FzInputGeolocation = class FzInputGeolocation extends FzInputBase {
                 </div>
             </div>`;
     }
-    change() {
-        super.change();
-        this.requestUpdate();
-    }
-    convertToInput(value) {
-        return (value == "" || value == null) ? null : value.toString();
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
     geolocate() {
         navigator.geolocation.getCurrentPosition((position) => {
-            this.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`;
-            this.requestUpdate();
+            this.input.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`;
+            this.change();
         });
     }
     remove() {
-        this.value = null;
-        this.requestUpdate();
+        this.input.value = "";
+        this.change();
     }
 };
 FzInputGeolocation = __decorate([
@@ -15733,6 +15778,16 @@ FzInputGeolocation = __decorate([
  * @prop index
  */
 let FzInputInteger = class FzInputInteger extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            this.input.valueAsNumber = isNumber$1(this.value) ? this.value : NaN;
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = isNumber$1(this.input.valueAsNumber) ? Math.floor(this.input.valueAsNumber) : undefined;
+        }
+    }
     renderInput() {
         return x `
             <div class="input-group">
@@ -15743,8 +15798,8 @@ let FzInputInteger = class FzInputInteger extends FzInputBase {
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
                     @keypress="${this.keypress}"
-                    min="${o$1(this.min)}"
-                    max="${o$1(this.max)}"
+                    min="${o$2(this.min)}"
+                    max="${o$2(this.max)}"
                     step="1"
                     ?required="${this.required}"
                 />
@@ -15769,12 +15824,6 @@ let FzInputInteger = class FzInputInteger extends FzInputBase {
         // if (this.min >= 0 && event.key === '-') return event.preventDefault();
         return;
     }
-    convertToInput(value) {
-        return isNaN(value) ? null : Math.floor(value);
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) || isNaN(value) ? this.empty : value;
-    }
 };
 FzInputInteger = __decorate([
     t$4("fz-integer")
@@ -15787,16 +15836,16 @@ FzInputInteger = __decorate([
  * @prop index
  */
 let FzInputConstant = class FzInputConstant extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            this.input.value = String(this.schema.const ?? "");
+        }
+    }
+    toValue() {
+        this.value = this.schema.const;
+    }
     renderInput() {
         return x `<div class="input-group">${this.value}</div>`;
-    }
-    convertToInput(value) {
-        if (value == null || value == "")
-            return null;
-        return value;
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : value;
     }
     connectedCallback() {
         super.connectedCallback();
@@ -15929,6 +15978,16 @@ var FzInputDoc_1;
  */
 let FzInputDoc = class FzInputDoc extends FzInputBase {
     static { FzInputDoc_1 = this; }
+    toField() {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "");
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.value) ? this.input.value : undefined;
+        }
+    }
     static docTypes = [
         // Documents images
         "image/png",
@@ -15970,7 +16029,7 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
     static get styles() {
         return [
             ...super.styles,
-            i$4 `
+            i$5 `
                 .fileUpload {
                     position: relative;
                     overflow: hidden;
@@ -16048,12 +16107,6 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
         super.change();
         this.requestUpdate();
     }
-    convertToInput(value) {
-        return (value == null) ? "" : value;
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
     connectedCallback() {
         super.connectedCallback();
         this.listen(this, 'update', () => this.check());
@@ -16109,7 +16162,6 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
         if (this.value)
             await this.store.put(this.value, blob, this.filename, this.pointer);
         this.change();
-        this.requestUpdate();
     }
     async save(event) {
         await this.set(v1(), event.target.files[0], event.target.files[0].name);
@@ -16121,7 +16173,6 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
         this.url = "";
         this.filename = "";
         this.change();
-        this.requestUpdate();
     }
 };
 FzInputDoc = FzInputDoc_1 = __decorate([
@@ -16132,7 +16183,7 @@ FzInputDoc = FzInputDoc_1 = __decorate([
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */class e extends i{constructor(i){if(super(i),this.it=E,i.type!==t$1.CHILD)throw Error(this.constructor.directiveName+"() can only be used in child bindings")}render(r){if(r===E||null==r)return this._t=void 0,this.it=r;if(r===T)return r;if("string"!=typeof r)throw Error(this.constructor.directiveName+"() called with a non-string value");if(r===this.it)return this._t;this.it=r;const s=[r];return s.raw=s,this._t={_$litType$:this.constructor.resultType,strings:s,values:[]}}}e.directiveName="unsafeHTML",e.resultType=1;const o=e$2(e);
+ */class e extends i$1{constructor(i){if(super(i),this.it=E,i.type!==t$1.CHILD)throw Error(this.constructor.directiveName+"() can only be used in child bindings")}render(r){if(r===E||null==r)return this._t=void 0,this.it=r;if(r===T)return r;if("string"!=typeof r)throw Error(this.constructor.directiveName+"() called with a non-string value");if(r===this.it)return this._t;this.it=r;const s=[r];return s.raw=s,this._t={_$litType$:this.constructor.resultType,strings:s,values:[]}}}e.directiveName="unsafeHTML",e.resultType=1;const o$1=e$2(e);
 
 /* eslint-disable no-bitwise */
 
@@ -24552,7 +24603,7 @@ let FzMarkdownIt = class FzMarkdownIt extends Base {
     markdown = "";
     static styles = [
         ...super.styles,
-        i$4 `
+        i$5 `
             blockquote {
                 padding: 10px 20px;
                 margin: 0 0 20px;
@@ -24595,12 +24646,12 @@ let FzMarkdownIt = class FzMarkdownIt extends Base {
     render() {
         const rendered = md.render(this.markdown);
         return x `<div>
-            ${o(rendered)}
+            ${o$1(rendered)}
         </div>`;
     }
 };
 __decorate([
-    n$1({ attribute: "markdown", type: String, reflect: true }),
+    n$2({ attribute: "markdown", type: String, reflect: true }),
     __metadata("design:type", String)
 ], FzMarkdownIt.prototype, "markdown", void 0);
 FzMarkdownIt = __decorate([
@@ -24608,6 +24659,14 @@ FzMarkdownIt = __decorate([
 ], FzMarkdownIt);
 
 let FzInputMarkdown = class FzInputMarkdown extends FzInputBase {
+    toField() {
+        // markdown format doesnt affect field
+        return;
+    }
+    toValue() {
+        // markdown format doesnt affect value
+        return;
+    }
     renderInput() {
         return x ``;
     }
@@ -24615,12 +24674,6 @@ let FzInputMarkdown = class FzInputMarkdown extends FzInputBase {
         return x `
             <div class="form-group row"><markdown-it .markdown="${this.value ?? ''}"></markdown-it></div>
         `;
-    }
-    convertToInput(value) {
-        return value;
-    }
-    convertToValue(value) {
-        return (typeof value !== 'string') ? '' : value;
     }
 };
 FzInputMarkdown = __decorate([
@@ -24634,14 +24687,18 @@ FzInputMarkdown = __decorate([
  * @prop index
  */
 let FzInputUuid = class FzInputUuid extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "");
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.value) ? this.input.value : this.empty;
+        }
+    }
     renderInput() {
         return x `<div class="input-group" >${this.value}</div>`;
-    }
-    convertToInput(value) {
-        return (value == null || value == "") ? null : value;
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : value;
     }
     connectedCallback() {
         super.connectedCallback();
@@ -24654,10 +24711,40 @@ FzInputUuid = __decorate([
 ], FzInputUuid);
 
 /**
+ * @license
+ * Copyright 2018 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */const n="important",i=" !"+n,o=e$2(class extends i$1{constructor(t){if(super(t),t.type!==t$1.ATTRIBUTE||"style"!==t.name||t.strings?.length>2)throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.")}render(t){return Object.keys(t).reduce(((e,r)=>{const s=t[r];return null==s?e:e+`${r=r.includes("-")?r:r.replace(/(?:^(webkit|moz|ms|o)|)(?=[A-Z])/g,"-$&").toLowerCase()}:${s};`}),"")}update(e,[r]){const{style:s}=e.element;if(void 0===this.ft)return this.ft=new Set(Object.keys(r)),this.render(r);for(const t of this.ft)null==r[t]&&(this.ft.delete(t),t.includes("-")?s.removeProperty(t):s[t]=null);for(const t in r){const e=r[t];if(null!=e){this.ft.add(t);const r="string"==typeof e&&e.endsWith(i);t.includes("-")||r?s.setProperty(t,r?e.slice(0,-11):e,r?n:""):s[t]=e;}}return T}});
+
+/**
  * an input for long enumeration with typeahead behavior
  */
 let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
+    #isopen_accessor_storage = false;
+    get isopen() { return this.#isopen_accessor_storage; }
+    set isopen(value) { this.#isopen_accessor_storage = value; }
+    #selected_accessor_storage = -1;
+    get selected() { return this.#selected_accessor_storage; }
+    set selected(value) { this.#selected_accessor_storage = value; }
+    filtered = [];
+    toField() {
+        if (isNull(this.value) || isNull(this.enums)) {
+            this.queryElem.value = "";
+            this.selected = -1;
+        }
+        else {
+            const item = this.enums.find(item => item.value == this.value);
+            this.queryElem.value = item ? item.title : "";
+            this.selected = item ? 0 : -1;
+        }
+    }
+    toValue() {
+        if (this.selected >= 0) {
+            this.value = this.filtered[this.selected].value;
+        }
+    }
     renderEnum() {
+        const styles = { display: this.isopen ? "block" : "none" };
         return x `
             <div class="dropdown">
                 <input  
@@ -24665,69 +24752,65 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
                     class="form-control" 
                     type="text" 
                     autocomplete="off"
-                    placeholder=${this.label}
+                    placeholder=${this.label ?? ""}
                     ?readonly=${this.readonly}
                     ?required=${this.required}
-                    @input=${this.change}
-                    @keypress=${this.change}
-                    @focus=${this.openList}
+                    @input=${this.filter}
+                    @change=${this.filter}
+                    @focus=${this.show}
                 />
-                <div id="list" class="dropdown-menu w-100">
-                    ${this.enums?.length == 0 ? x `<a class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : ''}
-                    ${this.showNullChoice ? x `<a class="dropdown-item" @click="${() => this.select({ label: '<vide>', value: this.empty })}" >&lt;empty&gt;</a>` : ''}
-                    ${this.enums?.map(item => x `<a class="dropdown-item" @click="${() => this.select(item)}" >${this.boldPrefix(item.label)}</a>`)}
+                <div id="list" style="${o(styles)}" class="dropdown-menu w-100">
+                    ${this.filtered?.length == 0 ? x `<a class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : ''}
+                    ${this.filtered?.map((item, i) => x `<a class="dropdown-item" @click="${() => this.select(i)}" >${this.boldPrefix(item.title)}</a>`)}
                 </div>
             </div>`;
     }
     // get the  inputed query string
     get query() {
-        return this.queryElem ? this.queryElem.value : "";
+        return this.queryElem?.value ?? "";
     }
     // return the given label with query part bolded 
     boldPrefix(label) {
         if (this.query == null || this.query.length == 0)
             return label;
         const parts = label.split(new RegExp(this.query, "i"));
-        const bolded = parts.join(`<b>${this.query}</b>`);
-        return o(bolded);
+        const bolded = parts.join(`<b><u>${this.query}</u></b>`);
+        return o$1(bolded);
     }
-    async firstUpdated(changedProperties) {
-        const item = this.enums?.find(item => this.value === item.value);
-        this.queryElem.value = item ? item.label : "";
-        super.firstUpdated(changedProperties);
-    }
-    change() {
-        this.requestUpdate();
-    }
-    openList() {
-        this.listElem.style.setProperty("display", "block");
+    show() {
+        this.isopen = true;
         this.queryElem.select();
+        this.filter();
     }
-    closeList() {
-        this.listElem.style.setProperty("display", "none");
-    }
-    select(item) {
-        this.queryElem.value = item.label;
-        this.value = this.convertToValue(item.value);
-        this.closeList();
-        this.requestUpdate();
+    select(index) {
+        this.selected = index;
+        this.queryElem.value = this.filtered[this.selected].title;
+        this.change();
+        this.isopen = false;
     }
     // get the enum list to display filter by query string (first 10 items)
-    evalEnums() {
+    filter() {
         super.evalEnums();
         const upper = this.query.toUpperCase();
-        const matching = (item) => item.label.toUpperCase().includes(upper);
-        this.enums = this.enums?.filter(matching).slice(0, 10) ?? [];
+        const matching = (item) => item.title.toUpperCase().includes(upper);
+        this.filtered = this.showNullChoice ? [{ title: '~ empty', value: this.empty }] : [];
+        this.filtered.push(...this.enums?.filter(matching).slice(0, 10) ?? []);
+        this.selected = -1;
+        this.requestUpdate();
     }
 };
 __decorate([
-    e$4('#query'),
+    n$2({ type: Boolean, attribute: false }),
+    __metadata("design:type", Boolean)
+], FzEnumTypeahead.prototype, "isopen", null);
+__decorate([
+    n$2({ type: Number, attribute: false }),
+    __metadata("design:type", Number)
+], FzEnumTypeahead.prototype, "selected", null);
+__decorate([
+    e$5('#query'),
     __metadata("design:type", HTMLInputElement)
 ], FzEnumTypeahead.prototype, "queryElem", void 0);
-__decorate([
-    e$4('#list'),
-    __metadata("design:type", HTMLElement)
-], FzEnumTypeahead.prototype, "listElem", void 0);
 FzEnumTypeahead = __decorate([
     t$4("fz-enum-typeahead")
 ], FzEnumTypeahead);
@@ -32333,22 +32416,22 @@ let FzArray$1 = class FzArray extends FZCollection {
     get noless() {
         return this.schema.minItems && this.value && this.value.length <= this.schema.minItems;
     }
-    convertToInput(_value) {
-        throw new Error("IMPOSSIBLE : PAS D'INPUT POUR LES ARRAY!");
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
     static get styles() {
         return [
             ...super.styles,
-            i$4 `.panel {
+            i$5 `.panel {
                     padding:5px;
                     border: solid 1px lightgray;
                     border-radius:10px; 
                     user-select: none;
                 }`
         ];
+    }
+    toField() {
+        // all is done at rendering
+    }
+    toValue() {
+        // items are updated but array reference doesn't change 
     }
     update(changedProperties) {
         if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema).length !== 0) {
@@ -32444,8 +32527,7 @@ let FzArray$1 = class FzArray extends FZCollection {
         return x `<li class="list-group-item"> ${this.renderItem(schema, index)} </li>`;
     }
     focusout() {
-        // MBZ A VERIFIER this.close()
-        this.triggerChange();
+        this.change();
     }
     focus() {
         if (this.fields().length > 0) {
@@ -32464,9 +32546,9 @@ let FzArray$1 = class FzArray extends FZCollection {
         this.eventStop(evt);
     }
     close(evt) {
-        this.current = null;
-        this.triggerChange();
         this.eventStop(evt);
+        this.current = null;
+        this.change();
     }
     drag(index, ev) {
         if (ev.dataTransfer) {
@@ -32507,9 +32589,7 @@ let FzArray$1 = class FzArray extends FZCollection {
         this.value.splice(index, 1);
         this.schemas.splice(index, 1);
         this.current = null;
-        this.requestUpdate();
-        this.triggerChange();
-        this.check();
+        this.change();
     }
     addItem(schema, edit = true) {
         if (this.value == null)
@@ -32519,9 +32599,7 @@ let FzArray$1 = class FzArray extends FZCollection {
         this.schemas.push(schema);
         if (edit)
             this.open(this.value.length - 1);
-        this.triggerChange();
-        this.requestUpdate();
-        this.check();
+        this.change();
     }
     toggleDropdown() {
         const display = this.shadowRoot?.querySelector(".dropdown-menu")?.style.display;
@@ -32580,7 +32658,7 @@ let FzArray$1 = class FzArray extends FZCollection {
     }
 };
 __decorate([
-    n$1({ attribute: false }),
+    n$2({ attribute: false }),
     __metadata("design:type", Object)
 ], FzArray$1.prototype, "current", null);
 FzArray$1 = __decorate([
@@ -32594,12 +32672,6 @@ FzArray$1 = __decorate([
  * @prop index
  */
 let FzObject = class FzObject extends FZCollection {
-    convertToInput(_value) {
-        throw new Error("IMPOSSIBLE : PAS D'INPUT POUR LES OBJECT!");
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
     #collapsed_accessor_storage = false;
     get collapsed() { return this.#collapsed_accessor_storage; }
     set collapsed(value) { this.#collapsed_accessor_storage = value; }
@@ -32612,7 +32684,7 @@ let FzObject = class FzObject extends FZCollection {
     static get styles() {
         return [
             ...super.styles,
-            i$4 `
+            i$5 `
                 .panel {
                     padding:5px;
                     border: solid 1px lightgray;
@@ -32621,6 +32693,12 @@ let FzObject = class FzObject extends FZCollection {
                 }
                 `
         ];
+    }
+    toField() {
+        // all is done at rendering
+    }
+    toValue() {
+        // properties are updated but object reference doesn't change 
     }
     check() {
         if (!this.validator)
@@ -32851,11 +32929,11 @@ let FzObject = class FzObject extends FZCollection {
     }
 };
 __decorate([
-    n$1({ attribute: false }),
+    n$2({ attribute: false }),
     __metadata("design:type", Object)
 ], FzObject.prototype, "collapsed", null);
 __decorate([
-    n$1({ attribute: false }),
+    n$2({ attribute: false }),
     __metadata("design:type", Object)
 ], FzObject.prototype, "activegroup", null);
 FzObject = __decorate([
@@ -32873,7 +32951,7 @@ FzObject = __decorate([
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const u=(e,s,t)=>{const r=new Map;for(let l=s;l<=t;l++)r.set(e[l],l);return r},c=e$2(class extends i{constructor(e){if(super(e),e.type!==t$1.CHILD)throw Error("repeat() can only be used in text expressions")}dt(e,s,t){let r;void 0===t?t=s:void 0!==s&&(r=s);const l=[],o=[];let i=0;for(const s of e)l[i]=r?r(s,i):i,o[i]=t(s,i),i++;return {values:o,keys:l}}render(e,s,t){return this.dt(e,s,t).values}update(s,[t,r$1,c]){const d=p(s),{values:p$1,keys:a}=this.dt(t,r$1,c);if(!Array.isArray(d))return this.ut=a,p$1;const h=this.ut??=[],v$1=[];let m$1,y,x=0,j=d.length-1,k=0,w=p$1.length-1;for(;x<=j&&k<=w;)if(null===d[x])x++;else if(null===d[j])j--;else if(h[x]===a[k])v$1[k]=v(d[x],p$1[k]),x++,k++;else if(h[j]===a[w])v$1[w]=v(d[j],p$1[w]),j--,w--;else if(h[x]===a[w])v$1[w]=v(d[x],p$1[w]),r(s,v$1[w+1],d[x]),x++,w--;else if(h[j]===a[k])v$1[k]=v(d[j],p$1[k]),r(s,d[x],d[j]),j--,k++;else if(void 0===m$1&&(m$1=u(a,k,w),y=u(h,x,j)),m$1.has(h[x]))if(m$1.has(h[j])){const e=y.get(a[k]),t=void 0!==e?d[e]:null;if(null===t){const e=r(s,d[x]);v(e,p$1[k]),v$1[k]=e;}else v$1[k]=v(t,p$1[k]),r(s,d[x],t),d[e]=null;k++;}else M(d[j]),j--;else M(d[x]),x++;for(;k<=w;){const e=r(s,v$1[w+1]);v(e,p$1[k]),v$1[k++]=e;}for(;x<=j;){const e=d[x++];null!==e&&M(e);}return this.ut=a,m(s,v$1),T}});
+const u=(e,s,t)=>{const r=new Map;for(let l=s;l<=t;l++)r.set(e[l],l);return r},c=e$2(class extends i$1{constructor(e){if(super(e),e.type!==t$1.CHILD)throw Error("repeat() can only be used in text expressions")}dt(e,s,t){let r;void 0===t?t=s:void 0!==s&&(r=s);const l=[],o=[];let i=0;for(const s of e)l[i]=r?r(s,i):i,o[i]=t(s,i),i++;return {values:o,keys:l}}render(e,s,t){return this.dt(e,s,t).values}update(s,[t,r$1,c]){const d=p(s),{values:p$1,keys:a}=this.dt(t,r$1,c);if(!Array.isArray(d))return this.ut=a,p$1;const h=this.ut??=[],v$1=[];let m$1,y,x=0,j=d.length-1,k=0,w=p$1.length-1;for(;x<=j&&k<=w;)if(null===d[x])x++;else if(null===d[j])j--;else if(h[x]===a[k])v$1[k]=v(d[x],p$1[k]),x++,k++;else if(h[j]===a[w])v$1[w]=v(d[j],p$1[w]),j--,w--;else if(h[x]===a[w])v$1[w]=v(d[x],p$1[w]),r(s,v$1[w+1],d[x]),x++,w--;else if(h[j]===a[k])v$1[k]=v(d[j],p$1[k]),r(s,d[x],d[j]),j--,k++;else if(void 0===m$1&&(m$1=u(a,k,w),y=u(h,x,j)),m$1.has(h[x]))if(m$1.has(h[j])){const e=y.get(a[k]),t=void 0!==e?d[e]:null;if(null===t){const e=r(s,d[x]);v(e,p$1[k]),v$1[k]=e;}else v$1[k]=v(t,p$1[k]),r(s,d[x],t),d[e]=null;k++;}else M(d[j]),j--;else M(d[x]),x++;for(;k<=w;){const e=r(s,v$1[w+1]);v(e,p$1[k]),v$1[k++]=e;}for(;x<=j;){const e=d[x++];null!==e&&M(e);}return this.ut=a,m(s,v$1),T}});
 
 /**
  * @prop schema
@@ -32884,6 +32962,12 @@ const u=(e,s,t)=>{const r=new Map;for(let l=s;l<=t;l++)r.set(e[l],l);return r},c
 let FzArray = class FzArray extends FZCollection {
     content;
     validator;
+    toField() {
+        // all is done at rendering
+    }
+    toValue() {
+        // items are updated but array reference doesn't change 
+    }
     renderField() {
         return x `
             <div class="form-group row">
@@ -32953,12 +33037,6 @@ let FzArray = class FzArray extends FZCollection {
             this.value.push(value);
         }
     }
-    convertToInput(_value) {
-        throw new Error("IMPOSSIBLE : PAS D'INPUT POUR LES ENUM-ARRAY!");
-    }
-    convertToValue(value) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
     getItems() {
         const enums = this.schema.items?.enum;
         if (enums)
@@ -32999,7 +33077,7 @@ let FzDialog = class FzDialog extends Base {
     static get styles() {
         return [
             ...super.styles,
-            i$4 `
+            i$5 `
             .modal-body {
                 max-height: 75vh; min-height: 50vh; overflow-y: auto;
             }`
@@ -33071,15 +33149,15 @@ let FzDialog = class FzDialog extends Base {
     }
 };
 __decorate([
-    n$1({ attribute: 'modal-title' }),
+    n$2({ attribute: 'modal-title' }),
     __metadata("design:type", Object)
 ], FzDialog.prototype, "modalTitle", null);
 __decorate([
-    n$1({ attribute: 'ok-label' }),
+    n$2({ attribute: 'ok-label' }),
     __metadata("design:type", Object)
 ], FzDialog.prototype, "okLabel", null);
 __decorate([
-    n$1({ attribute: 'dismiss-label' }),
+    n$2({ attribute: 'dismiss-label' }),
     __metadata("design:type", Object)
 ], FzDialog.prototype, "dismissLabel", null);
 FzDialog = __decorate([
@@ -33109,7 +33187,7 @@ let FzBarcodeDialog = class FzBarcodeDialog extends Base {
     static get styles() {
         return [
             ...super.styles,
-            i$4 `
+            i$5 `
             div {
                 color: black
             }
@@ -33216,7 +33294,7 @@ let FzBarcodeDialog = class FzBarcodeDialog extends Base {
     }
 };
 __decorate([
-    r$3(),
+    r$4(),
     __metadata("design:type", Number)
 ], FzBarcodeDialog.prototype, "state", null);
 FzBarcodeDialog = __decorate([
@@ -33244,7 +33322,7 @@ let FzPhotoDlg = class FzPhotoDlg extends Base {
     static get styles() {
         return [
             ...super.styles,
-            i$4 `
+            i$5 `
             div {
                 color: black
             }
@@ -33392,7 +33470,7 @@ let FzPhotoDlg = class FzPhotoDlg extends Base {
     }
 };
 __decorate([
-    r$3(),
+    r$4(),
     __metadata("design:type", Number)
 ], FzPhotoDlg.prototype, "state", null);
 FzPhotoDlg = __decorate([
@@ -33413,7 +33491,7 @@ let FzItemDlg = class FzItemDlg extends Base {
     static get styles() {
         return [
             ...super.styles,
-            i$4 `
+            i$5 `
             div {
                 color: black
             }
@@ -33494,7 +33572,7 @@ let FzItemDlg = class FzItemDlg extends Base {
     }
 };
 __decorate([
-    n$1({ type: Object }),
+    n$2({ type: Object }),
     __metadata("design:type", Object)
 ], FzItemDlg.prototype, "reference", null);
 FzItemDlg = __decorate([
@@ -33539,7 +33617,7 @@ class SchemaCompiler {
                 new CSPointer(this.root),
                 new CSRoot(this.root),
                 new CSTargetType(this.root),
-                new CSAppEnum(this.root, options),
+                //new CSAppEnum(this.root,options,),
                 new CSEnum(this.root),
                 new CSEnumArray(this.root),
                 new CSUniform(this.root),
@@ -33771,23 +33849,23 @@ class CSTargetType extends CompilationStep {
  * Adds a oneOf enum schema obtained through options.ref callback
  * provided at form initialization
  */
-class CSAppEnum extends CompilationStep {
-    options;
-    constructor(root, options) {
-        super(root, "enumRef");
-        this.options = options;
-    }
-    appliable(schema) {
-        return this.property in schema;
-    }
-    apply(schema) {
-        if (!this.options.ref)
-            throw Error(`missing 'enumRef' function in options`);
-        const list = this.options.ref(schema.enumRef);
-        const oneof = list.map((x) => ({ "const": x.value, "title": x.title }));
-        schema.oneOf = oneof;
-    }
-}
+// class CSAppEnum extends CompilationStep {
+//     private options: any
+//     constructor(root: Schema, options: any) {
+//         super(root,"enumRef")
+//         this.options = options
+//     }
+//     override appliable(schema: Schema) { // when property absent
+//         return this.property in schema
+//     }
+//     override apply(schema: Schema): void {
+//         if (!this.options.ref)
+//             throw Error(`missing 'ref' function in options`)
+//         const list = this.options.ref(schema.enumRef)
+//         const oneof: any[] = list.map((x: any) => ({ "const": x.value, "title": x.title }))
+//         schema.oneOf = oneof
+//     }
+// }
 /**
  * Adds a boolean property 'isenum' true if enumeration detected
  * and only primitive types may be enums
@@ -33807,7 +33885,7 @@ class CSEnum extends CompilationStep {
         schema.isenum = false;
         switch (true) {
             // allow only primitive types to be enums
-            case !isprimitive(schema.basetype): break;
+            case !isPrimitive(schema): break;
             // it is an enumeration only for one of this cases
             case !!schema.enum:
             case schema.oneOf && schema.oneOf.every((sch) => 'const' in sch):
@@ -33831,7 +33909,7 @@ class CSEnumArray extends CompilationStep {
         return !(this.property in schema);
     }
     apply(schema) {
-        schema.isenumarray = isprimitive(schema.basetype) && isenumarray(schema);
+        schema.isenumarray = isPrimitive(schema) && isenumarray(schema);
     }
 }
 /**
@@ -33946,7 +34024,7 @@ class CSField extends CompilationStep {
     apply(schema) {
         if ("const" in schema)
             return schema.field = 'fz-constant';
-        if (schema.refTo && isprimitive(schema.basetype)) {
+        if (schema.refTo && isPrimitive(schema)) {
             if (!schema.filter)
                 schema.filter = () => true;
             return schema.field = 'fz-enum';
@@ -34482,51 +34560,51 @@ let FzForm = class FzForm extends Base {
     }
 };
 __decorate([
-    r$3(),
+    r$4(),
     __metadata("design:type", Object)
 ], FzForm.prototype, "i_options", null);
 __decorate([
-    n$1({ type: Object, attribute: "schema", converter: schemaAttrConverter }),
+    n$2({ type: Object, attribute: "schema", converter: schemaAttrConverter }),
     __metadata("design:type", Object)
 ], FzForm.prototype, "i_schema", null);
 __decorate([
-    n$1({ type: Boolean, attribute: "actions" }),
+    n$2({ type: Boolean, attribute: "actions" }),
     __metadata("design:type", Object)
 ], FzForm.prototype, "actions", null);
 __decorate([
-    n$1({ type: Boolean, attribute: "readonly" }),
+    n$2({ type: Boolean, attribute: "readonly" }),
     __metadata("design:type", Object)
 ], FzForm.prototype, "readonly", null);
 __decorate([
-    n$1({ type: Boolean, attribute: "checkin" }),
+    n$2({ type: Boolean, attribute: "checkin" }),
     __metadata("design:type", Object)
 ], FzForm.prototype, "checkIn", null);
 __decorate([
-    n$1({ type: Boolean, attribute: "checkout" }),
+    n$2({ type: Boolean, attribute: "checkout" }),
     __metadata("design:type", Object)
 ], FzForm.prototype, "checkOut", null);
 __decorate([
-    n$1({ type: String, attribute: 'oninit', converter: (v) => v }),
+    n$2({ type: String, attribute: 'oninit', converter: (v) => v }),
     __metadata("design:type", Object)
 ], FzForm.prototype, "oninit", void 0);
 __decorate([
-    n$1({ type: String, attribute: 'onready', converter: (v) => v }),
+    n$2({ type: String, attribute: 'onready', converter: (v) => v }),
     __metadata("design:type", Object)
 ], FzForm.prototype, "onready", void 0);
 __decorate([
-    n$1({ type: String, attribute: 'onvaliddata', converter: (v) => v }),
+    n$2({ type: String, attribute: 'onvaliddata', converter: (v) => v }),
     __metadata("design:type", Object)
 ], FzForm.prototype, "onvaliddata", void 0);
 __decorate([
-    n$1({ type: String, attribute: 'oninvaliddata', converter: (v) => v }),
+    n$2({ type: String, attribute: 'oninvaliddata', converter: (v) => v }),
     __metadata("design:type", Object)
 ], FzForm.prototype, "oninvaliddata", void 0);
 __decorate([
-    n$1({ type: String, attribute: 'onvalidate', converter: (v) => v }),
+    n$2({ type: String, attribute: 'onvalidate', converter: (v) => v }),
     __metadata("design:type", Object)
 ], FzForm.prototype, "onvalidate", void 0);
 __decorate([
-    n$1({ type: String, attribute: 'ondismiss', converter: (v) => v }),
+    n$2({ type: String, attribute: 'ondismiss', converter: (v) => v }),
     __metadata("design:type", Object)
 ], FzForm.prototype, "ondismiss", void 0);
 FzForm = __decorate([
@@ -34534,5 +34612,55 @@ FzForm = __decorate([
     __metadata("design:paramtypes", [])
 ], FzForm);
 
-export { FzForm, FzMarkdownIt };
+let CheckTest = class CheckTest extends r$1 {
+    #selected_accessor_storage = -1;
+    get selected() { return this.#selected_accessor_storage; }
+    set selected(value) { this.#selected_accessor_storage = value; }
+    //@queryAll("input") private accessor radios : HTMLInputElement[] = []
+    enums = [{ value: "yes", title: "YES" }, { value: "no", title: "NO" }];
+    //private value = false
+    // override toField() {
+    //     if ( notNull(this.input) && notNull(this.selected) && notNull(this.radios)) {
+    //         this.radios[this.selected].checked = !!this.value            
+    //     }
+    // }
+    // override toValue() {
+    //     if ( notNull(this.selected) && notNull(this.enums)) {
+    //         this.value = this.enums[this.selected].value
+    //     }
+    // }
+    render() {
+        return x `
+            ${this.enums?.map((item, i) => x `
+                <div class="form-check form-check-inline">
+                    <input 
+                        class="form-check-input" 
+                        type="radio" 
+                        name="input" 
+                        .value=${item.value} 
+                        @click="${(evt) => this.select(i, evt)}"
+                        ?checked="${this.selected == i}"
+                    />
+                    <label class="form-check-label" for="${i}-input">${item.title}</label>
+                </div>`)}`;
+    }
+    select(index, event) {
+        event.stopPropagation();
+        this.selected = index;
+        // if (notNull(this.radios)) {
+        //     this.radios[this.selected].checked = true
+        // }
+        //this.requestUpdate()
+        //this.change()
+    }
+};
+__decorate([
+    n$2({ type: Number, attribute: false }),
+    __metadata("design:type", Number)
+], CheckTest.prototype, "selected", null);
+CheckTest = __decorate([
+    t$4("check-test")
+], CheckTest);
+
+export { CheckTest, FzForm, FzMarkdownIt };
 //# sourceMappingURL=formulizer.js.map

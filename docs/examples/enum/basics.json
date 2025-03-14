@@ -52,5 +52,9 @@
 
         }
     },
-    "data": {}
+    "data": {
+        "answer" : "no",
+        "color" : "blue",
+        "country" : "Canada"
+    }
 }

@@ -2,7 +2,7 @@
 import { customElement} from "lit/decorators.js"
 import {  html } from "lit"
 import {ifDefined} from 'lit/directives/if-defined.js';
-import { isEmptyValue } from "../lib/tools"
+import { notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 
 function iso(date = new Date()) {
@@ -18,10 +18,24 @@ function iso(date = new Date()) {
 @customElement("fz-date")
 export class FzInputDate extends FzInputBase {
 
+    override toField() {
+        if (notNull(this.input)) {
+            const redate = /\d\d\d\d-\d\d-\d\d/
+            this.input.valueAsDate = redate.test(this.value) ? new Date(this.value) : null
+        }
+    }
+
+    override toValue() {
+        if (notNull(this.input)) {
+            this.value =  notNull(this.input.valueAsDate) ? iso(this.input.valueAsDate) : undefined
+        }
+    }
+
     renderInput() {
-        return html`<input 
+        return html`<input
+            id="input" 
             class="form-control" 
-            type="date" id="input"
+            type="date" 
             ?readonly="${this.readonly}" 
             @input="${this.change}"
             min="${ifDefined(this.min)}"
@@ -38,17 +52,4 @@ export class FzInputDate extends FzInputBase {
         return this.schema.maximum
     }
 
-    convertToInput(value: any): any {
-        const isore = /\d\d\d\d-\d\d-\d\d/
-        switch(true) {
-            case typeof value === 'string' && isore.test(value) : return iso(new Date(value))
-            case typeof value === 'number' : return iso(new Date(value))
-            case value instanceof Date : return iso(value)
-            default: return ""
-        }
-    }
-    
-    convertToValue(value: any): any {
-        return isEmptyValue(value) ? this.empty : iso(new Date(value))
-    }
 }

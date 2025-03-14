@@ -2,7 +2,7 @@
 import { customElement} from "lit/decorators.js"
 import {  html } from "lit"
 import {ifDefined} from 'lit/directives/if-defined.js';
-import { isEmptyValue } from "../lib/tools"
+import { notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 
 /**
@@ -13,6 +13,17 @@ import { FzInputBase } from "./fz-input-base";
  */
 @customElement("fz-textarea")
 export class FzInputTextarea extends FzInputBase {
+
+    override toField(): void {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "")
+        }
+    }
+    override toValue(): void {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.value) ? this.input.value : undefined
+        }
+    }
 
     renderInput() {
         return html`
@@ -34,11 +45,5 @@ export class FzInputTextarea extends FzInputBase {
     get maxlength() { return this.schema.maxLength }
     get pattern() { return this.schema.pattern }
     //get password() {return !!this.schema.options?.password }
-    
-    convertToInput(value: any) {
-        return value == null ? null : value.toString()
-    }
-    convertToValue(value: any) {
-        return isEmptyValue(value) ? this.empty : value.toString();
-    }
+
 }

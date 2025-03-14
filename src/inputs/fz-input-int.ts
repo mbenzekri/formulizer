@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
-import {  html } from "lit"
-import { isEmptyValue, isNumber } from "../lib/tools"
+import { html } from "lit"
+import { isNumber, notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 import { ifDefined } from "lit/directives/if-defined.js";
 
@@ -13,6 +13,17 @@ import { ifDefined } from "lit/directives/if-defined.js";
  */
 @customElement("fz-integer")
 export class FzInputInteger extends FzInputBase {
+
+    override toField(): void {
+        if (notNull(this.input)) {
+            this.input.valueAsNumber = isNumber(this.value) ? this.value : NaN
+        }
+    }
+    override toValue(): void {
+        if (notNull(this.input)) {
+            this.value = isNumber(this.input.valueAsNumber) ? Math.floor(this.input.valueAsNumber) : undefined
+        }
+    }
 
     renderInput() {
         return html`
@@ -47,11 +58,5 @@ export class FzInputInteger extends FzInputBase {
         return
    }
 
-   convertToInput(value: any) {
-        return isNaN(value) ? null : Math.floor(value)
-    }
 
-    convertToValue(value: any) {
-        return isEmptyValue(value) || isNaN(value) ? this.empty : value;
-    }
 }

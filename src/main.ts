@@ -28,4 +28,5 @@ import "./components/fz-item-dlg"
 
 import { FzForm } from "./fz-form";
 import { FzMarkdownIt } from "./components/markdown-it";
-export { FzForm, FzMarkdownIt }
+import { CheckTest } from "./components/check-test";
+export { FzForm, FzMarkdownIt, CheckTest }

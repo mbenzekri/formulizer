@@ -2,14 +2,15 @@
 
 ## What is Formulizer
 
-Formulizer is a W3C-compliant web component that dynamically renders UI forms based on 
-a declarative JSON Schema to edit plain javascript objects.
+Formulizer is a W3C-compliant web component that dynamically renders UI forms. Formz produced by Formulizer are described by 
+an extended JSON Schema format.
 
 >- Formulizer is provided as a [W3C web component](https://www.webcomponents.org/introduction)
 >- The component (tag: `<fz-form>`) expect a form description (in `schema` property) and initial data (in `data` property)
->- The form description is provided as [JSON Schema ](https://json-schema.org/).
+>- The form description is provided in [JSON Schema ](https://json-schema.org/) format.
+>- Formulizer extends this format with specific keywords.
+>- JSON Schema didn't provided UI oriented keywords therefore Formulizer extends JSON Schema with specific keywords.
 >- The generated form UI is designed with bootstrap 5.
->- JSON Schema didn't provided UI oriented keywords therefor keywords have been added to customize your form
 >- The data is provided and retrieved in Javascript plain object (JSON serializable).  
 >- The bundle is provided as a unique javascript file to be loaded in your page (provide in CDN).
 >- Formulizer is developped using typescript and lit3.

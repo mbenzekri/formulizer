@@ -19,6 +19,10 @@ const invalidkeys = [
 
 export abstract class FzInputBase extends FzElement {
 
+    abstract renderInput(): any;
+    abstract override toField(): void;
+    abstract override toValue(): void;
+
     /**
      * return HTMLInputElement used to edit field value
      * pay attention may not always exit, some fields dont use HTML inputs (ex: signature) 
@@ -37,42 +41,19 @@ export abstract class FzInputBase extends FzElement {
 
     /**
      * on first updated set listeners
-     * @param _changedProperties (unused)
      */
     override firstUpdated(_changedProperties: any) {
         // for debug 'F9' output state of field
-        if (this.input) { 
-            this.listen(this.input,'keydown', (evt: Event) => this.debugKey(evt as KeyboardEvent))
-            this.input.value = this.convertToInput(this.value)
-        }
+        if (this.input) this.listen(this.input,'keydown', (evt: Event) => this.debugKey(evt as KeyboardEvent))
+        // initialize input from value
+        this.toField()
         this.check()
     }
 
-    override update(changedProps: any) {
-        super.update(changedProps)
-        if (this.input) this.input.value = this.convertToInput(this.value)
-    }
-    
-    /**
-     * generic change method is ok, but some special cases must be managed  
-     * for specific input types
-     */
-    override change() {
-        if (this.input) {
-            // cas particulier des 'boolean' qui fonctionnent differements des input.value
-            if (this.schema.basetype === 'boolean') this.value = this.input.checked
-            else this.value = this.convertToValue(this.input.valueAsNumber ? this.input.valueAsNumber : this.input.value)
-        }
-        super.change()
-    }
     /**
      * overide focus for all input based fields
      */
     override focus() { this.input?.focus() }
-
-    abstract renderInput(): any;
-    abstract convertToInput(_value: any): any;
-    abstract convertToValue(value: any): any;
 
     /**
      * trap F9 key down to log debug Field state

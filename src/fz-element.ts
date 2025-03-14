@@ -56,6 +56,9 @@ export abstract class FzElement extends Base {
 
     abstract renderField(): TemplateResult;
     abstract check(): void;
+    abstract toField(): void;
+    abstract toValue(): void;
+
 
     get value(): any {
         // Warning side effects is prohibited in this method, never update this.data 
@@ -65,10 +68,9 @@ export abstract class FzElement extends Base {
         if (this.name && !(this.name in this.data)) this.data[this.name] = undefined
         return this.data[this.key]
     }
-    set value(val: any) {
-        this.cascadeValue(val)
-        this.check()
-        this.triggerChange()
+    set value(value: any) {
+        if (value === this.value) return
+        this.cascadeValue(value)
     }
 
     /**
@@ -184,7 +186,7 @@ export abstract class FzElement extends Base {
      * calculate label for this field
      */
     get label() {
-        return this.isItem ? (this.index != null ? this.index + 1 : '-') : (this.schema.title || this.schema.description || this.name)
+        return (this.isItem ? String(this.index != null ? this.index + 1 : '-') : this.schema.title ?? this.name) ?? ""
     }
     /**
      * return true if this field is item of array, false otherwise
@@ -424,11 +426,18 @@ export abstract class FzElement extends Base {
     }
     /**
      *  'change' handler when changes occurs on inputed value
-     * - update the model value of the field
-     * - check to update validity 
+     * - update the model value from the field
+     * - eval 'change' keyword
+     * - process a validation 
+     * - triggers needed cha,ge events for update and observers
      */
     protected change() {
+        // changed occurs evaluate change keyword extension
+        this.toValue()
+        this.evalExpr("change")
+        // validation and error dispatching
         this.check()
+        // signal field update for ascendant
         const event = new CustomEvent('update', {
             detail: {
                 data: this.data,
@@ -437,13 +446,9 @@ export abstract class FzElement extends Base {
             },
             bubbles: true,
             composed: true
-        });
+        })
         this.dispatchEvent(event);
-    }
-
-
-    protected triggerChange() {
-        this.evalExpr("change")
+        // signal field update for observers
         if (this.schema.observers && this.schema.observers.length) {
             this.dispatchEvent(new CustomEvent('observed-changed', {
                 detail: {
@@ -454,8 +459,8 @@ export abstract class FzElement extends Base {
                 composed: true
             }))
         }
+        this.requestUpdate()
     }
-
 
     /**
      * calculate an abstract string (summary) for this field or a property/item of field

@@ -1,6 +1,7 @@
-import { IAsset } from "../inputs/fz-input-asset";
 import { Schema } from "./schema";
 import { IBlobStore } from "./storage";
+
+
 
 type JSONValue = 
   | string
@@ -18,11 +19,7 @@ interface JSONArray extends Array<JSONValue> {}
 
 export { JSONValue, JSONObject, JSONArray }
 
-export type EnumOption = {
-    value: JSONValue;
-    title: string;
-  
-} 
+export type EnumItem = { title: string; value: any }
 
 export type ExprFunc<T> = (schema: Schema, value: any, parent: Pojo, property: string | number, userdata: object) => T | null
 export type Pojo = { [key: string]: any }
@@ -38,11 +35,16 @@ export type FieldOrder = {
 
 export type StoreItem = {uuid: string, blob: Blob, filename: string}
 
+export interface IAsset {
+  select: (fieldasset: any, value: any, selectCallback: (selected:string) => void) => Promise<void>,
+  done: () => Promise<void>
+}
 
 export type IOptions =  {
   storage?: IBlobStore,
   userdata?: any,
   asset?: IAsset,
   dialect?: string
+  enums?: (id:string) => EnumItem[] 
 }
 

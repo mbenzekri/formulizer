@@ -1,21 +1,50 @@
 import { Pojo } from "../lib/types"
 import { Schema } from "../lib/schema"
 
+export function notNull<A>(value:A): value is Exclude<A,null|undefined>
+{
+    return value != null
+}
+
+export function isNull(value:any): value is null|undefined
+{
+    return value == null
+}
+
+
+export function isString(value: any): value is string {
+    return value !== null && typeof value === "string"
+}
+
 export function isArray(value: any): value is Array<any> {
     return Array.isArray(value)
 }
 
-export function isNumber(value: any): value is Number {
+export function isNumber(value: any): value is number {
     return typeof value === "number" && !isNaN(value)
 }
 
-
 export function isObject(value: unknown): value is Record<string,any> {
-    return value !== null && typeof value === "object" && !isArray(value) ;
+    return value !== null && typeof value === "object" && !isArray(value)
 }
 
 export function isFunction(value: unknown): value is Function {
-    return typeof value === "function" && value !== null;
+    return typeof value === "function" && value !== null
+}
+
+const primitivetypes = new Set<string>(['string', 'integer', 'number', 'boolean'])
+const primitiveornulltypes = new Set<string>(['string', 'integer', 'number', 'boolean', 'null'])
+
+export function isPrimitive(schema?: Schema): boolean;
+export function isPrimitive(schema?: Schema, ornull?: boolean): boolean;
+export function isPrimitive(type?: string): type is ('string' | 'integer' | 'number' | 'boolean' | 'array');
+export function isPrimitive(type?: string, ornull?: true): type is ('string' | 'integer' | 'number' | 'boolean' | 'null');
+export function isPrimitive(value?: string | Schema, ornull?: boolean) {
+    if (!ornull  && isObject(value) && value.target.every(t => primitivetypes.has(t))) return true  
+    if (ornull  && isObject(value) && value.target.every(t => primitiveornulltypes.has(t))) return true  
+    if (!ornull && typeof value == "string" && primitivetypes.has(value)) return true
+    if (ornull && typeof value == "string" && primitiveornulltypes.has(value)) return true
+    return false
 }
 
 export function intersect(sets: Set<string>[]): Set<string> {

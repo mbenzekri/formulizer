@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
 import {  html, css } from "lit"
-import { isEmptyValue, isNumber } from "../lib/tools"
+import { isNumber, notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base"
 import { ifDefined } from "lit/directives/if-defined.js"
 
@@ -14,6 +14,17 @@ const DECIMAL_SEPARATOR = (1.1).toLocaleString().substring(1, 2)
  */
 @customElement("fz-float")
 export class FzInputFloat extends FzInputBase {
+
+    override toField(): void {
+        if (notNull(this.input)) {
+            this.input.valueAsNumber = isNumber(this.value)  ? this.value : NaN
+        }
+    }
+    override toValue(): void {
+        if (notNull(this.input)) {
+            this.value = isNumber(this.input.valueAsNumber) ? this.input.valueAsNumber : undefined
+        }
+    }
 
     static override get styles() {
         return [
@@ -67,11 +78,4 @@ export class FzInputFloat extends FzInputBase {
         }
     }
 
-    convertToInput(value: any) {
-        return isNaN(value) ? null : value
-    }
-
-    convertToValue(value: any) {
-        return isEmptyValue(value) || isNaN(value) ? this.empty : value;
-    }
 }

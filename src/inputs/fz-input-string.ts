@@ -2,7 +2,7 @@
 import { customElement} from "lit/decorators.js"
 import {  html, css } from "lit"
 import {ifDefined} from 'lit/directives/if-defined.js';
-import { isEmptyValue } from "../lib/tools"
+import { notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 
 /**
@@ -13,6 +13,18 @@ import { FzInputBase } from "./fz-input-base";
  */
 @customElement("fz-string")
 export class FzInputString extends FzInputBase {
+
+
+    override toField(): void {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "")
+        }
+    }
+    override toValue(): void {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.value) ? this.input.value : this.empty 
+        }
+    }
 
     static override get styles() {
         return [
@@ -44,10 +56,7 @@ export class FzInputString extends FzInputBase {
                 </div>
             </div>`
     }
-    override change() {
-        super.change()
-        this.requestUpdate()
-    }
+
     get minlength() { return this.schema.minLength }
     get maxlength() { return this.schema.maxLength }
     get pattern() { return this.schema.pattern }
@@ -61,11 +70,4 @@ export class FzInputString extends FzInputBase {
         }
     }
     
-    convertToInput(value: any) {
-        return (value == null || value == "") ? "" : value.toString()
-    }
-
-    convertToValue(value: any) {
-        return isEmptyValue(value) ? this.empty : value.toString();
-    }
 }

@@ -1,7 +1,8 @@
-import { customElement } from "lit/decorators.js"
+import { customElement, property, queryAll } from "lit/decorators.js"
 import { html,css } from "lit"
 import { FzEnumBase } from "./fz-enum-base";
 import { classMap } from 'lit/directives/class-map.js';
+import { isNull, notNull } from "../lib/tools";
 
 /**
  * @prop schema
@@ -11,6 +12,24 @@ import { classMap } from 'lit/directives/class-map.js';
  */
 @customElement("fz-enum")
 export class FzEnum extends FzEnumBase {
+    @property({type: Number, attribute: false}) accessor selected: number = -1
+    @queryAll("option") private accessor options : HTMLOptionElement[] = []
+
+    override toField() {
+        this.options.forEach(r =>  r.selected = false)
+        if (isNull(this.value) || isNull(this.enums))  {
+            this.selected = -1
+        } else {
+            this.selected = this.enums.findIndex(item => item.value == this.value) 
+            if (this.selected >= 0)  this.options[this.selected].selected = true
+        }
+    }
+
+    override toValue() {
+        if (notNull(this.enums) && this.selected >= 0) {
+            this.value = this.enums[this.selected].value
+        }
+    }
 
     static override get styles() {
         return [
@@ -24,16 +43,23 @@ export class FzEnum extends FzEnumBase {
     renderEnum() {
         return html`
             <select 
-                class="${classMap({ 'form-select': true, 'readonly': this.readonly })}"
                 id="input" 
-                .value="${this.value}" 
-                @input="${this.change}" 
+                @change="${this.select}" 
                 ?required="${this.required}"
+                class="${classMap({ 'form-select': true, 'readonly': this.readonly })}"
             >
                 ${this.withAdd ? html`<option style="color:red;text-align:center" ?disabled="${this.readonly}" ?selected="${false}" .value="${'~~ADD~~'}">Add ...</option>` : ''}
                 ${ this.showNullChoice ? html`<option style="color:red;text-align:center" ?disabled="${this.readonly}" ?selected="${this.isSelected(null)}" .value="${'~~EMPTY~~'}"> ${this.required ? 'Choose a value...' : '<vide>'}</option>` : '' }
-                ${this.enums?.map(item => html`<option  ?disabled="${this.readonly}"  ?selected="${this.isSelected(item.value)}" .value="${item.value == null ? "" : item.value}"><b>${item.label}</b></option>`)}
+                ${this.enums?.map((item,i) => html`
+                    <option id="option" ?disabled="${this.readonly}"  ?selected="${this.selected === i}">
+                        <b>${item.title}</b>
+                    </option>`)}
             </select>`
+    }
+
+    private select() {
+        this.options.forEach((o,i) => o.selected ? (this.selected = i) : null)
+        this.change()
     }
 
 }

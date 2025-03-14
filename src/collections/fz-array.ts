@@ -2,7 +2,7 @@
 import { customElement,property} from "lit/decorators.js"
 import {  html, css } from "lit"
 import { DataValidator } from "../lib/validation"
-import { formatMsg, getCircularReplacer, getSchema, isEmptyValue, isFunction, isObject } from "../lib/tools"
+import { formatMsg, getCircularReplacer, getSchema, isFunction, isObject } from "../lib/tools"
 import { FZCollection } from "./fz-collection"
 import { EMPTY_SCHEMA, Schema } from "../lib/schema"
 
@@ -28,13 +28,6 @@ export class FzArray extends FZCollection {
         return this.schema.minItems && this.value && this.value.length <= this.schema.minItems
     }
 
-    convertToInput(_value: any) {
-        throw new Error("IMPOSSIBLE : PAS D'INPUT POUR LES ARRAY!")
-    }
-    convertToValue(value: any) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
-
     static override get styles() {
         return [
             ...super.styles,
@@ -45,6 +38,13 @@ export class FzArray extends FZCollection {
                     user-select: none;
                 }`
         ]
+    }
+
+    override toField(): void {
+        // all is done at rendering
+    }
+    override toValue(): void {
+        // items are updated but array reference doesn't change 
     }
 
     override update(changedProperties: Map<string, unknown>) {
@@ -149,8 +149,7 @@ export class FzArray extends FZCollection {
     }
 
     focusout() {
-        // MBZ A VERIFIER this.close()
-        this.triggerChange()
+        this.change()
     }
 
     override focus() {
@@ -170,9 +169,9 @@ export class FzArray extends FZCollection {
         this.eventStop(evt)
     }
     close(evt?: Event) {
-        this.current = null
-        this.triggerChange()
         this.eventStop(evt)
+        this.current = null
+        this.change()
     }
     drag(index: number, ev: DragEvent) {
         if (ev.dataTransfer) {
@@ -211,9 +210,7 @@ export class FzArray extends FZCollection {
         this.value.splice(index, 1)
         this.schemas.splice(index, 1)
         this.current = null
-        this.requestUpdate()
-        this.triggerChange()
-        this.check()
+        this.change()
     }
     private addItem(schema: Schema, edit = true) {
         if (this.value == null) this.value = []
@@ -221,9 +218,7 @@ export class FzArray extends FZCollection {
         this.value.push(value)
         this.schemas.push(schema)
         if (edit) this.open(this.value.length-1)
-        this.triggerChange()
-        this.requestUpdate()
-        this.check()
+        this.change()
     }
 
     private toggleDropdown() {

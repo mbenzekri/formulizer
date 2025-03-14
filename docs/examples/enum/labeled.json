@@ -1,9 +1,15 @@
 {
     "form": {
-        "$id": "https://formulizer/examples/enum_labeled.json",
         "type": "object",
         "title": "Labeled enum",
         "properties": {
+            "yesno": {
+                "title": "Ok?",
+                "oneOf": [
+                    { "const": true, "title": "Yes" },
+                    { "const": false, "title": "No" }
+                ]
+            },
             "dwarfnumber": {
                 "title": "DWarf",
                 "oneOf": [

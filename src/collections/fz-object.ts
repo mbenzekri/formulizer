@@ -5,7 +5,7 @@ import { FZCollection } from "./fz-collection"
 import { FzElement } from "../fz-element"
 import { Pojo, FieldOrder } from "../lib/types"
 import { DataValidator } from "../lib/validation"
-import { formatMsg, getCircularReplacer, isEmptyValue } from "../lib/tools"
+import { formatMsg, getCircularReplacer } from "../lib/tools"
 
 /**
  * @prop schema
@@ -15,12 +15,6 @@ import { formatMsg, getCircularReplacer, isEmptyValue } from "../lib/tools"
  */
 @customElement("fz-object")
 export class FzObject extends FZCollection {
-    convertToInput(_value: any) {
-        throw new Error("IMPOSSIBLE : PAS D'INPUT POUR LES OBJECT!")
-    }
-    convertToValue(value: any) {
-        return isEmptyValue(value) ? this.empty : value;
-    }
 
     @property({ attribute: false }) accessor collapsed = false
     @property({ attribute: false }) accessor activegroup: { [tabname: string]: string } = {}
@@ -41,7 +35,12 @@ export class FzObject extends FZCollection {
                 `
         ]
     }
-
+    override toField(): void {
+        // all is done at rendering
+    }
+    override toValue(): void {
+        // properties are updated but object reference doesn't change 
+    }
     override check() {
         if (!this.validator) return
 

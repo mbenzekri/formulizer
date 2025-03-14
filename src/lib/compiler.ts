@@ -1,7 +1,7 @@
 import { Pojo, FieldOrder, ExprFunc, IOptions } from "./types"
-import { pointerSchema, derefPointerData, complement, intersect, union} from "./tools";
+import { pointerSchema, derefPointerData, complement, intersect, union, isPrimitive} from "./tools";
 import { setSchema,setParent,setRoot} from "./tools"
-import { Schema, CompilationStep, isprimitive, isenumarray,  } from "./schema";
+import { Schema, CompilationStep, isenumarray,  } from "./schema";
 
 /**
  * class to compile schema for fz-form 
@@ -45,7 +45,7 @@ export class SchemaCompiler {
                 new CSPointer(this.root,),
                 new CSRoot(this.root),
                 new CSTargetType(this.root,),
-                new CSAppEnum(this.root,options,),
+                //new CSAppEnum(this.root,options,),
                 new CSEnum(this.root,),
                 new CSEnumArray(this.root,),
                 new CSUniform(this.root,), 
@@ -299,25 +299,25 @@ class CSTargetType extends CompilationStep {
  * Adds a oneOf enum schema obtained through options.ref callback 
  * provided at form initialization
  */
-class CSAppEnum extends CompilationStep {
-    private options: any
+// class CSAppEnum extends CompilationStep {
+//     private options: any
 
-    constructor(root: Schema, options: any) {
-        super(root,"enumRef")
-        this.options = options
-    }
+//     constructor(root: Schema, options: any) {
+//         super(root,"enumRef")
+//         this.options = options
+//     }
 
-    override appliable(schema: Schema) { // when property absent
-        return this.property in schema
-    }
-    override apply(schema: Schema): void {
-        if (!this.options.ref)
-            throw Error(`missing 'enumRef' function in options`)
-        const list = this.options.ref(schema.enumRef)
-        const oneof: any[] = list.map((x: any) => ({ "const": x.value, "title": x.title }))
-        schema.oneOf = oneof
-    }
-}
+//     override appliable(schema: Schema) { // when property absent
+//         return this.property in schema
+//     }
+//     override apply(schema: Schema): void {
+//         if (!this.options.ref)
+//             throw Error(`missing 'ref' function in options`)
+//         const list = this.options.ref(schema.enumRef)
+//         const oneof: any[] = list.map((x: any) => ({ "const": x.value, "title": x.title }))
+//         schema.oneOf = oneof
+//     }
+// }
 
 /**
  * Adds a boolean property 'isenum' true if enumeration detected
@@ -340,7 +340,7 @@ class CSEnum extends CompilationStep {
         schema.isenum = false;
         switch (true) {
             // allow only primitive types to be enums
-            case !isprimitive(schema.basetype): break
+            case !isPrimitive(schema,true): break
             // it is an enumeration only for one of this cases
             case !!schema.enum:
             case schema.oneOf && schema.oneOf.every((sch: Pojo) => 'const' in sch):
@@ -366,7 +366,7 @@ class CSEnumArray extends CompilationStep {
         return !(this.property in schema)
     }
     override apply(schema: Schema): void {
-        schema.isenumarray = isprimitive(schema.basetype) && isenumarray(schema)
+        schema.isenumarray = isPrimitive(schema,true) && isenumarray(schema)
     }
 }
 
@@ -504,7 +504,7 @@ class CSField extends CompilationStep {
 
     override apply(schema: Schema) {
         if ("const" in schema) return schema.field = 'fz-constant'
-        if (schema.refTo && isprimitive(schema.basetype)) {
+        if (schema.refTo && isPrimitive(schema,true)) {
             if (!schema.filter) schema.filter = () => true
             return schema.field = 'fz-enum'
         }

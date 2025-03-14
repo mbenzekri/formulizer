@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property, customElement } from "lit/decorators.js"
 import {  html, css } from "lit"
-import { formatMsg, isEmptyValue } from "../lib/tools"
+import { formatMsg, notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 
 declare class ResizeObserver {
@@ -45,6 +45,17 @@ export class FzInputSignature extends FzInputBase {
     private currentY = 0
     private drawing = false
 
+    override toField(): void {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "")
+        }
+    }
+    override toValue(): void {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.value) ? this.input.value : undefined
+        }
+    }
+
     static override get styles() {
         return [
             ...super.styles,
@@ -68,13 +79,6 @@ export class FzInputSignature extends FzInputBase {
                 <button ?hidden="${this.state === 'read'}" ?disabled="${this.isblank}" type="button" class="col-sm-3 btn btn-primary btn-sm" @click="${this.validate}">Valider</button>
                 <button ?hidden="${this.state === 'read'}" ?disabled="${this.isblank}" type="button" class="col-sm-3 btn btn-primary btn-sm" @click="${this.clear}">Effacer</button>
             </div>`
-    }
-
-    convertToInput(value: any) {
-        return (value == null || value == "") ? null :  value.toString()
-    }
-    convertToValue(value: any) {
-        return isEmptyValue(value) ? this.empty : value;
     }
     
     override firstUpdated(changedProperties: any) {
@@ -230,7 +234,6 @@ export class FzInputSignature extends FzInputBase {
             this.value = dataurl
             if (this.image) this.image.src = dataurl
             this.change()
-            this.requestUpdate()
         }
     }
     clear() {

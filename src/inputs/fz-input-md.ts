@@ -6,6 +6,17 @@ import { FzInputBase } from "./fz-input-base"
 @customElement("fz-markdown")
 export class FzInputMarkdown extends FzInputBase {
 
+    override toField() {
+        // markdown format doesnt affect field
+        return 
+    }
+
+    override toValue() {
+        // markdown format doesnt affect value
+        return 
+    }
+
+
     renderInput() {
         return html``
     }
@@ -16,12 +27,5 @@ export class FzInputMarkdown extends FzInputBase {
         `
     }
 
-    override convertToInput(value: any) {
-        return value
-    }
-
-    override convertToValue(value: any) {
-        return (typeof value !== 'string') ? '' : value
-    }
 
 }

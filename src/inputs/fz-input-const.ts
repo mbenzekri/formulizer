@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
 import {  html } from "lit"
-import { isEmptyValue } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
+import { notNull } from "../lib/tools";
 
 /**
  * @prop schema
@@ -13,16 +13,18 @@ import { FzInputBase } from "./fz-input-base";
 @customElement("fz-constant")
 export class FzInputConstant extends FzInputBase {
 
-    renderInput() {
-        return html`<div class="input-group">${this.value}</div>`;
+
+    override toField(): void {
+        if (notNull(this.input)) {
+            this.input.value = String(this.schema.const ?? "")
+        }
+    }
+    override toValue(): void {
+        this.value = this.schema.const
     }
 
-    convertToInput(value: any) {
-        if (value == null || value == "") return null
-        return value
-    }
-    convertToValue(value: any) {
-        return isEmptyValue(value) ? this.empty : value;
+    renderInput() {
+        return html`<div class="input-group">${this.value}</div>`;
     }
 
     override connectedCallback() {
