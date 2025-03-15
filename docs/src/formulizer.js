@@ -21,10 +21,6 @@ function __decorate(decorators, target, key, desc) {
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 }
 
-function __metadata(metadataKey, metadataValue) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(metadataKey, metadataValue);
-}
-
 typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
     var e = new Error(message);
     return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
@@ -14617,32 +14613,25 @@ class FzElement extends Base {
     }
 }
 __decorate([
-    n$2({ type: String }),
-    __metadata("design:type", Object)
+    n$2({ type: String })
 ], FzElement.prototype, "pointer", null);
 __decorate([
-    n$2({ type: Object }),
-    __metadata("design:type", Object)
+    n$2({ type: Object })
 ], FzElement.prototype, "schema", null);
 __decorate([
-    n$2({ type: Object }),
-    __metadata("design:type", Object)
+    n$2({ type: Object })
 ], FzElement.prototype, "data", null);
 __decorate([
-    n$2({ type: String }),
-    __metadata("design:type", Object)
+    n$2({ type: String })
 ], FzElement.prototype, "name", null);
 __decorate([
-    n$2({ type: Number }),
-    __metadata("design:type", Object)
+    n$2({ type: Number })
 ], FzElement.prototype, "index", null);
 __decorate([
-    n$2({ attribute: false }),
-    __metadata("design:type", Object)
+    n$2({ attribute: false })
 ], FzElement.prototype, "valid", null);
 __decorate([
-    n$2({ attribute: false }),
-    __metadata("design:type", Object)
+    n$2({ attribute: false })
 ], FzElement.prototype, "message", null);
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -14901,12 +14890,10 @@ let FzEnum = class FzEnum extends FzEnumBase {
     }
 };
 __decorate([
-    n$2({ type: Number, attribute: false }),
-    __metadata("design:type", Number)
+    n$2({ type: Number, attribute: false })
 ], FzEnum.prototype, "selected", null);
 __decorate([
-    r$3("option"),
-    __metadata("design:type", Array)
+    r$3("option")
 ], FzEnum.prototype, "options", null);
 FzEnum = __decorate([
     t$4("fz-enum")
@@ -14963,12 +14950,10 @@ let FZEnumCheck = class FZEnumCheck extends FzEnumBase {
     }
 };
 __decorate([
-    n$2({ type: Number, attribute: false }),
-    __metadata("design:type", Number)
+    n$2({ type: Number, attribute: false })
 ], FZEnumCheck.prototype, "selected", null);
 __decorate([
-    r$3("input"),
-    __metadata("design:type", Array)
+    r$3("input")
 ], FZEnumCheck.prototype, "radios", null);
 FZEnumCheck = __decorate([
     t$4("fz-enum-check")
@@ -15440,12 +15425,10 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
     }
 };
 __decorate([
-    n$2({ attribute: false }),
-    __metadata("design:type", Object)
+    n$2({ attribute: false })
 ], FzInputSignature.prototype, "disabled", null);
 __decorate([
-    n$2({ attribute: false }),
-    __metadata("design:type", String)
+    n$2({ attribute: false })
 ], FzInputSignature.prototype, "state", null);
 FzInputSignature = __decorate([
     t$4("fz-signature")
@@ -24645,8 +24628,7 @@ let FzMarkdownIt = class FzMarkdownIt extends Base {
     }
 };
 __decorate([
-    n$2({ attribute: "markdown", type: String, reflect: true }),
-    __metadata("design:type", String)
+    n$2({ attribute: "markdown", type: String, reflect: true })
 ], FzMarkdownIt.prototype, "markdown", void 0);
 FzMarkdownIt = __decorate([
     t$4("markdown-it")
@@ -24794,16 +24776,13 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
     }
 };
 __decorate([
-    n$2({ type: Boolean, attribute: false }),
-    __metadata("design:type", Boolean)
+    n$2({ type: Boolean, attribute: false })
 ], FzEnumTypeahead.prototype, "isopen", null);
 __decorate([
-    n$2({ type: Number, attribute: false }),
-    __metadata("design:type", Number)
+    n$2({ type: Number, attribute: false })
 ], FzEnumTypeahead.prototype, "selected", null);
 __decorate([
-    e$5('#query'),
-    __metadata("design:type", HTMLInputElement)
+    e$5('#query')
 ], FzEnumTypeahead.prototype, "queryElem", void 0);
 FzEnumTypeahead = __decorate([
     t$4("fz-enum-typeahead")
@@ -32652,8 +32631,7 @@ let FzArray$1 = class FzArray extends FZCollection {
     }
 };
 __decorate([
-    n$2({ attribute: false }),
-    __metadata("design:type", Object)
+    n$2({ attribute: false })
 ], FzArray$1.prototype, "current", null);
 FzArray$1 = __decorate([
     t$4("fz-array")
@@ -32923,12 +32901,10 @@ let FzObject = class FzObject extends FZCollection {
     }
 };
 __decorate([
-    n$2({ attribute: false }),
-    __metadata("design:type", Object)
+    n$2({ attribute: false })
 ], FzObject.prototype, "collapsed", null);
 __decorate([
-    n$2({ attribute: false }),
-    __metadata("design:type", Object)
+    n$2({ attribute: false })
 ], FzObject.prototype, "activegroup", null);
 FzObject = __decorate([
     t$4("fz-object")
@@ -33143,16 +33119,13 @@ let FzDialog = class FzDialog extends Base {
     }
 };
 __decorate([
-    n$2({ attribute: 'modal-title' }),
-    __metadata("design:type", Object)
+    n$2({ attribute: 'modal-title' })
 ], FzDialog.prototype, "modalTitle", null);
 __decorate([
-    n$2({ attribute: 'ok-label' }),
-    __metadata("design:type", Object)
+    n$2({ attribute: 'ok-label' })
 ], FzDialog.prototype, "okLabel", null);
 __decorate([
-    n$2({ attribute: 'dismiss-label' }),
-    __metadata("design:type", Object)
+    n$2({ attribute: 'dismiss-label' })
 ], FzDialog.prototype, "dismissLabel", null);
 FzDialog = __decorate([
     t$4("fz-dialog")
@@ -33288,8 +33261,7 @@ let FzBarcodeDialog = class FzBarcodeDialog extends Base {
     }
 };
 __decorate([
-    r$4(),
-    __metadata("design:type", Number)
+    r$4()
 ], FzBarcodeDialog.prototype, "state", null);
 FzBarcodeDialog = __decorate([
     t$4("fz-barcode-dlg")
@@ -33464,8 +33436,7 @@ let FzPhotoDlg = class FzPhotoDlg extends Base {
     }
 };
 __decorate([
-    r$4(),
-    __metadata("design:type", Number)
+    r$4()
 ], FzPhotoDlg.prototype, "state", null);
 FzPhotoDlg = __decorate([
     t$4("fz-photo-dlg")
@@ -33566,8 +33537,7 @@ let FzItemDlg = class FzItemDlg extends Base {
     }
 };
 __decorate([
-    n$2({ type: Object }),
-    __metadata("design:type", Object)
+    n$2({ type: Object })
 ], FzItemDlg.prototype, "reference", null);
 FzItemDlg = __decorate([
     t$4("fz-item-dlg")
@@ -34554,56 +34524,43 @@ let FzForm = class FzForm extends Base {
     }
 };
 __decorate([
-    r$4(),
-    __metadata("design:type", Object)
+    r$4()
 ], FzForm.prototype, "i_options", null);
 __decorate([
-    n$2({ type: Object, attribute: "schema", converter: schemaAttrConverter }),
-    __metadata("design:type", Object)
+    n$2({ type: Object, attribute: "schema", converter: schemaAttrConverter })
 ], FzForm.prototype, "i_schema", null);
 __decorate([
-    n$2({ type: Boolean, attribute: "actions" }),
-    __metadata("design:type", Object)
+    n$2({ type: Boolean, attribute: "actions" })
 ], FzForm.prototype, "actions", null);
 __decorate([
-    n$2({ type: Boolean, attribute: "readonly" }),
-    __metadata("design:type", Object)
+    n$2({ type: Boolean, attribute: "readonly" })
 ], FzForm.prototype, "readonly", null);
 __decorate([
-    n$2({ type: Boolean, attribute: "checkin" }),
-    __metadata("design:type", Object)
+    n$2({ type: Boolean, attribute: "checkin" })
 ], FzForm.prototype, "checkIn", null);
 __decorate([
-    n$2({ type: Boolean, attribute: "checkout" }),
-    __metadata("design:type", Object)
+    n$2({ type: Boolean, attribute: "checkout" })
 ], FzForm.prototype, "checkOut", null);
 __decorate([
-    n$2({ type: String, attribute: 'oninit', converter: (v) => v }),
-    __metadata("design:type", Object)
+    n$2({ type: String, attribute: 'oninit', converter: (v) => v })
 ], FzForm.prototype, "oninit", void 0);
 __decorate([
-    n$2({ type: String, attribute: 'onready', converter: (v) => v }),
-    __metadata("design:type", Object)
+    n$2({ type: String, attribute: 'onready', converter: (v) => v })
 ], FzForm.prototype, "onready", void 0);
 __decorate([
-    n$2({ type: String, attribute: 'onvaliddata', converter: (v) => v }),
-    __metadata("design:type", Object)
+    n$2({ type: String, attribute: 'onvaliddata', converter: (v) => v })
 ], FzForm.prototype, "onvaliddata", void 0);
 __decorate([
-    n$2({ type: String, attribute: 'oninvaliddata', converter: (v) => v }),
-    __metadata("design:type", Object)
+    n$2({ type: String, attribute: 'oninvaliddata', converter: (v) => v })
 ], FzForm.prototype, "oninvaliddata", void 0);
 __decorate([
-    n$2({ type: String, attribute: 'onvalidate', converter: (v) => v }),
-    __metadata("design:type", Object)
+    n$2({ type: String, attribute: 'onvalidate', converter: (v) => v })
 ], FzForm.prototype, "onvalidate", void 0);
 __decorate([
-    n$2({ type: String, attribute: 'ondismiss', converter: (v) => v }),
-    __metadata("design:type", Object)
+    n$2({ type: String, attribute: 'ondismiss', converter: (v) => v })
 ], FzForm.prototype, "ondismiss", void 0);
 FzForm = __decorate([
-    t$4("fz-form"),
-    __metadata("design:paramtypes", [])
+    t$4("fz-form")
 ], FzForm);
 
 let CheckTest = class CheckTest extends r$1 {
@@ -34649,8 +34606,7 @@ let CheckTest = class CheckTest extends r$1 {
     }
 };
 __decorate([
-    n$2({ type: Number, attribute: false }),
-    __metadata("design:type", Number)
+    n$2({ type: Number, attribute: false })
 ], CheckTest.prototype, "selected", null);
 CheckTest = __decorate([
     t$4("check-test")

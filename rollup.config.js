@@ -57,14 +57,18 @@ const commonPlugins = [
   }),
 ];
 
-// minification step
 const terserPlugin = terser({
   ecma: 2021,
   module: true,
   warnings: true,
+  compress: {
+    drop_console: true, // ✅ Remove console.log()
+    drop_debugger: true, // ✅ Remove debugger statements
+    pure_funcs: ["console.log"], // ✅ Ensure console logs are stripped
+  },
   mangle: {
     properties: {
-      regex: /^__/,
+      regex: /^__/, // Mangle only private properties
     },
   },
 });
