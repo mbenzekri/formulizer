@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property, customElement } from "lit/decorators.js"
-import {  html, css } from "lit"
-import { formatMsg, notNull } from "../lib/tools"
+import { html, css } from "lit"
+import { notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 
 declare class ResizeObserver {
@@ -104,7 +104,7 @@ export class FzInputSignature extends FzInputBase {
         this.check()
 
     }
-    resize() {
+    private resize() {
         if (this.content) {
             const width = this.content.offsetWidth
             const height = Math.floor(this.content.offsetWidth / 2)
@@ -123,7 +123,7 @@ export class FzInputSignature extends FzInputBase {
         }
     }
 
-    getPos(event: any) {
+    private getPos(event: any) {
         if (event.touches && event.touches[0]) {
             this.currentX = event.touches[0].clientX - this.offsetX;
             this.currentY = event.touches[0].clientY - this.offsetY;
@@ -138,7 +138,7 @@ export class FzInputSignature extends FzInputBase {
             this.currentY = event.layerY - event.currentTarget.offsetTop;
         }
     }
-    getOffset(event: any) {
+    private getOffset(event: any) {
         // calculate offsets for touch devices
         if (event.touches || event.originalEvent && event.originalEvent.touches) {
             this.offsetX = 0
@@ -163,7 +163,7 @@ export class FzInputSignature extends FzInputBase {
             }
         }
     }
-    onDown(event: Event) {
+    private onDown(event: Event) {
         this.drawing = !this.readonly
         this.getOffset(event)
         this.getPos(event);
@@ -180,7 +180,7 @@ export class FzInputSignature extends FzInputBase {
         this.eventStop(event)
         return false;
     }
-    onMove(event: Event) {
+    private onMove(event: Event) {
         if (!this.drawing) return
         this.getPos(event)
         if (this.context) {
@@ -190,7 +190,7 @@ export class FzInputSignature extends FzInputBase {
         this.eventStop(event)
         return false;
     }
-    onUp(event: Event) {
+    private onUp(event: Event) {
         // On arrête le dessin
         this.drawing = false;
         this.eventStop(event)
@@ -198,37 +198,37 @@ export class FzInputSignature extends FzInputBase {
         return false;
     }
     override check() {
-        this.valid = true
-        this.message = ''
-        if (this.required && this.value == null) {
-            this.valid = false
-            this.message = formatMsg('valueMissing')
-        }
-        this.content?.classList.add(this.valid ? 'valid' : 'invalid')
-        this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
-        if (this.readonly) {
-            this.content?.classList.add('readonly')
-        } else {
-            this.content?.classList.remove('readonly')
-        }
+        // this.valid = true
+        // this.message = ''
+        // if (this.required && this.value == null) {
+        //     this.valid = false
+        //     this.message = formatMsg('valueMissing')
+        // }
+        // this.content?.classList.add(this.valid ? 'valid' : 'invalid')
+        // this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
+        // if (this.readonly) {
+        //     this.content?.classList.add('readonly')
+        // } else {
+        //     this.content?.classList.remove('readonly')
+        // }
     }
-    load() {
+    private load() {
         if (this.context && this.image && this.value) {
             this.image.src = this.value
         }
     }
 
-    edit() {
+    private edit() {
         this.canvas && this.context?.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.value = null
         this.state = 'edit'
     }
-    validate() {
+    private validate() {
         this.save()
         this.state = 'read'
     }
       
-    save() {
+    private save() {
         if (this.canvas) {
             const dataurl = this.canvas.toDataURL("image/gif")
             this.value = dataurl
@@ -236,12 +236,12 @@ export class FzInputSignature extends FzInputBase {
             this.change()
         }
     }
-    clear() {
+    private clear() {
         if (this.canvas) this.canvas.width = (this.canvas.width as any);
         this.value= '';
         this.requestUpdate()
     }
-    del() {
+    private del() {
         this.clear()
         this.state = 'read'
     }

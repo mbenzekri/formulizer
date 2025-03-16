@@ -2,55 +2,6 @@ import * as lit_html from 'lit-html';
 import * as lit from 'lit';
 import { LitElement, TemplateResult } from 'lit';
 
-declare class Base extends LitElement {
-    private handlers;
-    static get styles(): lit.CSSResult[];
-    listen(target: EventTarget, event: string, handler: (evt: Event) => void, options?: AddEventListenerOptions | boolean): void;
-    unlisten(target: EventTarget, event: string, handler: (evt: Event) => void, options?: AddEventListenerOptions | boolean): void;
-    connectedCallback(): void;
-    disconnectedCallback(): void;
-}
-
-interface IBlobStore {
-    put(uuid: string, blob: Blob, filename: string, pointer: string): Promise<void>;
-    remove(uuid: string): Promise<void>;
-    get(uuid: string): Promise<StoreItem | undefined>;
-}
-
-type EnumItem = {
-    title: string;
-    value: any;
-};
-type ExprFunc<T> = (schema: Schema, value: any, parent: Pojo, property: string | number, userdata: object) => T | null;
-type Pojo = {
-    [key: string]: any;
-};
-type FieldOrder = {
-    tabnum: number;
-    groupnum: number;
-    fieldnum: number;
-    fieldname: string;
-    schema: Pojo;
-    tabname: string;
-    groupname: string;
-};
-type StoreItem = {
-    uuid: string;
-    blob: Blob;
-    filename: string;
-};
-interface IAsset {
-    select: (fieldasset: any, value: any, selectCallback: (selected: string) => void) => Promise<void>;
-    done: () => Promise<void>;
-}
-type IOptions = {
-    storage?: IBlobStore;
-    userdata?: any;
-    asset?: IAsset;
-    dialect?: string;
-    enums?: (id: string) => EnumItem[];
-};
-
 declare class JSONSchema {
     [key: string]: any;
 }
@@ -113,7 +64,10 @@ declare class JSONSchemaDraft07 {
     homogeneous: boolean;
     requiredWhen: string | Function;
     field: string;
-    refTo?: string | ExprFunc<any>;
+    from?: {
+        pointer: string;
+        extend: boolean;
+    } | ExprFunc<any>;
     order?: FieldOrder[];
     abstract?: string | ExprFunc<string>;
     case?: string | ExprFunc<boolean>;
@@ -124,7 +78,6 @@ declare class JSONSchemaDraft07 {
     expression?: string | ExprFunc<any>;
     change?: string | ExprFunc<any>;
     nullable: boolean;
-    addTo?: boolean;
     assets?: string;
     preview?: boolean;
     mimetype?: string;
@@ -162,13 +115,67 @@ declare class Schema extends JSONSchemaDraft07 {
     _empty(): any;
 }
 
+interface IBlobStore {
+    put(uuid: string, blob: Blob, filename: string, pointer: string): Promise<void>;
+    remove(uuid: string): Promise<void>;
+    get(uuid: string): Promise<StoreItem | undefined>;
+}
+
+type EnumItem = {
+    title: string;
+    value: any;
+};
+type ExprFunc<T> = (schema: Schema, value: any, parent: Pojo, property: string | number, userdata: object) => T | null;
+type Pojo = {
+    [key: string]: any;
+};
+type FieldOrder = {
+    tabnum: number;
+    groupnum: number;
+    fieldnum: number;
+    fieldname: string;
+    schema: Pojo;
+    tabname: string;
+    groupname: string;
+};
+type StoreItem = {
+    uuid: string;
+    blob: Blob;
+    filename: string;
+};
+interface IAsset {
+    select: (fieldasset: any, value: any, selectCallback: (selected: string) => void) => Promise<void>;
+    done: () => Promise<void>;
+}
+type IOptions = {
+    storage?: IBlobStore;
+    userdata?: any;
+    asset?: IAsset;
+    dialect?: string;
+    enums?: (id: string) => EnumItem[];
+};
+
+declare class Base extends LitElement {
+    private handlers;
+    static get styles(): lit.CSSResult[];
+    listen(target: EventTarget, event: string, handler: (evt: Event) => void, options?: AddEventListenerOptions | boolean): void;
+    unlisten(target: EventTarget, event: string, handler: (evt: Event) => void, options?: AddEventListenerOptions | boolean): void;
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+}
+
 /**
  * @prop schema
  * @prop data
  */
 declare class FzForm extends Base {
     static get styles(): lit.CSSResult[];
+    private readonly obj;
     private accessor i_options;
+    store: IBlobStore;
+    asset: IAsset;
+    private readonly fieldMap;
+    private readonly schemaMap;
     accessor i_schema: Schema;
     accessor actions: boolean;
     accessor readonly: boolean;
@@ -180,11 +187,6 @@ declare class FzForm extends Base {
     oninvaliddata: string | null;
     onvalidate: string | null;
     ondismiss: string | null;
-    private readonly obj;
-    store: IBlobStore;
-    asset: IAsset;
-    private readonly dataPointerFieldMap;
-    private readonly schemaPointerFieldMap;
     private schemaErrors;
     private dataErrors;
     private validator;
@@ -199,17 +201,18 @@ declare class FzForm extends Base {
     get data(): Pojo;
     set data(value: Pojo);
     attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void;
+    getField(pointer: string): FzElement | undefined;
+    addField(schemaPointer: string, dataPointer: string, field: FzElement): void;
+    removeField(schemaPointer: string, dataPointer: string): void;
+    getfieldFromSchema(pointer: string): FzElement | undefined;
+    updateField(pointer: string): void;
     render(): lit_html.TemplateResult<1> | lit_html.TemplateResult<1>[];
     private renderForm;
     private renderButtons;
     private renderError;
     connectedCallback(): void;
     disconnectedCallback(): void;
-    addField(schemaPointer: string, dataPointer: string, field: FzElement): void;
-    removeField(schemaPointer: string, dataPointer: string): void;
-    getfieldFromSchema(pointer: string): FzElement | undefined;
-    getfieldFromData(pointer: string): FzElement | undefined;
-    updateField(pointer: string): void;
+    check(): void;
     /**
      * handle 'observed-change' event for change detection and update
      * between observers and observed data
@@ -219,7 +222,7 @@ declare class FzForm extends Base {
     private observedChange;
     private confirm;
     private cancel;
-    compile(): void;
+    private compile;
 }
 
 /**
@@ -235,8 +238,7 @@ declare abstract class FzElement extends Base {
     accessor data: Pojo;
     accessor name: string | null;
     accessor index: number | null;
-    accessor valid: boolean;
-    accessor message: string;
+    errors: string[];
     private _initdone;
     private _dofocus;
     private _form?;
@@ -244,6 +246,7 @@ declare abstract class FzElement extends Base {
     abstract check(): void;
     abstract toField(): void;
     abstract toValue(): void;
+    get valid(): boolean;
     get value(): any;
     set value(value: any);
     /**
@@ -296,6 +299,7 @@ declare abstract class FzElement extends Base {
      * render method for this field component (calls renderField() abstract rendering method)
      */
     render(): TemplateResult<1>;
+    renderErrors(): TemplateResult<1>;
     private toggleError;
     /**
      * render method for label

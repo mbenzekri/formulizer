@@ -1,8 +1,8 @@
 import JsonSchemaDraft  from "../assets/draft-07-schema.json"
 import Ajv from "ajv";
 import { Schema } from "./schema"
-
-import { ValidateFunction, ErrorObject } from "ajv"
+import { AjvError } from "./types";
+import { ValidateFunction } from "ajv"
 import Ajvi18n from "ajv-i18n/localize/en"
 const ajv = new Ajv({ strictNumbers: false, strictSchema: false, coerceTypes: true })
 
@@ -31,22 +31,24 @@ export function validateErrors() {
     return schemaValidate?.errors ?? []
 }
 
-export class DataValidator {
+export class Validator {
     parser: ValidateFunction
+    public errors: AjvError[] =  []
+    public text = ""
+
     constructor(schema: Schema) {
         this.parser = ajv.compile(schema)
     }
     validate(value: any): boolean {
         const result = this.parser(value)
+        this.errors = this.parser.errors ?? []
+        Ajvi18n(this.errors)
+        this.text = ajv.errorsText(this.errors)
+
         if (typeof result === 'boolean') return result
         throw (`Schema validation result not boolean (not expected) ${result}`)
     }
-    errors(): ErrorObject[] | null | undefined {
-        return this.parser.errors
-        return null
-    }
-
-    errorsText(errors: ErrorObject[] | null | undefined): string {
+    static getText(errors: AjvError[]) {
         Ajvi18n(errors)
         return ajv.errorsText(errors)
     }

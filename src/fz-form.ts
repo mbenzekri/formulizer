@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { html } from "lit";
 import { Base } from "./base"
-import { property, customElement, state } from "lit/decorators.js";
+import { property, customElement } from "lit/decorators.js";
 import { IAsset, IOptions, Pojo } from "./lib/types"
 import { FzElement } from "./fz-element";
-import { validateSchema, validateErrors, DataValidator } from "./lib/validation"
-import { cleanJSON, setGlobalHandler } from "./lib/tools"
+import { validateSchema, validateErrors, Validator } from "./lib/validation"
+import { setGlobalHandler } from "./lib/tools"
 import { SchemaCompiler, DataCompiler } from "./lib/compiler"
 import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { Schema, schemaAttrConverter, DEFAULT_SCHEMA } from "./lib/schema";
@@ -26,7 +26,13 @@ export class FzForm extends Base {
         ]
     }
 
-    @state() private accessor i_options: IOptions = {}
+    private readonly obj = { content: {} }
+    private accessor i_options: IOptions = {}
+    public store: IBlobStore = new BlobMemory()
+    public asset!: IAsset
+    private readonly fieldMap: Map<string, FzElement> = new Map()
+    private readonly schemaMap: Map<string, FzElement> = new Map()
+
     @property({ type: Object, attribute: "schema", converter: schemaAttrConverter }) accessor i_schema = DEFAULT_SCHEMA
     @property({ type: Boolean, attribute: "actions" }) accessor actions = false
     @property({ type: Boolean, attribute: "readonly" }) accessor readonly = false
@@ -39,27 +45,22 @@ export class FzForm extends Base {
     @property({ type: String, attribute: 'onvalidate', converter: (v) => v }) onvalidate: string | null = null;
     @property({ type: String, attribute: 'ondismiss', converter: (v) => v }) ondismiss: string | null = null;
 
-    private readonly obj = { content: {} }
-    public store: IBlobStore = new BlobMemory()
-    public asset!: IAsset
-    private readonly dataPointerFieldMap: Map<string, FzElement> = new Map()
-    private readonly schemaPointerFieldMap: Map<string, FzElement> = new Map()
-
+    
     private schemaErrors: Array<any> = []
     private dataErrors: Array<any> = []
-    private validator!: DataValidator
+    private validator!: Validator
     private message = ""
 
     constructor() {
         super()
-            // this is a workaround to convert string with global function name into a handler
-            // into corresponding event handler (quite deprecated)
-            // ex: HTML: oninit="myFunc" became: this.addEventListener(myFunc)
-            // because this cant be used in @property(...) declaration
-            ;["oninit", "onready", "onvaliddata", "oninvaliddata", "onvalidate", "ondismiss"].forEach(event => {
-                (this.constructor as any).elementProperties.get(event).converter =
-                    (value: string) => { setGlobalHandler(this,event.substring(2), value); return value }
-            })
+        // this is a workaround to convert string with global function name into a handler
+        // into corresponding event handler (quite deprecated)
+        // ex: HTML: oninit="myFunc" became: this.addEventListener(myFunc)
+        // because this cant be used in @property(...) declaration
+        ;["oninit", "onready", "onvaliddata", "oninvaliddata", "onvalidate", "ondismiss"].forEach(event => {
+            (this.constructor as any).elementProperties.get(event).converter =
+                (value: string) => { setGlobalHandler(this,event.substring(2), value); return value }
+        })
     }
 
     get root(): any { return this.obj.content }
@@ -71,7 +72,7 @@ export class FzForm extends Base {
     set schema(value: Schema) {
         this.i_schema = validateSchema(value) ? new Schema(JSON.parse(JSON.stringify(value))) : DEFAULT_SCHEMA
         this.schemaErrors = validateErrors()
-        this.validator = new DataValidator(this.i_schema)
+        this.validator = new Validator(this.i_schema)
         this.compile()
         this.requestUpdate()
     }
@@ -88,12 +89,12 @@ export class FzForm extends Base {
     }
 
 
-    get data() { return cleanJSON(this.root) }
+    get data() { return JSON.parse(JSON.stringify(this.root)) }
     set data(value: Pojo) {
         // dont accept data before having a valid JSON
         if (this.schemaErrors.length > 0)  return
         // data must be valid (if checkin option is true)
-        this.dataErrors = this.checkIn && this.validator.validate(value) ? this.validator?.errors() ?? []  : []
+        this.dataErrors = this.checkIn && this.validator.validate(value) ? this.validator?.errors ?? []  : []
         this.obj.content = this.dataErrors.length == 0 ? value : {}
         this.compile()
         this.requestUpdate()
@@ -106,6 +107,24 @@ export class FzForm extends Base {
             const converted = schemaAttrConverter.fromAttribute(newValue)
             this.schema = converted
         }
+    }
+
+    public getField(pointer: string) {
+        return this.fieldMap.get(pointer)
+    }
+    addField(schemaPointer: string, dataPointer: string, field: FzElement) {
+        this.schemaMap.set(schemaPointer, field)
+        this.fieldMap.set(dataPointer, field)
+    }
+    removeField(schemaPointer: string, dataPointer: string) {
+        this.schemaMap.delete(schemaPointer)
+        this.fieldMap.delete(dataPointer)
+    }
+    getfieldFromSchema(pointer: string) {
+        return this.schemaMap.get(pointer)
+    }
+    updateField(pointer: string) {
+        this.getField(pointer)?.requestUpdate()
     }
 
     override render() {
@@ -153,24 +172,24 @@ export class FzForm extends Base {
     }
 
 
-    addField(schemaPointer: string, dataPointer: string, field: FzElement) {
-        this.schemaPointerFieldMap.set(schemaPointer, field)
-        this.dataPointerFieldMap.set(dataPointer, field)
+    check() {
+        // collect errors and dispatch error on fields (registered in this.fieldMap)
+        const valid = this.validator?.validate(this.root)
+        const errorMap = new Map<string,string[]>()
+        if (!valid) {
+            // dispatch all errors over the fields 
+            for (const error of this.validator.errors) {
+                const { instancePath, message, params, keyword } = error;
+                if (!errorMap.has(instancePath)) errorMap.set(instancePath,[])
+                const detail =Object.entries(params).map(([s,v]) => v == null ? null : `${s}: ${v}`).filter(v => v).join(',')
+                const msg =  `${keyword}: ${message} (${detail})`
+                errorMap.get(instancePath)?.push(msg)
+            }
+        }
+        for (const [pointer,field] of this.fieldMap.entries()) {
+            field.errors = errorMap.get(pointer) ?? []
+        }
     }
-    removeField(schemaPointer: string, dataPointer: string) {
-        this.schemaPointerFieldMap.delete(schemaPointer)
-        this.dataPointerFieldMap.delete(dataPointer)
-    }
-    getfieldFromSchema(pointer: string) {
-        return this.schemaPointerFieldMap.get(pointer)
-    }
-    getfieldFromData(pointer: string) {
-        return this.dataPointerFieldMap.get(pointer)
-    }
-    updateField(pointer: string) {
-        this.getfieldFromData(pointer)?.requestUpdate()
-    }
-
     /**
      * handle 'observed-change' event for change detection and update
      * between observers and observed data
@@ -197,7 +216,7 @@ export class FzForm extends Base {
         const event = new CustomEvent('dismiss');
         this.dispatchEvent(event);
     }
-    compile() {
+    private compile() {
 
         // All schema compilation are fatal (unable to build the form)
         const schema_compiler = new SchemaCompiler(this.schema, this.options, this.obj.content)

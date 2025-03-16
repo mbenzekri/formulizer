@@ -4,8 +4,8 @@ import { unsafeHTML } from "lit/directives/unsafe-html.js"
 import { styleMap } from "lit/directives/style-map.js";
 import { html } from "lit"
 import { FzEnumBase } from "./fz-enum-base";
-import { EnumItem } from "../lib/types";
-import { isNull } from "../lib/tools";
+import { EnumItem } from "../../lib/types";
+import { isNull } from "../../lib/tools";
 
 /**
  * an input for long enumeration with typeahead behavior

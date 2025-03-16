@@ -97,6 +97,9 @@ function notNull(value) {
 function isNull(value) {
     return value == null;
 }
+function isString$2(value) {
+    return value !== null && typeof value === "string";
+}
 function isArray(value) {
     return Array.isArray(value);
 }
@@ -250,50 +253,6 @@ function isEmptyValue(value) {
     if (Array.isArray(value))
         return value.length === 0;
     return false;
-}
-function formatMsg(key, input) {
-    switch (key) {
-        case 'valueMissing':
-            return `mandatory`;
-        case 'badInput':
-            return `incorrect value`;
-        case 'patternMismatch':
-            return `invalid pattern=${input ? input.getAttribute('pattern') : '?'})`;
-        case 'tooLong':
-            return `too long (max=${input ? input.getAttribute('maxlength') : '?'})`;
-        case 'tooShort':
-            return `too short (min=${input ? input.getAttribute('minlength') : '?'})`;
-        case 'rangeOverflow':
-            return `range overflow (max= ${input ? input.getAttribute('max') : '?'})`;
-        case 'rangeUnderflow':
-            return `range underflow (min=${input ? input.getAttribute('min') : '?'})`;
-        case 'stepMismatch':
-            return `step mismatch (pas=${input ? input.getAttribute('step') : '?'})`;
-        case 'customError':
-            return `custom error`;
-        case 'typeMismatch':
-            return `syntax error`;
-        default: return '';
-    }
-}
-function cleanJSON(data) {
-    // we avoid returning object having only nullish values , or empty arrays
-    const replacer = function (name, value) {
-        const schema = getSchema(value);
-        const pschema = getSchema(this);
-        if (pschema?.properties?.[name]?.transient)
-            return undefined;
-        if (schema && Array.isArray(value) && value.length === 0) {
-            return undefined;
-        }
-        if (schema && value != undefined && typeof value === "object" && Object.keys(value).every(key => value[key] === undefined)) {
-            return undefined;
-        }
-        return value;
-    };
-    const jsonstr = JSON.stringify(data, replacer);
-    const jsonobj = jsonstr == null ? undefined : JSON.parse(jsonstr);
-    return jsonobj;
 }
 window.nvl = function nvl(templates, ...values) {
     const cleaned = values.map(v => v ?? '');
@@ -13865,7 +13824,7 @@ class JSONSchemaDraft07 {
     homogeneous;
     requiredWhen;
     field;
-    refTo;
+    from;
     order;
     abstract;
     case;
@@ -13876,10 +13835,25 @@ class JSONSchemaDraft07 {
     expression;
     change;
     nullable;
-    addTo;
     assets;
     preview;
     mimetype;
+}
+function isSchema(value) {
+    return notNull(value) && value instanceof Schema;
+}
+function isFrom(value) {
+    if (!isObject$1(value))
+        return false;
+    if (!isString$2(value.pointer))
+        return false;
+    if (!isString$2(value.name))
+        return false;
+    if (!isArray(value.target))
+        return false;
+    if (!isSchema(value.schema))
+        return false;
+    return true;
 }
 // Define the prototype separately with explicit type annotation
 class Schema extends JSONSchemaDraft07 {
@@ -14118,7 +14092,7 @@ const fiedtypes = [
     "fz-date",
     "fz-datetime",
     "fz-document",
-    'fz-enum',
+    'fz-enum-select',
     'fz-enum-array',
     "fz-geolocation",
     "fz-integer",
@@ -14158,15 +14132,13 @@ class FzElement extends Base {
     #index_accessor_storage = null;
     get index() { return this.#index_accessor_storage; }
     set index(value) { this.#index_accessor_storage = value; }
-    #valid_accessor_storage = false;
-    get valid() { return this.#valid_accessor_storage; }
-    set valid(value) { this.#valid_accessor_storage = value; }
-    #message_accessor_storage = '';
-    get message() { return this.#message_accessor_storage; }
-    set message(value) { this.#message_accessor_storage = value; }
+    errors = [];
     _initdone = false;
     _dofocus = false;
     _form;
+    get valid() {
+        return this.errors.length === 0;
+    }
     get value() {
         // Warning side effects is prohibited in this method, never update this.data 
         if (this.data == null)
@@ -14238,7 +14210,7 @@ class FzElement extends Base {
             const key = properties[i];
             const schema = schemas[i];
             ipointer = i ? `${ipointer}/${key}` : `${key}`;
-            const field = form.getfieldFromData(ipointer);
+            const field = form.getField(ipointer);
             if (field)
                 fields.push(field);
             const type = schema.basetype;
@@ -14407,15 +14379,15 @@ class FzElement extends Base {
         return x `
             <div ?hidden="${!this.visible}">
                 <div style="padding-top: 5px">${this.renderField()}</div>
-                ${this.valid ? x ``
-            : x `
-                        <div class="row">
-                            <span id="error" class="error-message error-truncated" @click="${this.toggleError}">
-                                ${this.message}
-                            </span>
-                        </div>`}
+                ${this.valid ? x `` : x `<div class="row">${this.renderErrors()}</div>`}
             </div>
         `;
+    }
+    renderErrors() {
+        return x `
+            <span id="error" class="error-message error-truncated" @click="${this.toggleError}">
+                ${this.errors.join(', ')}
+            </span>`;
     }
     toggleError() {
         this.shadowRoot?.getElementById("error")?.classList.toggle("error-truncated");
@@ -14456,7 +14428,7 @@ class FzElement extends Base {
             index = key;
         const data = (this.data == null) ? null : this.data[this.key];
         switch (schema.field) {
-            case 'fz-enum': return x `<fz-enum .pointer="${this.pointer}/${key}" .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum>`;
+            case 'fz-enum-select': return x `<fz-enum-select .pointer="${this.pointer}/${key}" .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-select>`;
             case 'fz-enum-check': return x `<fz-enum-check .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-check>`;
             case "fz-date": return x `<fz-date .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-date>`;
             case "fz-time": return x `<fz-time .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-time>`;
@@ -14574,8 +14546,8 @@ class FzElement extends Base {
                 ? this.evalExpr("abstract")
                 : this.schema._abstract(this.value);
         }
-        else if (itemschema && isFunction$1(itemschema.refTo)) {
-            const refto = itemschema.refTo(itemschema, this.value[key], this.data, this.key, this.derefFunc);
+        else if (notNull(itemschema) && isFunction$1(itemschema.from)) {
+            const refto = itemschema.from?.(itemschema, this.value[key], this.data, this.key, this.derefFunc);
             const index = refto.refarray.findIndex((x) => x[refto.refname] === this.value[key]);
             const value = refto.refarray[index];
             const schema = getSchema(value);
@@ -14627,12 +14599,6 @@ __decorate([
 __decorate([
     n$2({ type: Number })
 ], FzElement.prototype, "index", null);
-__decorate([
-    n$2({ attribute: false })
-], FzElement.prototype, "valid", null);
-__decorate([
-    n$2({ attribute: false })
-], FzElement.prototype, "message", null);
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const invalidkeys = [
@@ -14703,40 +14669,35 @@ class FzInputBase extends FzElement {
         }
     }
     check() {
-        const input = this.input;
-        if (!input) {
-            this.valid = false;
-            this.message = '';
-            return;
-        }
-        const validity = this.input.validity;
-        let countinvalid = 0;
-        let message = '';
-        invalidkeys.forEach(key => {
-            if (key === 'valid')
-                return;
-            const keyinvalid = validity[key];
-            countinvalid += keyinvalid ? 1 : 0;
-            if (keyinvalid)
-                message = formatMsg(key, input);
-        });
-        this.valid = (countinvalid === 0)
-            || (countinvalid === 1 && validity.badInput && this.value == null && !this.required);
-        this.message = this.valid ? '' : message;
-        this.input?.classList.add(this.valid ? 'valid' : 'invalid');
-        this.input?.classList.remove(this.valid ? 'invalid' : 'valid');
+        // const input = this.input
+        // if (!input) {
+        //     this.valid = false
+        //     this.message = ''
+        //     return
+        // }
+        // const validity = this.input.validity
+        // let countinvalid = 0
+        // let message = ''
+        // invalidkeys.forEach(key => {
+        //     if (key === 'valid') return
+        //     const keyinvalid = (validity as any)[key]
+        //     countinvalid += keyinvalid ? 1 : 0
+        //     if (keyinvalid) message = formatMsg(key, input)
+        // })
+        // this.valid = (countinvalid === 0)
+        //     || (countinvalid === 1 && validity.badInput && this.value == null && !this.required)
+        // this.message = this.valid ? '' : message
+        // this.input?.classList.add(this.valid ? 'valid' : 'invalid')
+        // this.input?.classList.remove(this.valid ? 'invalid' : 'valid')
     }
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 class FzEnumBase extends FzInputBase {
+    modal;
     enums;
-    refenum = null;
-    get modal() {
-        return this.shadowRoot?.querySelector('fz-item-dlg');
-    }
-    get withAdd() {
-        return (this.schema.refTo && this.schema.addTo);
+    refenum;
+    get extend() {
+        return !!this.refenum?.extend;
     }
     get showNullChoice() {
         if (!this.schema.nullAllowed)
@@ -14749,12 +14710,12 @@ class FzEnumBase extends FzInputBase {
     renderInput() {
         this.evalEnums();
         return x `
-            ${this.withAdd ? x `<fz-item-dlg  @click="${this.eventStop}" .reference="${this.refenum}" @close="${this.close}"></fz-item-dlg>` : ""}
+            ${this.extend ? x `<fz-item-dlg  @click="${this.eventStop}" .reference="${this.refenum}" @close="${this.close}"></fz-item-dlg>` : ""}
             ${this.renderEnum()}`;
     }
     close(evt) {
         if (evt.detail.dismissed) {
-            this.refenum?.refarray.pop();
+            this.refenum?.target.pop();
         }
         else {
             if (this.input && this.input instanceof HTMLSelectElement) {
@@ -14783,39 +14744,62 @@ class FzEnumBase extends FzInputBase {
     isSelected(value) { return this.value === value; }
     evalEnums() {
         this.enums = [];
-        this.refenum = this.schema.refTo && this.evalExpr("refTo");
         switch (true) {
-            case this.refenum?.refname != null && isArray(this.refenum.refarray): {
-                const refname = this.refenum?.refname ?? 'id';
-                const refarray = this.refenum?.refarray;
-                this.enums = refarray?.reduce((list, item, index) => {
-                    const schema = getSchema(item);
-                    const ok = this.evalExpr('filter', schema, item, refarray, index);
-                    if (ok) {
-                        const value = item[refname];
-                        const label = isFunction$1(schema?.abstract) ? schema.abstract(schema, item, refarray, index, this.derefFunc) : value;
-                        list.push({ label, value });
-                    }
-                    return list;
-                }, []);
+            case isFunction$1(this.schema.from):
+                this.enums = this.getInsideEnum();
                 break;
-            }
-            case this.schema.enumRef != null && this.form.options.enums != null: {
-                this.enums = this.form.options.enums(this.schema.enumRef);
+            case notNull(this.schema.enumRef):
+                this.enums = this.getUserEnum();
                 break;
-            }
-            default: {
-                const unfiltered = Schema.inferEnums(this.schema);
-                this.enums = unfiltered?.reduce((list, item) => {
-                    const ok = this.evalExpr('filter', this.schema, item.value, this.data, this.key);
-                    if (ok)
-                        list.push(item);
-                    return list;
-                }, []);
-            }
+            default:
+                this.enums = this.getEnum();
         }
     }
+    getEnum() {
+        const unfiltered = Schema.inferEnums(this.schema);
+        if (isNull(unfiltered))
+            return [];
+        return unfiltered?.reduce((list, item) => {
+            const ok = this.evalExpr('filter', this.schema, item.value, this.data, this.key);
+            if (ok)
+                list.push(item);
+            return list;
+        }, []);
+    }
+    getUserEnum() {
+        const name = this.schema.enumRef;
+        const event = new CustomEvent("enum", {
+            detail: { name, enum: [] },
+            bubbles: true,
+            cancelable: false,
+            composed: true
+        });
+        this.dispatchEvent(event);
+        return event.detail.enum;
+    }
+    getInsideEnum() {
+        const obj = this.evalExpr("from");
+        if (isFrom(obj)) {
+            this.refenum = obj;
+            const name = this.refenum.name;
+            const target = this.refenum.target;
+            return target.reduce((list, item, index) => {
+                const schema = getSchema(item);
+                const ok = this.evalExpr('filter', schema, item, target, index);
+                if (ok) {
+                    const value = item[name];
+                    const title = isFunction$1(schema?.abstract) ? schema.abstract(schema, item, target, index, this.derefFunc) : value;
+                    list.push({ title, value });
+                }
+                return list;
+            }, []);
+        }
+        return [];
+    }
 }
+__decorate([
+    e$5('fz-item-dlg')
+], FzEnumBase.prototype, "modal", void 0);
 
 /**
  * @license
@@ -14876,7 +14860,7 @@ let FzEnum = class FzEnum extends FzEnumBase {
                 ?required="${this.required}"
                 class="${e$1({ 'form-select': true, 'readonly': this.readonly })}"
             >
-                ${this.withAdd ? x `<option style="color:red;text-align:center" ?disabled="${this.readonly}" ?selected="${false}" .value="${'~~ADD~~'}">Add ...</option>` : ''}
+                ${this.extend ? x `<option style="color:red;text-align:center" ?disabled="${this.readonly}" ?selected="${false}" .value="${'~~ADD~~'}">Add ...</option>` : ''}
                 ${this.showNullChoice ? x `<option style="color:red;text-align:center" ?disabled="${this.readonly}" ?selected="${this.isSelected(null)}" .value="${'~~EMPTY~~'}"> ${this.required ? 'Choose a value...' : '<vide>'}</option>` : ''}
                 ${this.enums?.map((item, i) => x `
                     <option id="option" ?disabled="${this.readonly}"  ?selected="${this.selected === i}">
@@ -14896,7 +14880,7 @@ __decorate([
     r$3("option")
 ], FzEnum.prototype, "options", null);
 FzEnum = __decorate([
-    t$4("fz-enum")
+    t$4("fz-enum-select")
 ], FzEnum);
 
 let FZEnumCheck = class FZEnumCheck extends FzEnumBase {
@@ -14961,9 +14945,117 @@ FZEnumCheck = __decorate([
 
 /**
  * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */class e extends i$1{constructor(i){if(super(i),this.it=E,i.type!==t$1.CHILD)throw Error(this.constructor.directiveName+"() can only be used in child bindings")}render(r){if(r===E||null==r)return this._t=void 0,this.it=r;if(r===T)return r;if("string"!=typeof r)throw Error(this.constructor.directiveName+"() called with a non-string value");if(r===this.it)return this._t;this.it=r;const s=[r];return s.raw=s,this._t={_$litType$:this.constructor.resultType,strings:s,values:[]}}}e.directiveName="unsafeHTML",e.resultType=1;const o$2=e$2(e);
+
+/**
+ * @license
  * Copyright 2018 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */const o$2=o=>o??E;
+ */const n="important",i=" !"+n,o$1=e$2(class extends i$1{constructor(t){if(super(t),t.type!==t$1.ATTRIBUTE||"style"!==t.name||t.strings?.length>2)throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.")}render(t){return Object.keys(t).reduce(((e,r)=>{const s=t[r];return null==s?e:e+`${r=r.includes("-")?r:r.replace(/(?:^(webkit|moz|ms|o)|)(?=[A-Z])/g,"-$&").toLowerCase()}:${s};`}),"")}update(e,[r]){const{style:s}=e.element;if(void 0===this.ft)return this.ft=new Set(Object.keys(r)),this.render(r);for(const t of this.ft)null==r[t]&&(this.ft.delete(t),t.includes("-")?s.removeProperty(t):s[t]=null);for(const t in r){const e=r[t];if(null!=e){this.ft.add(t);const r="string"==typeof e&&e.endsWith(i);t.includes("-")||r?s.setProperty(t,r?e.slice(0,-11):e,r?n:""):s[t]=e;}}return T}});
+
+/**
+ * an input for long enumeration with typeahead behavior
+ */
+let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
+    #isopen_accessor_storage = false;
+    get isopen() { return this.#isopen_accessor_storage; }
+    set isopen(value) { this.#isopen_accessor_storage = value; }
+    #selected_accessor_storage = -1;
+    get selected() { return this.#selected_accessor_storage; }
+    set selected(value) { this.#selected_accessor_storage = value; }
+    filtered = [];
+    toField() {
+        if (isNull(this.value) || isNull(this.enums)) {
+            this.queryElem.value = "";
+            this.selected = -1;
+        }
+        else {
+            const item = this.enums.find(item => item.value == this.value);
+            this.queryElem.value = item ? item.title : "";
+            this.selected = item ? 0 : -1;
+        }
+    }
+    toValue() {
+        if (this.selected >= 0) {
+            this.value = this.filtered[this.selected].value;
+        }
+    }
+    renderEnum() {
+        const styles = { display: this.isopen ? "block" : "none" };
+        return x `
+            <div class="dropdown">
+                <input  
+                    id="query"
+                    class="form-control" 
+                    type="text" 
+                    autocomplete="off"
+                    placeholder=${this.label ?? ""}
+                    ?readonly=${this.readonly}
+                    ?required=${this.required}
+                    @input=${this.filter}
+                    @change=${this.filter}
+                    @focus=${this.show}
+                />
+                <div id="list" style="${o$1(styles)}" class="dropdown-menu w-100">
+                    ${this.filtered?.length == 0 ? x `<a class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : ''}
+                    ${this.filtered?.map((item, i) => x `<a class="dropdown-item" @click="${() => this.select(i)}" >${this.boldPrefix(item.title)}</a>`)}
+                </div>
+            </div>`;
+    }
+    // get the  inputed query string
+    get query() {
+        return this.queryElem?.value ?? "";
+    }
+    // return the given label with query part bolded 
+    boldPrefix(label) {
+        if (this.query == null || this.query.length == 0)
+            return label;
+        const parts = label.split(new RegExp(this.query, "i"));
+        const bolded = parts.join(`<b><u>${this.query}</u></b>`);
+        return o$2(bolded);
+    }
+    show() {
+        this.isopen = true;
+        this.queryElem.select();
+        this.filter();
+    }
+    select(index) {
+        this.selected = index;
+        this.queryElem.value = this.filtered[this.selected].title;
+        this.change();
+        this.isopen = false;
+    }
+    // get the enum list to display filter by query string (first 10 items)
+    filter() {
+        super.evalEnums();
+        const upper = this.query.toUpperCase();
+        const matching = (item) => item.title.toUpperCase().includes(upper);
+        this.filtered = this.showNullChoice ? [{ title: '~ empty', value: this.empty }] : [];
+        this.filtered.push(...this.enums?.filter(matching).slice(0, 10) ?? []);
+        this.selected = -1;
+        this.requestUpdate();
+    }
+};
+__decorate([
+    n$2({ type: Boolean, attribute: false })
+], FzEnumTypeahead.prototype, "isopen", null);
+__decorate([
+    n$2({ type: Number, attribute: false })
+], FzEnumTypeahead.prototype, "selected", null);
+__decorate([
+    e$5('#query')
+], FzEnumTypeahead.prototype, "queryElem", void 0);
+FzEnumTypeahead = __decorate([
+    t$4("fz-enum-typeahead")
+], FzEnumTypeahead);
+
+/**
+ * @license
+ * Copyright 2018 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */const o=o=>o??E;
 
 function iso$2(date = new Date()) {
     return date.toISOString().substring(0, 10);
@@ -14993,8 +15085,8 @@ let FzInputDate = class FzInputDate extends FzInputBase {
             type="date" 
             ?readonly="${this.readonly}" 
             @input="${this.change}"
-            min="${o$2(this.min)}"
-            max="${o$2(this.max)}"
+            min="${o(this.min)}"
+            max="${o(this.max)}"
             ?required="${this.required}"
         />`;
     }
@@ -15035,8 +15127,8 @@ let FzInputDatetime = class FzInputDatetime extends FzInputBase {
             id="input" 
             type="datetime-local" 
             @input="${this.change}"
-            min="${o$2(this.min)}"
-            max="${o$2(this.max)}"
+            min="${o(this.min)}"
+            max="${o(this.max)}"
             ?readonly="${this.readonly}" 
             ?required="${this.required}"
             class="form-control" 
@@ -15113,13 +15205,13 @@ let FzInputTextarea = class FzInputTextarea extends FzInputBase {
             <textarea  
                 class="form-control" 
                 id="input"
-                placeholder="${o$2(this.label)}"
+                placeholder="${o(this.label)}"
                 .value="${this.value}" 
                 ?readonly="${this.readonly}"
                 @input="${this.change}"
                 @keypress="${this.change}"
-                minlength="${o$2(this.minlength)}"
-                maxlength="${o$2(this.maxlength)}"
+                minlength="${o(this.minlength)}"
+                maxlength="${o(this.maxlength)}"
                 ?required="${this.required}"
                 rows="5"
             ></textarea>`;
@@ -15169,9 +15261,9 @@ let FzInputString = class FzInputString extends FzInputBase {
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
                     @keypress="${this.change}"
-                    minlength="${o$2(this.minlength)}"
-                    maxlength="${o$2(this.maxlength)}"
-                    pattern="${o$2(this.pattern)}"
+                    minlength="${o(this.minlength)}"
+                    maxlength="${o(this.maxlength)}"
+                    pattern="${o(this.pattern)}"
                     ?required="${this.required}"
                 />
                 <div ?hidden="${this.type !== 'color' || this.value == undefined}" class="input-group-append" style="max-width:5em" >
@@ -15375,20 +15467,19 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
         return false;
     }
     check() {
-        this.valid = true;
-        this.message = '';
-        if (this.required && this.value == null) {
-            this.valid = false;
-            this.message = formatMsg('valueMissing');
-        }
-        this.content?.classList.add(this.valid ? 'valid' : 'invalid');
-        this.content?.classList.remove(this.valid ? 'invalid' : 'valid');
-        if (this.readonly) {
-            this.content?.classList.add('readonly');
-        }
-        else {
-            this.content?.classList.remove('readonly');
-        }
+        // this.valid = true
+        // this.message = ''
+        // if (this.required && this.value == null) {
+        //     this.valid = false
+        //     this.message = formatMsg('valueMissing')
+        // }
+        // this.content?.classList.add(this.valid ? 'valid' : 'invalid')
+        // this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
+        // if (this.readonly) {
+        //     this.content?.classList.add('readonly')
+        // } else {
+        //     this.content?.classList.remove('readonly')
+        // }
     }
     load() {
         if (this.context && this.image && this.value) {
@@ -15533,8 +15624,8 @@ let FzInputFloat = class FzInputFloat extends FzInputBase {
                     id="input"
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
-                    min="${o$2(this.min)}"
-                    max="${o$2(this.max)}"
+                    min="${o(this.min)}"
+                    max="${o(this.max)}"
                     step="1e-12"
                     ?required="${this.required}"
                     @keypress="${this.keypress}"
@@ -15643,8 +15734,8 @@ let FzRange = class FzRange extends FzInputBase {
                     ?disabled="${this.readonly}"
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
-                    min="${o$2(this.min)}"
-                    max="${o$2(this.max)}"
+                    min="${o(this.min)}"
+                    max="${o(this.max)}"
                     step="1"
                     ?required="${this.required}"
                     class="form-control" 
@@ -15775,8 +15866,8 @@ let FzInputInteger = class FzInputInteger extends FzInputBase {
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
                     @keypress="${this.keypress}"
-                    min="${o$2(this.min)}"
-                    max="${o$2(this.max)}"
+                    min="${o(this.min)}"
+                    max="${o(this.max)}"
                     step="1"
                     ?required="${this.required}"
                 />
@@ -16098,8 +16189,8 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
                 this.set(this.value, doc.blob, doc.filename);
             }
             else {
-                this.valid = false;
-                this.message = "document not found";
+                //this.valid = false
+                this.errors = ["document not found"];
             }
         }
     }
@@ -16155,12 +16246,6 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
 FzInputDoc = FzInputDoc_1 = __decorate([
     t$4("fz-document")
 ], FzInputDoc);
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */class e extends i$1{constructor(i){if(super(i),this.it=E,i.type!==t$1.CHILD)throw Error(this.constructor.directiveName+"() can only be used in child bindings")}render(r){if(r===E||null==r)return this._t=void 0,this.it=r;if(r===T)return r;if("string"!=typeof r)throw Error(this.constructor.directiveName+"() called with a non-string value");if(r===this.it)return this._t;this.it=r;const s=[r];return s.raw=s,this._t={_$litType$:this.constructor.resultType,strings:s,values:[]}}}e.directiveName="unsafeHTML",e.resultType=1;const o$1=e$2(e);
 
 /* eslint-disable no-bitwise */
 
@@ -24623,7 +24708,7 @@ let FzMarkdownIt = class FzMarkdownIt extends Base {
     render() {
         const rendered = md.render(this.markdown);
         return x `<div>
-            ${o$1(rendered)}
+            ${o$2(rendered)}
         </div>`;
     }
 };
@@ -24686,107 +24771,274 @@ FzInputUuid = __decorate([
     t$4("fz-uuid")
 ], FzInputUuid);
 
-/**
- * @license
- * Copyright 2018 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */const n="important",i=" !"+n,o=e$2(class extends i$1{constructor(t){if(super(t),t.type!==t$1.ATTRIBUTE||"style"!==t.name||t.strings?.length>2)throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.")}render(t){return Object.keys(t).reduce(((e,r)=>{const s=t[r];return null==s?e:e+`${r=r.includes("-")?r:r.replace(/(?:^(webkit|moz|ms|o)|)(?=[A-Z])/g,"-$&").toLowerCase()}:${s};`}),"")}update(e,[r]){const{style:s}=e.element;if(void 0===this.ft)return this.ft=new Set(Object.keys(r)),this.render(r);for(const t of this.ft)null==r[t]&&(this.ft.delete(t),t.includes("-")?s.removeProperty(t):s[t]=null);for(const t in r){const e=r[t];if(null!=e){this.ft.add(t);const r="string"==typeof e&&e.endsWith(i);t.includes("-")||r?s.setProperty(t,r?e.slice(0,-11):e,r?n:""):s[t]=e;}}return T}});
+class FZCollection extends FzElement {
+}
 
 /**
- * an input for long enumeration with typeahead behavior
+ * @prop schema
+ * @prop data
+ * @prop name
+ * @prop index
  */
-let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
-    #isopen_accessor_storage = false;
-    get isopen() { return this.#isopen_accessor_storage; }
-    set isopen(value) { this.#isopen_accessor_storage = value; }
-    #selected_accessor_storage = -1;
-    get selected() { return this.#selected_accessor_storage; }
-    set selected(value) { this.#selected_accessor_storage = value; }
-    filtered = [];
+let FzArray$1 = class FzArray extends FZCollection {
+    #current_accessor_storage = null;
+    get current() { return this.#current_accessor_storage; }
+    set current(value) { this.#current_accessor_storage = value; }
+    schemas = [];
+    currentSchema;
+    content;
+    //private validator!: DataValidator
+    get nomore() {
+        return this.schema.maxItems && this.value && this.value.length >= this.schema.maxItems;
+    }
+    get noless() {
+        return this.schema.minItems && this.value && this.value.length <= this.schema.minItems;
+    }
+    static get styles() {
+        return [
+            ...super.styles,
+            i$5 `.panel {
+                    padding:5px;
+                    border: solid 1px lightgray;
+                    border-radius:10px; 
+                    user-select: none;
+                }`
+        ];
+    }
     toField() {
-        if (isNull(this.value) || isNull(this.enums)) {
-            this.queryElem.value = "";
-            this.selected = -1;
-        }
-        else {
-            const item = this.enums.find(item => item.value == this.value);
-            this.queryElem.value = item ? item.title : "";
-            this.selected = item ? 0 : -1;
-        }
+        // all is done at rendering
     }
     toValue() {
-        if (this.selected >= 0) {
-            this.value = this.filtered[this.selected].value;
+        // items are updated but array reference doesn't change 
+    }
+    // override update(changedProperties: Map<string, unknown>) {
+    //     if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema).length !== 0) {
+    //         const json = JSON.stringify(this.schema, getCircularReplacer)
+    //         this.validator = new DataValidator(JSON.parse(json));
+    //         this.check()
+    //     }
+    //     super.update(changedProperties);
+    // }
+    check() {
+        // if (!this.validator) return
+        // this.valid = true
+        // this.message = ''
+        // switch (true) {
+        //     case (this.required && this.value == undefined):
+        //         this.valid = false
+        //         this.message = formatMsg('valueMissing')
+        //         break
+        //     case !this.required && this.value == undefined:
+        //         break
+        //     default:
+        //         this.valid = this.validator.validate(this.value)
+        //         const errors = this.validator.errors.filter(e => e.instancePath.match(/\//g)?.length === 1 )
+        //         if (this.valid == false && errors && errors.length > 0) this.message = this.validator.errorsText(errors)
+        // }
+        this.content = this.shadowRoot?.getElementById('content') ?? undefined;
+        this.content?.classList.add(this.valid ? 'valid' : 'invalid');
+        this.content?.classList.remove(this.valid ? 'invalid' : 'valid');
+    }
+    connectedCallback() {
+        super.connectedCallback();
+        this.listen(this, 'update', () => this.check());
+        this.listen(this, 'toggle-item', evt => (this.close(), this.eventStop(evt)));
+    }
+    requestUpdate(name, oldvalue) {
+        if (name !== undefined) {
+            this.solveSchemas(true);
+            super.requestUpdate(name, oldvalue);
         }
     }
-    renderEnum() {
-        const styles = { display: this.isopen ? "block" : "none" };
+    renderField() {
+        this.solveSchemas();
+        const lines = (!this.data || !this.value) ? [] : this.value.map((_i, i) => x `${(this.current === i) ? this.renderEditable(i) : this.renderStatic(i)}`);
         return x `
-            <div class="dropdown">
-                <input  
-                    id="query"
-                    class="form-control" 
-                    type="text" 
-                    autocomplete="off"
-                    placeholder=${this.label ?? ""}
-                    ?readonly=${this.readonly}
-                    ?required=${this.required}
-                    @input=${this.filter}
-                    @change=${this.filter}
-                    @focus=${this.show}
-                />
-                <div id="list" style="${o(styles)}" class="dropdown-menu w-100">
-                    ${this.filtered?.length == 0 ? x `<a class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : ''}
-                    ${this.filtered?.map((item, i) => x `<a class="dropdown-item" @click="${() => this.select(i)}" >${this.boldPrefix(item.title)}</a>`)}
+            <div @focusout="${this.focusout}">
+                <div class="form-group row">
+                ${this.schema.title === "" ? x `` : this.renderLabel}
+                    <div class="col-sm">
+                        <ul id="content" class="list-group">
+                            ${lines}
+                            ${this.readonly ? x `` : x `
+                                <li class="list-group-item" @click="${this.close}">
+                                    <button type="button" @click="${this.add}" ?disabled="${this.nomore}" class="btn btn-primary btn-sm "><b>+</b></button>
+                                    ${this.schema.homogeneous ? null : x `
+                                        <div class="btn-group" style="float:right" role="group">
+                                            <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
+                                                @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            ${this.currentSchema?.title || "Ajouter"}
+                                            </button> 
+                                            <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+                                                ${this.schema.items?.oneOf?.map((schema, i) => x `<a class="dropdown-item"
+                                                    @click="${() => this.selectSchema(i)}" >${schema.title || "Type" + i}</a>`)}
+                                            </div>
+                                        </div>`}
+                                </li>
+                            `}
+                        </ul>
+                    </div>
                 </div>
             </div>`;
     }
-    // get the  inputed query string
-    get query() {
-        return this.queryElem?.value ?? "";
+    renderStatic(index) {
+        this.solveOrder();
+        this.solveSchemas();
+        return x `
+        <li 
+                id="${index}"
+                draggable="true" 
+                @dragstart="${(evt) => this.drag(index, evt)}"
+                @dragover="${this.allowDrop}"
+                @drop="${this.drop}"   
+                @click="${(evt) => this.open(index, evt)}"              
+                class="list-group-item"
+            >
+            ${this.abstract(index, this.schemas[index])}
+            ${this.readonly ? x `` : x `<button ?hidden="${this.noless}" @click="${(evt) => this.del(index, evt)}" type="button" style="float:right" class="btn-close" aria-label="Close"></button>`}
+        </li>`;
     }
-    // return the given label with query part bolded 
-    boldPrefix(label) {
-        if (this.query == null || this.query.length == 0)
-            return label;
-        const parts = label.split(new RegExp(this.query, "i"));
-        const bolded = parts.join(`<b><u>${this.query}</u></b>`);
-        return o$1(bolded);
+    renderEditable(index) {
+        const schema = this.schemas[index];
+        return x `<li class="list-group-item"> ${this.renderItem(schema, index)} </li>`;
     }
-    show() {
-        this.isopen = true;
-        this.queryElem.select();
-        this.filter();
-    }
-    select(index) {
-        this.selected = index;
-        this.queryElem.value = this.filtered[this.selected].title;
+    focusout() {
         this.change();
-        this.isopen = false;
     }
-    // get the enum list to display filter by query string (first 10 items)
-    filter() {
-        super.evalEnums();
-        const upper = this.query.toUpperCase();
-        const matching = (item) => item.title.toUpperCase().includes(upper);
-        this.filtered = this.showNullChoice ? [{ title: '~ empty', value: this.empty }] : [];
-        this.filtered.push(...this.enums?.filter(matching).slice(0, 10) ?? []);
-        this.selected = -1;
+    focus() {
+        if (this.fields().length > 0) {
+            const first = this.fields()[0];
+            first.dofocus();
+        }
+    }
+    open(index, evt) {
+        if (this.current === index) {
+            this.close();
+        }
+        else {
+            this.current = index;
+            this.dofocus();
+        }
+        this.eventStop(evt);
+    }
+    close(evt) {
+        this.eventStop(evt);
+        this.current = null;
+        this.change();
+    }
+    drag(index, ev) {
+        if (ev.dataTransfer) {
+            ev.dataTransfer.setData('text', index.toString());
+        }
+        else if (ev.originalEvent.dataTransfer) {
+            ev.originalEvent.dataTransfer.setData('text', index.toString());
+        }
+        this.current = null;
         this.requestUpdate();
+    }
+    drop(ev) {
+        if (ev.dataTransfer) {
+            const from = parseInt(ev.dataTransfer.getData("text"), 10);
+            const to = parseInt(ev.target.id);
+            this.value.splice(to, 0, this.value.splice(from, 1)[0]);
+            this.schemas.splice(to, 0, this.schemas.splice(from, 1)[0]);
+            this.requestUpdate();
+        }
+        this.eventStop(ev);
+    }
+    allowDrop(ev) {
+        ev.preventDefault();
+    }
+    del(index, evt) {
+        if (this.noless)
+            return;
+        this.remItem(index);
+        this.eventStop(evt);
+    }
+    add(evt) {
+        if (this.nomore || !this.currentSchema)
+            return;
+        this.addItem(this.currentSchema);
+        this.eventStop(evt);
+    }
+    remItem(index) {
+        this.value.splice(index, 1);
+        this.schemas.splice(index, 1);
+        this.current = null;
+        this.change();
+    }
+    addItem(schema, edit = true) {
+        if (this.value == null)
+            this.value = [];
+        const value = schema._default(this.data);
+        this.value.push(value);
+        this.schemas.push(schema);
+        if (edit)
+            this.open(this.value.length - 1);
+        this.change();
+    }
+    toggleDropdown() {
+        const display = this.shadowRoot?.querySelector(".dropdown-menu")?.style.display;
+        display == "block" ? this.closeDropdown() : this.openDropdown();
+    }
+    closeDropdown() {
+        const elem = this.shadowRoot?.querySelector(".dropdown-menu");
+        if (elem != null) {
+            elem.style.display = "none";
+        }
+    }
+    openDropdown() {
+        const elem = this.shadowRoot?.querySelector(".dropdown-menu");
+        if (elem != null) {
+            elem.style.display = "block";
+        }
+    }
+    selectSchema(index) {
+        this.currentSchema = this.schema.items?.oneOf?.[index];
+        this.closeDropdown();
+        this.requestUpdate();
+    }
+    solveSchemas(force = false) {
+        if (!isObject$1(this.schema.items))
+            return;
+        if (!force && this.currentSchema && this.schemas)
+            return;
+        if (!this.currentSchema)
+            this.currentSchema = this.schema.homogeneous ? this.schema.items : (this.schema.items.oneOf?.[0] ?? EMPTY_SCHEMA);
+        this.schemas = this.value == null ? [] : this.schema.homogeneous
+            ? this.value.map(() => this.schema.items)
+            : this.value.map((value) => getSchema(value) ?? this.schema.items?.oneOf?.find((schema) => isFunction$1(schema.case) && schema.case(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc)));
+    }
+    solveOrder() {
+        if (this.value == null)
+            return;
+        const current = this.value;
+        const orderedidx = current.map((_x, i) => i).sort((ia, ib) => {
+            const va = this.evalExpr("orderBy", this.schemas[ia], current[ia], this.value, ia);
+            const vb = this.evalExpr("orderBy", this.schemas[ib], current[ib], this.value, ib);
+            switch (true) {
+                case (va === vb): return 0;
+                case (va == null): return -1;
+                case (vb == null): return 1;
+                case (va > vb): return 1;
+                case (va < vb): return -1;
+                default: return 0;
+            }
+        });
+        const schemas = this.schemas.map(x => x);
+        const values = current.map(x => x);
+        for (let i = 0; i < orderedidx.length; i++) {
+            this.schemas[i] = schemas[orderedidx[i]];
+            this.value[i] = values[orderedidx[i]];
+        }
     }
 };
 __decorate([
-    n$2({ type: Boolean, attribute: false })
-], FzEnumTypeahead.prototype, "isopen", null);
-__decorate([
-    n$2({ type: Number, attribute: false })
-], FzEnumTypeahead.prototype, "selected", null);
-__decorate([
-    e$5('#query')
-], FzEnumTypeahead.prototype, "queryElem", void 0);
-FzEnumTypeahead = __decorate([
-    t$4("fz-enum-typeahead")
-], FzEnumTypeahead);
+    n$2({ attribute: false })
+], FzArray$1.prototype, "current", null);
+FzArray$1 = __decorate([
+    t$4("fz-array")
+], FzArray$1);
 
 var $schema$1 = "http://json-schema.org/draft-07/schema#";
 var $id$2 = "http://json-schema.org/draft-07/schema-3s#";
@@ -32346,296 +32598,27 @@ function validateErrors() {
     Ajvi18n(schemaValidate?.errors);
     return schemaValidate?.errors ?? [];
 }
-class DataValidator {
+class Validator {
     parser;
+    errors = [];
+    text = "";
     constructor(schema) {
         this.parser = ajv.compile(schema);
     }
     validate(value) {
         const result = this.parser(value);
+        this.errors = this.parser.errors ?? [];
+        Ajvi18n(this.errors);
+        this.text = ajv.errorsText(this.errors);
         if (typeof result === 'boolean')
             return result;
         throw (`Schema validation result not boolean (not expected) ${result}`);
     }
-    errors() {
-        return this.parser.errors;
-    }
-    errorsText(errors) {
+    static getText(errors) {
         Ajvi18n(errors);
         return ajv.errorsText(errors);
     }
 }
-
-class FZCollection extends FzElement {
-}
-
-/**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
-let FzArray$1 = class FzArray extends FZCollection {
-    #current_accessor_storage = null;
-    get current() { return this.#current_accessor_storage; }
-    set current(value) { this.#current_accessor_storage = value; }
-    schemas = [];
-    currentSchema;
-    content;
-    validator;
-    get nomore() {
-        return this.schema.maxItems && this.value && this.value.length >= this.schema.maxItems;
-    }
-    get noless() {
-        return this.schema.minItems && this.value && this.value.length <= this.schema.minItems;
-    }
-    static get styles() {
-        return [
-            ...super.styles,
-            i$5 `.panel {
-                    padding:5px;
-                    border: solid 1px lightgray;
-                    border-radius:10px; 
-                    user-select: none;
-                }`
-        ];
-    }
-    toField() {
-        // all is done at rendering
-    }
-    toValue() {
-        // items are updated but array reference doesn't change 
-    }
-    update(changedProperties) {
-        if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema).length !== 0) {
-            const json = JSON.stringify(this.schema, getCircularReplacer);
-            this.validator = new DataValidator(JSON.parse(json));
-            this.check();
-        }
-        super.update(changedProperties);
-    }
-    check() {
-        if (!this.validator)
-            return;
-        this.valid = true;
-        this.message = '';
-        switch (true) {
-            case (this.required && this.value == undefined):
-                this.valid = false;
-                this.message = formatMsg('valueMissing');
-                break;
-            case !this.required && this.value == undefined:
-                break;
-            default:
-                this.valid = this.validator.validate(this.value);
-                const errors = this.validator.errors()?.filter(e => e.instancePath.match(/\//g)?.length === 1);
-                if (this.valid == false && errors && errors.length > 0)
-                    this.message = this.validator.errorsText(errors);
-        }
-        this.content = this.shadowRoot?.getElementById('content') ?? undefined;
-        this.content?.classList.add(this.valid ? 'valid' : 'invalid');
-        this.content?.classList.remove(this.valid ? 'invalid' : 'valid');
-    }
-    connectedCallback() {
-        super.connectedCallback();
-        this.listen(this, 'update', () => this.check());
-        this.listen(this, 'toggle-item', evt => (this.close(), this.eventStop(evt)));
-    }
-    requestUpdate(name, oldvalue) {
-        if (name !== undefined) {
-            this.solveSchemas(true);
-            super.requestUpdate(name, oldvalue);
-        }
-    }
-    renderField() {
-        this.solveSchemas();
-        const lines = (!this.data || !this.value) ? [] : this.value.map((_i, i) => x `${(this.current === i) ? this.renderEditable(i) : this.renderStatic(i)}`);
-        return x `
-            <div @focusout="${this.focusout}">
-                <div class="form-group row">
-                ${this.schema.title === "" ? x `` : this.renderLabel}
-                    <div class="col-sm">
-                        <ul id="content" class="list-group">
-                            ${lines}
-                            ${this.readonly ? x `` : x `
-                                <li class="list-group-item" @click="${this.close}">
-                                    <button type="button" @click="${this.add}" ?disabled="${this.nomore}" class="btn btn-primary btn-sm "><b>+</b></button>
-                                    ${this.schema.homogeneous ? null : x `
-                                        <div class="btn-group" style="float:right" role="group">
-                                            <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
-                                                @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            ${this.currentSchema?.title || "Ajouter"}
-                                            </button> 
-                                            <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-                                                ${this.schema.items?.oneOf?.map((schema, i) => x `<a class="dropdown-item"
-                                                    @click="${() => this.selectSchema(i)}" >${schema.title || "Type" + i}</a>`)}
-                                            </div>
-                                        </div>`}
-                                </li>
-                            `}
-                        </ul>
-                    </div>
-                </div>
-            </div>`;
-    }
-    renderStatic(index) {
-        this.solveOrder();
-        this.solveSchemas();
-        return x `
-        <li 
-                id="${index}"
-                draggable="true" 
-                @dragstart="${(evt) => this.drag(index, evt)}"
-                @dragover="${this.allowDrop}"
-                @drop="${this.drop}"   
-                @click="${(evt) => this.open(index, evt)}"              
-                class="list-group-item"
-            >
-            ${this.abstract(index, this.schemas[index])}
-            ${this.readonly ? x `` : x `<button ?hidden="${this.noless}" @click="${(evt) => this.del(index, evt)}" type="button" style="float:right" class="btn-close" aria-label="Close"></button>`}
-        </li>`;
-    }
-    renderEditable(index) {
-        const schema = this.schemas[index];
-        return x `<li class="list-group-item"> ${this.renderItem(schema, index)} </li>`;
-    }
-    focusout() {
-        this.change();
-    }
-    focus() {
-        if (this.fields().length > 0) {
-            const first = this.fields()[0];
-            first.dofocus();
-        }
-    }
-    open(index, evt) {
-        if (this.current === index) {
-            this.close();
-        }
-        else {
-            this.current = index;
-            this.dofocus();
-        }
-        this.eventStop(evt);
-    }
-    close(evt) {
-        this.eventStop(evt);
-        this.current = null;
-        this.change();
-    }
-    drag(index, ev) {
-        if (ev.dataTransfer) {
-            ev.dataTransfer.setData('text', index.toString());
-        }
-        else if (ev.originalEvent.dataTransfer) {
-            ev.originalEvent.dataTransfer.setData('text', index.toString());
-        }
-        this.current = null;
-        this.requestUpdate();
-    }
-    drop(ev) {
-        if (ev.dataTransfer) {
-            const from = parseInt(ev.dataTransfer.getData("text"), 10);
-            const to = parseInt(ev.target.id);
-            this.value.splice(to, 0, this.value.splice(from, 1)[0]);
-            this.schemas.splice(to, 0, this.schemas.splice(from, 1)[0]);
-            this.requestUpdate();
-        }
-        this.eventStop(ev);
-    }
-    allowDrop(ev) {
-        ev.preventDefault();
-    }
-    del(index, evt) {
-        if (this.noless)
-            return;
-        this.remItem(index);
-        this.eventStop(evt);
-    }
-    add(evt) {
-        if (this.nomore || !this.currentSchema)
-            return;
-        this.addItem(this.currentSchema);
-        this.eventStop(evt);
-    }
-    remItem(index) {
-        this.value.splice(index, 1);
-        this.schemas.splice(index, 1);
-        this.current = null;
-        this.change();
-    }
-    addItem(schema, edit = true) {
-        if (this.value == null)
-            this.value = [];
-        const value = schema._default(this.data);
-        this.value.push(value);
-        this.schemas.push(schema);
-        if (edit)
-            this.open(this.value.length - 1);
-        this.change();
-    }
-    toggleDropdown() {
-        const display = this.shadowRoot?.querySelector(".dropdown-menu")?.style.display;
-        display == "block" ? this.closeDropdown() : this.openDropdown();
-    }
-    closeDropdown() {
-        const elem = this.shadowRoot?.querySelector(".dropdown-menu");
-        if (elem != null) {
-            elem.style.display = "none";
-        }
-    }
-    openDropdown() {
-        const elem = this.shadowRoot?.querySelector(".dropdown-menu");
-        if (elem != null) {
-            elem.style.display = "block";
-        }
-    }
-    selectSchema(index) {
-        this.currentSchema = this.schema.items?.oneOf?.[index];
-        this.closeDropdown();
-        this.requestUpdate();
-    }
-    solveSchemas(force = false) {
-        if (!isObject$1(this.schema.items))
-            return;
-        if (!force && this.currentSchema && this.schemas)
-            return;
-        if (!this.currentSchema)
-            this.currentSchema = this.schema.homogeneous ? this.schema.items : (this.schema.items.oneOf?.[0] ?? EMPTY_SCHEMA);
-        this.schemas = this.value == null ? [] : this.schema.homogeneous
-            ? this.value.map(() => this.schema.items)
-            : this.value.map((value) => getSchema(value) ?? this.schema.items?.oneOf?.find((schema) => isFunction$1(schema.case) && schema.case(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc)));
-    }
-    solveOrder() {
-        if (this.value == null)
-            return;
-        const current = this.value;
-        const orderedidx = current.map((_x, i) => i).sort((ia, ib) => {
-            const va = this.evalExpr("orderBy", this.schemas[ia], current[ia], this.value, ia);
-            const vb = this.evalExpr("orderBy", this.schemas[ib], current[ib], this.value, ib);
-            switch (true) {
-                case (va === vb): return 0;
-                case (va == null): return -1;
-                case (vb == null): return 1;
-                case (va > vb): return 1;
-                case (va < vb): return -1;
-                default: return 0;
-            }
-        });
-        const schemas = this.schemas.map(x => x);
-        const values = current.map(x => x);
-        for (let i = 0; i < orderedidx.length; i++) {
-            this.schemas[i] = schemas[orderedidx[i]];
-            this.value[i] = values[orderedidx[i]];
-        }
-    }
-};
-__decorate([
-    n$2({ attribute: false })
-], FzArray$1.prototype, "current", null);
-FzArray$1 = __decorate([
-    t$4("fz-array")
-], FzArray$1);
 
 /**
  * @prop schema
@@ -32650,7 +32633,6 @@ let FzObject = class FzObject extends FZCollection {
     #activegroup_accessor_storage = {};
     get activegroup() { return this.#activegroup_accessor_storage; }
     set activegroup(value) { this.#activegroup_accessor_storage = value; }
-    content;
     validator;
     seen;
     static get styles() {
@@ -32673,26 +32655,24 @@ let FzObject = class FzObject extends FZCollection {
         // properties are updated but object reference doesn't change 
     }
     check() {
-        if (!this.validator)
-            return;
-        this.valid = true;
-        this.message = '';
-        switch (true) {
-            case (this.required && this.value == undefined):
-                this.valid = false;
-                this.message = formatMsg('valueMissing');
-                break;
-            case !this.required && this.value == undefined:
-                break;
-            default:
-                this.valid = this.validator.validate(this.value);
-                const errors = this.validator.errors()?.filter(e => e.instancePath.match(/\//g)?.length === 1);
-                if (this.valid == false && errors && errors.length > 0)
-                    this.message = this.validator.errorsText(errors);
-        }
-        this.content = this.shadowRoot?.getElementById('content') ?? undefined;
-        this.content?.classList.add(this.valid ? 'valid' : 'invalid');
-        this.content?.classList.remove(this.valid ? 'invalid' : 'valid');
+        //     if (!this.validator) return
+        //     this.valid = true
+        //     this.message = ''
+        //     switch (true) {
+        //         case (this.required && this.value == undefined):
+        //             this.valid = false
+        //             this.message = formatMsg('valueMissing')
+        //             break
+        //         case !this.required && this.value == undefined:
+        //             break
+        //         default:
+        //             this.valid = this.validator.validate(this.value)
+        //             const errors = this.validator.errors.filter(e => e.instancePath.match(/\//g)?.length === 1 )
+        //             if (this.valid == false && errors && errors.length > 0) this.message = this.validator.text
+        //     }
+        //     this.content = this.shadowRoot?.getElementById('content') ?? undefined
+        //     this.content?.classList.add(this.valid ? 'valid' : 'invalid')
+        //     this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
     }
     connectedCallback() {
         super.connectedCallback();
@@ -32705,7 +32685,7 @@ let FzObject = class FzObject extends FZCollection {
     update(changedProperties) {
         if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema.properties ?? {})?.length > 0) {
             const json = JSON.stringify(this.schema, getCircularReplacer);
-            this.validator = new DataValidator(JSON.parse(json));
+            this.validator = new Validator(JSON.parse(json));
             this.check();
         }
         super.update(changedProperties);
@@ -32930,7 +32910,6 @@ const u=(e,s,t)=>{const r=new Map;for(let l=s;l<=t;l++)r.set(e[l],l);return r},c
  * @prop index
  */
 let FzArray = class FzArray extends FZCollection {
-    content;
     validator;
     toField() {
         // all is done at rendering
@@ -32962,26 +32941,24 @@ let FzArray = class FzArray extends FZCollection {
             </div>`;
     }
     check() {
-        if (!this.validator)
-            return;
-        this.valid = true;
-        this.message = '';
-        switch (true) {
-            case (this.required && this.value == undefined):
-                this.valid = false;
-                this.message = formatMsg('valueMissing');
-                break;
-            case !this.required && this.value == undefined:
-                break;
-            default:
-                this.valid = this.validator.validate(this.value);
-                const errors = this.validator.errors()?.filter(e => e.instancePath.match(/\//g)?.length === 1);
-                if (this.valid == false && errors && errors.length > 0)
-                    this.message = this.validator.errorsText(errors);
-        }
-        this.content = this.shadowRoot?.getElementById('content') ?? undefined;
-        this.content?.classList.add(this.valid ? 'valid' : 'invalid');
-        this.content?.classList.remove(this.valid ? 'invalid' : 'valid');
+        //     if (!this.validator) return
+        //     this.valid = true
+        //     this.message = ''
+        //     switch (true) {
+        //         case (this.required && this.value == undefined):
+        //             this.valid = false
+        //             this.message = formatMsg('valueMissing')
+        //             break
+        //         case !this.required && this.value == undefined:
+        //             break
+        //         default:
+        //             this.valid = this.validator.validate(this.value)
+        //             const errors = this.validator.errors.filter(e => e.instancePath.match(/\//g)?.length === 1)
+        //             if (this.valid == false && errors && errors.length > 0) this.message = this.validator.text
+        //     }
+        //     this.content = this.shadowRoot?.getElementById('content') ?? undefined
+        //     this.content?.classList.add(this.valid ? 'valid' : 'invalid')
+        //     this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
     }
     connectedCallback() {
         super.connectedCallback();
@@ -32990,7 +32967,7 @@ let FzArray = class FzArray extends FZCollection {
     update(changedProperties) {
         if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema).length !== 0) {
             const json = JSON.stringify(this.schema, getCircularReplacer);
-            this.validator = new DataValidator(JSON.parse(json));
+            this.validator = new Validator(JSON.parse(json));
             this.check();
         }
         super.update(changedProperties);
@@ -33443,7 +33420,7 @@ FzPhotoDlg = __decorate([
 ], FzPhotoDlg);
 
 let FzItemDlg = class FzItemDlg extends Base {
-    #reference_accessor_storage = null;
+    #reference_accessor_storage;
     get reference() { return this.#reference_accessor_storage; }
     set reference(value) { this.#reference_accessor_storage = value; }
     modal;
@@ -33485,8 +33462,8 @@ let FzItemDlg = class FzItemDlg extends Base {
     updated(_changedProperties) {
         if (this.reference) {
             this.pointer = this.reference?.pointer;
-            this.array = this.reference?.refarray;
-            this.refname = this.reference?.refname;
+            this.array = this.reference?.target;
+            this.refname = this.reference?.name;
             this.arraySchema = getSchema(this.array);
         }
         else {
@@ -33520,7 +33497,7 @@ let FzItemDlg = class FzItemDlg extends Base {
             evt.detail.value = field.value[this.refname ?? "id"];
             evt.detail.abstract = field.abstract();
         }
-        this.reference = null;
+        this.reference = undefined;
         this.stopEvent(evt);
         this.dispatchEvent(new CustomEvent("close", { detail }));
         this.modal?.valid(false);
@@ -33988,10 +33965,10 @@ class CSField extends CompilationStep {
     apply(schema) {
         if ("const" in schema)
             return schema.field = 'fz-constant';
-        if (schema.refTo && isPrimitive(schema)) {
+        if (schema.from && isPrimitive(schema)) {
             if (!schema.filter)
                 schema.filter = () => true;
-            return schema.field = 'fz-enum';
+            return schema.field = 'fz-enum-select';
         }
         if (schema.isenum) {
             if (!schema.filter)
@@ -34000,9 +33977,9 @@ class CSField extends CompilationStep {
                 case schema.enum && schema.enum?.length <= 3: return schema.field = 'fz-enum-check';
                 case schema.oneOf && schema.oneOf?.length <= 3: return schema.field = 'fz-enum-check';
                 case schema.anyOf && schema.anyOf?.length <= 3: return schema.field = 'fz-enum-check';
-                case schema.enum && schema.enum?.length <= 20: return schema.field = 'fz-enum';
-                case schema.oneOf && schema.oneOf?.length <= 20: return schema.field = 'fz-enum';
-                case schema.anyOf && schema.anyOf?.length <= 20: return schema.field = 'fz-enum';
+                case schema.enum && schema.enum?.length <= 20: return schema.field = 'fz-enum-select';
+                case schema.oneOf && schema.oneOf?.length <= 20: return schema.field = 'fz-enum-select';
+                case schema.anyOf && schema.anyOf?.length <= 20: return schema.field = 'fz-enum-select';
                 default: return schema.field = 'fz-enum-typeahead';
             }
         }
@@ -34078,27 +34055,27 @@ class CSOrder extends CompilationStep {
 class CSInsideRef extends CompilationStep {
     data;
     constructor(root, data) {
-        super(root, "refTo");
+        super(root, "from");
         this.data = data;
     }
     appliable(schema) {
-        return this.property in schema && typeof schema.refTo !== "function";
+        return notNull(schema.from) && !isFunction$1(schema.from);
     }
     apply(schema) {
-        const refto = schema.refTo;
-        schema.refTo = () => null;
-        const pointer = refto.replace(/\/[^/]+$/, '');
-        const refname = refto.substr(pointer.length + 1);
+        const from = schema.from;
+        schema.from = () => null;
+        const pointer = from.pointer.replace(/\/[^/]+$/, '');
+        const name = from.pointer.substr(pointer.length + 1);
         schema._addObservers(`$\`${pointer}\``);
-        schema.refTo = (_schema, _value, parent, property, _userdata) => {
-            const refarray = derefPointerData(this.data.content, parent, property, pointer);
-            if (!refarray)
+        schema.from = (_schema, _value, parent, property, _userdata) => {
+            const target = derefPointerData(this.data.content, parent, property, pointer);
+            if (!target)
                 return null;
-            if (!Array.isArray(refarray)) {
+            if (!isArray(target)) {
                 console.error(`reference list must be an array ${pointer}`);
-                return null;
+                return [];
             }
-            return { pointer, refname, refarray };
+            return { pointer, name, target, schema: getSchema(target), extend: !!from.extend };
         };
     }
 }
@@ -34341,9 +34318,14 @@ let FzForm = class FzForm extends Base {
             ...super.styles
         ];
     }
+    obj = { content: {} };
     #i_options_accessor_storage = {};
     get i_options() { return this.#i_options_accessor_storage; }
     set i_options(value) { this.#i_options_accessor_storage = value; }
+    store = new BlobMemory();
+    asset;
+    fieldMap = new Map();
+    schemaMap = new Map();
     #i_schema_accessor_storage = DEFAULT_SCHEMA;
     get i_schema() { return this.#i_schema_accessor_storage; }
     set i_schema(value) { this.#i_schema_accessor_storage = value; }
@@ -34365,11 +34347,6 @@ let FzForm = class FzForm extends Base {
     oninvaliddata = null;
     onvalidate = null;
     ondismiss = null;
-    obj = { content: {} };
-    store = new BlobMemory();
-    asset;
-    dataPointerFieldMap = new Map();
-    schemaPointerFieldMap = new Map();
     schemaErrors = [];
     dataErrors = [];
     validator;
@@ -34389,7 +34366,7 @@ let FzForm = class FzForm extends Base {
     set schema(value) {
         this.i_schema = validateSchema(value) ? new Schema(JSON.parse(JSON.stringify(value))) : DEFAULT_SCHEMA;
         this.schemaErrors = validateErrors();
-        this.validator = new DataValidator(this.i_schema);
+        this.validator = new Validator(this.i_schema);
         this.compile();
         this.requestUpdate();
     }
@@ -34403,13 +34380,13 @@ let FzForm = class FzForm extends Base {
             this.asset = this.i_options.asset;
         }
     }
-    get data() { return cleanJSON(this.root); }
+    get data() { return JSON.parse(JSON.stringify(this.root)); }
     set data(value) {
         // dont accept data before having a valid JSON
         if (this.schemaErrors.length > 0)
             return;
         // data must be valid (if checkin option is true)
-        this.dataErrors = this.checkIn && this.validator.validate(value) ? this.validator?.errors() ?? [] : [];
+        this.dataErrors = this.checkIn && this.validator.validate(value) ? this.validator?.errors ?? [] : [];
         this.obj.content = this.dataErrors.length == 0 ? value : {};
         this.compile();
         this.requestUpdate();
@@ -34421,6 +34398,23 @@ let FzForm = class FzForm extends Base {
             const converted = schemaAttrConverter.fromAttribute(newValue);
             this.schema = converted;
         }
+    }
+    getField(pointer) {
+        return this.fieldMap.get(pointer);
+    }
+    addField(schemaPointer, dataPointer, field) {
+        this.schemaMap.set(schemaPointer, field);
+        this.fieldMap.set(dataPointer, field);
+    }
+    removeField(schemaPointer, dataPointer) {
+        this.schemaMap.delete(schemaPointer);
+        this.fieldMap.delete(dataPointer);
+    }
+    getfieldFromSchema(pointer) {
+        return this.schemaMap.get(pointer);
+    }
+    updateField(pointer) {
+        this.getField(pointer)?.requestUpdate();
     }
     render() {
         const failed = this.schemaErrors.length > 0 || this.dataErrors.length > 0;
@@ -34460,22 +34454,24 @@ let FzForm = class FzForm extends Base {
         super.disconnectedCallback();
         this.removeEventListener('observed-changed', (e) => this.observedChange(e));
     }
-    addField(schemaPointer, dataPointer, field) {
-        this.schemaPointerFieldMap.set(schemaPointer, field);
-        this.dataPointerFieldMap.set(dataPointer, field);
-    }
-    removeField(schemaPointer, dataPointer) {
-        this.schemaPointerFieldMap.delete(schemaPointer);
-        this.dataPointerFieldMap.delete(dataPointer);
-    }
-    getfieldFromSchema(pointer) {
-        return this.schemaPointerFieldMap.get(pointer);
-    }
-    getfieldFromData(pointer) {
-        return this.dataPointerFieldMap.get(pointer);
-    }
-    updateField(pointer) {
-        this.getfieldFromData(pointer)?.requestUpdate();
+    check() {
+        // collect errors and dispatch error on fields (registered in this.fieldMap)
+        const valid = this.validator?.validate(this.root);
+        const errorMap = new Map();
+        if (!valid) {
+            // dispatch all errors over the fields 
+            for (const error of this.validator.errors) {
+                const { instancePath, message, params, keyword } = error;
+                if (!errorMap.has(instancePath))
+                    errorMap.set(instancePath, []);
+                const detail = Object.entries(params).map(([s, v]) => v == null ? null : `${s}: ${v}`).filter(v => v).join(',');
+                const msg = `${keyword}: ${message} (${detail})`;
+                errorMap.get(instancePath)?.push(msg);
+            }
+        }
+        for (const [pointer, field] of this.fieldMap.entries()) {
+            field.errors = errorMap.get(pointer) ?? [];
+        }
     }
     /**
      * handle 'observed-change' event for change detection and update
@@ -34523,9 +34519,6 @@ let FzForm = class FzForm extends Base {
         this.dispatchEvent(new CustomEvent('ready'));
     }
 };
-__decorate([
-    r$4()
-], FzForm.prototype, "i_options", null);
 __decorate([
     n$2({ type: Object, attribute: "schema", converter: schemaAttrConverter })
 ], FzForm.prototype, "i_schema", null);

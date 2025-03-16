@@ -1,5 +1,7 @@
-import "./inputs/fz-enum";
-import "./inputs/fz-enum-check";
+import "./inputs/enum/fz-enum-select";
+import "./inputs/enum/fz-enum-check";
+import "./inputs/enum/fz-enum-typeahead";
+
 import "./inputs/fz-input-date";
 import "./inputs/fz-input-datetime";
 import "./inputs/fz-input-time";
@@ -15,7 +17,6 @@ import "./inputs/fz-input-const";
 import "./inputs/fz-input-doc";
 import "./inputs/fz-input-md";
 import "./inputs/fz-input-uuid";
-import "./inputs/fz-enum-typeahead";
 
 import "./collections/fz-array";
 import "./collections/fz-object";

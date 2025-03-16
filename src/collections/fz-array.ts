@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement,property} from "lit/decorators.js"
-import {  html, css } from "lit"
-import { DataValidator } from "../lib/validation"
-import { formatMsg, getCircularReplacer, getSchema, isFunction, isObject } from "../lib/tools"
+import { html, css } from "lit"
+import { getSchema, isFunction, isObject } from "../lib/tools"
 import { FZCollection } from "./fz-collection"
 import { EMPTY_SCHEMA, Schema } from "../lib/schema"
 
@@ -19,7 +18,7 @@ export class FzArray extends FZCollection {
     private schemas: Schema[] = []
     private currentSchema?: Schema
     private content?: HTMLElement
-    private validator!: DataValidator
+    //private validator!: DataValidator
     get nomore(): boolean {
         return this.schema.maxItems && this.value && this.value.length >= this.schema.maxItems
     }
@@ -47,34 +46,33 @@ export class FzArray extends FZCollection {
         // items are updated but array reference doesn't change 
     }
 
-    override update(changedProperties: Map<string, unknown>) {
-        if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema).length !== 0) {
-            const json = JSON.stringify(this.schema, getCircularReplacer)
-            this.validator = new DataValidator(JSON.parse(json));
+    // override update(changedProperties: Map<string, unknown>) {
+    //     if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema).length !== 0) {
+    //         const json = JSON.stringify(this.schema, getCircularReplacer)
+    //         this.validator = new DataValidator(JSON.parse(json));
 
-            this.check()
-        }
-        super.update(changedProperties);
-    }
+    //         this.check()
+    //     }
+    //     super.update(changedProperties);
+    // }
 
     override check() {
-        if (!this.validator) return
+        // if (!this.validator) return
 
-        this.valid = true
-        this.message = ''
-        switch (true) {
-            case (this.required && this.value == undefined):
-                this.valid = false
-                this.message = formatMsg('valueMissing')
-                break
-            case !this.required && this.value == undefined:
-                break
-            default:
-                this.valid = this.validator.validate(this.value)
-                const errors = this.validator.errors()?.filter(e => e.instancePath.match(/\//g)?.length === 1 )
-                if (this.valid == false && errors && errors.length > 0) this.message = this.validator.errorsText(errors)
-        }
-
+        // this.valid = true
+        // this.message = ''
+        // switch (true) {
+        //     case (this.required && this.value == undefined):
+        //         this.valid = false
+        //         this.message = formatMsg('valueMissing')
+        //         break
+        //     case !this.required && this.value == undefined:
+        //         break
+        //     default:
+        //         this.valid = this.validator.validate(this.value)
+        //         const errors = this.validator.errors.filter(e => e.instancePath.match(/\//g)?.length === 1 )
+        //         if (this.valid == false && errors && errors.length > 0) this.message = this.validator.errorsText(errors)
+        // }
         this.content = this.shadowRoot?.getElementById('content') ?? undefined
         this.content?.classList.add(this.valid ? 'valid' : 'invalid')
         this.content?.classList.remove(this.valid ? 'invalid' : 'valid')

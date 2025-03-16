@@ -5,3 +5,10 @@ custom-elements.json
 !/dist/formulizer.min.js
 !/dist/formulizer.js.map
 !/dist/formulizer.d.ts
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

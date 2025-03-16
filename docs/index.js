@@ -1,7 +1,7 @@
 "use strict"
 // handler when selecting tab 
 function onTabChange() {
-    data.innerHTML = JSON.stringify(form.data, undefined, 4).replace(/\n/g, '<br>')
+    data.innerHTML = JSON.stringify(form.data, undefined, 4)?.replace(/\n/g, '<br>')
 }
 
 // add the handler on each tab
@@ -112,9 +112,10 @@ async function init_toc(form) {
             enumToc.push({value: chapter ,title: `${section} - ${title}`})
         }
     }
-    form.options={ ref:() => enumToc }
+    form.options={ }
     form.schema = toc_schema
     form.data = { query: "" }
+    form.addEventListener('enum', (e) => e.detail.enum = enumToc )
     renderToc(sections)
 }
 
@@ -134,15 +135,6 @@ async function init_options(form) {
         { value: "Black Widow", title: "Natacha Romanov" },
         { value: "Captain America", title: "Steve Rogers" }
     ];
-    // function to return a given application enum list 
-    // by its name
-    const ref = (enumName) => {
-        switch (enumName) {
-            case "PRIMES": return PRIMES;
-            case "HEROES": return HEROES;
-            default: return [];
-        }
-    }
 
     const userdata = {
         first_name: "Guillaume",
@@ -186,10 +178,24 @@ const defaultTuto = {
     },
     "data": {}
 }
-const updateData = () =>  {
-    console.log("handling data `update`")
-    data.innerHTML = JSON.stringify(form.data, undefined, 4).replace(/\n/g, '<br>')
+// handler to update event
+const updateHandler = () =>  {
+    console.log("handling event `update`")
+    data.innerHTML = JSON.stringify(form.data, undefined, 4)?.replace(/\n/g, '<br>')
 }
+
+// handler to enum event
+const enumHandler = (evt) =>  {
+    console.log("handling event `enum`")
+    switch (evt.detail.name) {
+        case "PRIMES": return evt.detail.name = PRIMES;
+        case "HEROES": return evt.detail.name = HEROES;
+        default: return evt.detail.name = [];
+    }
+}
+
+const ref = (enumName) => {
+    }
 
 const goto = async (name) => {
     const subject = name ?? "basic"
@@ -203,8 +209,9 @@ const goto = async (name) => {
             form.data = tutodata.data
             if (timer) clearInterval(timer)
             schema.innerHTML = JSON.stringify(tutodata.form, ignoreProperties, 4).replace(/\n/g, '<br>')
-            form.addEventListener('update', updateData )
-            updateData()
+            form.addEventListener('update', updateHandler )
+            form.addEventListener('enum', enumHandler )
+            updateHandler()
         }
         markdown(subject)
     }

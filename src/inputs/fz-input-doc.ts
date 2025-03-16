@@ -169,8 +169,8 @@ export class FzInputDoc extends FzInputBase {
             if (doc) {
                 this.set(this.value, doc.blob, doc.filename)
             } else {
-                this.valid = false
-                this.message = "document not found"
+                //this.valid = false
+                this.errors = ["document not found"]
             }
         }
     }

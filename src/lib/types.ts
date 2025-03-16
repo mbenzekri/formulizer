@@ -1,7 +1,9 @@
 import { Schema } from "./schema";
 import { IBlobStore } from "./storage";
 
+import { ErrorObject } from "ajv/dist/types"
 
+export type AjvError = ErrorObject
 
 type JSONValue = 
   | string
@@ -48,3 +50,4 @@ export type IOptions =  {
   enums?: (id:string) => EnumItem[] 
 }
 
+export type FromObject = { pointer: string, name: string, target: any[], schema: Schema, extend: boolean }

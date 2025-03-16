@@ -2,7 +2,7 @@ import { customElement, property, queryAll } from "lit/decorators.js"
 import { html,css } from "lit"
 import { FzEnumBase } from "./fz-enum-base";
 import { classMap } from 'lit/directives/class-map.js';
-import { isNull, notNull } from "../lib/tools";
+import { isNull, notNull } from "../../lib/tools";
 
 /**
  * @prop schema
@@ -10,7 +10,7 @@ import { isNull, notNull } from "../lib/tools";
  * @prop name
  * @prop index
  */
-@customElement("fz-enum")
+@customElement("fz-enum-select")
 export class FzEnum extends FzEnumBase {
     @property({type: Number, attribute: false}) accessor selected: number = -1
     @queryAll("option") private accessor options : HTMLOptionElement[] = []
@@ -48,7 +48,7 @@ export class FzEnum extends FzEnumBase {
                 ?required="${this.required}"
                 class="${classMap({ 'form-select': true, 'readonly': this.readonly })}"
             >
-                ${this.withAdd ? html`<option style="color:red;text-align:center" ?disabled="${this.readonly}" ?selected="${false}" .value="${'~~ADD~~'}">Add ...</option>` : ''}
+                ${this.extend ? html`<option style="color:red;text-align:center" ?disabled="${this.readonly}" ?selected="${false}" .value="${'~~ADD~~'}">Add ...</option>` : ''}
                 ${ this.showNullChoice ? html`<option style="color:red;text-align:center" ?disabled="${this.readonly}" ?selected="${this.isSelected(null)}" .value="${'~~EMPTY~~'}"> ${this.required ? 'Choose a value...' : '<vide>'}</option>` : '' }
                 ${this.enums?.map((item,i) => html`
                     <option id="option" ?disabled="${this.readonly}"  ?selected="${this.selected === i}">

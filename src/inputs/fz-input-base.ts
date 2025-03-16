@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { html, TemplateResult } from "lit";
 import { FzElement } from "../fz-element";
-import { formatMsg, getCircularReplacer } from "../lib/tools";
+import { getCircularReplacer } from "../lib/tools";
 
 const invalidkeys = [
     'valueMissing',
@@ -82,26 +82,26 @@ export abstract class FzInputBase extends FzElement {
     }
 
     override check() {
-        const input = this.input
-        if (!input) {
-            this.valid = false
-            this.message = ''
-            return
-        }
-        const validity = this.input.validity
-        let countinvalid = 0
-        let message = ''
-        invalidkeys.forEach(key => {
-            if (key === 'valid') return
-            const keyinvalid = (validity as any)[key]
-            countinvalid += keyinvalid ? 1 : 0
-            if (keyinvalid) message = formatMsg(key, input)
-        })
-        this.valid = (countinvalid === 0)
-            || (countinvalid === 1 && validity.badInput && this.value == null && !this.required)
-        this.message = this.valid ? '' : message
-        this.input?.classList.add(this.valid ? 'valid' : 'invalid')
-        this.input?.classList.remove(this.valid ? 'invalid' : 'valid')
+        // const input = this.input
+        // if (!input) {
+        //     this.valid = false
+        //     this.message = ''
+        //     return
+        // }
+        // const validity = this.input.validity
+        // let countinvalid = 0
+        // let message = ''
+        // invalidkeys.forEach(key => {
+        //     if (key === 'valid') return
+        //     const keyinvalid = (validity as any)[key]
+        //     countinvalid += keyinvalid ? 1 : 0
+        //     if (keyinvalid) message = formatMsg(key, input)
+        // })
+        // this.valid = (countinvalid === 0)
+        //     || (countinvalid === 1 && validity.badInput && this.value == null && !this.required)
+        // this.message = this.valid ? '' : message
+        // this.input?.classList.add(this.valid ? 'valid' : 'invalid')
+        // this.input?.classList.remove(this.valid ? 'invalid' : 'valid')
     }
 
 }

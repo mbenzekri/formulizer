@@ -4,8 +4,8 @@ import { html, css, TemplateResult } from "lit"
 import { FZCollection } from "./fz-collection"
 import { FzElement } from "../fz-element"
 import { Pojo, FieldOrder } from "../lib/types"
-import { DataValidator } from "../lib/validation"
-import { formatMsg, getCircularReplacer } from "../lib/tools"
+import { Validator } from "../lib/validation"
+import { getCircularReplacer } from "../lib/tools"
 
 /**
  * @prop schema
@@ -18,8 +18,7 @@ export class FzObject extends FZCollection {
 
     @property({ attribute: false }) accessor collapsed = false
     @property({ attribute: false }) accessor activegroup: { [tabname: string]: string } = {}
-    private content?: HTMLElement
-    private validator!: DataValidator
+    private validator!: Validator
     seen: WeakSet<object> | undefined
 
     static override get styles() {
@@ -42,26 +41,26 @@ export class FzObject extends FZCollection {
         // properties are updated but object reference doesn't change 
     }
     override check() {
-        if (!this.validator) return
+    //     if (!this.validator) return
 
-        this.valid = true
-        this.message = ''
-        switch (true) {
-            case (this.required && this.value == undefined):
-                this.valid = false
-                this.message = formatMsg('valueMissing')
-                break
-            case !this.required && this.value == undefined:
-                break
-            default:
-                this.valid = this.validator.validate(this.value)
-                const errors = this.validator.errors()?.filter(e => e.instancePath.match(/\//g)?.length === 1 )
-                if (this.valid == false && errors && errors.length > 0) this.message = this.validator.errorsText(errors)
-        }
+    //     this.valid = true
+    //     this.message = ''
+    //     switch (true) {
+    //         case (this.required && this.value == undefined):
+    //             this.valid = false
+    //             this.message = formatMsg('valueMissing')
+    //             break
+    //         case !this.required && this.value == undefined:
+    //             break
+    //         default:
+    //             this.valid = this.validator.validate(this.value)
+    //             const errors = this.validator.errors.filter(e => e.instancePath.match(/\//g)?.length === 1 )
+    //             if (this.valid == false && errors && errors.length > 0) this.message = this.validator.text
+    //     }
 
-        this.content = this.shadowRoot?.getElementById('content') ?? undefined
-        this.content?.classList.add(this.valid ? 'valid' : 'invalid')
-        this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
+    //     this.content = this.shadowRoot?.getElementById('content') ?? undefined
+    //     this.content?.classList.add(this.valid ? 'valid' : 'invalid')
+    //     this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
     }
 
     override connectedCallback() {
@@ -77,7 +76,7 @@ export class FzObject extends FZCollection {
     override update(changedProperties: Map<string, unknown>) {
         if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema.properties ?? {})?.length > 0) {
             const json = JSON.stringify(this.schema, getCircularReplacer)
-            this.validator = new DataValidator(JSON.parse(json));
+            this.validator = new Validator(JSON.parse(json));
             this.check()
         }
         super.update(changedProperties);

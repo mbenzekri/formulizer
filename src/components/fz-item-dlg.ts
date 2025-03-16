@@ -5,11 +5,12 @@ import { getSchema } from "../lib/tools"
 import { FzElement } from "../fz-element"
 import { Base } from "../base"
 import { Schema } from "../lib/schema"
+import { FromObject } from "../lib/types"
 
 
 @customElement("fz-item-dlg")
 export class FzItemDlg extends Base {
-    @property({ type: Object }) accessor  reference:  { pointer: string, refname: string, refarray: any[] } | null = null
+    @property({ type: Object }) accessor  reference:  FromObject | undefined
     private modal?: FzDialog | null
     private arraySchema?: Schema
     private itemSchema?: Schema
@@ -50,8 +51,8 @@ export class FzItemDlg extends Base {
     protected override updated(_changedProperties: Map<string | number | symbol, unknown>): void {
         if (this.reference ) {
             this.pointer = this.reference?.pointer
-            this.array = this.reference?.refarray
-            this.refname = this.reference?.refname
+            this.array = this.reference?.target
+            this.refname = this.reference?.name
             this.arraySchema = getSchema(this.array)
         } else {
             this.pointer = undefined
@@ -87,7 +88,7 @@ export class FzItemDlg extends Base {
             evt.detail.value = field.value[this.refname ?? "id"]
             evt.detail.abstract = field.abstract()
         }
-        this.reference = null
+        this.reference = undefined
         this.stopEvent(evt)
         this.dispatchEvent(new CustomEvent("close", { detail }))
         this.modal?.valid(false)

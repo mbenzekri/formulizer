@@ -1,5 +1,5 @@
-import { isArray, isEmptyValue, isObject, isPrimitive, newValue } from "./tools";
-import { EnumItem, ExprFunc, FieldOrder, Pojo } from "./types";
+import { isArray, isEmptyValue, isObject, isPrimitive, isString, newValue, notNull } from "./tools";
+import { EnumItem, ExprFunc, FieldOrder, FromObject, Pojo } from "./types";
 
 
 // // Define the method structure as a Type
@@ -85,7 +85,7 @@ class JSONSchemaDraft07 {
     homogeneous!: boolean;
     requiredWhen!: string | Function;
     field!: string;
-    refTo?: string | ExprFunc<any>;
+    from?: {pointer:string, extend:boolean} | ExprFunc<any>;
     order?: FieldOrder[];
     abstract?: string | ExprFunc<string>;
     case?: string | ExprFunc<boolean>;
@@ -96,12 +96,24 @@ class JSONSchemaDraft07 {
     expression?: string | ExprFunc<any>;
     change?: string | ExprFunc<any>;
     nullable!: boolean;
-    addTo?: boolean;
     assets?: string;
     preview?: boolean;
     mimetype?: string;
 }
 
+export function isSchema(value: unknown): value is Schema {
+    return notNull(value) && value instanceof Schema
+}
+
+
+export function isFrom(value: unknown): value is FromObject {
+    if (!isObject(value)) return false
+    if (!isString(value.pointer)) return false
+    if (!isString(value.name)) return false
+    if (!isArray(value.target)) return false
+    if (!isSchema(value.schema)) return false
+    return true
+}
 
 // Define the prototype separately with explicit type annotation
 export class Schema extends JSONSchemaDraft07 {

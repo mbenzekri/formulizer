@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property } from "lit/decorators.js"
 import { html, css, TemplateResult } from "lit"
-import { derefPointerData, isEmptyValue, newValue, getSchema, closestAscendantFrom, isFunction } from "./lib/tools"
+import { derefPointerData, isEmptyValue, newValue, getSchema, closestAscendantFrom, isFunction, notNull } from "./lib/tools"
 import { Pojo } from "./lib/types"
 import { FzForm } from "./fz-form"
 import { Base } from "./base"
@@ -15,7 +15,7 @@ const fiedtypes = [
     "fz-date",
     "fz-datetime",
     "fz-document",
-    'fz-enum',
+    'fz-enum-select',
     'fz-enum-array',
     "fz-geolocation",
     "fz-integer",
@@ -47,9 +47,8 @@ export abstract class FzElement extends Base {
     @property({ type: Object }) accessor data: Pojo = {}
     @property({ type: String }) accessor name: string | null = null
     @property({ type: Number }) accessor index: number | null = null
-    @property({ attribute: false }) accessor valid = false
-    @property({ attribute: false }) accessor message = ''
 
+    errors: string[] = []
     private _initdone = false
     private _dofocus = false
     private _form?: FzForm
@@ -59,7 +58,9 @@ export abstract class FzElement extends Base {
     abstract toField(): void;
     abstract toValue(): void;
 
-
+    get valid() {
+        return this.errors.length === 0
+    }
     get value(): any {
         // Warning side effects is prohibited in this method, never update this.data 
         if (this.data == null) return undefined
@@ -132,7 +133,7 @@ export abstract class FzElement extends Base {
             const key = properties[i]
             const schema = schemas[i]
             ipointer = i ? `${ipointer}/${key}` : `${key}`
-            const field = form.getfieldFromData(ipointer)
+            const field = form.getField(ipointer)
             if (field) fields.push(field)
             const type = schema.basetype
             switch (true) {
@@ -299,15 +300,16 @@ export abstract class FzElement extends Base {
         return html`
             <div ?hidden="${!this.visible}">
                 <div style="padding-top: 5px">${this.renderField()}</div>
-                ${this.valid ? html``
-                : html`
-                        <div class="row">
-                            <span id="error" class="error-message error-truncated" @click="${this.toggleError}">
-                                ${this.message}
-                            </span>
-                        </div>`}
+                ${this.valid ? html`` : html`<div class="row">${this.renderErrors()}</div>`}
             </div>
         `
+    }
+
+    renderErrors() {
+        return html`
+            <span id="error" class="error-message error-truncated" @click="${this.toggleError}">
+                ${this.errors.join(', ')}
+            </span>`
     }
 
     private toggleError() {
@@ -348,7 +350,7 @@ export abstract class FzElement extends Base {
         const data = (this.data == null) ? null : this.data[this.key]
 
         switch (schema.field) {
-            case 'fz-enum': return html`<fz-enum .pointer="${this.pointer}/${key}" .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum>`
+            case 'fz-enum-select': return html`<fz-enum-select .pointer="${this.pointer}/${key}" .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-select>`
             case 'fz-enum-check': return html`<fz-enum-check .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-check>`
             case "fz-date": return html`<fz-date .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-date>`
             case "fz-time": return html`<fz-time .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-time>`
@@ -437,6 +439,7 @@ export abstract class FzElement extends Base {
         this.evalExpr("change")
         // validation and error dispatching
         this.check()
+        
         // signal field update for ascendant
         const event = new CustomEvent('update', {
             detail: {
@@ -448,6 +451,7 @@ export abstract class FzElement extends Base {
             composed: true
         })
         this.dispatchEvent(event);
+
         // signal field update for observers
         if (this.schema.observers && this.schema.observers.length) {
             this.dispatchEvent(new CustomEvent('observed-changed', {
@@ -473,8 +477,8 @@ export abstract class FzElement extends Base {
             text = this.schema.abstract
                 ? this.evalExpr("abstract")
                 : this.schema._abstract(this.value)
-        } else if (itemschema && isFunction(itemschema.refTo)) {
-            const refto = itemschema.refTo(itemschema, this.value[key], this.data, this.key, this.derefFunc)
+        } else if (notNull(itemschema) && isFunction(itemschema.from)) {
+            const refto = itemschema.from?.(itemschema, this.value[key], this.data, this.key, this.derefFunc)
             const index = refto.refarray.findIndex((x: any) => x[refto.refname] === this.value[key])
             const value = refto.refarray[index]
             const schema = getSchema(value)

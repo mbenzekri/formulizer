@@ -2,7 +2,7 @@
 import { customElement,property,queryAll } from "lit/decorators.js"
 import { html } from "lit"
 import { FzEnumBase } from "./fz-enum-base";
-import { isNull, notNull } from "../lib/tools";
+import { isNull, notNull } from "../../lib/tools";
 
 @customElement("fz-enum-check")
 export class FZEnumCheck extends FzEnumBase {

@@ -1,5 +1,5 @@
-import { Pojo, FieldOrder, ExprFunc, IOptions } from "./types"
-import { pointerSchema, derefPointerData, complement, intersect, union, isPrimitive} from "./tools";
+import { Pojo, FieldOrder, ExprFunc, IOptions, FromObject } from "./types"
+import { pointerSchema, derefPointerData, complement, intersect, union, isPrimitive, isArray, isFunction, notNull, getSchema} from "./tools";
 import { setSchema,setParent,setRoot} from "./tools"
 import { Schema, CompilationStep, isenumarray,  } from "./schema";
 
@@ -504,9 +504,9 @@ class CSField extends CompilationStep {
 
     override apply(schema: Schema) {
         if ("const" in schema) return schema.field = 'fz-constant'
-        if (schema.refTo && isPrimitive(schema,true)) {
+        if (schema.from && isPrimitive(schema,true)) {
             if (!schema.filter) schema.filter = () => true
-            return schema.field = 'fz-enum'
+            return schema.field = 'fz-enum-select'
         }
         if (schema.isenum) {
             if (!schema.filter) schema.filter = () => true
@@ -514,9 +514,9 @@ class CSField extends CompilationStep {
                 case schema.enum && schema.enum?.length <= 3: return schema.field = 'fz-enum-check'
                 case schema.oneOf && schema.oneOf?.length <= 3: return schema.field = 'fz-enum-check'
                 case schema.anyOf && schema.anyOf?.length <= 3: return schema.field = 'fz-enum-check'
-                case schema.enum && schema.enum?.length <= 20: return schema.field = 'fz-enum'
-                case schema.oneOf && schema.oneOf?.length <= 20: return schema.field = 'fz-enum'
-                case schema.anyOf && schema.anyOf?.length <= 20: return schema.field = 'fz-enum'
+                case schema.enum && schema.enum?.length <= 20: return schema.field = 'fz-enum-select'
+                case schema.oneOf && schema.oneOf?.length <= 20: return schema.field = 'fz-enum-select'
+                case schema.anyOf && schema.anyOf?.length <= 20: return schema.field = 'fz-enum-select'
                 default: return schema.field = 'fz-enum-typeahead'
             }
         }
@@ -594,26 +594,26 @@ class CSOrder extends CompilationStep {
 class CSInsideRef extends CompilationStep {
     private data: Pojo
     constructor(root:Schema, data: Pojo) {
-        super(root,"refTo")
+        super(root,"from")
         this.data = data
     }
     override appliable(schema: Schema) {
-        return this.property in schema && typeof schema.refTo !== "function"
+        return notNull(schema.from) && !isFunction(schema.from)
     }
     override apply(schema: Schema) {
-        const refto = schema.refTo as string
-        schema.refTo = () => null
-        const pointer = refto.replace(/\/[^/]+$/, '')
-        const refname = refto.substr(pointer.length + 1)
+        const from = schema.from as {pointer: string, extend: boolean}
+        schema.from = () => null
+        const pointer = from.pointer.replace(/\/[^/]+$/, '')
+        const name = from.pointer.substr(pointer.length + 1)
         schema._addObservers(`$\`${pointer}\``)
-        schema.refTo = (_schema: Schema, _value: any, parent: Pojo, property: string | number, _userdata: object) => {
-            const refarray = derefPointerData(this.data.content, parent, property, pointer)
-            if (!refarray) return null
-            if (!Array.isArray(refarray)) {
+        schema.from = (_schema: Schema, _value: any, parent: Pojo, property: string | number, _userdata: object) => {
+            const target = derefPointerData(this.data.content, parent, property, pointer)
+            if (!target) return null
+            if (!isArray(target)) {
                 console.error(`reference list must be an array ${pointer}`)
-                return null
+                return []
             }
-            return { pointer, refname, refarray }
+            return { pointer, name, target, schema: getSchema(target), extend: !!from.extend } as FromObject
         }
     }
 }
