@@ -29,7 +29,7 @@ export class FzInputInteger extends FzInputBase {
         return html`
             <div class="input-group">
                 <input 
-                    class="form-control" 
+                    class="form-control is-valid was-validated" 
                     type="number"  
                     id="input"
                     ?readonly="${this.readonly}"

@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement } from "lit/decorators.js"
 import { html } from "lit"
-import { isNull } from "../lib/tools"
+import { isBoolean, isNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 
 @customElement("fz-boolean")
 export class FzInputBoolean extends FzInputBase {
+
     renderInput() {
         return html`
             <div class="form-group row">
@@ -14,18 +15,21 @@ export class FzInputBoolean extends FzInputBase {
                         <input 
                             id="input"
                             type="checkbox"
-                            ?disabled="${this.readonly}"
                             ?required="${this.required}"
-                            @change="${super.change}"
+                            @change="${this.tryChange}"
+                            @click="${this.tryChange}"
                             class="form-check-input align-self-start" 
                         />
-                        <label class="form-check-label   ms-2" for="input">${super.label}</label>
+                        <label class="form-check-label ms-2" for="input">${super.label}</label>
                     </div>
                 </div>
             </div>
         `;
     }
-
+    private tryChange(event: Event) {
+        if (this.readonly) event.preventDefault()
+        else this.change()
+    }
     override get label() { return "" }
 
     override toField() {
@@ -41,10 +45,15 @@ export class FzInputBoolean extends FzInputBase {
                 this.input.indeterminate = true
                 this.input.checked = false
                 break
-            default:
-                // Standard true/false mapping
+            case isBoolean(this.value):
+                // Standard true/false 
                 this.input.indeterminate = false
-                this.input.checked = !!this.value
+                this.input.checked = this.value
+                break
+            default:
+                // other not boolean/not nullish
+                this.input.indeterminate = true
+                this.input.checked = false
         }
     }
     override toValue() {

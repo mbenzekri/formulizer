@@ -81,6 +81,7 @@ declare class JSONSchemaDraft07 {
     assets?: string;
     preview?: boolean;
     mimetype?: string;
+    mask?: string;
 }
 declare class Schema extends JSONSchemaDraft07 {
     constructor(schema: JSONSchema);
@@ -377,11 +378,4 @@ declare global {
     let ImageCapture: any;
 }
 
-declare class CheckTest extends LitElement {
-    accessor selected: number;
-    private enums;
-    render(): lit_html.TemplateResult<1>;
-    select(index: number, event: MouseEvent): void;
-}
-
-export { CheckTest, FzForm, FzMarkdownIt };
+export { FzForm, FzMarkdownIt };

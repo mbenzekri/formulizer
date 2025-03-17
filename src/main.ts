@@ -7,6 +7,7 @@ import "./inputs/fz-input-datetime";
 import "./inputs/fz-input-time";
 import "./inputs/fz-input-textarea";
 import "./inputs/fz-input-string";
+import "./inputs/fz-input-mask";
 import "./inputs/fz-input-signature";
 import "./inputs/fz-input-boolean";
 import "./inputs/fz-input-float";
@@ -29,5 +30,4 @@ import "./components/fz-item-dlg"
 
 import { FzForm } from "./fz-form";
 import { FzMarkdownIt } from "./components/markdown-it";
-import { CheckTest } from "./components/check-test";
-export { FzForm, FzMarkdownIt, CheckTest }
+export { FzForm, FzMarkdownIt }

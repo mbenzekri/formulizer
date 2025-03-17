@@ -19,6 +19,7 @@
             },
             "Primitives": {
                 "basic": "basic",
+                "mask": "mask",
                 "format": "format",
                 "boolean": "boolean",
                 "documents": "document",

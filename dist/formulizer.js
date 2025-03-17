@@ -106,6 +106,9 @@ function isArray(value) {
 function isNumber$1(value) {
     return typeof value === "number" && !isNaN(value);
 }
+function isBoolean(value) {
+    return typeof value === "boolean";
+}
 function isObject$1(value) {
     return value !== null && typeof value === "object" && !isArray(value);
 }
@@ -13838,6 +13841,7 @@ class JSONSchemaDraft07 {
     assets;
     preview;
     mimetype;
+    mask;
 }
 function isSchema(value) {
     return notNull(value) && value instanceof Schema;
@@ -14435,6 +14439,7 @@ class FzElement extends Base {
             case "fz-datetime": return x `<fz-datetime .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-datetime>`;
             case "fz-textarea": return x `<fz-textarea .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-textarea>`;
             case "fz-string": return x `<fz-string .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-string>`;
+            case "fz-mask": return x `<fz-mask .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-mask>`;
             case "fz-asset": return x `<fz-asset .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-asset>`;
             case "fz-signature": return x `<fz-signature .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-signature>`;
             case "fz-boolean": return x `<fz-boolean .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-boolean>`;
@@ -14820,7 +14825,7 @@ const t$1={ATTRIBUTE:1,CHILD:2},e$2=t=>(...e)=>({_$litDirective$:t,values:e});le
  * @prop name
  * @prop index
  */
-let FzEnum = class FzEnum extends FzEnumBase {
+let FzEnumSelect = class FzEnumSelect extends FzEnumBase {
     #selected_accessor_storage = -1;
     get selected() { return this.#selected_accessor_storage; }
     set selected(value) { this.#selected_accessor_storage = value; }
@@ -14875,15 +14880,15 @@ let FzEnum = class FzEnum extends FzEnumBase {
 };
 __decorate([
     n$2({ type: Number, attribute: false })
-], FzEnum.prototype, "selected", null);
+], FzEnumSelect.prototype, "selected", null);
 __decorate([
     r$3("option")
-], FzEnum.prototype, "options", null);
-FzEnum = __decorate([
+], FzEnumSelect.prototype, "options", null);
+FzEnumSelect = __decorate([
     t$4("fz-enum-select")
-], FzEnum);
+], FzEnumSelect);
 
-let FZEnumCheck = class FZEnumCheck extends FzEnumBase {
+let FzEnumCheck = class FzEnumCheck extends FzEnumBase {
     #selected_accessor_storage = -1;
     get selected() { return this.#selected_accessor_storage; }
     set selected(value) { this.#selected_accessor_storage = value; }
@@ -14935,13 +14940,13 @@ let FZEnumCheck = class FZEnumCheck extends FzEnumBase {
 };
 __decorate([
     n$2({ type: Number, attribute: false })
-], FZEnumCheck.prototype, "selected", null);
+], FzEnumCheck.prototype, "selected", null);
 __decorate([
     r$3("input")
-], FZEnumCheck.prototype, "radios", null);
-FZEnumCheck = __decorate([
+], FzEnumCheck.prototype, "radios", null);
+FzEnumCheck = __decorate([
     t$4("fz-enum-check")
-], FZEnumCheck);
+], FzEnumCheck);
 
 /**
  * @license
@@ -15253,7 +15258,7 @@ let FzInputString = class FzInputString extends FzInputBase {
     renderInput() {
         return x `
             <div class="input-group" >
-                <input  
+                <input
                     class="form-control" 
                     type="${this.type}" 
                     id="input"
@@ -15266,9 +15271,9 @@ let FzInputString = class FzInputString extends FzInputBase {
                     pattern="${o(this.pattern)}"
                     ?required="${this.required}"
                 />
-                <div ?hidden="${this.type !== 'color' || this.value == undefined}" class="input-group-append" style="max-width:5em" >
-                    <span class="input-group-text" >${this.value}</span>
-                </div>
+                ${this.type === 'color' && this.value != null
+            ? x `<span class="input-group-text" style="max-width:5em">${this.value}</span>`
+            : ''}
             </div>`;
     }
     get minlength() { return this.schema.minLength; }
@@ -15287,6 +15292,123 @@ let FzInputString = class FzInputString extends FzInputBase {
 FzInputString = __decorate([
     t$4("fz-string")
 ], FzInputString);
+
+/**
+ * FzInputMask: Input field with masked formatting
+ * - Stored value is **exactly what is displayed**
+ * - Auto-inserts static characters (e.g., dashes, spaces, parentheses)
+ * - Handles backspace, delete, and caret position properly
+ */
+let FzInputMask = class FzInputMask extends FzInputBase {
+    toField() {
+        if (this.input) {
+            this.input.value = this.value ?? "";
+        }
+    }
+    toValue() {
+        if (this.input) {
+            this.value = this.input.value; // Store exactly what the user sees
+        }
+    }
+    renderInput() {
+        return x `
+            <div class="input-group">
+                <input
+                    class="form-control"
+                    type="text"
+                    id="input"
+                    placeholder="${this.mask}"
+                    ?readonly="${this.readonly}"
+                    @keydown="${this.handleKeydown}"
+                    @input="${this.handleInput}"
+                    ?required="${this.required}"
+                />
+            </div>`;
+    }
+    get mask() {
+        return this.schema.mask ?? "";
+    }
+    // Handle user input (apply mask and store formatted value)
+    handleInput(event) {
+        const input = event.target;
+        const formatted = this.applyMask(input.value); // Apply mask formatting
+        const oldCaretPosition = input.selectionStart || 0;
+        this.value = formatted; // Store the formatted value
+        this.requestUpdate();
+        // Restore caret position
+        this.restoreCaretPosition(input, oldCaretPosition);
+    }
+    // Handle backspace, delete, and caret movement
+    handleKeydown(event) {
+        const input = event.target;
+        const key = event.key;
+        const caretPos = input.selectionStart || 0;
+        if (key === "ArrowLeft" || key === "ArrowRight")
+            return; // Allow navigation keys
+        if (key === "Backspace") {
+            this.handleBackspace(input, caretPos);
+            event.preventDefault();
+        }
+        else if (key === "Delete") {
+            this.handleDelete(input, caretPos);
+            event.preventDefault();
+        }
+        else {
+            // Auto-insert static characters (e.g., `-`, `(`, `)`)
+            const nextChar = this.mask[caretPos];
+            if (nextChar && /[-()\s]/.test(nextChar)) {
+                input.value += nextChar;
+            }
+        }
+    }
+    // Applies mask to input value
+    applyMask(value) {
+        let formatted = "";
+        let valueIndex = 0;
+        for (const char of this.mask) {
+            if (char === "#") {
+                formatted += value[valueIndex] || "";
+                valueIndex++;
+            }
+            else {
+                formatted += char; // Keep static characters
+            }
+        }
+        return formatted;
+    }
+    // Handle backspace (remove previous character while preserving mask)
+    handleBackspace(input, caretPos) {
+        const mask = this.mask;
+        let newCaretPos = caretPos;
+        if (caretPos > 0) {
+            do {
+                newCaretPos--;
+            } while (newCaretPos > 0 && !/[\dA-Za-z]/.test(mask[newCaretPos])); // Skip static characters
+        }
+        input.value = input.value.substring(0, newCaretPos) + input.value.substring(caretPos);
+        this.restoreCaretPosition(input, newCaretPos);
+    }
+    // Handle delete (remove next character while preserving mask)
+    handleDelete(input, caretPos) {
+        const mask = this.mask;
+        let newCaretPos = caretPos;
+        if (caretPos < input.value.length) {
+            do {
+                newCaretPos++;
+            } while (newCaretPos < input.value.length && !/[\dA-Za-z]/.test(mask[newCaretPos])); // Skip static characters
+        }
+        input.value = input.value.substring(0, caretPos) + input.value.substring(newCaretPos);
+        this.restoreCaretPosition(input, caretPos);
+    }
+    // Restore caret position after formatting
+    restoreCaretPosition(input, caretPos) {
+        this.requestUpdate();
+        setTimeout(() => input.setSelectionRange(caretPos, caretPos), 0);
+    }
+};
+FzInputMask = __decorate([
+    t$4("fz-mask")
+], FzInputMask);
 
 /**
  * @prop schema
@@ -15534,16 +15656,22 @@ let FzInputBoolean = class FzInputBoolean extends FzInputBase {
                         <input 
                             id="input"
                             type="checkbox"
-                            ?disabled="${this.readonly}"
                             ?required="${this.required}"
-                            @change="${super.change}"
+                            @change="${this.tryChange}"
+                            @click="${this.tryChange}"
                             class="form-check-input align-self-start" 
                         />
-                        <label class="form-check-label   ms-2" for="input">${super.label}</label>
+                        <label class="form-check-label ms-2" for="input">${super.label}</label>
                     </div>
                 </div>
             </div>
         `;
+    }
+    tryChange(event) {
+        if (this.readonly)
+            event.preventDefault();
+        else
+            this.change();
     }
     get label() { return ""; }
     toField() {
@@ -15560,10 +15688,15 @@ let FzInputBoolean = class FzInputBoolean extends FzInputBase {
                 this.input.indeterminate = true;
                 this.input.checked = false;
                 break;
-            default:
-                // Standard true/false mapping
+            case isBoolean(this.value):
+                // Standard true/false 
                 this.input.indeterminate = false;
-                this.input.checked = !!this.value;
+                this.input.checked = this.value;
+                break;
+            default:
+                // other not boolean/not nullish
+                this.input.indeterminate = true;
+                this.input.checked = false;
         }
     }
     toValue() {
@@ -15860,7 +15993,7 @@ let FzInputInteger = class FzInputInteger extends FzInputBase {
         return x `
             <div class="input-group">
                 <input 
-                    class="form-control" 
+                    class="form-control is-valid was-validated" 
                     type="number"  
                     id="input"
                     ?readonly="${this.readonly}"
@@ -34000,7 +34133,10 @@ class CSField extends CompilationStep {
             case 'number': return schema.field = 'fz-float';
             case 'boolean': return schema.field = 'fz-boolean';
             case 'string':
+                if (schema.mask)
+                    return schema.field = "fz-mask";
                 switch (schema.format) {
+                    case "uuid": return schema.field = 'fz-uuid';
                     case "uuid": return schema.field = 'fz-uuid';
                     case "signature": return schema.field = 'fz-signature';
                     case "date": return schema.field = 'fz-date';
@@ -34556,54 +34692,5 @@ FzForm = __decorate([
     t$4("fz-form")
 ], FzForm);
 
-let CheckTest = class CheckTest extends r$1 {
-    #selected_accessor_storage = -1;
-    get selected() { return this.#selected_accessor_storage; }
-    set selected(value) { this.#selected_accessor_storage = value; }
-    //@queryAll("input") private accessor radios : HTMLInputElement[] = []
-    enums = [{ value: "yes", title: "YES" }, { value: "no", title: "NO" }];
-    //private value = false
-    // override toField() {
-    //     if ( notNull(this.input) && notNull(this.selected) && notNull(this.radios)) {
-    //         this.radios[this.selected].checked = !!this.value            
-    //     }
-    // }
-    // override toValue() {
-    //     if ( notNull(this.selected) && notNull(this.enums)) {
-    //         this.value = this.enums[this.selected].value
-    //     }
-    // }
-    render() {
-        return x `
-            ${this.enums?.map((item, i) => x `
-                <div class="form-check form-check-inline">
-                    <input 
-                        class="form-check-input" 
-                        type="radio" 
-                        name="input" 
-                        .value=${item.value} 
-                        @click="${(evt) => this.select(i, evt)}"
-                        ?checked="${this.selected == i}"
-                    />
-                    <label class="form-check-label" for="${i}-input">${item.title}</label>
-                </div>`)}`;
-    }
-    select(index, event) {
-        event.stopPropagation();
-        this.selected = index;
-        // if (notNull(this.radios)) {
-        //     this.radios[this.selected].checked = true
-        // }
-        //this.requestUpdate()
-        //this.change()
-    }
-};
-__decorate([
-    n$2({ type: Number, attribute: false })
-], CheckTest.prototype, "selected", null);
-CheckTest = __decorate([
-    t$4("check-test")
-], CheckTest);
-
-export { CheckTest, FzForm, FzMarkdownIt };
+export { FzForm, FzMarkdownIt };
 //# sourceMappingURL=formulizer.js.map

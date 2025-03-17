@@ -11,7 +11,7 @@ import { isNull, notNull } from "../../lib/tools";
  * @prop index
  */
 @customElement("fz-enum-select")
-export class FzEnum extends FzEnumBase {
+export class FzEnumSelect extends FzEnumBase {
     @property({type: Number, attribute: false}) accessor selected: number = -1
     @queryAll("option") private accessor options : HTMLOptionElement[] = []
 

@@ -1,89 +1,147 @@
-import { test, expect, Page } from '@playwright/test';
-import { formInit, inputHandler } from './helpers'
+import { test, expect, Page, JSHandle, ElementHandle, Locator } from '@playwright/test';
+import { formInit, elemHandle, TEST_PAGE, FzField, fieldHandle, setData, patch } from './helpers'
+
+const SCHEMA = {
+  type: 'object',
+  properties: { active: { type: 'boolean' } }
+}
+
+const DATA = { active: true }
+
+let form_l: Locator
+let field_h: ElementHandle<FzField>
+let input_h: ElementHandle<HTMLInputElement>
+
+async function init(page, testSchema: any = SCHEMA, testData: any = DATA) {
+  form_l = await formInit(page, testSchema ?? SCHEMA, testData ?? DATA)
+  field_h = await fieldHandle(form_l, '#/active')
+  input_h = await elemHandle(form_l, '#/active', 'input') as ElementHandle<HTMLInputElement>
+}
 
 test.describe('fz-boolean field', () => {
+
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://127.0.0.1:5500/docs/test.html')
+    await page.goto(TEST_PAGE)
   });
 
-  test('should toggle correctly', async ({ page }) => {
-    const schema = {
-      type: 'object',
-      properties: { active: { type: 'boolean' } }
-    }
-    const data = { active: true }  
-    const formL = await formInit(page,schema,data)
-    const inputH = await inputHandler(formL, '#/active','input')
-
-    expect(await inputH.evaluate(node => node.checked)).toBe(true);
-    expect(await inputH.evaluate(node => node.indeterminate)).toBe(false);
-    expect(await formL.evaluate((node:any)  => node.data.active)).toBe(true);
-
-    await inputH.evaluate(node => node.click())
-    expect(await inputH.evaluate(node => node.checked)).toBe(false);
-    expect(await inputH.evaluate(node => node.indeterminate)).toBe(false);
-    expect(await formL.evaluate((node:any)  => node.data.active)).toBe(false);
-    
-    await inputH.evaluate(node => node.click())
-    expect(await inputH.evaluate(node => node.checked)).toBe(true);
-    expect(await inputH.evaluate(node => node.indeterminate)).toBe(false);
-    expect(await formL.evaluate((node:any)  => node.data.active)).toBe(true);
-  })
-  
-  test('should init null to indeterminate ', async ({ page }) => {
-    const schema = {
-      type: 'object',
-      properties: { active: { type: ['boolean','null'] } }
-    }
-    const data = { active: null }  
-    const formL = await formInit(page,schema,data)
-    const inputH = await inputHandler(formL, '#/active','input')
-
-    expect(await inputH.evaluate(node => node.checked)).toBe(false);
-    expect(await inputH.evaluate(node => node.indeterminate)).toBe(true);
-    expect(await formL.evaluate((node:any)  => node.data.active)).toBe(null);
-    expect(await formL.evaluate((node:any)  => node.valid)).toBe(true);
-
-    await inputH.evaluate(node => node.click())
-    expect(await inputH.evaluate(node => node.checked)).toBe(true);
-    expect(await inputH.evaluate(node => node.indeterminate)).toBe(false);
-    expect(await formL.evaluate((node:any)  => node.data.active)).toBe(true);
-    expect(await formL.evaluate((node:any)  => node.valid)).toBe(true);
-
-    await inputH.evaluate(node => node.click())
-    expect(await inputH.evaluate(node => node.checked)).toBe(false);
-    expect(await inputH.evaluate(node => node.indeterminate)).toBe(false);
-    expect(await formL.evaluate((node:any)  => node.data.active)).toBe(false);
-    expect(await formL.evaluate((node:any)  => node.valid)).toBe(true);
-
+  test('should be instance of FzInputBoolean', async ({ page }) => {
+    await init(page)
+    expect(await field_h.evaluate(node => node.constructor.name === "FzInputBoolean")).toBe(true)
   })
 
-  test('should init undefined to indeterminate ', async ({ page }) => {
-    const schema = {
-      type: 'object',
-      properties: { active: { type: 'boolean' } }
+  test('should toggle (true => false => true)', async ({ page }) => {
+    await init(page)
+    {
+      // initial true => checked && !indeterminate
+      expect(await input_h.isChecked()).toBe(true);
+      expect(await input_h.evaluate(node => node.indeterminate)).toBe(false);
+      expect(await form_l.evaluate((node: any) => node.data.active)).toBe(true);
+      expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
+    } {
+      // false => !checked && !indeterminate
+      await input_h.click()
+      expect(await input_h.isChecked()).toBe(false);
+      expect(await input_h.evaluate(node => node.indeterminate)).toBe(false);
+      expect(await form_l.evaluate((node: any) => node.data.active)).toBe(false);
+      expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
+    } {
+      // true => checked && !indeterminate
+      await input_h.click()
+      expect(await input_h.isChecked()).toBe(true);
+      expect(await input_h.evaluate(node => node.indeterminate)).toBe(false);
+      expect(await form_l.evaluate((node: any) => node.data.active)).toBe(true);
+      expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
     }
-    const data = { active: undefined }  
-    const formL = await formInit(page,schema,data)
-    const inputH = await inputHandler(formL, '#/active','input')
+  })
 
-    expect(await inputH.evaluate(node => node.checked)).toBe(false);
-    expect(await inputH.evaluate(node => node.indeterminate)).toBe(true);
-    expect(await formL.evaluate((node:any)  => node.data.active)).toBe(undefined);
-    expect(await formL.evaluate((node:any)  => node.valid)).toBe(true);
+  test('should toggle (null => true => false) ', async ({ page }) => {
+    await init(page,
+      patch(SCHEMA, {properties: { type: ['boolean', 'null'] }}),
+      { active: null }
+    )
+    {
+      // initial state null : !checked && indeterminate
+      expect(await input_h.isChecked()).toBe(false);
+      expect(await input_h.evaluate(node => node.indeterminate)).toBe(true);
+      expect(await form_l.evaluate((node: any) => node.data.active)).toBe(null);
+      expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
+    }
+    {
+      // null => true : checked && !indeterminate
+      await input_h.click()
+      expect(await input_h.isChecked()).toBe(true);
+      expect(await input_h.evaluate(node => node.indeterminate)).toBe(false);
+      expect(await form_l.evaluate((node: any) => node.data.active)).toBe(true);
+      expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
+    } {
+      // true => false: !checked && !indeterminate 
+      await input_h.click()
+      expect(await input_h.isChecked()).toBe(false);
+      expect(await input_h.evaluate(node => node.indeterminate)).toBe(false);
+      expect(await form_l.evaluate((node: any) => node.data.active)).toBe(false);
+      expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
+    }
+  })
 
-    await inputH.evaluate(node => node.click())
-    expect(await inputH.evaluate(node => node.checked)).toBe(true);
-    expect(await inputH.evaluate(node => node.indeterminate)).toBe(false);
-    expect(await formL.evaluate((node:any)  => node.data.active)).toBe(true);
-    expect(await formL.evaluate((node:any)  => node.valid)).toBe(true);
+  test('should toggle (undefined => true => false)', async ({ page }) => {
+    await init(page,SCHEMA, { active: undefined })
 
-    await inputH.evaluate(node => node.click())
-    expect(await inputH.evaluate(node => node.checked)).toBe(false);
-    expect(await inputH.evaluate(node => node.indeterminate)).toBe(false);
-    expect(await formL.evaluate((node:any)  => node.data.active)).toBe(false);
-    expect(await formL.evaluate((node:any)  => node.valid)).toBe(true);
+    {
+      expect(await input_h.isChecked()).toBe(false);
+      expect(await input_h.evaluate(node => node.indeterminate)).toBe(true);
+      expect(await form_l.evaluate((node: any) => node.data.active)).toBe(undefined);
+      expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
+    } {
+      await input_h.click()
+      expect(await input_h.isChecked()).toBe(true);
+      expect(await input_h.evaluate(node => node.indeterminate)).toBe(false);
+      expect(await form_l.evaluate((node: any) => node.data.active)).toBe(true);
+      expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
+    } {
+      await input_h.click()
+      expect(await input_h.isChecked()).toBe(false);
+      expect(await input_h.evaluate(node => node.indeterminate)).toBe(false);
+      expect(await form_l.evaluate((node: any) => node.data.active)).toBe(false);
+      expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
+    }
+  })
+  test('should toggle (dummy => true => false)', async ({ page }) => {
+    await init(page,SCHEMA, { active: "dummy" })
 
+    {
+      expect(await input_h.isChecked()).toBe(false);
+      expect(await input_h.evaluate(node => node.indeterminate)).toBe(true);
+      expect(await form_l.evaluate((node: any) => node.data.active)).toBe("dummy");
+      expect(await form_l.evaluate((node: any) => node.valid)).toBe(false);
+    } {
+      await input_h.click()
+      expect(await input_h.isChecked()).toBe(true);
+      expect(await input_h.evaluate(node => node.indeterminate)).toBe(false);
+      expect(await form_l.evaluate((node: any) => node.data.active)).toBe(true);
+      expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
+    } {
+      await input_h.click()
+      expect(await input_h.isChecked()).toBe(false);
+      expect(await input_h.evaluate(node => node.indeterminate)).toBe(false);
+      expect(await form_l.evaluate((node: any) => node.data.active)).toBe(false);
+      expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
+    }
+  })
+
+  test('should not toggle (readonly)', async ({ page }) => {
+    await init(page,
+      patch(SCHEMA, {properties: { active: { readonly: true }}}),
+      { active: true }
+    )
+    {
+      // on click no change
+      // !!! for readonly checkbox DONT USE input_h.click() Playwright FAILS because CSS "event-pointers" set to "none"
+      await input_h.evaluate(node => node.click());
+      expect(await input_h.isChecked()).toBe(true);
+      expect(await input_h.evaluate(node => node.indeterminate)).toBe(false);
+      expect(await form_l.evaluate((node: any) => node.data.active)).toBe(true);
+      expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
+    }
   })
 
 })

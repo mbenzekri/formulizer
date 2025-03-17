@@ -99,6 +99,7 @@ class JSONSchemaDraft07 {
     assets?: string;
     preview?: boolean;
     mimetype?: string;
+    mask?: string;
 }
 
 export function isSchema(value: unknown): value is Schema {

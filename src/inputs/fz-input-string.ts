@@ -38,7 +38,7 @@ export class FzInputString extends FzInputBase {
     renderInput() {
         return html`
             <div class="input-group" >
-                <input  
+                <input
                     class="form-control" 
                     type="${this.type}" 
                     id="input"
@@ -51,9 +51,10 @@ export class FzInputString extends FzInputBase {
                     pattern="${ifDefined(this.pattern)}"
                     ?required="${this.required}"
                 />
-                <div ?hidden="${this.type !== 'color' || this.value == undefined}" class="input-group-append" style="max-width:5em" >
-                    <span class="input-group-text" >${this.value}</span>
-                </div>
+                ${this.type === 'color' && this.value != null 
+                    ? html`<span class="input-group-text" style="max-width:5em">${this.value}</span>`
+                    : ''
+                }
             </div>`
     }
 

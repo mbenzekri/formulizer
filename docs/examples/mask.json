@@ -1,0 +1,16 @@
+{
+    "form": {
+        "type": "object",
+        "title": "Extension 'mask'",
+        "properties": {
+            "phone": {
+                "type": "string",
+                "title": "Phone Number",
+                "mask": "+1 (###) ###-####"
+            }
+        }
+    },
+    "data": {
+        "phone": null
+    }
+}

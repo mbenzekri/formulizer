@@ -5,7 +5,7 @@ import { FzEnumBase } from "./fz-enum-base";
 import { isNull, notNull } from "../../lib/tools";
 
 @customElement("fz-enum-check")
-export class FZEnumCheck extends FzEnumBase {
+export class FzEnumCheck extends FzEnumBase {
     @property({type: Number, attribute: false}) accessor selected: number = -1
     @queryAll("input") private accessor radios : HTMLInputElement[] = []
 

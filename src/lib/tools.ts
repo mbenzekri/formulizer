@@ -24,6 +24,11 @@ export function isNumber(value: any): value is number {
     return typeof value === "number" && !isNaN(value)
 }
 
+export function isBoolean(value: any): value is boolean {
+    return typeof value === "boolean" 
+}
+
+
 export function isObject(value: unknown): value is Record<string,any> {
     return value !== null && typeof value === "object" && !isArray(value)
 }
@@ -272,3 +277,4 @@ export function setGlobalHandler(target: EventTarget, event: string, value: stri
         }
     }
 }
+

@@ -536,7 +536,9 @@ class CSField extends CompilationStep {
             case 'number': return schema.field = 'fz-float'
             case 'boolean': return schema.field = 'fz-boolean'
             case 'string':
+                if (schema.mask) return schema.field = "fz-mask"
                 switch (schema.format) {
+                    case "uuid": return schema.field = 'fz-uuid'
                     case "uuid": return schema.field = 'fz-uuid'
                     case "signature": return schema.field = 'fz-signature'
                     case "date": return schema.field = 'fz-date'

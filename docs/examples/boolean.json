@@ -16,7 +16,12 @@
                     { "const": null, "title": "don't know" }
                 ],
                 "default": true
+            },
+            "readonly": {
+                "type": "boolean",
+                "readonly" : true
             }
+
         }
     },
     "data": {
