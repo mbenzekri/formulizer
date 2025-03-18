@@ -15991,9 +15991,9 @@ let FzInputInteger = class FzInputInteger extends FzInputBase {
     }
     renderInput() {
         return x `
-            <div class="input-group">
+            <div class="input-group is-valid">
                 <input 
-                    class="form-control is-valid was-validated" 
+                    class="form-control " 
                     type="number"  
                     id="input"
                     ?readonly="${this.readonly}"
@@ -34557,11 +34557,12 @@ let FzForm = class FzForm extends Base {
         return failed ? this.renderError() : this.renderForm();
     }
     renderForm() {
-        return x `
+        return x `<form class=" was-validated"></form>
             ${Array.isArray(this.root)
             ? x `<fz-array pointer="#" name="content"  .data="${this.obj}" .schema="${this.schema}"></fz-array>`
             : x `<fz-object  pointer="#" name="content" .data="${this.obj}" .schema="${this.schema}"></fz-object>`}
-            ${this.renderButtons()}`;
+            ${this.renderButtons()}
+            </form>`;
     }
     renderButtons() {
         if (!this.actions)
