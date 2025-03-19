@@ -4,7 +4,7 @@ import { FzItemDlg } from "../../components/fz-item-dlg";
 import { getSchema, isFunction, isNull, notNull } from "../../lib/tools"
 import { FzInputBase } from "../fz-input-base";
 import { isFrom, Schema } from "../../lib/schema";
-import { EnumItem, FromObject } from "../../lib/types";
+import { EnumItem, FromObject, Pojo } from "../../lib/types";
 import { query } from "lit/decorators.js";
 
 
@@ -111,10 +111,10 @@ export abstract class FzEnumBase extends FzInputBase {
             const target = this.refenum.target
             return target.reduce((list: EnumItem[], item: any, index: number) => {
                 const schema = getSchema(item)
-                const ok = this.evalExpr('filter', schema, item, target, index)
+                const ok = this.evalExpr('filter', schema, item, target as Pojo, index)
                 if (ok) {
                     const value = item[name]
-                    const title = isFunction(schema?.abstract) ? schema.abstract(schema, item, target, index, this.derefFunc) : value
+                    const title = isFunction(schema?.abstract) ? schema.abstract(schema, item, target as Pojo, index, this.derefFunc,this.form.options.userdata) : value
                     list.push({ title, value })
                 }
                 return list

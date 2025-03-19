@@ -100,9 +100,6 @@ function isNull(value) {
 function isString$2(value) {
     return value !== null && typeof value === "string";
 }
-function isArray(value) {
-    return Array.isArray(value);
-}
 function isNumber$1(value) {
     return typeof value === "number" && !isNaN(value);
 }
@@ -111,6 +108,9 @@ function isBoolean(value) {
 }
 function isObject$1(value) {
     return value !== null && typeof value === "object" && !isArray(value);
+}
+function isArray(value) {
+    return Array.isArray(value);
 }
 function isFunction$1(value) {
     return typeof value === "function" && value !== null;
@@ -157,6 +157,7 @@ function closestAscendantFrom(selector, item) {
  * @returns
  */
 function derefPointerData(root, parent, key, pointer) {
+    pointer = pointer.startsWith("#") ? pointer.substring(1) : pointer;
     const tokens = pointer.split(/\//);
     const relative = /^\d+$/.test(tokens[0]);
     let base = relative ? parent : root;
@@ -13818,7 +13819,7 @@ class JSONSchemaDraft07 {
     pointer;
     nullAllowed;
     transient;
-    observers;
+    trackers;
     target;
     enumRef;
     isenum;
@@ -13842,6 +13843,8 @@ class JSONSchemaDraft07 {
     preview;
     mimetype;
     mask;
+    tab;
+    group;
 }
 function isSchema(value) {
     return notNull(value) && value instanceof Schema;
@@ -13901,13 +13904,13 @@ class Schema extends JSONSchemaDraft07 {
             case isPrimitive(this) && 'default' in this:
                 return this.default;
             case this.basetype === 'object': {
-                return Object.entries(this.properties).reduce((object, [key, property]) => {
+                return this.properties ? Object.entries(this.properties).reduce((object, [key, property]) => {
                     if (property.default)
                         object[key] = newValue(JSON.parse(JSON.stringify(property.default)), object, property);
                     else
-                        object[key] = object.required?.includes[key] ? property._default(object) : newValue(property.empty(), object, property);
+                        object[key] = object.required?.includes[key] ? property._default(object) : newValue(property._empty(), object, property);
                     return object;
-                }, newValue({}, parent, this));
+                }, newValue({}, parent, this)) : {};
             }
             case this.basetype === 'array':
                 return newValue([], parent, this);
@@ -13946,23 +13949,23 @@ class Schema extends JSONSchemaDraft07 {
         return base;
     }
     /**
-     * observers function parse expression to extract observed values and set observers
+     * trackers function parse expression to extract watched values and set trackers
      * array in corresponding schema.
-     * a value is observed by using the pointer dereference operation in expresions: $`#/a/b/c`
-     * the observer is the Object desribed by the schema and the objserved value is the value
+     * a value is watched by using the pointer dereference operation in expresions: $`#/a/b/c`
+     * the tracker is the Object desribed by the schema and the objserved value is the value
      * pointed by $`...`
      * @param root schema for absolute pointers in expr
      * @param current schema for relative pointer in expr
      * @param expr function body or arrow function body to parse
      */
-    _addObservers(expr) {
+    _track(expr) {
         const POINTER_RE = /\$\`([^`]+)`/g;
         let matches;
         while ((matches = POINTER_RE.exec(expr)) != null) {
             const pointer = matches[1];
-            const observedschema = this._deref(pointer);
-            if (observedschema != null && !observedschema.observers.includes(this.pointer)) {
-                observedschema.observers.push(this.pointer);
+            const trackedSchema = this._deref(pointer);
+            if (trackedSchema != null && !trackedSchema.trackers.includes(this.pointer)) {
+                trackedSchema.trackers.push(this.pointer);
             }
         }
     }
@@ -14058,10 +14061,10 @@ class CompilationStep {
 }
 function isenumarray(schema) {
     if (schema.basetype === 'array' && schema.uniqueItems) {
-        if (schema.items.oneOf)
+        if (schema.items?.oneOf)
             return !!schema.items.oneOf.every((sch) => 'const' in sch);
-        else if (schema.items.anyOf)
-            return !!schema.anyOf.every((sch) => 'const' in sch);
+        else if (schema.items?.anyOf)
+            return !!schema.items?.anyOf.every((sch) => 'const' in sch);
     }
     return false;
 }
@@ -14171,91 +14174,89 @@ class FzElement extends Base {
         // we simple set new value (newValue func ensure well constructed values , chaining , default, ..)
         if (this.data) {
             this.data[this.key] = newValue(value, this.data, this.schema);
-            return false;
         }
-        // this.data is nullish
-        // --------------------
-        // we need to set this value and all the nullish ascendant found (cascading sets)
-        // c'est le moment de les initialiser...
-        // imagine if current pointer is #/a/b/c/d/e 
-        // we must check if d,c,b, and a are nullish (suppose d,c,b are nullish)
-        // we will set new newValue() for b,c,d first 
-        if (!form) {
-            console.error(`cascadeValue root form not found (impossible!!!) => ${this.pointer}`);
-            return false;
-        }
-        if (!this.pointer.startsWith("#/")) {
-            console.error(`cascadeValue pointer not absolute => ${this.pointer}`);
-            return false;
-        }
-        if (this.pointer === "#/") {
-            console.error(`newChild cant change root => ${this.pointer}`);
-            return false;
-        }
-        // we split pointer to obtain the path as an array of properties or indexes
-        // ex '#/a/b/c/d/e => [#,a,b,c,d,e]
-        const properties = this.pointer.split('/').map(name => /^\d+$/.test(name) ? parseInt(name, 10) : name);
-        // for each properties in path we calculate a corresponding schema
-        // because heterogeneous types in arrays we are not allways able to do it
-        const schemas = [];
-        for (let ischema = schema; ischema; ischema = ischema.parent) {
-            schemas.unshift(ischema);
-        }
-        if (properties.length !== schemas.length) {
-            // not sure this is possible to happen because if we are ther choices had be done then intermidiary schema/values exists
-            console.error(`cascadeValue fail not all schema found on path `);
-            return false;
-        }
-        // we calculate a newValue for each missing property/index  in path in descending order until this target 
-        const fields = [];
-        let ipointer = '';
-        let parent = form.root;
-        for (let i = 0; i < properties.length && parent; i++) {
-            const key = properties[i];
-            const schema = schemas[i];
-            ipointer = i ? `${ipointer}/${key}` : `${key}`;
-            const field = form.getField(ipointer);
-            if (field)
-                fields.push(field);
-            const type = schema.basetype;
-            switch (true) {
-                // root nothing to do
-                case key == '#':
-                    break;
-                // last property empty => affecting
-                case i === properties.length - 1:
-                    {
-                        const v = newValue(value, parent, schema);
-                        if (field && !field.data)
-                            field.data = parent;
-                        parent = parent[key] = v;
-                    }
-                    break;
-                // property "array" typed empty => initialising
-                case parent[key] == null && type == 'array':
-                    {
-                        const v = newValue([], parent, schema);
-                        if (field && !field.data)
-                            field.data = parent;
-                        parent = parent[key] = v;
-                    }
-                    break;
-                // property "object" typed empty => initialising
-                case parent[key] == null && type == 'object':
-                    {
-                        const v = newValue({}, parent, schema);
-                        if (field && !field.data)
-                            field.data = parent;
-                        parent = parent[key] = v;
-                    }
-                    break;
-                default:
-                    parent = (type == 'object' || type == 'array') ? parent[key] : null;
+        else {
+            // this.data is nullish
+            // --------------------
+            // we need to set this value and all the nullish ascendant found (cascading sets)
+            // c'est le moment de les initialiser...
+            // imagine if current pointer is #/a/b/c/d/e 
+            // we must check if d,c,b, and a are nullish (suppose d,c,b are nullish)
+            // we will set new newValue() for b,c,d first 
+            if (!this.pointer.startsWith("/")) {
+                console.error(`cascadeValue pointer not absolute => ${this.pointer}`);
+                return false;
             }
+            if (this.pointer === "/") {
+                console.error(`newValue cant change root => ${this.pointer}`);
+                return false;
+            }
+            // we split pointer to obtain the path as an array of properties or indexes
+            // ex '#/a/b/c/d/e => [#,a,b,c,d,e]
+            const properties = this.pointer.split('/').map(name => /^\d+$/.test(name) ? parseInt(name, 10) : name);
+            // for each properties in path we calculate a corresponding schema
+            // because heterogeneous types in arrays we are not allways able to do it
+            const schemas = [];
+            for (let ischema = schema; ischema; ischema = ischema.parent) {
+                schemas.unshift(ischema);
+            }
+            if (properties.length !== schemas.length) {
+                // not sure this is possible to happen because if we are ther choices had be done then intermidiary schema/values exists
+                console.error(`cascadeValue fail not all schema found on path `);
+                return false;
+            }
+            // we calculate a newValue for each missing property/index  in path in descending order until this target 
+            const fields = [];
+            let ipointer = '';
+            let parent = form.root;
+            for (let i = 0; i < properties.length && parent; i++) {
+                const key = properties[i];
+                const schema = schemas[i];
+                ipointer = i ? `${ipointer}/${key}` : `${key}`;
+                const field = form.getField(ipointer);
+                if (field)
+                    fields.push(field);
+                const type = schema.basetype;
+                switch (true) {
+                    // root nothing to do
+                    case key == '#':
+                        break;
+                    // last property empty => affecting
+                    case i === properties.length - 1:
+                        {
+                            const v = newValue(value, parent, schema);
+                            if (field && !field.data)
+                                field.data = parent;
+                            parent = parent[key] = v;
+                        }
+                        break;
+                    // property "array" typed empty => initialising
+                    case parent[key] == null && type == 'array':
+                        {
+                            const v = newValue([], parent, schema);
+                            if (field && !field.data)
+                                field.data = parent;
+                            parent = parent[key] = v;
+                        }
+                        break;
+                    // property "object" typed empty => initialising
+                    case parent[key] == null && type == 'object':
+                        {
+                            const v = newValue({}, parent, schema);
+                            if (field && !field.data)
+                                field.data = parent;
+                            parent = parent[key] = v;
+                        }
+                        break;
+                    default:
+                        parent = (type == 'object' || type == 'array') ? parent[key] : null;
+                }
+            }
+            // trigger a requestUpdate for each field
+            fields.forEach(f => (f.toField(), f.requestUpdate()));
         }
-        // trigger a requestUpdate for each field
-        fields.forEach(f => f.requestUpdate());
         // trigger a requestUpdate for this field
+        this.toField();
         this.requestUpdate();
         return true;
     }
@@ -14483,6 +14484,7 @@ class FzElement extends Base {
         if (!this._initdone) {
             this.firstUpdate();
             this._initdone = true;
+            this.toField();
         }
         super.update(changedProps);
         if (this._dofocus) {
@@ -14507,7 +14509,7 @@ class FzElement extends Base {
      * - update the model value from the field
      * - eval 'change' keyword
      * - process a validation
-     * - triggers needed cha,ge events for update and observers
+     * - triggers needed cha,ge events for update and trackers
      */
     change() {
         // changed occurs evaluate change keyword extension
@@ -14526,11 +14528,12 @@ class FzElement extends Base {
             composed: true
         });
         this.dispatchEvent(event);
-        // signal field update for observers
-        if (this.schema.observers && this.schema.observers.length) {
-            this.dispatchEvent(new CustomEvent('observed-changed', {
+        // signal field update for trackers
+        if (this.schema.trackers.length) {
+            // TBD with options console.log(`DATA ${this.pointer} update triggering "data-updated" event`)
+            this.dispatchEvent(new CustomEvent('data-updated', {
                 detail: {
-                    observers: this.schema.observers,
+                    trackers: this.schema.trackers,
                     field: this
                 },
                 bubbles: true,
@@ -14552,29 +14555,29 @@ class FzElement extends Base {
                 : this.schema._abstract(this.value);
         }
         else if (notNull(itemschema) && isFunction$1(itemschema.from)) {
-            const refto = itemschema.from?.(itemschema, this.value[key], this.data, this.key, this.derefFunc);
+            const refto = itemschema.from?.(itemschema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata);
             const index = refto.refarray.findIndex((x) => x[refto.refname] === this.value[key]);
             const value = refto.refarray[index];
             const schema = getSchema(value);
             text = isFunction$1(schema.abstract)
-                ? schema.abstract(schema, value, refto.refarray, index, this.derefFunc)
+                ? schema.abstract(schema, value, refto.refarray, index, this.derefFunc, this.form.options.userdata)
                 : schema._abstract(this.value[key]);
         }
         else {
             const schema = (typeof key === 'string') ? this.schema.properties?.[key] : itemschema;
             text = isFunction$1(schema?.abstract)
-                ? schema.abstract(schema, this.value[key], this.data, this.key, this.derefFunc)
+                ? schema.abstract(schema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata)
                 : schema?._abstract(this.value[key]);
         }
         return text.length > 200 ? text.substring(0, 200) + '...' : text;
     }
     evalExpr(attribute, schema, value, parent, key) {
-        if (typeof this.schema?.[attribute] != "function")
+        const exprFunc = this.schema?.[attribute];
+        if (!isFunction$1(exprFunc))
             return null;
-        if (schema != null) {
-            return this.schema[attribute](schema, value, parent, key, this.derefFunc, this.form?.options.userdata);
-        }
-        return this.schema[attribute](this.schema, this.value, this.data, this.name, this.derefFunc, this.form?.options.userdata);
+        return schema != null
+            ? exprFunc(schema, value, parent, key, this.derefFunc, this.form?.options.userdata)
+            : exprFunc(this.schema, this.value, this.data, this.key, this.derefFunc, this.form?.options.userdata);
     }
     /**
      * return tagged template '$' for pointer derefencing in expression or code used in schema
@@ -14587,6 +14590,15 @@ class FzElement extends Base {
             const pointer = String.raw(template, substitutions);
             return derefPointerData(this.form.root, this.data, this.key, pointer);
         };
+    }
+    /**
+     * this method must be call when global context detect form detects a
+     * tracked data had been change
+     */
+    trackedValueChange() {
+        // actually only expression update directly the value ofther extension
+        // keywords are called on demand 
+        this.value = this.evalExpr("expression");
     }
 }
 __decorate([
@@ -14793,7 +14805,7 @@ class FzEnumBase extends FzInputBase {
                 const ok = this.evalExpr('filter', schema, item, target, index);
                 if (ok) {
                     const value = item[name];
-                    const title = isFunction$1(schema?.abstract) ? schema.abstract(schema, item, target, index, this.derefFunc) : value;
+                    const title = isFunction$1(schema?.abstract) ? schema.abstract(schema, item, target, index, this.derefFunc, this.form.options.userdata) : value;
                     list.push({ title, value });
                 }
                 return list;
@@ -14972,7 +14984,10 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
     set selected(value) { this.#selected_accessor_storage = value; }
     filtered = [];
     toField() {
-        if (isNull(this.value) || isNull(this.enums)) {
+        if (!this.queryElem) {
+            this.selected = -1;
+        }
+        else if (isNull(this.value) || isNull(this.enums)) {
             this.queryElem.value = "";
             this.selected = -1;
         }
@@ -15265,7 +15280,6 @@ let FzInputString = class FzInputString extends FzInputBase {
                     placeholder="${this.label}"
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
-                    @keypress="${this.change}"
                     minlength="${o(this.minlength)}"
                     maxlength="${o(this.maxlength)}"
                     pattern="${o(this.pattern)}"
@@ -15991,9 +16005,9 @@ let FzInputInteger = class FzInputInteger extends FzInputBase {
     }
     renderInput() {
         return x `
-            <div class="input-group is-valid">
+            <div class="input-group">
                 <input 
-                    class="form-control " 
+                    class="form-control is-valid was-validated" 
                     type="number"  
                     id="input"
                     ?readonly="${this.readonly}"
@@ -25140,7 +25154,7 @@ let FzArray$1 = class FzArray extends FZCollection {
             this.currentSchema = this.schema.homogeneous ? this.schema.items : (this.schema.items.oneOf?.[0] ?? EMPTY_SCHEMA);
         this.schemas = this.value == null ? [] : this.schema.homogeneous
             ? this.value.map(() => this.schema.items)
-            : this.value.map((value) => getSchema(value) ?? this.schema.items?.oneOf?.find((schema) => isFunction$1(schema.case) && schema.case(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc)));
+            : this.value.map((value) => getSchema(value) ?? this.schema.items?.oneOf?.find((schema) => isFunction$1(schema.case) && schema.case(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc, this.form.options.userdata)));
     }
     solveOrder() {
         if (this.value == null)
@@ -33119,13 +33133,15 @@ let FzArray = class FzArray extends FZCollection {
     }
     getItems() {
         const enums = this.schema.items?.enum;
-        if (enums)
+        const data = this.data;
+        if (enums) {
             return enums.reduce((list, value) => {
-                const ok = this.evalExpr('filter', this.schema.items, value, this.data[this.key], -1);
+                const ok = this.evalExpr('filter', this.schema.items, value, data[this.key], -1);
                 if (ok)
                     list.push({ label: String(value), value });
                 return list;
             }, []);
+        }
         const consts = this.schema.items?.oneOf;
         if (consts)
             return consts.reduce((list, type) => {
@@ -33653,6 +33669,11 @@ FzItemDlg = __decorate([
     t$4("fz-item-dlg")
 ], FzItemDlg);
 
+const SCHEMA = Symbol("FZ_FORM_SCHEMA");
+const PARENT = Symbol("FZ_FORM_PARENT");
+const KEY = Symbol("FZ_FORM_PARENT");
+const ROOT = Symbol("FZ_FORM_ROOT");
+
 /**
  * class to compile schema for fz-form
  * compilation process is a in-depth walkthrough schema applying in order all
@@ -33695,7 +33716,7 @@ class SchemaCompiler {
                 new CSEnum(this.root),
                 new CSEnumArray(this.root),
                 new CSUniform(this.root),
-                new CSObservers(this.root),
+                new CSTrackers(this.root),
                 new CSRequiredWhen(this.root),
                 new CSField(this.root),
                 new CSOrder(this.root),
@@ -33736,6 +33757,9 @@ class SchemaCompiler {
         for (const pass of this.passes) {
             this.walkSchema(pass, this.root);
         }
+        // this is a special use case when all dependencies between pointers is setted
+        // we need to break potential cycle to avoid infinite loop
+        CSTrackers.breakCycles();
         return this.errors;
     }
     walkSchema(steps, schema, parent, name) {
@@ -34002,23 +34026,75 @@ class CSUniform extends CompilationStep {
     }
 }
 /**
- * adds an empty array property 'observers' to each schema
- * this property will contain jsonpath to the value which is
- * observing the data described by this 'schema'
- *
- * observers have to be alerted when changes occurs to the data described
- * by this schema (see event 'observed-changed' in FzElement base class)
- *
+ * adds an empty array property 'trackers' to each schema
+ * this property will contain pointers to the tracked values
+ * trackers receive 'data-updated' events when data changes occurs
+ * to the pointed data (warning by schema pointer)
  */
-class CSObservers extends CompilationStep {
+class CSTrackers extends CompilationStep {
+    static ALL = new Map();
     constructor(root) {
-        super(root, "observers");
+        super(root, "trackers");
     }
     appliable(schema) {
         return !(this.property in schema);
     }
     apply(schema) {
-        schema.observers = [];
+        schema.trackers = [];
+        CSTrackers.ALL?.set(schema.pointer, schema.trackers);
+    }
+    static breakCycles() {
+        if (CSTrackers.ALL == null)
+            return;
+        const trackMap = CSTrackers.ALL;
+        const visited = new Set(); // Nodes that have been fully processed
+        const stack = new Set(); // Nodes currently in the recursion stack
+        const parentMap = new Map(); // To track back the cycle path
+        for (const [key, trackers] of trackMap) {
+            if (trackers.length === 0) {
+                trackMap.delete(key);
+            }
+            function dfs(pointer) {
+                if (stack.has(pointer)) {
+                    // Find the full cycle path
+                    let current = pointer;
+                    const cycleNodes = new Set();
+                    while (parentMap.has(current) && !cycleNodes.has(current)) {
+                        cycleNodes.add(current);
+                        current = parentMap.get(current);
+                    }
+                    // Remove all cycle links
+                    for (const node of cycleNodes) {
+                        const parent = parentMap.get(node);
+                        if (parent && trackMap.has(parent)) {
+                            const trackers = trackMap.get(parent);
+                            const index = trackers.indexOf(node);
+                            if (index !== -1) {
+                                console.warn(`Cycle detected: Removing track link from ${parent} → ${node}`);
+                                trackers.splice(index, 1); // ✅ Modify array in place
+                            }
+                        }
+                    }
+                    return;
+                }
+                if (visited.has(pointer))
+                    return;
+                visited.add(pointer);
+                stack.add(pointer);
+                for (const tracker of trackMap.get(pointer) || []) {
+                    parentMap.set(tracker, pointer);
+                    dfs(tracker); // Continue DFS
+                }
+                stack.delete(pointer);
+            }
+            // Run DFS on all nodes
+            for (const pointer of trackMap.keys()) {
+                if (!visited.has(pointer)) {
+                    dfs(pointer);
+                }
+            }
+            CSTrackers.ALL = undefined;
+        }
     }
 }
 /**
@@ -34166,6 +34242,8 @@ class CSOrder extends CompilationStep {
     }
     apply(schema) {
         const properties = schema.properties;
+        if (!properties)
+            return;
         const groupmap = new Map();
         const tabmap = new Map();
         // order properties with tab and grouping
@@ -34179,7 +34257,7 @@ class CSOrder extends CompilationStep {
             if (schema.group && !groupmap.has(schema.group))
                 groupmap.set(schema.group, fieldnum);
             const groupnum = schema.group ? groupmap.get(schema.group) : fieldnum;
-            return { tabnum, groupnum, fieldnum: fieldnum++, fieldname, schema, tabname: schema.tab, groupname: schema.group };
+            return { tabnum, groupnum, fieldnum: fieldnum++, fieldname, schema, tabname: schema.tab ?? "", groupname: schema.group ?? "" };
         });
         fields.sort((fa, fb) => {
             const diff = Math.min(fa.tabnum, fa.groupnum, fa.fieldnum) - Math.min(fb.tabnum, fb.groupnum, fb.fieldnum);
@@ -34202,9 +34280,9 @@ class CSInsideRef extends CompilationStep {
         schema.from = () => null;
         const pointer = from.pointer.replace(/\/[^/]+$/, '');
         const name = from.pointer.substr(pointer.length + 1);
-        schema._addObservers(`$\`${pointer}\``);
+        schema._track(`$\`${pointer}\``);
         schema.from = (_schema, _value, parent, property, _userdata) => {
-            const target = derefPointerData(this.data.content, parent, property, pointer);
+            const target = derefPointerData(this.data, parent, property, pointer);
             if (!target)
                 return null;
             if (!isArray(target)) {
@@ -34241,7 +34319,7 @@ class CSTemplate extends CompilationStep {
                 return ''
             `;
             try {
-                schema._addObservers(expression);
+                schema._track(expression);
                 schema[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code);
                 schema[this.property].expression = expression;
             }
@@ -34281,7 +34359,7 @@ class CSBool extends CompilationStep {
                 return true
             `;
             try {
-                schema._addObservers(expression);
+                schema._track(expression);
                 schema[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code);
                 schema[this.property].expression = expression;
             }
@@ -34327,9 +34405,9 @@ class CSAny extends CompilationStep {
         `;
         try {
             if (Array.isArray(expression))
-                expression.forEach((expr) => schema._addObservers(expr));
+                expression.forEach((expr) => schema._track(expr));
             if (typeof expression == 'string')
-                schema._addObservers(expression);
+                schema._track(expression);
             schema[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", body);
             schema[this.property].expression = expression;
         }
@@ -34352,48 +34430,54 @@ class DataCompiler {
         this.data = data;
         this.schema = schema;
         this.steps = [
-            (data, schema, pdata, _pschema) => {
-                setSchema(data, schema);
-                setParent(data, pdata);
-                setRoot(data, this.data);
+            (schema, data, parent, key) => {
+                if (isObject$1(data) || isArray(data)) {
+                    data[SCHEMA] = schema;
+                    data[PARENT] = parent;
+                    data[KEY] = key;
+                    data[ROOT] = data;
+                    // data[EVAL] = function(attribute: keyof Schema, userdata: any) {
+                    //     if (!isFunction(this[SCHEMA]?.[attribute])) return undefined
+                    //     return (this[SCHEMA][attribute] as ExprFunc<any>)(this[SCHEMA],this,parent, key, this.derefFunc, userdata)
+                    // }
+                }
             }
         ];
     }
     compile() {
         this.errors = [];
-        this.walkData(this.data, this.schema);
+        this.walkData(this.schema, this.data);
         return this.errors;
     }
-    walkData(data, schema, pdata, pschema) {
+    walkData(schema, data, parent, key) {
         if (schema == null || data == null)
             return;
         try {
-            this.steps.forEach(action => action(data, schema, pdata, pschema));
+            this.steps.forEach(action => action(schema, data, parent, key));
         }
         catch (e) {
             this.errors.push(String(e));
         }
-        if (Array.isArray(data)) {
+        if (isArray(data)) {
             if (schema.homogeneous) {
-                for (const item of data) {
-                    if (schema.items)
-                        this.walkData(item, schema.items, data, schema);
-                }
+                data.forEach((item, i) => this.walkData(schema.items, item, data, i));
             }
             else {
                 data.forEach((item, i) => {
                     schema.items?.oneOf?.forEach((schema) => {
-                        if (schema.case && schema.case(null, item, data, i, () => null))
-                            this.walkData(item, schema, data, schema);
+                        const isofthistype = schema.case && schema.case(null, item, data, i, () => null);
+                        if (isofthistype)
+                            this.walkData(schema, item, data, i);
                     });
                 });
             }
             return;
         }
-        if (typeof data === 'object' && schema.properties) {
+        if (isObject$1(data) && schema.properties) {
             for (const property in data) {
-                const propschema = schema.properties[property];
-                this.walkData(data[property], propschema, data, schema);
+                const child_schema = schema.properties[property];
+                const child_data = data[property];
+                this.walkData(child_schema, child_data, data, property);
             }
             return;
         }
@@ -34557,12 +34641,11 @@ let FzForm = class FzForm extends Base {
         return failed ? this.renderError() : this.renderForm();
     }
     renderForm() {
-        return x `<form class=" was-validated"></form>
+        return x `
             ${Array.isArray(this.root)
             ? x `<fz-array pointer="#" name="content"  .data="${this.obj}" .schema="${this.schema}"></fz-array>`
             : x `<fz-object  pointer="#" name="content" .data="${this.obj}" .schema="${this.schema}"></fz-object>`}
-            ${this.renderButtons()}
-            </form>`;
+            ${this.renderButtons()}`;
     }
     renderButtons() {
         if (!this.actions)
@@ -34584,12 +34667,12 @@ let FzForm = class FzForm extends Base {
     }
     connectedCallback() {
         super.connectedCallback();
-        this.listen(this, 'observed-changed', (e) => this.observedChange(e));
+        this.listen(this, 'data-updated', (e) => this.handleDataUpdate(e));
         this.dispatchEvent(new CustomEvent('init'));
     }
     disconnectedCallback() {
         super.disconnectedCallback();
-        this.removeEventListener('observed-changed', (e) => this.observedChange(e));
+        this.removeEventListener('data-updated', (e) => this.handleDataUpdate(e));
     }
     check() {
         // collect errors and dispatch error on fields (registered in this.fieldMap)
@@ -34611,18 +34694,17 @@ let FzForm = class FzForm extends Base {
         }
     }
     /**
-     * handle 'observed-change' event for change detection and update
-     * between observers and observed data
-     * @param evt
-     * @returns
+     * 'data-updated' event handler for data change.
+     * It applies a field.requestUpdate() on each traker associated FzField
      */
-    observedChange(evt) {
+    handleDataUpdate(evt) {
         if (this === evt.composedPath()[0])
             return;
-        const observers = evt.detail.observers;
-        observers.forEach(pointer => {
+        const trackers = evt.detail.trackers;
+        trackers.forEach(pointer => {
             const field = this.getfieldFromSchema(pointer);
-            field?.requestUpdate();
+            // TBD with options => console.log(`TRACKER ${field?.pointer} refreshed`)
+            field?.trackedValueChange();
         });
     }
     confirm(evt) {

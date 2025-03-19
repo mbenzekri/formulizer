@@ -1,5 +1,5 @@
 import { isArray, isEmptyValue, isObject, isPrimitive, isString, newValue, notNull } from "./tools";
-import { EnumItem, ExprFunc, FieldOrder, FromObject, Pojo } from "./types";
+import { EnumItem, ExprFunc, FieldOrder, FromObject } from "./types";
 
 
 // // Define the method structure as a Type
@@ -76,7 +76,7 @@ class JSONSchemaDraft07 {
     pointer!: string
     nullAllowed?: boolean;
     transient?: boolean;
-    observers!: string[];
+    trackers!: string[];
     target!: string[];
     enumRef?: string;
     isenum!: boolean;
@@ -100,6 +100,9 @@ class JSONSchemaDraft07 {
     preview?: boolean;
     mimetype?: string;
     mask?: string;
+
+    tab?:string;
+    group?:string;
 }
 
 export function isSchema(value: unknown): value is Schema {
@@ -160,13 +163,13 @@ export class Schema extends JSONSchemaDraft07 {
             case isPrimitive(this,true) && 'default' in this:
                 return this.default
             case this.basetype === 'object': {
-                return Object.entries(this.properties as Pojo).reduce((object, [key, property]) => {
+                return this.properties ? Object.entries(this.properties).reduce((object, [key, property]) => {
                     if (property.default)
                         object[key] = newValue(JSON.parse(JSON.stringify(property.default)), object, property)
                     else
-                        object[key] = object.required?.includes[key] ? property._default(object) : newValue(property.empty(), object, property)
+                        object[key] = object.required?.includes[key] ? property._default(object) : newValue(property._empty(), object, property)
                     return object
-                }, newValue({}, parent, this) as any)
+                }, newValue({}, parent, this) as any) : {}
             }
             case this.basetype === 'array':
                 return newValue([], parent, this)
@@ -204,23 +207,23 @@ export class Schema extends JSONSchemaDraft07 {
         return base
     }
     /**
-     * observers function parse expression to extract observed values and set observers
+     * trackers function parse expression to extract watched values and set trackers
      * array in corresponding schema.
-     * a value is observed by using the pointer dereference operation in expresions: $`#/a/b/c`
-     * the observer is the Object desribed by the schema and the objserved value is the value 
+     * a value is watched by using the pointer dereference operation in expresions: $`#/a/b/c`
+     * the tracker is the Object desribed by the schema and the objserved value is the value 
      * pointed by $`...`
      * @param root schema for absolute pointers in expr
      * @param current schema for relative pointer in expr
      * @param expr function body or arrow function body to parse 
      */
-    _addObservers(expr: string): void {
+    _track(expr: string): void {
         const POINTER_RE = /\$\`([^`]+)`/g
         let matches
         while ((matches = POINTER_RE.exec(expr)) != null) {
             const pointer = matches[1]
-            const observedschema = this._deref(pointer)
-            if (observedschema != null && !observedschema.observers.includes(this.pointer)) {
-                observedschema.observers.push(this.pointer)
+            const trackedSchema = this._deref(pointer)
+            if (trackedSchema != null && !trackedSchema.trackers.includes(this.pointer)) {
+                trackedSchema.trackers.push(this.pointer)
             }
         }
     }
@@ -331,10 +334,10 @@ export abstract class CompilationStep {
     }
 }
 
-export function isenumarray(schema: Pojo) {
+export function isenumarray(schema: Schema) {
     if (schema.basetype === 'array' && schema.uniqueItems) {
-        if (schema.items.oneOf) return !!schema.items.oneOf.every((sch: Pojo) => 'const' in sch)
-        else if (schema.items.anyOf) return !!schema.anyOf.every((sch: Pojo) => 'const' in sch)
+        if (schema.items?.oneOf) return !!schema.items.oneOf.every((sch) => 'const' in sch)
+        else if (schema.items?.anyOf) return !!schema.items?.anyOf.every((sch) => 'const' in sch)
     }
     return false
 }

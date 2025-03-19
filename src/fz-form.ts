@@ -26,7 +26,7 @@ export class FzForm extends Base {
         ]
     }
 
-    private readonly obj = { content: {} }
+    private readonly obj = { content: {} as Pojo }
     private accessor i_options: IOptions = {}
     public store: IBlobStore = new BlobMemory()
     public asset!: IAsset
@@ -163,12 +163,12 @@ export class FzForm extends Base {
 
     override connectedCallback() {
         super.connectedCallback()
-        this.listen(this, 'observed-changed', (e: Event) => this.observedChange(e))
+        this.listen(this, 'data-updated', (e: Event) => this.handleDataUpdate(e))
         this.dispatchEvent(new CustomEvent('init'))
     }
     override disconnectedCallback() {
         super.disconnectedCallback()
-        this.removeEventListener('observed-changed', (e) => this.observedChange(e))
+        this.removeEventListener('data-updated', (e) => this.handleDataUpdate(e))
     }
 
 
@@ -191,17 +191,16 @@ export class FzForm extends Base {
         }
     }
     /**
-     * handle 'observed-change' event for change detection and update
-     * between observers and observed data
-     * @param evt 
-     * @returns 
+     * 'data-updated' event handler for data change. 
+     * It applies a field.requestUpdate() on each traker associated FzField
      */
-    private observedChange(evt: Event) {
+    private handleDataUpdate(evt: Event) {
         if (this === evt.composedPath()[0]) return
-        const observers: string[] = (evt as CustomEvent).detail.observers
-        observers.forEach(pointer => {
+        const trackers: string[] = (evt as CustomEvent).detail.trackers
+        trackers.forEach(pointer => {
             const field = this.getfieldFromSchema(pointer)
-            field?.requestUpdate()
+            // TBD with options => console.log(`TRACKER ${field?.pointer} refreshed`)
+            field?.trackedValueChange()
         })
     }
     private confirm(evt: Event) {

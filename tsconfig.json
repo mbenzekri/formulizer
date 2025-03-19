@@ -29,17 +29,33 @@
         "name": "ts-lit-plugin",
         "strict": true,
         "rules": {
-          "no-missing-import": "warning",
+          "no-missing-import": "warning"
         }
       },
       {
         "name": "ts-lit-analyzer",
         "strict": true,
         "rules": {
-          "no-missing-import": "warning",
+          "no-missing-import": "warning"
         }
       }
     ],
+    // "plugins": [
+    //   {
+    //     "name": "ts-lit-plugin",
+    //     "strict": true,
+    //     "rules": {
+    //       "no-missing-import": "warning",
+    //     }
+    //   },
+    //   {
+    //     "name": "ts-lit-analyzer",
+    //     "strict": true,
+    //     "rules": {
+    //       "no-missing-import": "warning",
+    //     }
+    //   }
+    // ],
     "types": ["mocha"],
   },
   "include": ["src/**/*.ts"],

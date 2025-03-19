@@ -228,8 +228,8 @@ export class FzObject extends FZCollection {
 
     override fields(): FzElement[] {
         const fields: FzElement[] = []
-        const tags = (Object.values(this.schema.properties ?? {}) as Pojo[])
-            .map((property: Pojo) => property.field).join(', ')
+        const tags = Object.values(this.schema.properties ?? {})
+            .map((property) => property.field).join(', ')
         const list = this.shadowRoot?.querySelectorAll(tags)
         list?.forEach((elem: Element) => fields.push(elem as FzElement))
         return fields

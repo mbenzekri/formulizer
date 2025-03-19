@@ -43,7 +43,7 @@ const fieldtypeslist = fiedtypes.join(',')
 export abstract class FzElement extends Base {
 
     @property({ type: String }) accessor pointer = '#'
-    @property({ type: Object }) accessor schema  = EMPTY_SCHEMA
+    @property({ type: Object }) accessor schema = EMPTY_SCHEMA
     @property({ type: Object }) accessor data: Pojo = {}
     @property({ type: String }) accessor name: string | null = null
     @property({ type: Number }) accessor index: number | null = null
@@ -79,7 +79,7 @@ export abstract class FzElement extends Base {
      * @param value 
      * @returns 
      */
-    private cascadeValue(value: any): boolean {
+    private cascadeValue(value: any) {
         const schema = this.schema
         const form = this.form
 
@@ -88,86 +88,84 @@ export abstract class FzElement extends Base {
         // we simple set new value (newValue func ensure well constructed values , chaining , default, ..)
         if (this.data) {
             this.data[this.key] = newValue(value, this.data, this.schema)
-            return false
-        }
+        } else {
 
-        // this.data is nullish
-        // --------------------
-        // we need to set this value and all the nullish ascendant found (cascading sets)
-        // c'est le moment de les initialiser...
-        // imagine if current pointer is #/a/b/c/d/e 
-        // we must check if d,c,b, and a are nullish (suppose d,c,b are nullish)
-        // we will set new newValue() for b,c,d first 
+            // this.data is nullish
+            // --------------------
+            // we need to set this value and all the nullish ascendant found (cascading sets)
+            // c'est le moment de les initialiser...
+            // imagine if current pointer is #/a/b/c/d/e 
+            // we must check if d,c,b, and a are nullish (suppose d,c,b are nullish)
+            // we will set new newValue() for b,c,d first 
 
-        if (!form) {
-            console.error(`cascadeValue root form not found (impossible!!!) => ${this.pointer}`)
-            return false
-        }
-        if (!this.pointer.startsWith("#/")) {
-            console.error(`cascadeValue pointer not absolute => ${this.pointer}`)
-            return false
-        }
-        if (this.pointer === "#/") {
-            console.error(`newChild cant change root => ${this.pointer}`)
-            return false
-        }
-        // we split pointer to obtain the path as an array of properties or indexes
-        // ex '#/a/b/c/d/e => [#,a,b,c,d,e]
-        const properties = this.pointer.split('/').map(name => /^\d+$/.test(name) ? parseInt(name, 10) : name)
-
-        // for each properties in path we calculate a corresponding schema
-        // because heterogeneous types in arrays we are not allways able to do it
-        const schemas: Schema[] = []
-        for (let ischema: Schema | undefined = schema; ischema; ischema = ischema.parent) { schemas.unshift(ischema) }
-        if (properties.length !== schemas.length) {
-            // not sure this is possible to happen because if we are ther choices had be done then intermidiary schema/values exists
-            console.error(`cascadeValue fail not all schema found on path `)
-            return false
-        }
-
-        // we calculate a newValue for each missing property/index  in path in descending order until this target 
-        const fields: FzElement[] = []
-        let ipointer: string = ''
-        let parent = form.root
-        for (let i = 0; i < properties.length && parent; i++) {
-            const key = properties[i]
-            const schema = schemas[i]
-            ipointer = i ? `${ipointer}/${key}` : `${key}`
-            const field = form.getField(ipointer)
-            if (field) fields.push(field)
-            const type = schema.basetype
-            switch (true) {
-                // root nothing to do
-                case key == '#':
-                    break
-                // last property empty => affecting
-                case i === properties.length - 1: {
-                    const v = newValue(value, parent, schema)
-                    if (field && !field.data) field.data = parent
-                    parent = parent[key] = v
-                }
-                    break
-                // property "array" typed empty => initialising
-                case parent[key] == null && type == 'array': {
-                    const v = newValue([], parent, schema)
-                    if (field && !field.data) field.data = parent
-                    parent = parent[key] = v
-                }
-                    break
-                // property "object" typed empty => initialising
-                case parent[key] == null && type == 'object': {
-                    const v = newValue({}, parent, schema)
-                    if (field && !field.data) field.data = parent
-                    parent = parent[key] = v
-                }
-                    break
-                default:
-                    parent = (type == 'object' || type == 'array') ? parent[key] : null
+            if (!this.pointer.startsWith("/")) {
+                console.error(`cascadeValue pointer not absolute => ${this.pointer}`)
+                return false
             }
+            if (this.pointer === "/") {
+                console.error(`newValue cant change root => ${this.pointer}`)
+                return false
+            }
+            // we split pointer to obtain the path as an array of properties or indexes
+            // ex '#/a/b/c/d/e => [#,a,b,c,d,e]
+            const properties = this.pointer.split('/').map(name => /^\d+$/.test(name) ? parseInt(name, 10) : name)
+
+            // for each properties in path we calculate a corresponding schema
+            // because heterogeneous types in arrays we are not allways able to do it
+            const schemas: Schema[] = []
+            for (let ischema: Schema | undefined = schema; ischema; ischema = ischema.parent) { schemas.unshift(ischema) }
+            if (properties.length !== schemas.length) {
+                // not sure this is possible to happen because if we are ther choices had be done then intermidiary schema/values exists
+                console.error(`cascadeValue fail not all schema found on path `)
+                return false
+            }
+
+            // we calculate a newValue for each missing property/index  in path in descending order until this target 
+            const fields: FzElement[] = []
+            let ipointer: string = ''
+            let parent = form.root
+            for (let i = 0; i < properties.length && parent; i++) {
+                const key = properties[i]
+                const schema = schemas[i]
+                ipointer = i ? `${ipointer}/${key}` : `${key}`
+                const field = form.getField(ipointer)
+                if (field) fields.push(field)
+                const type = schema.basetype
+                switch (true) {
+                    // root nothing to do
+                    case key == '#':
+                        break
+                    // last property empty => affecting
+                    case i === properties.length - 1: {
+                        const v = newValue(value, parent, schema)
+                        if (field && !field.data) field.data = parent
+                        parent = parent[key] = v
+                    }
+                        break
+                    // property "array" typed empty => initialising
+                    case parent[key] == null && type == 'array': {
+                        const v = newValue([], parent, schema)
+                        if (field && !field.data) field.data = parent
+                        parent = parent[key] = v
+                    }
+                        break
+                    // property "object" typed empty => initialising
+                    case parent[key] == null && type == 'object': {
+                        const v = newValue({}, parent, schema)
+                        if (field && !field.data) field.data = parent
+                        parent = parent[key] = v
+                    }
+                        break
+                    default:
+                        parent = (type == 'object' || type == 'array') ? parent[key] : null
+                }
+            }
+            // trigger a requestUpdate for each field
+            fields.forEach(f => (f.toField(),f.requestUpdate()))
+
         }
-        // trigger a requestUpdate for each field
-        fields.forEach(f => f.requestUpdate())
         // trigger a requestUpdate for this field
+        this.toField()
         this.requestUpdate()
         return true
     }
@@ -400,12 +398,13 @@ export abstract class FzElement extends Base {
      * @param changedProps changed properties 
      */
     override update(changedProps: any) {
-        if (this.schema.expression) 
+        if (this.schema.expression)
             this.value = this.evalExpr("expression")
 
         if (!this._initdone) {
             this.firstUpdate()
             this._initdone = true
+            this.toField()
         }
         super.update(changedProps)
         if (this._dofocus) {
@@ -432,7 +431,7 @@ export abstract class FzElement extends Base {
      * - update the model value from the field
      * - eval 'change' keyword
      * - process a validation 
-     * - triggers needed cha,ge events for update and observers
+     * - triggers needed cha,ge events for update and trackers
      */
     protected change() {
         // changed occurs evaluate change keyword extension
@@ -440,7 +439,7 @@ export abstract class FzElement extends Base {
         this.evalExpr("change")
         // validation and error dispatching
         this.check()
-        
+
         // signal field update for ascendant
         const event = new CustomEvent('update', {
             detail: {
@@ -453,11 +452,12 @@ export abstract class FzElement extends Base {
         })
         this.dispatchEvent(event);
 
-        // signal field update for observers
-        if (this.schema.observers && this.schema.observers.length) {
-            this.dispatchEvent(new CustomEvent('observed-changed', {
+        // signal field update for trackers
+        if (this.schema.trackers.length) {
+            // TBD with options console.log(`DATA ${this.pointer} update triggering "data-updated" event`)
+            this.dispatchEvent(new CustomEvent('data-updated', {
                 detail: {
-                    observers: this.schema.observers,
+                    trackers: this.schema.trackers,
                     field: this
                 },
                 bubbles: true,
@@ -479,28 +479,28 @@ export abstract class FzElement extends Base {
                 ? this.evalExpr("abstract")
                 : this.schema._abstract(this.value)
         } else if (notNull(itemschema) && isFunction(itemschema.from)) {
-            const refto = itemschema.from?.(itemschema, this.value[key], this.data, this.key, this.derefFunc)
+            const refto = itemschema.from?.(itemschema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata)
             const index = refto.refarray.findIndex((x: any) => x[refto.refname] === this.value[key])
             const value = refto.refarray[index]
             const schema = getSchema(value)
             text = isFunction(schema.abstract)
-                ? schema.abstract(schema, value, refto.refarray, index, this.derefFunc)
+                ? schema.abstract(schema, value, refto.refarray, index, this.derefFunc, this.form.options.userdata)
                 : schema._abstract(this.value[key])
         } else {
             const schema = (typeof key === 'string') ? this.schema.properties?.[key] : itemschema
             text = isFunction(schema?.abstract)
-                ? schema.abstract(schema, this.value[key], this.data, this.key, this.derefFunc)
+                ? schema.abstract(schema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata)
                 : schema?._abstract(this.value[key])
         }
         return text.length > 200 ? text.substring(0, 200) + '...' : text
     }
 
-    evalExpr(attribute: keyof Schema, schema?: Pojo, value?: any, parent?: any, key?: string | number) {
-        if (typeof this.schema?.[attribute] != "function") return null
-        if (schema != null) {
-            return this.schema[attribute](schema, value, parent, key, this.derefFunc, this.form?.options.userdata)
-        }
-        return this.schema[attribute](this.schema, this.value, this.data, this.name, this.derefFunc, this.form?.options.userdata)
+    evalExpr(attribute: keyof Schema, schema?: Schema, value?: Pojo, parent?: Pojo, key?: string | number) {
+        const exprFunc = this.schema?.[attribute]
+        if (!isFunction(exprFunc)) return null
+        return schema != null
+            ? exprFunc(schema, value, parent, key, this.derefFunc, this.form?.options.userdata)
+            : exprFunc(this.schema, this.value, this.data, this.key, this.derefFunc, this.form?.options.userdata)
     }
 
     /**
@@ -514,5 +514,14 @@ export abstract class FzElement extends Base {
             const pointer = String.raw(template, substitutions)
             return derefPointerData(this.form.root, this.data, this.key, pointer)
         }
+    }
+    /**
+     * this method must be call when global context detect form detects a 
+     * tracked data had been change
+     */
+    trackedValueChange() {
+        // actually only expression update directly the value ofther extension
+        // keywords are called on demand 
+        this.value = this.evalExpr("expression")
     }
 }

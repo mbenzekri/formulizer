@@ -1,7 +1,6 @@
-import { Pojo, FieldOrder, ExprFunc, IOptions, FromObject } from "./types"
-import { pointerSchema, derefPointerData, complement, intersect, union, isPrimitive, isArray, isFunction, notNull, getSchema} from "./tools";
-import { setSchema,setParent,setRoot} from "./tools"
-import { Schema, CompilationStep, isenumarray,  } from "./schema";
+import { Pojo, FieldOrder, ExprFunc, IOptions, FromObject, SCHEMA, ROOT, PARENT, KEY } from "./types"
+import { pointerSchema, derefPointerData, complement, intersect, union, isPrimitive, isArray, isFunction, notNull, getSchema, isObject } from "./tools";
+import { Schema, CompilationStep, isenumarray, } from "./schema";
 
 /**
  * class to compile schema for fz-form 
@@ -11,8 +10,8 @@ import { Schema, CompilationStep, isenumarray,  } from "./schema";
  */
 
 export class SchemaCompiler {
-    static implemented = ["draft-07","2019-09","2020-12"]
-    static unimplemented = ["draft-06","draft-05","draft-04","draft-03","draft-02"]
+    static implemented = ["draft-07", "2019-09", "2020-12"]
+    static unimplemented = ["draft-06", "draft-05", "draft-04", "draft-03", "draft-02"]
     static DIALECT_DRAF_07 = "http://json-schema.org/draft-07/schema"
     static DIALECT_2019_09 = "https://json-schema.org/draft/2019-09/schema"
     static DIALECT_2020_12 = "https://json-schema.org/draft/2020-12/schema"
@@ -22,9 +21,9 @@ export class SchemaCompiler {
     errors: string[] = []
     constructor(root: Schema, options: IOptions, data: Pojo) {
         this.root = root
-        this.dialect = this.extractDialect(options,root.$schema)
+        this.dialect = this.extractDialect(options, root.$schema)
 
-        if (SchemaCompiler.unimplemented.includes(this.dialect)) 
+        if (SchemaCompiler.unimplemented.includes(this.dialect))
             throw Error(`schema dialect '${this.dialect}' not implemented (implmented are draft-07,2019-09 and 2020-12)`)
 
         // upgrade from Draft07 and 2019-09 to 2020-12
@@ -48,24 +47,24 @@ export class SchemaCompiler {
                 //new CSAppEnum(this.root,options,),
                 new CSEnum(this.root,),
                 new CSEnumArray(this.root,),
-                new CSUniform(this.root,), 
-                new CSObservers(this.root,),
+                new CSUniform(this.root,),
+                new CSTrackers(this.root,),
                 new CSRequiredWhen(this.root,),
                 new CSField(this.root),
                 new CSOrder(this.root),
             ],
             [
                 new CSInsideRef(this.root, data),
-                new CSTemplate(this.root,'abstract',Schema._abstractFunc()),
-                new CSBool(this.root,'case',() => false),
-                new CSBool(this.root,'visible',() => true),
-                new CSBool(this.root,'readonly',() => false),
-                new CSBool(this.root,'requiredWhen',() => false),
-                new CSBool(this.root,'collapsed',() => false),
-                new CSBool(this.root,'filter', () => true),
-                new CSAny(this.root,'orderBy',() => true),
-                new CSAny(this.root,'expression',() => ''),
-                new CSAny(this.root,'change',() => ''),
+                new CSTemplate(this.root, 'abstract', Schema._abstractFunc()),
+                new CSBool(this.root, 'case', () => false),
+                new CSBool(this.root, 'visible', () => true),
+                new CSBool(this.root, 'readonly', () => false),
+                new CSBool(this.root, 'requiredWhen', () => false),
+                new CSBool(this.root, 'collapsed', () => false),
+                new CSBool(this.root, 'filter', () => true),
+                new CSAny(this.root, 'orderBy', () => true),
+                new CSAny(this.root, 'expression', () => ''),
+                new CSAny(this.root, 'change', () => ''),
             ]
         ]
 
@@ -74,20 +73,20 @@ export class SchemaCompiler {
         switch (true) {
             case SchemaCompiler.unimplemented.some(draft => schemaUri?.startsWith(`http://json-schema.org/${draft}/schema`)):
                 return SchemaCompiler.unimplemented.find(draft => schemaUri?.includes(draft)) ?? "draft-06"
-                break 
+                break
             case schemaUri?.startsWith(SchemaCompiler.DIALECT_DRAF_07):
                 return "draft-07"
-                break 
+                break
             case schemaUri?.startsWith(SchemaCompiler.DIALECT_2019_09):
                 return "2019-09"
-                break 
+                break
             case schemaUri?.startsWith(SchemaCompiler.DIALECT_2020_12):
                 return "2020-12"
-                break 
+                break
             case options.dialect && SchemaCompiler.implemented.includes(options.dialect):
                 return options.dialect
             default:
-                return "2020-12" 
+                return "2020-12"
         }
     }
     compile() {
@@ -95,8 +94,11 @@ export class SchemaCompiler {
         for (const pass of this.passes) {
             this.walkSchema(pass, this.root)
         }
+        // this is a special use case when all dependencies between pointers is setted
+        // we need to break potential cycle to avoid infinite loop
+        CSTrackers.breakCycles()
         return this.errors
-    }    
+    }
 
     walkSchema(steps: CompilationStep[], schema: Schema, parent?: Schema, name?: string): void {
 
@@ -133,7 +135,7 @@ export class SchemaCompiler {
 class CSDefinition extends CompilationStep {
 
     constructor(root: Schema) {
-        super (root,"$ref")
+        super(root, "$ref")
     }
 
     override apply(schema: Schema): void {
@@ -172,9 +174,9 @@ class CSTargetType extends CompilationStep {
     static NUMBERKW = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"]
     static ARRAYKW = ["items", "additionalItems", "minItems", "maxItems", "uniqueItems"]
     static OBJECTKW = ["required", "properties", "additionalProperties", "patternProperties", "minProperties", "maxProperties", "dependencies"]
-    static ALL = new Set(["string","integer","number","object","array","boolean","null"])
+    static ALL = new Set(["string", "integer", "number", "object", "array", "boolean", "null"])
     constructor(root: Schema) {
-        super (root,"basetype")
+        super(root, "basetype")
     }
 
     override appliable(schema: Schema) {
@@ -204,19 +206,19 @@ class CSTargetType extends CompilationStep {
         }
     }
 
-    infer(schema: Schema): Set<string>|null {
+    infer(schema: Schema): Set<string> | null {
 
-        const possibles:(Set<string>|null)[] = []
+        const possibles: (Set<string> | null)[] = []
         // we call all the helpers that infer types for each keyword
-        possibles.push(CSTargetType.ALL)    
-        possibles.push(this.constKW(schema))    
+        possibles.push(CSTargetType.ALL)
+        possibles.push(this.constKW(schema))
         possibles.push(this.typeKW(schema))
-        possibles.push(this.enumKW(schema))    
+        possibles.push(this.enumKW(schema))
         possibles.push(this.numberKW(schema))
         possibles.push(this.stringKW(schema))
         possibles.push(this.arrayKW(schema))
-        possibles.push(this.objectKW(schema))    
-        possibles.push(this.notKW(schema))    
+        possibles.push(this.objectKW(schema))
+        possibles.push(this.notKW(schema))
         // Handling "allOf" → intersection of types
         if (schema.allOf) {
             const allOfTypes = schema.allOf.map((s: Schema) => this.infer(s)).filter(x => x != null);
@@ -225,36 +227,36 @@ class CSTargetType extends CompilationStep {
 
         // Handling "anyOf" → union of types
         if (schema.anyOf) {
-            const anyOfTypes = schema.anyOf.map((s: Schema) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x );
+            const anyOfTypes = schema.anyOf.map((s: Schema) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x);
             possibles.push(union(anyOfTypes));
         }
 
         // Handling "oneOf" → union of types (similar to anyOf)
         if (schema.oneOf) {
-            const oneOfTypes = schema.oneOf.map((s: Schema) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x );;
+            const oneOfTypes = schema.oneOf.map((s: Schema) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x);;
             possibles.push(union(oneOfTypes));
         }
-        const filtered = possibles.filter(value => value !=  null) 
+        const filtered = possibles.filter(value => value != null)
         return intersect(filtered)
     }
 
     private notKW(schema: Schema) {
         //  "not" → Compute the complementary set of types
-        return schema.not ? complement(this.infer(schema.not),CSTargetType.ALL) : null
+        return schema.not ? complement(this.infer(schema.not), CSTargetType.ALL) : null
     }
 
     private enumKW(schema: Schema) {
         // infering type from "enum" keyword correspond to a set of all enums value types
         if ("enum" in schema && Array.isArray(schema.enum)) {
-            const types = schema.enum.map(value => value == null ? "null" : Array.isArray(value) ? "array" : typeof value )
+            const types = schema.enum.map(value => value == null ? "null" : Array.isArray(value) ? "array" : typeof value)
             return new Set(types)
         }
         return null
     }
-    
+
     private typeKW(schema: Schema) {
         if ("type" in schema) {
-            return new Set( Array.isArray(schema.type) ? schema.type : [schema.type]) as Set<string>
+            return new Set(Array.isArray(schema.type) ? schema.type : [schema.type]) as Set<string>
         }
         return null
     }
@@ -268,29 +270,29 @@ class CSTargetType extends CompilationStep {
         }
         return null;
     }
-    
+
     private arrayKW(schema: Schema) {
         // if one of this keywords is present then type is contrained to "array"
-        return CSTargetType.ARRAYKW.some(kw => kw in schema) 
-            ? new Set(["array"]) 
+        return CSTargetType.ARRAYKW.some(kw => kw in schema)
+            ? new Set(["array"])
             : null
     }
     private numberKW(schema: Schema) {
         // if one of this keywords is present then type is contrained to "number"
-        return CSTargetType.NUMBERKW.some(kw => kw in schema) 
+        return CSTargetType.NUMBERKW.some(kw => kw in schema)
             ? new Set(["number"])
             : null
     }
     private objectKW(schema: Schema) {
         // if one of this keywords is present then type is contrained to "object"
-        return CSTargetType.OBJECTKW.some(kw => kw in schema) 
-            ? new Set(["object"]) 
+        return CSTargetType.OBJECTKW.some(kw => kw in schema)
+            ? new Set(["object"])
             : null
     }
     private stringKW(schema: Schema) {
         // if one of this keywords is present then type is contrained to "string"
         return CSTargetType.STRINGKW.some(kw => kw in schema)
-            ? new Set(["string"]) 
+            ? new Set(["string"])
             : null
     }
 
@@ -330,7 +332,7 @@ class CSTargetType extends CompilationStep {
 class CSEnum extends CompilationStep {
 
     constructor(root: Schema) {
-        super (root,"isenum")
+        super(root, "isenum")
     }
 
     override appliable(schema: Schema) { // when property absent
@@ -340,11 +342,11 @@ class CSEnum extends CompilationStep {
         schema.isenum = false;
         switch (true) {
             // allow only primitive types to be enums
-            case !isPrimitive(schema,true): break
+            case !isPrimitive(schema, true): break
             // it is an enumeration only for one of this cases
             case !!schema.enum:
-            case schema.oneOf && schema.oneOf.every((sch: Pojo) => 'const' in sch):
-            case schema.anyOf && schema.anyOf.every((sch: Pojo) => 'const' in sch):
+            case schema.oneOf && schema.oneOf.every((sch) => 'const' in sch):
+            case schema.anyOf && schema.anyOf.every((sch) => 'const' in sch):
                 if (!schema.filter) schema.filter = () => true
                 schema.isenum = true;
                 break
@@ -359,14 +361,14 @@ class CSEnum extends CompilationStep {
 class CSEnumArray extends CompilationStep {
 
     constructor(root: Schema) {
-        super (root,"isenumarray")
+        super(root, "isenumarray")
     }
 
-    override appliable(schema: Schema) {  
+    override appliable(schema: Schema) {
         return !(this.property in schema)
     }
     override apply(schema: Schema): void {
-        schema.isenumarray = isPrimitive(schema,true) && isenumarray(schema)
+        schema.isenumarray = isPrimitive(schema, true) && isenumarray(schema)
     }
 }
 
@@ -377,7 +379,7 @@ class CSEnumArray extends CompilationStep {
 class CSUniform extends CompilationStep {
 
     constructor(root: Schema) {
-        super (root,"homogeneous")
+        super(root, "homogeneous")
     }
 
     override appliable(schema: Schema) {
@@ -390,25 +392,85 @@ class CSUniform extends CompilationStep {
 }
 
 /**
- * adds an empty array property 'observers' to each schema
- * this property will contain jsonpath to the value which is 
- * observing the data described by this 'schema' 
- * 
- * observers have to be alerted when changes occurs to the data described 
- * by this schema (see event 'observed-changed' in FzElement base class)
- * 
+ * adds an empty array property 'trackers' to each schema
+ * this property will contain pointers to the tracked values
+ * trackers receive 'data-updated' events when data changes occurs 
+ * to the pointed data (warning by schema pointer)
  */
-class CSObservers extends CompilationStep {
-
+class CSTrackers extends CompilationStep {
+    static ALL? = new Map<string, string[]>()
     constructor(root: Schema) {
-        super (root,"observers")
+        super(root, "trackers")
     }
 
     override appliable(schema: Schema) {
         return !(this.property in schema)
     }
     override apply(schema: Schema): void {
-        schema.observers = []
+        schema.trackers = []
+        CSTrackers.ALL?.set(schema.pointer, schema.trackers)
+    }
+    static breakCycles() {
+        if (CSTrackers.ALL == null) return
+
+        const trackMap = CSTrackers.ALL
+        const visited = new Set<string>(); // Nodes that have been fully processed
+        const stack = new Set<string>(); // Nodes currently in the recursion stack
+        const parentMap = new Map<string, string>(); // To track back the cycle path
+
+        for (const [key, trackers] of trackMap) {
+            if (trackers.length === 0) {
+                trackMap.delete(key)
+            }
+
+            function dfs(pointer: string) {
+                if (stack.has(pointer)) {
+
+                    // Find the full cycle path
+                    let current = pointer;
+                    const cycleNodes = new Set<string>();
+                    while (parentMap.has(current) && !cycleNodes.has(current)) {
+                        cycleNodes.add(current);
+                        current = parentMap.get(current)!;
+                    }
+
+                    // Remove all cycle links
+                    for (const node of cycleNodes) {
+                        const parent = parentMap.get(node);
+                        if (parent && trackMap.has(parent)) {
+                            const trackers = trackMap.get(parent)!;
+                            const index = trackers.indexOf(node);
+                            if (index !== -1) {
+                                console.warn(`Cycle detected: Removing track link from ${parent} → ${node}`);
+                                trackers.splice(index, 1); // ✅ Modify array in place
+                            }
+                        }
+                    }
+
+                    return;
+                }
+
+                if (visited.has(pointer)) return;
+
+                visited.add(pointer);
+                stack.add(pointer);
+
+                for (const tracker of trackMap.get(pointer) || []) {
+                    parentMap.set(tracker, pointer);
+                    dfs(tracker); // Continue DFS
+                }
+
+                stack.delete(pointer);
+            }
+
+            // Run DFS on all nodes
+            for (const pointer of trackMap.keys()) {
+                if (!visited.has(pointer)) {
+                    dfs(pointer);
+                }
+            }
+            CSTrackers.ALL = undefined
+        }
     }
 }
 
@@ -419,13 +481,13 @@ class CSObservers extends CompilationStep {
 class CSParent extends CompilationStep {
 
     constructor(root: Schema) {
-        super (root,"parent")
+        super(root, "parent")
     }
 
     override appliable(schema: Schema) {
         return !(this.property in schema)
     }
-    override apply(schema: Schema,parent: Schema): void {
+    override apply(schema: Schema, parent: Schema): void {
         schema.parent = parent
     }
 }
@@ -438,13 +500,13 @@ class CSParent extends CompilationStep {
 class CSPointer extends CompilationStep {
 
     constructor(root: Schema) {
-        super (root,"pointer")
+        super(root, "pointer")
     }
 
     override appliable(schema: Schema) {
         return !(this.property in schema)
     }
-    override apply(schema: Schema,parent: Schema, name: string): void {
+    override apply(schema: Schema, parent: Schema, name: string): void {
         schema.pointer = parent ? `${parent.pointer}/${name}` : `#`
     }
 }
@@ -456,7 +518,7 @@ class CSPointer extends CompilationStep {
 class CSRoot extends CompilationStep {
 
     constructor(root: Schema) {
-        super (root,"root")
+        super(root, "root")
     }
 
     override appliable(schema: Schema) {
@@ -474,7 +536,7 @@ class CSRoot extends CompilationStep {
 class CSRequiredWhen extends CompilationStep {
 
     constructor(root: Schema) {
-        super (root,"requiredWhen")
+        super(root, "requiredWhen")
     }
 
     override appliable(schema: Schema) {
@@ -495,7 +557,7 @@ class CSRequiredWhen extends CompilationStep {
 class CSField extends CompilationStep {
 
     constructor(root: Schema) {
-        super (root,"field")
+        super(root, "field")
     }
 
     override appliable(schema: Schema) {
@@ -504,7 +566,7 @@ class CSField extends CompilationStep {
 
     override apply(schema: Schema) {
         if ("const" in schema) return schema.field = 'fz-constant'
-        if (schema.from && isPrimitive(schema,true)) {
+        if (schema.from && isPrimitive(schema, true)) {
             if (!schema.filter) schema.filter = () => true
             return schema.field = 'fz-enum-select'
         }
@@ -552,7 +614,7 @@ class CSField extends CompilationStep {
                 if (!schema.format && schema.maxLength && schema.maxLength > 256) return schema.field = 'fz-textarea'
                 return schema.field = 'fz-string'
         }
-        return schema.field = 'fz-error'    
+        return schema.field = 'fz-error'
     }
 }
 
@@ -562,7 +624,7 @@ class CSField extends CompilationStep {
 class CSOrder extends CompilationStep {
 
     constructor(root: Schema) {
-        super (root,"order")
+        super(root, "order")
     }
 
     override appliable(schema: Schema) {
@@ -570,11 +632,12 @@ class CSOrder extends CompilationStep {
     }
     override apply(schema: Schema) {
         const properties = schema.properties
+        if (!properties) return
         const groupmap: Map<string, number> = new Map()
         const tabmap: Map<string, number> = new Map()
         // order properties with tab and grouping
         let fieldnum = 0
-        const fields: FieldOrder[] = Object.entries(properties as Pojo).map(([fieldname, schema]) => {
+        const fields: FieldOrder[] = Object.entries(properties).map(([fieldname, schema]) => {
             // get or affect tab number
             if (schema.tab && !tabmap.has(schema.tab)) tabmap.set(schema.tab, fieldnum)
             const tabnum = schema.tab ? tabmap.get(schema.tab) as number : fieldnum
@@ -582,7 +645,7 @@ class CSOrder extends CompilationStep {
             if (schema.group && !groupmap.has(schema.group)) groupmap.set(schema.group, fieldnum)
             const groupnum = schema.group ? groupmap.get(schema.group) as number : fieldnum
 
-            return { tabnum, groupnum, fieldnum: fieldnum++, fieldname, schema, tabname: schema.tab, groupname: schema.group }
+            return { tabnum, groupnum, fieldnum: fieldnum++, fieldname, schema, tabname: schema.tab ?? "", groupname: schema.group ?? "" }
         })
 
         fields.sort((fa, fb) => {
@@ -595,21 +658,21 @@ class CSOrder extends CompilationStep {
 
 class CSInsideRef extends CompilationStep {
     private data: Pojo
-    constructor(root:Schema, data: Pojo) {
-        super(root,"from")
+    constructor(root: Schema, data: Pojo) {
+        super(root, "from")
         this.data = data
     }
     override appliable(schema: Schema) {
         return notNull(schema.from) && !isFunction(schema.from)
     }
     override apply(schema: Schema) {
-        const from = schema.from as {pointer: string, extend: boolean}
+        const from = schema.from as { pointer: string, extend: boolean }
         schema.from = () => null
         const pointer = from.pointer.replace(/\/[^/]+$/, '')
         const name = from.pointer.substr(pointer.length + 1)
-        schema._addObservers(`$\`${pointer}\``)
+        schema._track(`$\`${pointer}\``)
         schema.from = (_schema: Schema, _value: any, parent: Pojo, property: string | number, _userdata: object) => {
-            const target = derefPointerData(this.data.content, parent, property, pointer)
+            const target = derefPointerData(this.data, parent, property, pointer)
             if (!target) return null
             if (!isArray(target)) {
                 console.error(`reference list must be an array ${pointer}`)
@@ -624,17 +687,17 @@ class CSInsideRef extends CompilationStep {
  * compile a given property written as template literal  
  */
 class CSTemplate extends CompilationStep {
-    private defunc:  ExprFunc<string>
-    constructor(root: Schema,property: keyof Schema,defunc: ExprFunc<string>) {
+    private defunc: ExprFunc<string>
+    constructor(root: Schema, property: keyof Schema, defunc: ExprFunc<string>) {
         super(root, property)
         this.defunc = defunc
     }
     override appliable(schema: Schema) {
         return this.property in schema && typeof schema[this.property] == "string"
     }
-    override apply(schema: Schema, _parent: Schema, name:string) {
+    override apply(schema: Schema, _parent: Schema, name: string) {
         const expression = schema[this.property]
-        ;(schema as any)[this.property] = this.defunc
+            ; (schema as any)[this.property] = this.defunc
         if (typeof expression == 'string') {
             const code = `
                 ${this.sourceURL(name)}
@@ -646,9 +709,9 @@ class CSTemplate extends CompilationStep {
                 return ''
             `
             try {
-                schema._addObservers(expression)
-                ;(schema as any)[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code)
-                ;(schema as any)[this.property].expression = expression
+                schema._track(expression)
+                    ; (schema as any)[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code)
+                    ; (schema as any)[this.property].expression = expression
             } catch (e) {
                 throw Error(`unable to compile ${this.property} expression "${expression}" due to ::\n\t=>${String(e)}`)
             }
@@ -661,17 +724,17 @@ class CSTemplate extends CompilationStep {
  * compile a given property written as a function returning boolean  
  */
 class CSBool extends CompilationStep {
-    private defunc:  ExprFunc<boolean>
-    constructor(root: Schema,property: keyof Schema,defunc: ExprFunc<boolean>) {
+    private defunc: ExprFunc<boolean>
+    constructor(root: Schema, property: keyof Schema, defunc: ExprFunc<boolean>) {
         super(root, property)
         this.defunc = defunc
     }
     override appliable(schema: Schema) {
-        return this.property in schema && ["string","boolean"].includes(typeof schema[this.property])
+        return this.property in schema && ["string", "boolean"].includes(typeof schema[this.property])
     }
     override apply(schema: Schema, _parent: Schema, name: string) {
         const expression = schema[this.property]
-        ;(schema as any)[this.property] = this.defunc
+            ; (schema as any)[this.property] = this.defunc
         if (typeof expression == 'boolean' || expression === null) {
             (schema as any)[this.property] = expression === null ? () => null : () => expression
         } else if (typeof expression == 'string') {
@@ -686,8 +749,8 @@ class CSBool extends CompilationStep {
                 return true
             `
             try {
-                schema._addObservers(expression)
-                ;(schema as any)[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code)
+                schema._track(expression)
+                    ; (schema as any)[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code)
                 schema[this.property].expression = expression
             } catch (e) {
                 throw Error(`unable to compile ${this.property} expression "${expression}" due to ::\n\t=>${String(e)}`)
@@ -698,18 +761,18 @@ class CSBool extends CompilationStep {
 
 
 class CSAny extends CompilationStep {
-    private defunc:  ExprFunc<any>
-    constructor(root: Schema,property: keyof Schema,defunc: ExprFunc<any>) {
+    private defunc: ExprFunc<any>
+    constructor(root: Schema, property: keyof Schema, defunc: ExprFunc<any>) {
         super(root, property)
         this.defunc = defunc
     }
     override appliable(schema: Schema) {
-        return this.property in schema && typeof schema[this.property] !== "function" 
+        return this.property in schema && typeof schema[this.property] !== "function"
 
     }
     override apply(schema: Schema, _parent: Schema, name: string) {
         const expression = schema[this.property]
-        ;(schema as any)[this.property] = this.defunc
+            ; (schema as any)[this.property] = this.defunc
         let code = "return null"
         switch (true) {
             case typeof expression == 'boolean':
@@ -733,9 +796,9 @@ class CSAny extends CompilationStep {
             ${this.sourceURL(name)}
         `
         try {
-            if (Array.isArray(expression)) expression.forEach((expr: string) => schema._addObservers(expr))
-            if (typeof expression == 'string') schema._addObservers(expression)
-            ;(schema as any)[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", body)
+            if (Array.isArray(expression)) expression.forEach((expr: string) => schema._track(expr))
+            if (typeof expression == 'string') schema._track(expression)
+                ; (schema as any)[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", body)
             schema[this.property].expression = expression
         } catch (e) {
             console.error(`unable to compile ${this.property} expression "${expression}" due to ::\n\t=>${String(e)}`)
@@ -749,59 +812,65 @@ class CSAny extends CompilationStep {
  * be carefull action order is primordial
  */
 
-
 export class DataCompiler {
     data: Pojo
     schema: Schema
-    steps: ((data: Pojo, schema: Schema, pdata?: Pojo, pschema?: Schema) =>void)[]
+    steps: (( schema: Schema, data: Pojo,parent?: Pojo,key?: string | number,) => void)[]
     errors: string[] = []
 
     constructor(data: Pojo, schema: Schema) {
         this.data = data
         this.schema = schema
         this.steps = [
-            (data, schema, pdata, _pschema) => {
-                setSchema(data, schema)
-                setParent(data, pdata)
-                setRoot(data, this.data)
+            (schema, data, parent, key) => {
+                if (isObject(data) || isArray(data)) {
+                    data[SCHEMA] = schema
+                    data[PARENT] = parent
+                    data[KEY] = key
+                    data[ROOT] = data
+                    // data[EVAL] = function(attribute: keyof Schema, userdata: any) {
+                    //     if (!isFunction(this[SCHEMA]?.[attribute])) return undefined
+                    //     return (this[SCHEMA][attribute] as ExprFunc<any>)(this[SCHEMA],this,parent, key, this.derefFunc, userdata)
+                    // }
+                }
             }
         ]
     }
     compile() {
         this.errors = []
-        this.walkData(this.data, this.schema)
+        this.walkData(this.schema,this.data)
         return this.errors
     }
 
-    walkData(data: Pojo, schema: Schema, pdata?: Pojo, pschema?: Schema) {
+    walkData( schema?: Schema, data?: Pojo, parent?: Pojo, key?: string| number) {
         if (schema == null || data == null) return
         try {
-            this.steps.forEach(action => action(data, schema, pdata, pschema))
-        } catch(e) {
+            this.steps.forEach(action => action(schema, data, parent, key))
+        } catch (e) {
             this.errors.push(String(e))
         }
-        if (Array.isArray(data)) {
+        if (isArray(data)) {
             if (schema.homogeneous) {
-                for (const item of data) {
-                    if (schema.items) this.walkData(item, schema.items, data, schema)
-                }
+                data.forEach((item:any ,i) =>  this.walkData(schema.items, item as Pojo, data,i) )
             } else {
                 data.forEach((item: any, i: any) => {
                     schema.items?.oneOf?.forEach((schema: any) => {
-                        if (schema.case && schema.case(null, item, data, i, () => null)) this.walkData(item, schema, data, schema)
+                        const isofthistype = schema.case && schema.case(null, item, data, i, () => null)
+                        if (isofthistype) this.walkData(schema, item, data, i)
                     })
                 })
             }
             return
         }
-        if (typeof data === 'object' && schema.properties) {
+        if (isObject(data) && schema.properties) {
             for (const property in data) {
-                const propschema = schema.properties[property]
-                this.walkData(data[property], propschema, data, schema)
+                const child_schema = schema.properties[property]
+                const child_data = data[property] as Pojo
+                this.walkData( child_schema , child_data, data, property)
             }
             return
         }
     }
-    
+
 }
 

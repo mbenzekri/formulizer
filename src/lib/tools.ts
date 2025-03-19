@@ -16,10 +16,6 @@ export function isString(value: any): value is string {
     return value !== null && typeof value === "string"
 }
 
-export function isArray(value: any): value is Array<any> {
-    return Array.isArray(value)
-}
-
 export function isNumber(value: any): value is number {
     return typeof value === "number" && !isNaN(value)
 }
@@ -32,10 +28,14 @@ export function isBoolean(value: any): value is boolean {
 export function isObject(value: unknown): value is Record<string,any> {
     return value !== null && typeof value === "object" && !isArray(value)
 }
+export function isArray(value: any): value is Array<any> {
+    return Array.isArray(value)
+}
 
 export function isFunction(value: unknown): value is Function {
     return typeof value === "function" && value !== null
 }
+
 
 const primitivetypes = new Set<string>(['string', 'integer', 'number', 'boolean'])
 const primitiveornulltypes = new Set<string>(['string', 'integer', 'number', 'boolean', 'null'])
@@ -109,13 +109,14 @@ export function closestAscendantFrom(selector: string, item: Element): Element |
  * @returns 
  */
 export function derefPointerData(root: Pojo, parent: Pojo, key: string | number, pointer: string): any {
+    pointer = pointer.startsWith("#") ? pointer.substring(1) : pointer
     const tokens = pointer.split(/\//)
     const relative = /^\d+$/.test(tokens[0])
-    let base = relative ? parent : root
+    let base: Pojo|undefined = relative ? parent : root
     if (relative) {
         const count = parseInt(tokens[0])
         if (count === 0) {
-            base = base[key]
+            base = base[key] as Pojo
         } else {
             for (let i = 1; i < count; i++) base = getParent(base)
         }
@@ -128,7 +129,7 @@ export function derefPointerData(root: Pojo, parent: Pojo, key: string | number,
     for (const token of tokens) {
         if (base == null || !["array", "object"].includes(typeof base)) return undefined
         const key = /^\d+$/.test(token) ? parseInt(token) : token
-        base = base[key]
+        base = base[key] as Pojo
     }
     return base
 }
@@ -166,7 +167,7 @@ function setHiddenProperty(data: any, property: symbol, value: any) {
     return data
 }
 
-export function newValue(value: any, parent: any, schema: Pojo) {
+export function newValue(value: any, parent: any, schema: Schema): Pojo {
     setSchema(value, schema)
     setParent(value, parent)
     setRoot(value, getRoot(parent))
@@ -174,7 +175,7 @@ export function newValue(value: any, parent: any, schema: Pojo) {
 }
 
 
-export function setSchema(data: any, schema: Pojo) {
+export function setSchema(data: any, schema: Schema) {
     return setHiddenProperty(data, SCHEMASYM, schema)
 }
 

@@ -55,7 +55,7 @@ declare class JSONSchemaDraft07 {
     pointer: string;
     nullAllowed?: boolean;
     transient?: boolean;
-    observers: string[];
+    trackers: string[];
     target: string[];
     enumRef?: string;
     isenum: boolean;
@@ -82,6 +82,8 @@ declare class JSONSchemaDraft07 {
     preview?: boolean;
     mimetype?: string;
     mask?: string;
+    tab?: string;
+    group?: string;
 }
 declare class Schema extends JSONSchemaDraft07 {
     constructor(schema: JSONSchema);
@@ -100,16 +102,16 @@ declare class Schema extends JSONSchemaDraft07 {
      */
     _deref(pointer: string): Schema | undefined;
     /**
-     * observers function parse expression to extract observed values and set observers
+     * trackers function parse expression to extract watched values and set trackers
      * array in corresponding schema.
-     * a value is observed by using the pointer dereference operation in expresions: $`#/a/b/c`
-     * the observer is the Object desribed by the schema and the objserved value is the value
+     * a value is watched by using the pointer dereference operation in expresions: $`#/a/b/c`
+     * the tracker is the Object desribed by the schema and the objserved value is the value
      * pointed by $`...`
      * @param root schema for absolute pointers in expr
      * @param current schema for relative pointer in expr
      * @param expr function body or arrow function body to parse
      */
-    _addObservers(expr: string): void;
+    _track(expr: string): void;
     _toJSON(): string;
     static wrapSchema(schema: JSONSchema): Schema;
     static inferEnums(schema: Schema): EnumItem[] | undefined;
@@ -122,20 +124,25 @@ interface IBlobStore {
     get(uuid: string): Promise<StoreItem | undefined>;
 }
 
+type JSONValue = undefined | string | number | boolean | null | JSONObject | JSONArray;
+interface JSONObject {
+    [key: string]: JSONValue;
+}
+interface JSONArray extends Array<JSONValue> {
+}
+
 type EnumItem = {
     title: string;
     value: any;
 };
-type ExprFunc<T> = (schema: Schema, value: any, parent: Pojo, property: string | number, userdata: object) => T | null;
-type Pojo = {
-    [key: string]: any;
-};
+type ExprFunc<T> = (schema: Schema, value: any, parent: Pojo, property: string | number, $: Function, userdata: object) => T | null;
+type EvalFunc<T> = (attribute: keyof Schema, schema: Schema, value: any, parent: Pojo, property: string | number, userdata: object) => T | null;
 type FieldOrder = {
     tabnum: number;
     groupnum: number;
     fieldnum: number;
     fieldname: string;
-    schema: Pojo;
+    schema: Schema;
     tabname: string;
     groupname: string;
 };
@@ -155,6 +162,22 @@ type IOptions = {
     dialect?: string;
     enums?: (id: string) => EnumItem[];
 };
+declare const SCHEMA: unique symbol;
+declare const PARENT: unique symbol;
+declare const KEY: unique symbol;
+declare const ROOT: unique symbol;
+declare const EVAL: unique symbol;
+type WithMetadata<T> = T & {
+    [SCHEMA]?: Schema;
+    [SCHEMA]?: Schema;
+    [ROOT]?: T;
+    [PARENT]?: T;
+    [KEY]?: string | number;
+    [EVAL]?: EvalFunc<any>;
+    [name: string]: T;
+    [name: number]: T;
+};
+type Pojo = WithMetadata<JSONValue>;
 
 declare class Base extends LitElement {
     private handlers;
@@ -215,12 +238,10 @@ declare class FzForm extends Base {
     disconnectedCallback(): void;
     check(): void;
     /**
-     * handle 'observed-change' event for change detection and update
-     * between observers and observed data
-     * @param evt
-     * @returns
+     * 'data-updated' event handler for data change.
+     * It applies a field.requestUpdate() on each traker associated FzField
      */
-    private observedChange;
+    private handleDataUpdate;
     private confirm;
     private cancel;
     private compile;
@@ -340,14 +361,14 @@ declare abstract class FzElement extends Base {
      * - update the model value from the field
      * - eval 'change' keyword
      * - process a validation
-     * - triggers needed cha,ge events for update and observers
+     * - triggers needed cha,ge events for update and trackers
      */
     protected change(): void;
     /**
      * calculate an abstract string (summary) for this field or a property/item of field
      */
     abstract(key?: string | number, itemschema?: Schema): string;
-    evalExpr(attribute: keyof Schema, schema?: Pojo, value?: any, parent?: any, key?: string | number): any;
+    evalExpr(attribute: keyof Schema, schema?: Schema, value?: Pojo, parent?: Pojo, key?: string | number): any;
     /**
      * return tagged template '$' for pointer derefencing in expression or code used in schema
      * the pointer derefencing is done relativatly to this.data
@@ -357,6 +378,11 @@ declare abstract class FzElement extends Base {
     get derefFunc(): (template: {
         raw: readonly string[] | ArrayLike<string>;
     }, ...substitutions: any[]) => any;
+    /**
+     * this method must be call when global context detect form detects a
+     * tracked data had been change
+     */
+    trackedValueChange(): void;
 }
 
 declare class FzMarkdownIt extends Base {

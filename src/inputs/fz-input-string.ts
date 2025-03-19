@@ -45,7 +45,6 @@ export class FzInputString extends FzInputBase {
                     placeholder="${this.label}"
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
-                    @keypress="${this.change}"
                     minlength="${ifDefined(this.minlength)}"
                     maxlength="${ifDefined(this.maxlength)}"
                     pattern="${ifDefined(this.pattern)}"

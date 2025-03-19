@@ -248,7 +248,7 @@ export class FzArray extends FZCollection {
         if (!this.currentSchema) this.currentSchema = this.schema.homogeneous ?  this.schema.items : (this.schema.items.oneOf?.[0] ?? EMPTY_SCHEMA)
         this.schemas = this.value == null ? [] : this.schema.homogeneous
             ? this.value.map(() => this.schema.items)
-            : this.value.map((value: any) => getSchema(value) ?? this.schema.items?.oneOf?.find((schema) => isFunction(schema.case) && schema.case(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc)))
+            : this.value.map((value: any) => getSchema(value) ?? this.schema.items?.oneOf?.find((schema) => isFunction(schema.case) && schema.case(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc,this.form.options.userdata)))
     }
     private solveOrder() {
         if (this.value == null) return

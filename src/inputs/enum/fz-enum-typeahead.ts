@@ -19,7 +19,9 @@ export class FzEnumTypeahead extends FzEnumBase {
     private filtered: EnumItem[] = []
 
     override toField() {
-        if (isNull(this.value) || isNull(this.enums))  {
+        if (!this.queryElem) {
+            this.selected = -1
+        } else if (isNull(this.value) || isNull(this.enums))  {
             this.queryElem.value= ""
             this.selected = -1
         } else {
