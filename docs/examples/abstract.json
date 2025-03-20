@@ -25,7 +25,7 @@
             "user": { 
                 "$ref" : "#/definitions/profile",
                 "title": "user defined",
-                "abstract": "👋 I am ${ $`#/user/firstname` }"
+                "abstract": "👋 I am ${ $`/user/firstname` }"
             },
             "default": {
                 "$ref" : "#/definitions/profile",

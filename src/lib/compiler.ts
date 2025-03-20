@@ -150,7 +150,7 @@ class CSDefinition extends CompilationStep {
     definition(schema: Schema) {
         const ref = schema.$ref as string
         if (!ref.startsWith("#/definitions/"))
-            throw this.error(`only '#/definitions/<name>' allowed => ${ref}]`)
+            throw this.error(`only '/definitions/<name>' allowed => ${ref}]`)
         if (this.root.definitions == null)
             throw this.error(`No "definitions" property in root schema`)
         const defname = ref.split("/")[2];
@@ -507,7 +507,7 @@ class CSPointer extends CompilationStep {
         return !(this.property in schema)
     }
     override apply(schema: Schema, parent: Schema, name: string): void {
-        schema.pointer = parent ? `${parent.pointer}/${name}` : `#`
+        schema.pointer = parent ? `${parent.pointer}/${name}` : `/`
     }
 }
 

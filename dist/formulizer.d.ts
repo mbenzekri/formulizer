@@ -1,6 +1,8 @@
 import * as lit_html from 'lit-html';
 import * as lit from 'lit';
-import { LitElement, TemplateResult } from 'lit';
+import { LitElement, TemplateResult, PropertyValues } from 'lit';
+import * as lit_html_directive from 'lit-html/directive';
+import * as lit_html_directives_class_map from 'lit-html/directives/class-map';
 
 declare class JSONSchema {
     [key: string]: any;
@@ -104,7 +106,7 @@ declare class Schema extends JSONSchemaDraft07 {
     /**
      * trackers function parse expression to extract watched values and set trackers
      * array in corresponding schema.
-     * a value is watched by using the pointer dereference operation in expresions: $`#/a/b/c`
+     * a value is watched by using the pointer dereference operation in expresions: $`/a/b/c`
      * the tracker is the Object desribed by the schema and the objserved value is the value
      * pointed by $`...`
      * @param root schema for absolute pointers in expr
@@ -225,10 +227,10 @@ declare class FzForm extends Base {
     get data(): Pojo;
     set data(value: Pojo);
     attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void;
-    getField(pointer: string): FzElement | undefined;
-    addField(schemaPointer: string, dataPointer: string, field: FzElement): void;
+    getField(pointer: string): FzField | undefined;
+    addField(schemaPointer: string, dataPointer: string, field: FzField): void;
     removeField(schemaPointer: string, dataPointer: string): void;
-    getfieldFromSchema(pointer: string): FzElement | undefined;
+    getfieldFromSchema(pointer: string): FzField | undefined;
     updateField(pointer: string): void;
     render(): lit_html.TemplateResult<1> | lit_html.TemplateResult<1>[];
     private renderForm;
@@ -254,23 +256,25 @@ declare class FzForm extends Base {
  * @prop index
  * @prop required
  */
-declare abstract class FzElement extends Base {
+declare abstract class FzField extends Base {
     accessor pointer: string;
     accessor schema: Schema;
     accessor data: Pojo;
     accessor name: string | null;
     accessor index: number | null;
-    errors: string[];
+    accessor touched: boolean;
+    accessor errors: string[];
     private _initdone;
     private _dofocus;
     private _form?;
     abstract renderField(): TemplateResult;
-    abstract check(): void;
     abstract toField(): void;
     abstract toValue(): void;
     get valid(): boolean;
+    get invalid(): boolean;
     get value(): any;
     set value(value: any);
+    get validationMap(): lit_html_directive.DirectiveResult<typeof lit_html_directives_class_map.ClassMapDirective>;
     /**
      * this method is called for to update this.value (and must be done only here)
      * @param value
@@ -314,7 +318,7 @@ declare abstract class FzElement extends Base {
     * @param event
     */
     eventStop(event?: Event): void;
-    fields(): FzElement[];
+    fields(): FzField[];
     get form(): FzForm;
     static get styles(): lit.CSSResult[];
     /**
@@ -339,7 +343,6 @@ declare abstract class FzElement extends Base {
     renderItem(schema: Schema, key: string | number): TemplateResult;
     connectedCallback(): void;
     disconnectedCallback(): void;
-    requestUpdate(name?: PropertyKey, oldvalue?: unknown): void;
     /**
      * before each update
      * - set queried focus
@@ -350,6 +353,7 @@ declare abstract class FzElement extends Base {
      * to be specialized if needed
      */
     firstUpdate(): void;
+    protected firstUpdated(_changedProperties: PropertyValues): void;
     /**
      * 'click' handler when click occurs on field label element
      * may be specialized by subclasses to ac on label clicked event
@@ -372,7 +376,7 @@ declare abstract class FzElement extends Base {
     /**
      * return tagged template '$' for pointer derefencing in expression or code used in schema
      * the pointer derefencing is done relativatly to this.data
-     *  @example $`#/a/b/c` // absolute dereferencing
+     *  @example $`/a/b/c` // absolute dereferencing
      *  @example $`1/b/c`   // relative dereferencing
      */
     get derefFunc(): (template: {

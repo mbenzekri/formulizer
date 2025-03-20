@@ -266,13 +266,13 @@
                     "facturation": {
                         "type": "string",
                         "title": "adresse facturation",
-                        "refTo": "#/someone/adresses/id",
+                        "refTo": "/someone/adresses/id",
                         "filter": "value.type != 'travail'"
                     },
                     "courrier": {
                         "type": "string",
                         "title": "adresse courrier",
-                        "refTo": "#/someone/adresses/id"
+                        "refTo": "/someone/adresses/id"
                     },
                     "reason": {
                         "type": "integer",

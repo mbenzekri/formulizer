@@ -16,7 +16,11 @@ export class FzInputInteger extends FzInputBase {
 
     override toField(): void {
         if (notNull(this.input)) {
-            this.input.valueAsNumber = isNumber(this.value) ? this.value : NaN
+            if (isNumber(this.value)) {
+                this.input.valueAsNumber =  this.value
+            } else {
+                this.input.value = ""
+            }
         }
     }
     override toValue(): void {
@@ -24,12 +28,12 @@ export class FzInputInteger extends FzInputBase {
             this.value = isNumber(this.input.valueAsNumber) ? Math.floor(this.input.valueAsNumber) : undefined
         }
     }
-
+    
     renderInput() {
         return html`
             <div class="input-group">
                 <input 
-                    class="form-control is-valid was-validated" 
+                    class="form-control ${this.validationMap}" 
                     type="number"  
                     id="input"
                     ?readonly="${this.readonly}"

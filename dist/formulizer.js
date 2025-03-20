@@ -157,7 +157,6 @@ function closestAscendantFrom(selector, item) {
  * @returns
  */
 function derefPointerData(root, parent, key, pointer) {
-    pointer = pointer.startsWith("#") ? pointer.substring(1) : pointer;
     const tokens = pointer.split(/\//);
     const relative = /^\d+$/.test(tokens[0]);
     let base = relative ? parent : root;
@@ -270,6 +269,13 @@ function setGlobalHandler(target, event, value) {
         }
     }
 }
+
+const SCHEMA = Symbol("FZ_FORM_SCHEMA");
+const PARENT = Symbol("FZ_FORM_PARENT");
+const KEY = Symbol("FZ_FORM_PARENT");
+const ROOT = Symbol("FZ_FORM_ROOT");
+const IS_VALID = [];
+const NOT_TOUCHED = [];
 
 const bootstrapCss = i$5 `
 @charset "UTF-8";
@@ -13951,7 +13957,7 @@ class Schema extends JSONSchemaDraft07 {
     /**
      * trackers function parse expression to extract watched values and set trackers
      * array in corresponding schema.
-     * a value is watched by using the pointer dereference operation in expresions: $`#/a/b/c`
+     * a value is watched by using the pointer dereference operation in expresions: $`/a/b/c`
      * the tracker is the Object desribed by the schema and the objserved value is the value
      * pointed by $`...`
      * @param root schema for absolute pointers in expr
@@ -14091,6 +14097,19 @@ const schemaAttrConverter = {
 const DEFAULT_SCHEMA = new Schema({ type: "object", "properties": {} });
 const EMPTY_SCHEMA = new Schema({});
 
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const t$1={ATTRIBUTE:1,CHILD:2},e$2=t=>(...e)=>({_$litDirective$:t,values:e});let i$1 = class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,e,i){this._$Ct=t,this._$AM=e,this._$Ci=i;}_$AS(t,e){return this.update(t,e)}update(t,e){return this.render(...e)}};
+
+/**
+ * @license
+ * Copyright 2018 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */const e$1=e$2(class extends i$1{constructor(t){if(super(t),t.type!==t$1.ATTRIBUTE||"class"!==t.name||t.strings?.length>2)throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.")}render(t){return " "+Object.keys(t).filter((s=>t[s])).join(" ")+" "}update(s,[i]){if(void 0===this.st){this.st=new Set,void 0!==s.strings&&(this.nt=new Set(s.strings.join(" ").split(/\s/).filter((t=>""!==t))));for(const t in i)i[t]&&!this.nt?.has(t)&&this.st.add(t);return this.render(i)}const r=s.element.classList;for(const t of this.st)t in i||(r.remove(t),this.st.delete(t));for(const t in i){const s=!!i[t];s===this.st.has(t)||this.nt?.has(t)||(s?(r.add(t),this.st.add(t)):(r.remove(t),this.st.delete(t)));}return T}});
+
 const fiedtypes = [
     "fz-array",
     "fz-asset",
@@ -14123,8 +14142,8 @@ const fieldtypeslist = fiedtypes.join(',');
  * @prop index
  * @prop required
  */
-class FzElement extends Base {
-    #pointer_accessor_storage = '#';
+class FzField extends Base {
+    #pointer_accessor_storage = '/';
     get pointer() { return this.#pointer_accessor_storage; }
     set pointer(value) { this.#pointer_accessor_storage = value; }
     #schema_accessor_storage = EMPTY_SCHEMA;
@@ -14139,12 +14158,20 @@ class FzElement extends Base {
     #index_accessor_storage = null;
     get index() { return this.#index_accessor_storage; }
     set index(value) { this.#index_accessor_storage = value; }
-    errors = [];
+    #touched_accessor_storage = false;
+    get touched() { return this.#touched_accessor_storage; }
+    set touched(value) { this.#touched_accessor_storage = value; }
+    #errors_accessor_storage = NOT_TOUCHED;
+    get errors() { return this.#errors_accessor_storage; }
+    set errors(value) { this.#errors_accessor_storage = value; }
     _initdone = false;
     _dofocus = false;
     _form;
     get valid() {
         return this.errors.length === 0;
+    }
+    get invalid() {
+        return this.errors.length > 0;
     }
     get value() {
         // Warning side effects is prohibited in this method, never update this.data 
@@ -14160,6 +14187,11 @@ class FzElement extends Base {
         if (value === this.value)
             return;
         this.cascadeValue(value);
+        this.errors = [];
+        this.form?.check();
+    }
+    get validationMap() {
+        return e$1({ "is-valid": this.valid, "is-invalid": this.invalid });
     }
     /**
      * this method is called for to update this.value (and must be done only here)
@@ -14179,8 +14211,7 @@ class FzElement extends Base {
             // this.data is nullish
             // --------------------
             // we need to set this value and all the nullish ascendant found (cascading sets)
-            // c'est le moment de les initialiser...
-            // imagine if current pointer is #/a/b/c/d/e 
+            // imagine if current pointer is '/a/b/c/d/e' 
             // we must check if d,c,b, and a are nullish (suppose d,c,b are nullish)
             // we will set new newValue() for b,c,d first 
             if (!this.pointer.startsWith("/")) {
@@ -14192,15 +14223,15 @@ class FzElement extends Base {
                 return false;
             }
             // we split pointer to obtain the path as an array of properties or indexes
-            // ex '#/a/b/c/d/e => [#,a,b,c,d,e]
-            const properties = this.pointer.split('/').map(name => /^\d+$/.test(name) ? parseInt(name, 10) : name);
+            // ex '/a/b/c/d/e => ['',a,b,c,d,e]
+            const keys = this.pointer.split('/').map(name => /^\d+$/.test(name) ? parseInt(name, 10) : name);
             // for each properties in path we calculate a corresponding schema
             // because heterogeneous types in arrays we are not allways able to do it
             const schemas = [];
             for (let ischema = schema; ischema; ischema = ischema.parent) {
                 schemas.unshift(ischema);
             }
-            if (properties.length !== schemas.length) {
+            if (keys.length !== schemas.length) {
                 // not sure this is possible to happen because if we are ther choices had be done then intermidiary schema/values exists
                 console.error(`cascadeValue fail not all schema found on path `);
                 return false;
@@ -14209,8 +14240,8 @@ class FzElement extends Base {
             const fields = [];
             let ipointer = '';
             let parent = form.root;
-            for (let i = 0; i < properties.length && parent; i++) {
-                const key = properties[i];
+            for (let i = 0; i < keys.length && parent; i++) {
+                const key = keys[i];
                 const schema = schemas[i];
                 ipointer = i ? `${ipointer}/${key}` : `${key}`;
                 const field = form.getField(ipointer);
@@ -14219,10 +14250,10 @@ class FzElement extends Base {
                 const type = schema.basetype;
                 switch (true) {
                     // root nothing to do
-                    case key == '#':
+                    case key === '':
                         break;
                     // last property empty => affecting
-                    case i === properties.length - 1:
+                    case i === keys.length - 1:
                         {
                             const v = newValue(value, parent, schema);
                             if (field && !field.data)
@@ -14253,7 +14284,10 @@ class FzElement extends Base {
                 }
             }
             // trigger a requestUpdate for each field
-            fields.forEach(f => (f.toField(), f.requestUpdate()));
+            fields.forEach(f => {
+                f.toField();
+                f.requestUpdate();
+            });
         }
         // trigger a requestUpdate for this field
         this.toField();
@@ -14465,13 +14499,12 @@ class FzElement extends Base {
     connectedCallback() {
         super.connectedCallback();
         this.form?.addField(this.schema.pointer, this.pointer, this);
+        this.toField();
+        this.form?.check();
     }
     disconnectedCallback() {
         super.disconnectedCallback();
         this.form?.removeField(this.schema.pointer, this.pointer);
-    }
-    requestUpdate(name, oldvalue) {
-        super.requestUpdate(name, oldvalue);
     }
     /**
      * before each update
@@ -14484,7 +14517,6 @@ class FzElement extends Base {
         if (!this._initdone) {
             this.firstUpdate();
             this._initdone = true;
-            this.toField();
         }
         super.update(changedProps);
         if (this._dofocus) {
@@ -14496,6 +14528,9 @@ class FzElement extends Base {
      * to be specialized if needed
      */
     firstUpdate() { return; }
+    firstUpdated(_changedProperties) {
+        this.toField();
+    }
     /**
      * 'click' handler when click occurs on field label element
      * may be specialized by subclasses to ac on label clicked event
@@ -14515,8 +14550,6 @@ class FzElement extends Base {
         // changed occurs evaluate change keyword extension
         this.toValue();
         this.evalExpr("change");
-        // validation and error dispatching
-        this.check();
         // signal field update for ascendant
         const event = new CustomEvent('update', {
             detail: {
@@ -14582,7 +14615,7 @@ class FzElement extends Base {
     /**
      * return tagged template '$' for pointer derefencing in expression or code used in schema
      * the pointer derefencing is done relativatly to this.data
-     *  @example $`#/a/b/c` // absolute dereferencing
+     *  @example $`/a/b/c` // absolute dereferencing
      *  @example $`1/b/c`   // relative dereferencing
      */
     get derefFunc() {
@@ -14597,25 +14630,33 @@ class FzElement extends Base {
      */
     trackedValueChange() {
         // actually only expression update directly the value ofther extension
-        // keywords are called on demand 
-        this.value = this.evalExpr("expression");
+        // keywords are called on demand
+        if (this.schema.expression) {
+            this.value = this.evalExpr("expression");
+        }
     }
 }
 __decorate([
     n$2({ type: String })
-], FzElement.prototype, "pointer", null);
+], FzField.prototype, "pointer", null);
 __decorate([
     n$2({ type: Object })
-], FzElement.prototype, "schema", null);
+], FzField.prototype, "schema", null);
 __decorate([
     n$2({ type: Object })
-], FzElement.prototype, "data", null);
+], FzField.prototype, "data", null);
 __decorate([
     n$2({ type: String })
-], FzElement.prototype, "name", null);
+], FzField.prototype, "name", null);
 __decorate([
     n$2({ type: Number })
-], FzElement.prototype, "index", null);
+], FzField.prototype, "index", null);
+__decorate([
+    n$2({ type: Boolean, attribute: false })
+], FzField.prototype, "touched", null);
+__decorate([
+    n$2({ type: Array, attribute: false })
+], FzField.prototype, "errors", null);
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const invalidkeys = [
@@ -14630,7 +14671,7 @@ const invalidkeys = [
     'customError',
     'typeMismatch'
 ];
-class FzInputBase extends FzElement {
+class FzInputBase extends FzField {
     /**
      * return HTMLInputElement used to edit field value
      * pay attention may not always exit, some fields dont use HTML inputs (ex: signature)
@@ -14648,13 +14689,11 @@ class FzInputBase extends FzElement {
     /**
      * on first updated set listeners
      */
-    firstUpdated(_changedProperties) {
+    firstUpdate() {
+        super.firstUpdate();
         // for debug 'F9' output state of field
         if (this.input)
             this.listen(this.input, 'keydown', (evt) => this.debugKey(evt));
-        // initialize input from value
-        this.toField();
-        this.check();
     }
     /**
      * overide focus for all input based fields
@@ -14684,28 +14723,6 @@ class FzInputBase extends FzElement {
             this.eventStop(evt);
             debugger;
         }
-    }
-    check() {
-        // const input = this.input
-        // if (!input) {
-        //     this.valid = false
-        //     this.message = ''
-        //     return
-        // }
-        // const validity = this.input.validity
-        // let countinvalid = 0
-        // let message = ''
-        // invalidkeys.forEach(key => {
-        //     if (key === 'valid') return
-        //     const keyinvalid = (validity as any)[key]
-        //     countinvalid += keyinvalid ? 1 : 0
-        //     if (keyinvalid) message = formatMsg(key, input)
-        // })
-        // this.valid = (countinvalid === 0)
-        //     || (countinvalid === 1 && validity.badInput && this.value == null && !this.required)
-        // this.message = this.valid ? '' : message
-        // this.input?.classList.add(this.valid ? 'valid' : 'invalid')
-        // this.input?.classList.remove(this.valid ? 'invalid' : 'valid')
     }
 }
 
@@ -14817,19 +14834,6 @@ class FzEnumBase extends FzInputBase {
 __decorate([
     e$5('fz-item-dlg')
 ], FzEnumBase.prototype, "modal", void 0);
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-const t$1={ATTRIBUTE:1,CHILD:2},e$2=t=>(...e)=>({_$litDirective$:t,values:e});let i$1 = class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,e,i){this._$Ct=t,this._$AM=e,this._$Ci=i;}_$AS(t,e){return this.update(t,e)}update(t,e){return this.render(...e)}};
-
-/**
- * @license
- * Copyright 2018 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */const e$1=e$2(class extends i$1{constructor(t){if(super(t),t.type!==t$1.ATTRIBUTE||"class"!==t.name||t.strings?.length>2)throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.")}render(t){return " "+Object.keys(t).filter((s=>t[s])).join(" ")+" "}update(s,[i]){if(void 0===this.st){this.st=new Set,void 0!==s.strings&&(this.nt=new Set(s.strings.join(" ").split(/\s/).filter((t=>""!==t))));for(const t in i)i[t]&&!this.nt?.has(t)&&this.st.add(t);return this.render(i)}const r=s.element.classList;for(const t of this.st)t in i||(r.remove(t),this.st.delete(t));for(const t in i){const s=!!i[t];s===this.st.has(t)||this.nt?.has(t)||(s?(r.add(t),this.st.add(t)):(r.remove(t),this.st.delete(t)));}return T}});
 
 /**
  * @prop schema
@@ -15101,7 +15105,7 @@ let FzInputDate = class FzInputDate extends FzInputBase {
     renderInput() {
         return x `<input
             id="input" 
-            class="form-control" 
+            class="form-control ${this.validationMap}" 
             type="date" 
             ?readonly="${this.readonly}" 
             @input="${this.change}"
@@ -15151,7 +15155,7 @@ let FzInputDatetime = class FzInputDatetime extends FzInputBase {
             max="${o(this.max)}"
             ?readonly="${this.readonly}" 
             ?required="${this.required}"
-            class="form-control" 
+            class="form-control ${this.validationMap}" 
         />`;
     }
     get min() {
@@ -15188,7 +15192,7 @@ let FzInputTime = class FzInputTime extends FzInputBase {
     renderInput() {
         return x `
             <input 
-                class="form-control timepicker" 
+                class="form-control timepicker ${this.validationMap}" 
                 type="time" 
                 id="input" 
                 step="1"
@@ -15223,7 +15227,7 @@ let FzInputTextarea = class FzInputTextarea extends FzInputBase {
     renderInput() {
         return x `
             <textarea  
-                class="form-control" 
+                class="form-control ${this.validationMap}" 
                 id="input"
                 placeholder="${o(this.label)}"
                 .value="${this.value}" 
@@ -15258,7 +15262,7 @@ let FzInputString = class FzInputString extends FzInputBase {
     }
     toValue() {
         if (notNull(this.input)) {
-            this.value = notNull(this.input.value) ? this.input.value : this.empty;
+            this.value = notNull(this.input.value) && this.input.value != "" ? this.input.value : this.empty;
         }
     }
     static get styles() {
@@ -15274,7 +15278,7 @@ let FzInputString = class FzInputString extends FzInputBase {
         return x `
             <div class="input-group" >
                 <input
-                    class="form-control" 
+                    class="form-control ${this.validationMap}" 
                     type="${this.type}" 
                     id="input"
                     placeholder="${this.label}"
@@ -15328,7 +15332,7 @@ let FzInputMask = class FzInputMask extends FzInputBase {
         return x `
             <div class="input-group">
                 <input
-                    class="form-control"
+                    class="form-control ${this.validationMap}"
                     type="text"
                     id="input"
                     placeholder="${this.mask}"
@@ -15477,7 +15481,7 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
     }
     renderInput() {
         return x `
-            <div id="content" class="form-control">
+            <div id="content" class="form-control ${this.validationMap}">
                 <button ?hidden="${!this.value || this.required || this.readonly}" @click="${this.del}" type="button" style="float:right" class="btn-close" aria-label="Close"></button>
                 <canvas id="canvas" ?hidden="${this.state === 'read'}" height="300" width="300"></canvas>
                 <img   id="image" draggable=false ?hidden="${this.state === 'edit' || !this.value}" >
@@ -15509,7 +15513,6 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
         }
         this.image = this.shadowRoot?.getElementById('image') ?? undefined;
         this.load();
-        this.check();
     }
     resize() {
         if (this.content) {
@@ -15602,21 +15605,21 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
             this.save();
         return false;
     }
-    check() {
-        // this.valid = true
-        // this.message = ''
-        // if (this.required && this.value == null) {
-        //     this.valid = false
-        //     this.message = formatMsg('valueMissing')
-        // }
-        // this.content?.classList.add(this.valid ? 'valid' : 'invalid')
-        // this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
-        // if (this.readonly) {
-        //     this.content?.classList.add('readonly')
-        // } else {
-        //     this.content?.classList.remove('readonly')
-        // }
-    }
+    //override check() {
+    // this.valid = true
+    // this.message = ''
+    // if (this.required && this.value == null) {
+    //     this.valid = false
+    //     this.message = formatMsg('valueMissing')
+    // }
+    // this.content?.classList.add(this.valid ? 'valid' : 'invalid')
+    // this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
+    // if (this.readonly) {
+    //     this.content?.classList.add('readonly')
+    // } else {
+    //     this.content?.classList.remove('readonly')
+    // }
+    //}
     load() {
         if (this.context && this.image && this.value) {
             this.image.src = this.value;
@@ -15673,7 +15676,7 @@ let FzInputBoolean = class FzInputBoolean extends FzInputBase {
                             ?required="${this.required}"
                             @change="${this.tryChange}"
                             @click="${this.tryChange}"
-                            class="form-check-input align-self-start" 
+                            class="form-check-input align-self-start ${this.validationMap}" 
                         />
                         <label class="form-check-label ms-2" for="input">${super.label}</label>
                     </div>
@@ -15738,7 +15741,12 @@ const DECIMAL_SEPARATOR = (1.1).toLocaleString().substring(1, 2);
 let FzInputFloat = class FzInputFloat extends FzInputBase {
     toField() {
         if (notNull(this.input)) {
-            this.input.valueAsNumber = isNumber$1(this.value) ? this.value : NaN;
+            if (isNumber$1(this.value)) {
+                this.input.valueAsNumber = this.value;
+            }
+            else {
+                this.input.value = "";
+            }
         }
     }
     toValue() {
@@ -15766,7 +15774,7 @@ let FzInputFloat = class FzInputFloat extends FzInputBase {
         return x `
             <div class="input-group">
                 <input 
-                    class="form-control" 
+                    class="form-control ${this.validationMap}" 
                     type="number" 
                     id="input"
                     ?readonly="${this.readonly}"
@@ -15885,7 +15893,7 @@ let FzRange = class FzRange extends FzInputBase {
                     max="${o(this.max)}"
                     step="1"
                     ?required="${this.required}"
-                    class="form-control" 
+                    class="form-control ${this.validationMap}" 
                 />
                 <div class="input-group-append" style="max-width:5em" >
                     <span class="input-group-text" >${this.value}</span>
@@ -15944,7 +15952,7 @@ let FzInputGeolocation = class FzInputGeolocation extends FzInputBase {
     }
     renderInput() {
         return x `
-            <div class="input-group">
+            <div class="input-group ${this.validationMap}">
                 <input
                     class="form-control"
                     type="text"
@@ -15995,7 +16003,12 @@ FzInputGeolocation = __decorate([
 let FzInputInteger = class FzInputInteger extends FzInputBase {
     toField() {
         if (notNull(this.input)) {
-            this.input.valueAsNumber = isNumber$1(this.value) ? this.value : NaN;
+            if (isNumber$1(this.value)) {
+                this.input.valueAsNumber = this.value;
+            }
+            else {
+                this.input.value = "";
+            }
         }
     }
     toValue() {
@@ -16007,7 +16020,7 @@ let FzInputInteger = class FzInputInteger extends FzInputBase {
         return x `
             <div class="input-group">
                 <input 
-                    class="form-control is-valid was-validated" 
+                    class="form-control ${this.validationMap}" 
                     type="number"  
                     id="input"
                     ?readonly="${this.readonly}"
@@ -16060,7 +16073,7 @@ let FzInputConstant = class FzInputConstant extends FzInputBase {
         this.value = this.schema.const;
     }
     renderInput() {
-        return x `<div class="input-group">${this.value}</div>`;
+        return x `<div class="input-group ${this.validationMap}">${this.value}</div>`;
     }
     connectedCallback() {
         super.connectedCallback();
@@ -16294,7 +16307,7 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
                     <div class="input-group-prepend">
                         <span class="input-group-text"  @click="${this.open}"><i class="bi bi-eye"></i></span>
                     </div>` : null}
-                <input class="form-control"  type="text" spellcheck="false"
+                <input class="form-control ${this.validationMap}"  type="text" spellcheck="false"
                     placeholder="photo, document, ..."
                     .value="${this.filename ?? ''}"
                     ?readonly="${this.readonly}" 
@@ -16324,7 +16337,6 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
     }
     connectedCallback() {
         super.connectedCallback();
-        this.listen(this, 'update', () => this.check());
     }
     async firstUpdated(changedProperties) {
         super.firstUpdated(changedProperties);
@@ -24880,7 +24892,7 @@ let FzInputMarkdown = class FzInputMarkdown extends FzInputBase {
     }
     renderField() {
         return x `
-            <div class="form-group row"><markdown-it .markdown="${this.value ?? ''}"></markdown-it></div>
+            <div class="form-group row ${this.validationMap}"><markdown-it .markdown="${this.value ?? ''}"></markdown-it></div>
         `;
     }
 };
@@ -24906,7 +24918,7 @@ let FzInputUuid = class FzInputUuid extends FzInputBase {
         }
     }
     renderInput() {
-        return x `<div class="input-group" >${this.value}</div>`;
+        return x `<div class="input-group ${this.validationMap}" >${this.value}</div>`;
     }
     connectedCallback() {
         super.connectedCallback();
@@ -24918,7 +24930,7 @@ FzInputUuid = __decorate([
     t$4("fz-uuid")
 ], FzInputUuid);
 
-class FZCollection extends FzElement {
+class FZCollection extends FzField {
 }
 
 /**
@@ -24933,7 +24945,7 @@ let FzArray$1 = class FzArray extends FZCollection {
     set current(value) { this.#current_accessor_storage = value; }
     schemas = [];
     currentSchema;
-    content;
+    //private content?: HTMLElement
     //private validator!: DataValidator
     get nomore() {
         return this.schema.maxItems && this.value && this.value.length >= this.schema.maxItems;
@@ -24958,37 +24970,13 @@ let FzArray$1 = class FzArray extends FZCollection {
     toValue() {
         // items are updated but array reference doesn't change 
     }
-    // override update(changedProperties: Map<string, unknown>) {
-    //     if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema).length !== 0) {
-    //         const json = JSON.stringify(this.schema, getCircularReplacer)
-    //         this.validator = new DataValidator(JSON.parse(json));
-    //         this.check()
-    //     }
-    //     super.update(changedProperties);
+    // override check() {
+    //     this.content = this.shadowRoot?.getElementById('content') ?? undefined
+    //     this.content?.classList.add(this.valid ? 'valid' : 'invalid')
+    //     this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
     // }
-    check() {
-        // if (!this.validator) return
-        // this.valid = true
-        // this.message = ''
-        // switch (true) {
-        //     case (this.required && this.value == undefined):
-        //         this.valid = false
-        //         this.message = formatMsg('valueMissing')
-        //         break
-        //     case !this.required && this.value == undefined:
-        //         break
-        //     default:
-        //         this.valid = this.validator.validate(this.value)
-        //         const errors = this.validator.errors.filter(e => e.instancePath.match(/\//g)?.length === 1 )
-        //         if (this.valid == false && errors && errors.length > 0) this.message = this.validator.errorsText(errors)
-        // }
-        this.content = this.shadowRoot?.getElementById('content') ?? undefined;
-        this.content?.classList.add(this.valid ? 'valid' : 'invalid');
-        this.content?.classList.remove(this.valid ? 'invalid' : 'valid');
-    }
     connectedCallback() {
         super.connectedCallback();
-        this.listen(this, 'update', () => this.check());
         this.listen(this, 'toggle-item', evt => (this.close(), this.eventStop(evt)));
     }
     requestUpdate(name, oldvalue) {
@@ -25186,6 +25174,867 @@ __decorate([
 FzArray$1 = __decorate([
     t$4("fz-array")
 ], FzArray$1);
+
+/**
+ * @prop schema
+ * @prop data
+ * @prop name
+ * @prop index
+ */
+let FzObject = class FzObject extends FZCollection {
+    #collapsed_accessor_storage = false;
+    get collapsed() { return this.#collapsed_accessor_storage; }
+    set collapsed(value) { this.#collapsed_accessor_storage = value; }
+    #activegroup_accessor_storage = {};
+    get activegroup() { return this.#activegroup_accessor_storage; }
+    set activegroup(value) { this.#activegroup_accessor_storage = value; }
+    seen;
+    static get styles() {
+        return [
+            ...super.styles,
+            i$5 `
+                .panel {
+                    padding:5px;
+                    border: solid 1px lightgray;
+                    border-radius:10px; 
+                    user-select: none;
+                }
+                `
+        ];
+    }
+    toField() {
+        // all is done at rendering
+    }
+    toValue() {
+        // properties are updated but object reference doesn't change 
+    }
+    // override check() {
+    //     // this.content = this.shadowRoot?.getElementById('content') ?? undefined
+    //     // this.content?.classList.add(this.valid ? 'valid' : 'invalid')
+    //     // this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
+    // }
+    firstUpdated(changedProperties) {
+        super.firstUpdated(changedProperties);
+        this.setCollapsed();
+    }
+    setCollapsed() {
+        // si root on collapse jamais
+        this.collapsed = (this.schema.parent == null) ? false : this.evalExpr("collapsed");
+    }
+    renderSingle(itemTemplates, fields, fieldpos) {
+        // render single item
+        const fieldname = fields[fieldpos].fieldname;
+        const schema = this.schema.properties?.[fieldname];
+        itemTemplates.push(schema ? this.renderItem(schema, fieldname) : x ``);
+        fieldpos += 1;
+        return fieldpos;
+    }
+    renderGroup(itemTemplates, fields, fieldpos) {
+        const group = [];
+        const groupnum = fields[fieldpos].groupnum;
+        const groupname = fields[fieldpos].groupname;
+        // render group items
+        for (; fieldpos < fields.length && groupnum === fields[fieldpos].groupnum; fieldpos++) {
+            const fieldname = fields[fieldpos].fieldname;
+            const schema = this.schema.properties?.[fieldname];
+            group.push(schema ? this.renderItem(schema, fieldname) : x ``);
+        }
+        // render group
+        itemTemplates.push(x `
+                <div class="card shadow" style="margin-bottom:5px">
+                    <div class="card-header d-flex justify-content-between align-items-center">${groupname}</div>
+                    <div class="card-body">${group}</div>
+                </div>`);
+        return fieldpos;
+    }
+    renderTabGroup(itemTemplates, fields, fieldpos) {
+        const group = [];
+        const groupnum = fields[fieldpos].groupnum;
+        const groupname = fields[fieldpos].groupname;
+        const tabname = fields[fieldpos].tabname;
+        // render group items
+        for (; fieldpos < fields.length && groupnum === fields[fieldpos].groupnum; fieldpos++) {
+            const fieldname = fields[fieldpos].fieldname;
+            const schema = this.schema.properties?.[fieldname];
+            const hidden = this.activegroup[tabname] !== groupname;
+            group.push(x `<div 
+                        class="tab-pane active container" 
+                        style="margin:0;max-width:100%"  
+                        id="content" 
+                        ?hidden="${hidden}" 
+                        data-tabname="${tabname}" 
+                        data-groupname="${groupname}">
+                        ${schema ? this.renderItem(schema, fieldname) : ''}
+                    </div>`);
+        }
+        // render group
+        itemTemplates.push(x `${group}`);
+        return fieldpos;
+    }
+    renderTab(itemTemplates, fields, fieldpos) {
+        const tab = [];
+        const tabnum = fields[fieldpos].tabnum;
+        const tabname = fields[fieldpos].tabname;
+        const firstpos = fieldpos;
+        this.activegroup[tabname] = fields[fieldpos].groupname;
+        while (fieldpos < fields.length && tabnum === fields[fieldpos].tabnum) {
+            fieldpos = this.renderTabGroup(tab, fields, fieldpos);
+        }
+        const mapgroup = {};
+        for (let i = firstpos; i < fieldpos; i++) {
+            const groupname = fields[i].groupname;
+            mapgroup[groupname] = 1;
+        }
+        const groupnames = Object.keys(mapgroup);
+        // render tab headers
+        itemTemplates.push(x `<ul class="nav nav-tabs" id="content">
+                ${groupnames.map(groupname => x `<li class="nav-item">
+                        <a class="nav-link" data-tabname="${tabname}" data-groupname="${groupname}" @click="${this.toggleTab}" aria-current="page" href="#" data-toggle="tab" href="#${groupname}">${groupname}</a>
+                    </li>`)}
+            </ul>`);
+        // render tab contents
+        itemTemplates.push(x `<div class="tab-content border border-top-0" id="content" style="padding-bottom:5px;margin-bottom:5px">${tab}</div>`);
+        return fieldpos;
+    }
+    get deletable() {
+        if (this.schema.parent == null || this.isEmpty)
+            return false;
+        if (this.schema.nullAllowed && this.nullable)
+            return true;
+        if (!this.schema.nullAllowed && !this.required)
+            return true;
+        return false;
+    }
+    async delete() {
+        if (this.collapsed !== null)
+            this.collapsed = true;
+        this.value = this.empty;
+    }
+    renderField() {
+        if (!this.schema.properties)
+            return x ``;
+        const itemTemplates = [];
+        const fields = this.schema.order;
+        let fieldpos = 0;
+        while (fields && fieldpos < fields.length) {
+            const current = fields[fieldpos];
+            if (current.tabname && current.groupname) {
+                fieldpos = this.renderTab(itemTemplates, fields, fieldpos);
+            }
+            else if (current.groupname) {
+                fieldpos = this.renderGroup(itemTemplates, fields, fieldpos);
+            }
+            else {
+                fieldpos = this.renderSingle(itemTemplates, fields, fieldpos);
+            }
+        }
+        return x `${this.isItem
+            ? x `<div>${this.renderLabel}</div>${itemTemplates}`
+            : this.schema.title === "" ? x `<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`
+                : x `<div class="panel" id="content" >
+                <div class="panel-heading">
+                    <div>
+                        ${this.renderLabel}
+                        ${this.collapsed ? x `${this.abstract()}` : x ``}
+                        <button
+                            ?hidden="${!this.deletable}"
+                            @click="${() => this.delete()}" 
+                            type="button" style="float:right" class="btn-close" aria-label="Close">
+                        </button>
+                    </div>
+                </div>
+                <hr ?hidden="${this.collapsed}" style="margin: 0 0" >
+                <div ?hidden="${this.collapsed}" > ${itemTemplates} </div>
+                </div>`}`;
+    }
+    isRequiredProperty(name) {
+        return !!this.schema.required?.includes(name);
+    }
+    fields() {
+        const fields = [];
+        const tags = Object.values(this.schema.properties ?? {})
+            .map((property) => property.field).join(', ');
+        const list = this.shadowRoot?.querySelectorAll(tags);
+        list?.forEach((elem) => fields.push(elem));
+        return fields;
+    }
+    focus() {
+        const fields = this.fields();
+        const first = fields[0];
+        first.dofocus();
+    }
+    labelClicked(evt) {
+        if (this.isItem) {
+            this.dispatchEvent(new CustomEvent('toggle-item', {
+                detail: {
+                    field: this
+                },
+                bubbles: true,
+                composed: true
+            }));
+        }
+        else {
+            this.toggle(evt);
+        }
+        super.labelClicked(evt);
+    }
+    toggleTab(evt) {
+        const elem = evt.target;
+        const tabname = elem.getAttribute("data-tabname");
+        const groupname = elem.getAttribute("data-groupname");
+        const tabs = elem.parentElement?.parentElement;
+        const childs = tabs?.querySelectorAll('a') ?? [];
+        for (const item of childs)
+            item.classList.remove("active");
+        elem.classList.add("active");
+        this.activegroup[tabname] = groupname;
+        const content = tabs.nextElementSibling;
+        const panes = content?.querySelectorAll('.tab-pane') ?? [];
+        if (panes) {
+            for (const item of panes) {
+                item.hidden = item.getAttribute("data-groupname") !== groupname ? true : false;
+            }
+        }
+        this.eventStop(evt);
+    }
+    toggle(evt) {
+        if (this.collapsed !== null)
+            this.collapsed = !this.collapsed;
+        this.eventStop(evt);
+        this.requestUpdate();
+    }
+};
+__decorate([
+    n$2({ attribute: false })
+], FzObject.prototype, "collapsed", null);
+__decorate([
+    n$2({ attribute: false })
+], FzObject.prototype, "activegroup", null);
+FzObject = __decorate([
+    t$4("fz-object")
+], FzObject);
+
+/**
+ * @license
+ * Copyright 2020 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */const {I:t}=Z$1,s=()=>document.createComment(""),r=(o,i,n)=>{const e=o._$AA.parentNode,l=void 0===i?o._$AB:i._$AA;if(void 0===n){const i=e.insertBefore(s(),l),c=e.insertBefore(s(),l);n=new t(i,c,o,o.options);}else {const t=n._$AB.nextSibling,i=n._$AM,c=i!==o;if(c){let t;n._$AQ?.(o),n._$AM=o,void 0!==n._$AP&&(t=o._$AU)!==i._$AU&&n._$AP(t);}if(t!==l||c){let o=n._$AA;for(;o!==t;){const t=o.nextSibling;e.insertBefore(o,l),o=t;}}}return n},v=(o,t,i=o)=>(o._$AI(t,i),o),u$1={},m=(o,t=u$1)=>o._$AH=t,p=o=>o._$AH,M=o=>{o._$AP?.(false,true);let t=o._$AA;const i=o._$AB.nextSibling;for(;t!==i;){const o=t.nextSibling;t.remove(),t=o;}};
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const u=(e,s,t)=>{const r=new Map;for(let l=s;l<=t;l++)r.set(e[l],l);return r},c=e$2(class extends i$1{constructor(e){if(super(e),e.type!==t$1.CHILD)throw Error("repeat() can only be used in text expressions")}dt(e,s,t){let r;void 0===t?t=s:void 0!==s&&(r=s);const l=[],o=[];let i=0;for(const s of e)l[i]=r?r(s,i):i,o[i]=t(s,i),i++;return {values:o,keys:l}}render(e,s,t){return this.dt(e,s,t).values}update(s,[t,r$1,c]){const d=p(s),{values:p$1,keys:a}=this.dt(t,r$1,c);if(!Array.isArray(d))return this.ut=a,p$1;const h=this.ut??=[],v$1=[];let m$1,y,x=0,j=d.length-1,k=0,w=p$1.length-1;for(;x<=j&&k<=w;)if(null===d[x])x++;else if(null===d[j])j--;else if(h[x]===a[k])v$1[k]=v(d[x],p$1[k]),x++,k++;else if(h[j]===a[w])v$1[w]=v(d[j],p$1[w]),j--,w--;else if(h[x]===a[w])v$1[w]=v(d[x],p$1[w]),r(s,v$1[w+1],d[x]),x++,w--;else if(h[j]===a[k])v$1[k]=v(d[j],p$1[k]),r(s,d[x],d[j]),j--,k++;else if(void 0===m$1&&(m$1=u(a,k,w),y=u(h,x,j)),m$1.has(h[x]))if(m$1.has(h[j])){const e=y.get(a[k]),t=void 0!==e?d[e]:null;if(null===t){const e=r(s,d[x]);v(e,p$1[k]),v$1[k]=e;}else v$1[k]=v(t,p$1[k]),r(s,d[x],t),d[e]=null;k++;}else M(d[j]),j--;else M(d[x]),x++;for(;k<=w;){const e=r(s,v$1[w+1]);v(e,p$1[k]),v$1[k++]=e;}for(;x<=j;){const e=d[x++];null!==e&&M(e);}return this.ut=a,m(s,v$1),T}});
+
+/**
+ * @prop schema
+ * @prop data
+ * @prop name
+ * @prop index
+ */
+let FzArray = class FzArray extends FZCollection {
+    toField() {
+        // all is done at rendering
+    }
+    toValue() {
+        // items are updated but array reference doesn't change 
+    }
+    renderField() {
+        return x `
+            <div class="form-group row">
+                ${this.renderLabel}
+                <div class="col-sm">
+                    <ul id="content" class="list-group"   style="max-height: 300px; overflow-y: scroll">
+                            ${c(this.getItems(), (item) => item, (item) => x `
+                                    <li class="list-group-item">
+                                        <div>
+                                            <input
+                                                class="form-check-input"
+                                                type="checkbox"
+                                                ?disabled="${this.readonly ? true : false}"
+                                                ?checked="${this.value?.includes(item.value)}"
+                                                @click="${() => this.toggle(item.value)}"/>
+                                            <label class="form-check-label">${item.label}</label>
+                                        </div>
+                                    </li>
+                                `)}
+                    </ul>
+                </div>
+            </div>`;
+    }
+    //override check() {
+    //     if (!this.validator) return
+    //     this.valid = true
+    //     this.message = ''
+    //     switch (true) {
+    //         case (this.required && this.value == undefined):
+    //             this.valid = false
+    //             this.message = formatMsg('valueMissing')
+    //             break
+    //         case !this.required && this.value == undefined:
+    //             break
+    //         default:
+    //             this.valid = this.validator.validate(this.value)
+    //             const errors = this.validator.errors.filter(e => e.instancePath.match(/\//g)?.length === 1)
+    //             if (this.valid == false && errors && errors.length > 0) this.message = this.validator.text
+    //     }
+    //     this.content = this.shadowRoot?.getElementById('content') ?? undefined
+    //     this.content?.classList.add(this.valid ? 'valid' : 'invalid')
+    //     this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
+    //}
+    connectedCallback() {
+        super.connectedCallback();
+    }
+    toggle(value) {
+        if (this.value == null)
+            this.value = [];
+        if (this.value.includes(value)) {
+            const pos = this.value.indexOf(value);
+            if (pos >= 0)
+                this.value.splice(pos, 1);
+        }
+        else {
+            this.value.push(value);
+        }
+    }
+    getItems() {
+        const enums = this.schema.items?.enum;
+        const data = this.data;
+        if (enums) {
+            return enums.reduce((list, value) => {
+                const ok = this.evalExpr('filter', this.schema.items, value, data[this.key], -1);
+                if (ok)
+                    list.push({ label: String(value), value });
+                return list;
+            }, []);
+        }
+        const consts = this.schema.items?.oneOf;
+        if (consts)
+            return consts.reduce((list, type) => {
+                const ok = this.evalExpr('filter', type, type.const, this.data[this.key], -1);
+                if (ok)
+                    list.push({ label: type.title ?? type.description ?? type.const, value: type.const });
+                return list;
+            }, []);
+        return [];
+    }
+};
+FzArray = __decorate([
+    t$4("fz-enum-array")
+], FzArray);
+
+let FzDialog = class FzDialog extends Base {
+    modal;
+    backdrop;
+    validable = false;
+    #modalTitle_accessor_storage = "Dialogue";
+    get modalTitle() { return this.#modalTitle_accessor_storage; }
+    set modalTitle(value) { this.#modalTitle_accessor_storage = value; }
+    #okLabel_accessor_storage = "Valider";
+    get okLabel() { return this.#okLabel_accessor_storage; }
+    set okLabel(value) { this.#okLabel_accessor_storage = value; }
+    #dismissLabel_accessor_storage = "Annuler";
+    get dismissLabel() { return this.#dismissLabel_accessor_storage; }
+    set dismissLabel(value) { this.#dismissLabel_accessor_storage = value; }
+    static get styles() {
+        return [
+            ...super.styles,
+            i$5 `
+            .modal-body {
+                max-height: 75vh; min-height: 50vh; overflow-y: auto;
+            }`
+        ];
+    }
+    render() {
+        return x `
+            <div class="modal fade" id="modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-modal="true" role="dialog">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" >${this.modalTitle}</h5>
+                            <button type="button" class="btn btn-secondary " aria-label="Close"  @click="${this.dismiss}">
+                                <span aria-hidden="true">×</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <slot></slot>
+                        </div>
+                        <div class="modal-footer">
+                            <button ?disabled="${!this.validable}" type="button" class="btn btn-primary" @click="${this.validate}">${this.okLabel}</button>
+                            <button type="button" class="btn btn-danger" @click="${this.dismiss}" >${this.dismissLabel}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-backdrop fade show" id="backdrop"  style="display: none;" @click="${this.dismiss}"></div>`;
+    }
+    get isOpen() {
+        return this.modal?.classList.contains("show");
+    }
+    firstUpdated() {
+        this.modal = this.shadowRoot?.getElementById('modal');
+        this.backdrop = this.shadowRoot?.getElementById('backdrop');
+    }
+    open() {
+        if (this.backdrop)
+            this.backdrop.style.display = "block";
+        if (this.modal) {
+            this.modal.style.display = "block";
+            this.modal.classList.add("show");
+        }
+        this.requestUpdate();
+        this.dispatchEvent(new CustomEvent('fz-dialog-open', { detail: {} }));
+    }
+    close() {
+        if (this.backdrop)
+            this.backdrop.style.display = "none";
+        if (this.modal) {
+            this.modal.style.display = "none";
+            this.modal.classList.remove("show");
+        }
+    }
+    validate(evt) {
+        this.close();
+        evt.preventDefault();
+        evt.stopPropagation();
+        this.dispatchEvent(new CustomEvent('close', { detail: { dismissed: false } }));
+    }
+    dismiss(evt) {
+        this.close();
+        evt.preventDefault();
+        evt.stopPropagation();
+        this.dispatchEvent(new CustomEvent('close', { detail: { dismissed: true } }));
+    }
+    valid(validable = true) {
+        this.validable = validable;
+        this.requestUpdate();
+    }
+};
+__decorate([
+    n$2({ attribute: 'modal-title' })
+], FzDialog.prototype, "modalTitle", null);
+__decorate([
+    n$2({ attribute: 'ok-label' })
+], FzDialog.prototype, "okLabel", null);
+__decorate([
+    n$2({ attribute: 'dismiss-label' })
+], FzDialog.prototype, "dismissLabel", null);
+FzDialog = __decorate([
+    t$4("fz-dialog")
+], FzDialog);
+
+var ModalState;
+(function (ModalState) {
+    ModalState[ModalState["notready"] = 0] = "notready";
+    ModalState[ModalState["scanning"] = 1] = "scanning";
+    ModalState[ModalState["done"] = 2] = "done";
+    ModalState[ModalState["fail"] = 3] = "fail";
+})(ModalState || (ModalState = {}));
+const Barcodes = [
+    'code_128', 'code_39', 'code_93', 'codabar', 'ean_13', 'ean_8',
+    'itf', 'pdf417', 'upc_a', 'upc_e', 'aztec', 'data_matrix', 'qr_code'
+];
+let FzBarcodeDialog = class FzBarcodeDialog extends Base {
+    detector;
+    code;
+    #state_accessor_storage = ModalState.notready;
+    get state() { return this.#state_accessor_storage; }
+    set state(value) { this.#state_accessor_storage = value; }
+    modal;
+    video;
+    status = "Initializing";
+    static get styles() {
+        return [
+            ...super.styles,
+            i$5 `
+            div {
+                color: black
+            }
+            `
+        ];
+    }
+    render() {
+        return x `
+            <fz-dialog modal-title="Scanner un codebar" @click="${this.stopEvent}" @close="${this.close}" > 
+                <div class="row">
+                    <video  class=col autoplay style="display:block" .title="${this.status}">Chargement en cours ...</video>
+                </div>
+                <div class="btn-toolbar m-3 row" role="toolbar">
+                    <button class="btn btn-primary col m-1" ?disabled="${!this.code}" @click="${this.scan}"><i class="bi bi-upc-scan"></i></button>
+                </div>
+                <div>${this.status}</div>
+            </fz-dialog>
+            `;
+    }
+    stopEvent(evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+    }
+    close(evt) {
+        if (this.video) {
+            this.video?.pause();
+            this.video.srcObject = null;
+        }
+        const detail = evt.detail;
+        if (!evt.detail.dismissed)
+            evt.detail.code = this.code;
+        this.dispatchEvent(new CustomEvent("close", { detail }));
+        this.modal?.valid(false);
+    }
+    firstUpdated() {
+        // create new detector
+        if (BarcodeDetector) {
+            this.detector = new BarcodeDetector({ formats: Barcodes });
+        }
+        this.modal = this.shadowRoot?.querySelector('fz-dialog');
+        this.video = this.shadowRoot?.querySelector('video');
+        if (this.video)
+            this.listen(this.video, "play", _ => this.scan());
+    }
+    async initCamera() {
+        try {
+            const mediaStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { exact: "environment" } }
+            });
+            if (this.video) {
+                this.video.srcObject = mediaStream;
+            }
+        }
+        catch (err) {
+            this.status = `Unable to initialize Camera : ${String(err)}`;
+        }
+    }
+    scan() {
+        this.setState(ModalState.scanning);
+        const render = async () => {
+            try {
+                const barcodes = await this.detector.detect(this.video);
+                barcodes.filter((bc) => bc.rawValue).forEach((bc) => {
+                    this.code = bc.rawValue;
+                    this.setState(ModalState.done);
+                });
+            }
+            catch (e) {
+                console.error(String(e));
+            }
+        };
+        const renderLoop = () => {
+            if (this.state !== ModalState.scanning)
+                return;
+            requestAnimationFrame(renderLoop);
+            render();
+        };
+        renderLoop();
+    }
+    async open() {
+        this.setState(ModalState.notready);
+        if (this.modal)
+            this.modal.open();
+        await this.initCamera();
+    }
+    setState(state) {
+        this.state = state;
+        this.modal?.valid(false);
+        switch (state) {
+            case ModalState.fail:
+                this.status = `${this.state} ⇨ Pas de flux video`;
+                break;
+            case ModalState.notready:
+                this.status = `${this.state} ⇨ En initialisation`;
+                break;
+            case ModalState.scanning:
+                this.status = `${this.state} ⇨ Scannez`;
+                break;
+            case ModalState.done:
+                this.status = `${this.state} ⇨ Resultat: ${this.code}`;
+                this.modal?.valid(true);
+                break;
+        }
+    }
+};
+__decorate([
+    r$4()
+], FzBarcodeDialog.prototype, "state", null);
+FzBarcodeDialog = __decorate([
+    t$4("fz-barcode-dlg")
+], FzBarcodeDialog);
+
+var PhotoState;
+(function (PhotoState) {
+    PhotoState[PhotoState["notready"] = 0] = "notready";
+    PhotoState[PhotoState["video"] = 1] = "video";
+    PhotoState[PhotoState["lowres"] = 2] = "lowres";
+    PhotoState[PhotoState["hires"] = 3] = "hires";
+})(PhotoState || (PhotoState = {}));
+let FzPhotoDlg = class FzPhotoDlg extends Base {
+    #state_accessor_storage = PhotoState.video;
+    get state() { return this.#state_accessor_storage; }
+    set state(value) { this.#state_accessor_storage = value; }
+    modal;
+    video;
+    canvas;
+    imageCapture;
+    imageBitmap;
+    status = "Initializing";
+    get isVideo() { return this.state === PhotoState.video; }
+    static get styles() {
+        return [
+            ...super.styles,
+            i$5 `
+            div {
+                color: black
+            }
+            `
+        ];
+    }
+    render() {
+        return x `
+            <fz-dialog modal-title="Prendre une photo ..." @click="${this.stopEvent}" @close="${this.close}" > 
+                <div class="row">
+                    <video  class=col autoplay style="display:block" .title="${this.status}">Chargement en cours ...</video>
+                </div>
+                <div class="row">
+                    <canvas class=col id='canvas' style="display:none" ></canvas>
+                </div>
+                <div class="btn-toolbar m-3 row" role="toolbar">
+                        <button class="btn btn-primary col m-1" ?disabled="${this.isVideo}" @click="${this.retry}"><i class="bi bi-arrow-counterclockwise"></i></button>
+                        <button class="btn btn-primary col m-1" ?disabled="${!this.isVideo}" @click="${this.takePhotoLowres}"><i class="bi bi-camera"></i><sup> - </sup></button>
+                        <button class="btn btn-primary col m-1" ?disabled="${!this.isVideo}" @click="${this.takePhotoHires}"><i class="bi bi-camera"></i><sup> + </sup></button>
+               </div>
+            </fz-dialog>
+            `;
+    }
+    stopEvent(evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+    }
+    close(evt) {
+        if (this.video) {
+            this.video?.pause();
+            this.video.srcObject = null;
+            this.imageCapture?.track.stop();
+        }
+        const detail = evt.detail;
+        this.canvas?.toBlob((blob) => {
+            if (!blob)
+                return;
+            const url = URL.createObjectURL(blob);
+            if (!evt.detail.dismissed) {
+                evt.detail.imageBitmap = this.imageBitmap;
+                evt.detail.url = url;
+                evt.detail.blob = blob;
+            }
+            this.dispatchEvent(new CustomEvent("close", { detail }));
+            this.imageBitmap = undefined;
+            this.modal?.valid(false);
+        }, "image/png", 0.80);
+    }
+    firstUpdated() {
+        this.modal = this.shadowRoot?.querySelector('fz-dialog');
+        this.video = this.shadowRoot?.querySelector('video');
+        this.canvas = this.shadowRoot?.querySelector('canvas');
+    }
+    getUserMedia() {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(mediaStream => {
+            if (this.video) {
+                this.video.srcObject = mediaStream;
+                const track = mediaStream.getVideoTracks()[0];
+                this.imageCapture = new ImageCapture(track);
+                this.setState(PhotoState.video);
+            }
+        })
+            .catch(error => this.status = `Unable to initialize Camera : ${String(error)}`);
+    }
+    retry(evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+        this.imageBitmap = undefined;
+        this.modal?.valid(false);
+        this.setState(PhotoState.video);
+    }
+    takePhotoLowres(evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+        if (this.imageCapture) {
+            this.imageCapture.grabFrame()
+                .then((imageBitmap) => {
+                this.imageBitmap = imageBitmap;
+                this.modal?.valid(true);
+                this.drawCanvas();
+                this.setState(PhotoState.lowres);
+            })
+                .catch((error) => this.status = `Unable to grab Lowres photo : ${String(error)}`);
+        }
+    }
+    takePhotoHires(evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+        if (this.imageCapture) {
+            this.imageCapture.takePhoto()
+                .then((blob) => createImageBitmap(blob))
+                .then((imageBitmap) => {
+                this.imageBitmap = imageBitmap;
+                this.modal?.valid(true);
+                this.drawCanvas();
+                this.setState(PhotoState.hires);
+            })
+                .catch((error) => this.status = `Unable to grab Hires photo : ${String(error)}`);
+        }
+    }
+    drawCanvas() {
+        if (!this.canvas || !this.video || !this.imageBitmap)
+            return;
+        this.canvas.width = this.video.offsetWidth;
+        this.canvas.height = this.video.offsetHeight;
+        const ratio = Math.min(this.canvas.width / this.imageBitmap.width, this.canvas.height / this.imageBitmap.height);
+        const x = (this.canvas.width - this.imageBitmap.width * ratio) / 2;
+        const y = (this.canvas.height - this.imageBitmap.height * ratio) / 2;
+        this.canvas.getContext('2d')?.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.canvas.getContext('2d')?.drawImage(this.imageBitmap, 0, 0, this.imageBitmap.width, this.imageBitmap.height, x, y, this.imageBitmap.width * ratio, this.imageBitmap.height * ratio);
+    }
+    open() {
+        this.setState(PhotoState.notready);
+        if (this.modal)
+            this.modal.open();
+        this.getUserMedia();
+    }
+    setState(state) {
+        if (this.video && this.canvas) {
+            switch (state) {
+                case PhotoState.notready:
+                    this.video.style.display = 'block';
+                    this.canvas.style.display = 'none';
+                    this.status = 'NOTREADY';
+                    break;
+                case PhotoState.video:
+                    this.video.style.display = 'block';
+                    this.canvas.style.display = 'none';
+                    this.status = 'VIDEO';
+                    break;
+                case PhotoState.lowres:
+                    this.video.style.display = 'none';
+                    this.canvas.style.display = 'block';
+                    this.status = `IMAGE LOWRES : ${this.imageBitmap?.width} x ${this.imageBitmap?.height} px`;
+                    break;
+                case PhotoState.hires:
+                    this.video.style.display = 'none';
+                    this.canvas.style.display = 'block';
+                    this.status = `IMAGE HIRES : ${this.imageBitmap?.width} x ${this.imageBitmap?.height} px`;
+                    break;
+            }
+        }
+        this.state = state;
+    }
+};
+__decorate([
+    r$4()
+], FzPhotoDlg.prototype, "state", null);
+FzPhotoDlg = __decorate([
+    t$4("fz-photo-dlg")
+], FzPhotoDlg);
+
+let FzItemDlg = class FzItemDlg extends Base {
+    #reference_accessor_storage;
+    get reference() { return this.#reference_accessor_storage; }
+    set reference(value) { this.#reference_accessor_storage = value; }
+    modal;
+    arraySchema;
+    itemSchema;
+    array;
+    index;
+    pointer;
+    refname;
+    static get styles() {
+        return [
+            ...super.styles,
+            i$5 `
+            div {
+                color: black
+            }
+            `
+        ];
+    }
+    render() {
+        return x `
+            <fz-dialog modal-title="Ajouter un element ..." @click="${this.stopEvent}" @close="${this.close}" > 
+                ${(this.itemSchema != null || this.arraySchema?.items?.oneOf == null) ? '' :
+            x `<div class="btn-group" role="group">
+                    <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
+                        @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    ${"Choose type"}
+                    </button> 
+                    <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+                        ${this.arraySchema?.items.oneOf.map((schema, i) => x `<a class="dropdown-item"
+                        @click="${() => this.addItem(schema)}" >${schema.title || "Type" + i}</a>`)}
+                    </div>
+                </div>`}
+                ${this.itemSchema == null
+            ? '' :
+            x `<fz-object id="form-object" .pointer="${this.pointer}/${this.index}"  .schema="${this.itemSchema}" .name="${undefined}" .index="${this.index}" .data="${this.array}"></fz-object>`}
+            </fz-dialog>`;
+    }
+    updated(_changedProperties) {
+        if (this.reference) {
+            this.pointer = this.reference?.pointer;
+            this.array = this.reference?.target;
+            this.refname = this.reference?.name;
+            this.arraySchema = getSchema(this.array);
+        }
+        else {
+            this.pointer = undefined;
+            this.array = undefined;
+            this.refname = undefined;
+            this.arraySchema = undefined;
+            this.itemSchema = undefined;
+        }
+    }
+    toggleDropdown() {
+        const menu = this.shadowRoot?.querySelector(".dropdown-menu");
+        menu?.style.setProperty("display", menu?.style.display == "block" ? "none" : "block");
+    }
+    addItem(schema) {
+        this.itemSchema = schema;
+        const value = this.itemSchema._default(this.array);
+        this.index = this.array?.length;
+        this.array?.push(value);
+        this.modal?.valid();
+        this.requestUpdate();
+    }
+    stopEvent(evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+    }
+    close(evt) {
+        const detail = evt.detail;
+        if (!evt.detail.dismissed) {
+            const field = this.shadowRoot?.getElementById("form-object");
+            evt.detail.value = field.value[this.refname ?? "id"];
+            evt.detail.abstract = field.abstract();
+        }
+        this.reference = undefined;
+        this.stopEvent(evt);
+        this.dispatchEvent(new CustomEvent("close", { detail }));
+        this.modal?.valid(false);
+    }
+    firstUpdated() {
+        this.modal = this.shadowRoot?.querySelector('fz-dialog');
+    }
+    open() {
+        if (this.modal)
+            this.modal.open();
+        if (this.arraySchema?.homogeneous && this.index === undefined) {
+            this.arraySchema?.items && this.addItem(this.arraySchema?.items);
+        }
+    }
+};
+__decorate([
+    n$2({ type: Object })
+], FzItemDlg.prototype, "reference", null);
+FzItemDlg = __decorate([
+    t$4("fz-item-dlg")
+], FzItemDlg);
 
 var $schema$1 = "http://json-schema.org/draft-07/schema#";
 var $id$2 = "http://json-schema.org/draft-07/schema-3s#";
@@ -32768,913 +33617,6 @@ class Validator {
 }
 
 /**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
-let FzObject = class FzObject extends FZCollection {
-    #collapsed_accessor_storage = false;
-    get collapsed() { return this.#collapsed_accessor_storage; }
-    set collapsed(value) { this.#collapsed_accessor_storage = value; }
-    #activegroup_accessor_storage = {};
-    get activegroup() { return this.#activegroup_accessor_storage; }
-    set activegroup(value) { this.#activegroup_accessor_storage = value; }
-    validator;
-    seen;
-    static get styles() {
-        return [
-            ...super.styles,
-            i$5 `
-                .panel {
-                    padding:5px;
-                    border: solid 1px lightgray;
-                    border-radius:10px; 
-                    user-select: none;
-                }
-                `
-        ];
-    }
-    toField() {
-        // all is done at rendering
-    }
-    toValue() {
-        // properties are updated but object reference doesn't change 
-    }
-    check() {
-        //     if (!this.validator) return
-        //     this.valid = true
-        //     this.message = ''
-        //     switch (true) {
-        //         case (this.required && this.value == undefined):
-        //             this.valid = false
-        //             this.message = formatMsg('valueMissing')
-        //             break
-        //         case !this.required && this.value == undefined:
-        //             break
-        //         default:
-        //             this.valid = this.validator.validate(this.value)
-        //             const errors = this.validator.errors.filter(e => e.instancePath.match(/\//g)?.length === 1 )
-        //             if (this.valid == false && errors && errors.length > 0) this.message = this.validator.text
-        //     }
-        //     this.content = this.shadowRoot?.getElementById('content') ?? undefined
-        //     this.content?.classList.add(this.valid ? 'valid' : 'invalid')
-        //     this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
-    }
-    connectedCallback() {
-        super.connectedCallback();
-        this.listen(this, 'update', _ => (this.check(), this.requestUpdate()));
-    }
-    firstUpdated(changedProperties) {
-        super.firstUpdated(changedProperties);
-        this.setCollapsed();
-    }
-    update(changedProperties) {
-        if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema.properties ?? {})?.length > 0) {
-            const json = JSON.stringify(this.schema, getCircularReplacer);
-            this.validator = new Validator(JSON.parse(json));
-            this.check();
-        }
-        super.update(changedProperties);
-    }
-    setCollapsed() {
-        // si root on collapse jamais
-        this.collapsed = (this.schema.parent == null) ? false : this.evalExpr("collapsed");
-    }
-    renderSingle(itemTemplates, fields, fieldpos) {
-        // render single item
-        const fieldname = fields[fieldpos].fieldname;
-        const schema = this.schema.properties?.[fieldname];
-        itemTemplates.push(schema ? this.renderItem(schema, fieldname) : x ``);
-        fieldpos += 1;
-        return fieldpos;
-    }
-    renderGroup(itemTemplates, fields, fieldpos) {
-        const group = [];
-        const groupnum = fields[fieldpos].groupnum;
-        const groupname = fields[fieldpos].groupname;
-        // render group items
-        for (; fieldpos < fields.length && groupnum === fields[fieldpos].groupnum; fieldpos++) {
-            const fieldname = fields[fieldpos].fieldname;
-            const schema = this.schema.properties?.[fieldname];
-            group.push(schema ? this.renderItem(schema, fieldname) : x ``);
-        }
-        // render group
-        itemTemplates.push(x `
-                <div class="card shadow" style="margin-bottom:5px">
-                    <div class="card-header d-flex justify-content-between align-items-center">${groupname}</div>
-                    <div class="card-body">${group}</div>
-                </div>`);
-        return fieldpos;
-    }
-    renderTabGroup(itemTemplates, fields, fieldpos) {
-        const group = [];
-        const groupnum = fields[fieldpos].groupnum;
-        const groupname = fields[fieldpos].groupname;
-        const tabname = fields[fieldpos].tabname;
-        // render group items
-        for (; fieldpos < fields.length && groupnum === fields[fieldpos].groupnum; fieldpos++) {
-            const fieldname = fields[fieldpos].fieldname;
-            const schema = this.schema.properties?.[fieldname];
-            const hidden = this.activegroup[tabname] !== groupname;
-            group.push(x `<div 
-                        class="tab-pane active container" 
-                        style="margin:0;max-width:100%"  
-                        id="content" 
-                        ?hidden="${hidden}" 
-                        data-tabname="${tabname}" 
-                        data-groupname="${groupname}">
-                        ${schema ? this.renderItem(schema, fieldname) : ''}
-                    </div>`);
-        }
-        // render group
-        itemTemplates.push(x `${group}`);
-        return fieldpos;
-    }
-    renderTab(itemTemplates, fields, fieldpos) {
-        const tab = [];
-        const tabnum = fields[fieldpos].tabnum;
-        const tabname = fields[fieldpos].tabname;
-        const firstpos = fieldpos;
-        this.activegroup[tabname] = fields[fieldpos].groupname;
-        while (fieldpos < fields.length && tabnum === fields[fieldpos].tabnum) {
-            fieldpos = this.renderTabGroup(tab, fields, fieldpos);
-        }
-        const mapgroup = {};
-        for (let i = firstpos; i < fieldpos; i++) {
-            const groupname = fields[i].groupname;
-            mapgroup[groupname] = 1;
-        }
-        const groupnames = Object.keys(mapgroup);
-        // render tab headers
-        itemTemplates.push(x `<ul class="nav nav-tabs" id="content">
-                ${groupnames.map(groupname => x `<li class="nav-item">
-                        <a class="nav-link" data-tabname="${tabname}" data-groupname="${groupname}" @click="${this.toggleTab}" aria-current="page" href="#" data-toggle="tab" href="#${groupname}">${groupname}</a>
-                    </li>`)}
-            </ul>`);
-        // render tab contents
-        itemTemplates.push(x `<div class="tab-content border border-top-0" id="content" style="padding-bottom:5px;margin-bottom:5px">${tab}</div>`);
-        return fieldpos;
-    }
-    get deletable() {
-        if (this.schema.parent == null || this.isEmpty)
-            return false;
-        if (this.schema.nullAllowed && this.nullable)
-            return true;
-        if (!this.schema.nullAllowed && !this.required)
-            return true;
-        return false;
-    }
-    async delete() {
-        this.value = this.empty;
-        if (this.collapsed !== null)
-            this.collapsed = true;
-        this.requestUpdate();
-        await this.updateComplete;
-        this.fields().forEach(field => field.check());
-    }
-    renderField() {
-        if (!this.schema.properties)
-            return x ``;
-        const itemTemplates = [];
-        const fields = this.schema.order;
-        let fieldpos = 0;
-        while (fields && fieldpos < fields.length) {
-            const current = fields[fieldpos];
-            if (current.tabname && current.groupname) {
-                fieldpos = this.renderTab(itemTemplates, fields, fieldpos);
-            }
-            else if (current.groupname) {
-                fieldpos = this.renderGroup(itemTemplates, fields, fieldpos);
-            }
-            else {
-                fieldpos = this.renderSingle(itemTemplates, fields, fieldpos);
-            }
-        }
-        return x `${this.isItem
-            ? x `<div>${this.renderLabel}</div>${itemTemplates}`
-            : this.schema.title === "" ? x `<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`
-                : x `<div class="panel" id="content" >
-                <div class="panel-heading">
-                    <div>
-                        ${this.renderLabel}
-                        ${this.collapsed ? x `${this.abstract()}` : x ``}
-                        <button
-                            ?hidden="${!this.deletable}"
-                            @click="${() => this.delete()}" 
-                            type="button" style="float:right" class="btn-close" aria-label="Close">
-                        </button>
-                    </div>
-                </div>
-                <hr ?hidden="${this.collapsed}" style="margin: 0 0" >
-                <div ?hidden="${this.collapsed}" > ${itemTemplates} </div>
-                </div>`}`;
-    }
-    isRequiredProperty(name) {
-        return !!this.schema.required?.includes(name);
-    }
-    fields() {
-        const fields = [];
-        const tags = Object.values(this.schema.properties ?? {})
-            .map((property) => property.field).join(', ');
-        const list = this.shadowRoot?.querySelectorAll(tags);
-        list?.forEach((elem) => fields.push(elem));
-        return fields;
-    }
-    focus() {
-        const fields = this.fields();
-        const first = fields[0];
-        first.dofocus();
-    }
-    labelClicked(evt) {
-        if (this.isItem) {
-            this.dispatchEvent(new CustomEvent('toggle-item', {
-                detail: {
-                    field: this
-                },
-                bubbles: true,
-                composed: true
-            }));
-        }
-        else {
-            this.toggle(evt);
-        }
-        super.labelClicked(evt);
-    }
-    toggleTab(evt) {
-        const elem = evt.target;
-        const tabname = elem.getAttribute("data-tabname");
-        const groupname = elem.getAttribute("data-groupname");
-        const tabs = elem.parentElement?.parentElement;
-        const childs = tabs?.querySelectorAll('a') ?? [];
-        for (const item of childs)
-            item.classList.remove("active");
-        elem.classList.add("active");
-        this.activegroup[tabname] = groupname;
-        const content = tabs.nextElementSibling;
-        const panes = content?.querySelectorAll('.tab-pane') ?? [];
-        if (panes) {
-            for (const item of panes) {
-                item.hidden = item.getAttribute("data-groupname") !== groupname ? true : false;
-            }
-        }
-        this.eventStop(evt);
-    }
-    toggle(evt) {
-        if (this.collapsed !== null)
-            this.collapsed = !this.collapsed;
-        this.eventStop(evt);
-        this.requestUpdate();
-    }
-};
-__decorate([
-    n$2({ attribute: false })
-], FzObject.prototype, "collapsed", null);
-__decorate([
-    n$2({ attribute: false })
-], FzObject.prototype, "activegroup", null);
-FzObject = __decorate([
-    t$4("fz-object")
-], FzObject);
-
-/**
- * @license
- * Copyright 2020 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */const {I:t}=Z$1,s=()=>document.createComment(""),r=(o,i,n)=>{const e=o._$AA.parentNode,l=void 0===i?o._$AB:i._$AA;if(void 0===n){const i=e.insertBefore(s(),l),c=e.insertBefore(s(),l);n=new t(i,c,o,o.options);}else {const t=n._$AB.nextSibling,i=n._$AM,c=i!==o;if(c){let t;n._$AQ?.(o),n._$AM=o,void 0!==n._$AP&&(t=o._$AU)!==i._$AU&&n._$AP(t);}if(t!==l||c){let o=n._$AA;for(;o!==t;){const t=o.nextSibling;e.insertBefore(o,l),o=t;}}}return n},v=(o,t,i=o)=>(o._$AI(t,i),o),u$1={},m=(o,t=u$1)=>o._$AH=t,p=o=>o._$AH,M=o=>{o._$AP?.(false,true);let t=o._$AA;const i=o._$AB.nextSibling;for(;t!==i;){const o=t.nextSibling;t.remove(),t=o;}};
-
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-const u=(e,s,t)=>{const r=new Map;for(let l=s;l<=t;l++)r.set(e[l],l);return r},c=e$2(class extends i$1{constructor(e){if(super(e),e.type!==t$1.CHILD)throw Error("repeat() can only be used in text expressions")}dt(e,s,t){let r;void 0===t?t=s:void 0!==s&&(r=s);const l=[],o=[];let i=0;for(const s of e)l[i]=r?r(s,i):i,o[i]=t(s,i),i++;return {values:o,keys:l}}render(e,s,t){return this.dt(e,s,t).values}update(s,[t,r$1,c]){const d=p(s),{values:p$1,keys:a}=this.dt(t,r$1,c);if(!Array.isArray(d))return this.ut=a,p$1;const h=this.ut??=[],v$1=[];let m$1,y,x=0,j=d.length-1,k=0,w=p$1.length-1;for(;x<=j&&k<=w;)if(null===d[x])x++;else if(null===d[j])j--;else if(h[x]===a[k])v$1[k]=v(d[x],p$1[k]),x++,k++;else if(h[j]===a[w])v$1[w]=v(d[j],p$1[w]),j--,w--;else if(h[x]===a[w])v$1[w]=v(d[x],p$1[w]),r(s,v$1[w+1],d[x]),x++,w--;else if(h[j]===a[k])v$1[k]=v(d[j],p$1[k]),r(s,d[x],d[j]),j--,k++;else if(void 0===m$1&&(m$1=u(a,k,w),y=u(h,x,j)),m$1.has(h[x]))if(m$1.has(h[j])){const e=y.get(a[k]),t=void 0!==e?d[e]:null;if(null===t){const e=r(s,d[x]);v(e,p$1[k]),v$1[k]=e;}else v$1[k]=v(t,p$1[k]),r(s,d[x],t),d[e]=null;k++;}else M(d[j]),j--;else M(d[x]),x++;for(;k<=w;){const e=r(s,v$1[w+1]);v(e,p$1[k]),v$1[k++]=e;}for(;x<=j;){const e=d[x++];null!==e&&M(e);}return this.ut=a,m(s,v$1),T}});
-
-/**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
-let FzArray = class FzArray extends FZCollection {
-    validator;
-    toField() {
-        // all is done at rendering
-    }
-    toValue() {
-        // items are updated but array reference doesn't change 
-    }
-    renderField() {
-        return x `
-            <div class="form-group row">
-                ${this.renderLabel}
-                <div class="col-sm">
-                    <ul id="content" class="list-group"   style="max-height: 300px; overflow-y: scroll">
-                            ${c(this.getItems(), (item) => item, (item) => x `
-                                    <li class="list-group-item">
-                                        <div>
-                                            <input
-                                                class="form-check-input"
-                                                type="checkbox"
-                                                ?disabled="${this.readonly ? true : false}"
-                                                ?checked="${this.value?.includes(item.value)}"
-                                                @click="${() => this.toggle(item.value)}"/>
-                                            <label class="form-check-label">${item.label}</label>
-                                        </div>
-                                    </li>
-                                `)}
-                    </ul>
-                </div>
-            </div>`;
-    }
-    check() {
-        //     if (!this.validator) return
-        //     this.valid = true
-        //     this.message = ''
-        //     switch (true) {
-        //         case (this.required && this.value == undefined):
-        //             this.valid = false
-        //             this.message = formatMsg('valueMissing')
-        //             break
-        //         case !this.required && this.value == undefined:
-        //             break
-        //         default:
-        //             this.valid = this.validator.validate(this.value)
-        //             const errors = this.validator.errors.filter(e => e.instancePath.match(/\//g)?.length === 1)
-        //             if (this.valid == false && errors && errors.length > 0) this.message = this.validator.text
-        //     }
-        //     this.content = this.shadowRoot?.getElementById('content') ?? undefined
-        //     this.content?.classList.add(this.valid ? 'valid' : 'invalid')
-        //     this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
-    }
-    connectedCallback() {
-        super.connectedCallback();
-        this.listen(this, 'update', () => this.check());
-    }
-    update(changedProperties) {
-        if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema).length !== 0) {
-            const json = JSON.stringify(this.schema, getCircularReplacer);
-            this.validator = new Validator(JSON.parse(json));
-            this.check();
-        }
-        super.update(changedProperties);
-    }
-    toggle(value) {
-        if (this.value == null)
-            this.value = [];
-        if (this.value.includes(value)) {
-            const pos = this.value.indexOf(value);
-            if (pos >= 0)
-                this.value.splice(pos, 1);
-        }
-        else {
-            this.value.push(value);
-        }
-    }
-    getItems() {
-        const enums = this.schema.items?.enum;
-        const data = this.data;
-        if (enums) {
-            return enums.reduce((list, value) => {
-                const ok = this.evalExpr('filter', this.schema.items, value, data[this.key], -1);
-                if (ok)
-                    list.push({ label: String(value), value });
-                return list;
-            }, []);
-        }
-        const consts = this.schema.items?.oneOf;
-        if (consts)
-            return consts.reduce((list, type) => {
-                const ok = this.evalExpr('filter', type, type.const, this.data[this.key], -1);
-                if (ok)
-                    list.push({ label: type.title ?? type.description ?? type.const, value: type.const });
-                return list;
-            }, []);
-        return [];
-    }
-};
-FzArray = __decorate([
-    t$4("fz-enum-array")
-], FzArray);
-
-let FzDialog = class FzDialog extends Base {
-    modal;
-    backdrop;
-    validable = false;
-    #modalTitle_accessor_storage = "Dialogue";
-    get modalTitle() { return this.#modalTitle_accessor_storage; }
-    set modalTitle(value) { this.#modalTitle_accessor_storage = value; }
-    #okLabel_accessor_storage = "Valider";
-    get okLabel() { return this.#okLabel_accessor_storage; }
-    set okLabel(value) { this.#okLabel_accessor_storage = value; }
-    #dismissLabel_accessor_storage = "Annuler";
-    get dismissLabel() { return this.#dismissLabel_accessor_storage; }
-    set dismissLabel(value) { this.#dismissLabel_accessor_storage = value; }
-    static get styles() {
-        return [
-            ...super.styles,
-            i$5 `
-            .modal-body {
-                max-height: 75vh; min-height: 50vh; overflow-y: auto;
-            }`
-        ];
-    }
-    render() {
-        return x `
-            <div class="modal fade" id="modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-modal="true" role="dialog">
-                <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" >${this.modalTitle}</h5>
-                            <button type="button" class="btn btn-secondary " aria-label="Close"  @click="${this.dismiss}">
-                                <span aria-hidden="true">×</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <slot></slot>
-                        </div>
-                        <div class="modal-footer">
-                            <button ?disabled="${!this.validable}" type="button" class="btn btn-primary" @click="${this.validate}">${this.okLabel}</button>
-                            <button type="button" class="btn btn-danger" @click="${this.dismiss}" >${this.dismissLabel}</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-backdrop fade show" id="backdrop"  style="display: none;" @click="${this.dismiss}"></div>`;
-    }
-    get isOpen() {
-        return this.modal?.classList.contains("show");
-    }
-    firstUpdated() {
-        this.modal = this.shadowRoot?.getElementById('modal');
-        this.backdrop = this.shadowRoot?.getElementById('backdrop');
-    }
-    open() {
-        if (this.backdrop)
-            this.backdrop.style.display = "block";
-        if (this.modal) {
-            this.modal.style.display = "block";
-            this.modal.classList.add("show");
-        }
-        this.requestUpdate();
-        this.dispatchEvent(new CustomEvent('fz-dialog-open', { detail: {} }));
-    }
-    close() {
-        if (this.backdrop)
-            this.backdrop.style.display = "none";
-        if (this.modal) {
-            this.modal.style.display = "none";
-            this.modal.classList.remove("show");
-        }
-    }
-    validate(evt) {
-        this.close();
-        evt.preventDefault();
-        evt.stopPropagation();
-        this.dispatchEvent(new CustomEvent('close', { detail: { dismissed: false } }));
-    }
-    dismiss(evt) {
-        this.close();
-        evt.preventDefault();
-        evt.stopPropagation();
-        this.dispatchEvent(new CustomEvent('close', { detail: { dismissed: true } }));
-    }
-    valid(validable = true) {
-        this.validable = validable;
-        this.requestUpdate();
-    }
-};
-__decorate([
-    n$2({ attribute: 'modal-title' })
-], FzDialog.prototype, "modalTitle", null);
-__decorate([
-    n$2({ attribute: 'ok-label' })
-], FzDialog.prototype, "okLabel", null);
-__decorate([
-    n$2({ attribute: 'dismiss-label' })
-], FzDialog.prototype, "dismissLabel", null);
-FzDialog = __decorate([
-    t$4("fz-dialog")
-], FzDialog);
-
-var ModalState;
-(function (ModalState) {
-    ModalState[ModalState["notready"] = 0] = "notready";
-    ModalState[ModalState["scanning"] = 1] = "scanning";
-    ModalState[ModalState["done"] = 2] = "done";
-    ModalState[ModalState["fail"] = 3] = "fail";
-})(ModalState || (ModalState = {}));
-const Barcodes = [
-    'code_128', 'code_39', 'code_93', 'codabar', 'ean_13', 'ean_8',
-    'itf', 'pdf417', 'upc_a', 'upc_e', 'aztec', 'data_matrix', 'qr_code'
-];
-let FzBarcodeDialog = class FzBarcodeDialog extends Base {
-    detector;
-    code;
-    #state_accessor_storage = ModalState.notready;
-    get state() { return this.#state_accessor_storage; }
-    set state(value) { this.#state_accessor_storage = value; }
-    modal;
-    video;
-    status = "Initializing";
-    static get styles() {
-        return [
-            ...super.styles,
-            i$5 `
-            div {
-                color: black
-            }
-            `
-        ];
-    }
-    render() {
-        return x `
-            <fz-dialog modal-title="Scanner un codebar" @click="${this.stopEvent}" @close="${this.close}" > 
-                <div class="row">
-                    <video  class=col autoplay style="display:block" .title="${this.status}">Chargement en cours ...</video>
-                </div>
-                <div class="btn-toolbar m-3 row" role="toolbar">
-                    <button class="btn btn-primary col m-1" ?disabled="${!this.code}" @click="${this.scan}"><i class="bi bi-upc-scan"></i></button>
-                </div>
-                <div>${this.status}</div>
-            </fz-dialog>
-            `;
-    }
-    stopEvent(evt) {
-        evt.preventDefault();
-        evt.stopPropagation();
-    }
-    close(evt) {
-        if (this.video) {
-            this.video?.pause();
-            this.video.srcObject = null;
-        }
-        const detail = evt.detail;
-        if (!evt.detail.dismissed)
-            evt.detail.code = this.code;
-        this.dispatchEvent(new CustomEvent("close", { detail }));
-        this.modal?.valid(false);
-    }
-    firstUpdated() {
-        // create new detector
-        if (BarcodeDetector) {
-            this.detector = new BarcodeDetector({ formats: Barcodes });
-        }
-        this.modal = this.shadowRoot?.querySelector('fz-dialog');
-        this.video = this.shadowRoot?.querySelector('video');
-        if (this.video)
-            this.listen(this.video, "play", _ => this.scan());
-    }
-    async initCamera() {
-        try {
-            const mediaStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { exact: "environment" } }
-            });
-            if (this.video) {
-                this.video.srcObject = mediaStream;
-            }
-        }
-        catch (err) {
-            this.status = `Unable to initialize Camera : ${String(err)}`;
-        }
-    }
-    scan() {
-        this.setState(ModalState.scanning);
-        const render = async () => {
-            try {
-                const barcodes = await this.detector.detect(this.video);
-                barcodes.filter((bc) => bc.rawValue).forEach((bc) => {
-                    this.code = bc.rawValue;
-                    this.setState(ModalState.done);
-                });
-            }
-            catch (e) {
-                console.error(String(e));
-            }
-        };
-        const renderLoop = () => {
-            if (this.state !== ModalState.scanning)
-                return;
-            requestAnimationFrame(renderLoop);
-            render();
-        };
-        renderLoop();
-    }
-    async open() {
-        this.setState(ModalState.notready);
-        if (this.modal)
-            this.modal.open();
-        await this.initCamera();
-    }
-    setState(state) {
-        this.state = state;
-        this.modal?.valid(false);
-        switch (state) {
-            case ModalState.fail:
-                this.status = `${this.state} ⇨ Pas de flux video`;
-                break;
-            case ModalState.notready:
-                this.status = `${this.state} ⇨ En initialisation`;
-                break;
-            case ModalState.scanning:
-                this.status = `${this.state} ⇨ Scannez`;
-                break;
-            case ModalState.done:
-                this.status = `${this.state} ⇨ Resultat: ${this.code}`;
-                this.modal?.valid(true);
-                break;
-        }
-    }
-};
-__decorate([
-    r$4()
-], FzBarcodeDialog.prototype, "state", null);
-FzBarcodeDialog = __decorate([
-    t$4("fz-barcode-dlg")
-], FzBarcodeDialog);
-
-var PhotoState;
-(function (PhotoState) {
-    PhotoState[PhotoState["notready"] = 0] = "notready";
-    PhotoState[PhotoState["video"] = 1] = "video";
-    PhotoState[PhotoState["lowres"] = 2] = "lowres";
-    PhotoState[PhotoState["hires"] = 3] = "hires";
-})(PhotoState || (PhotoState = {}));
-let FzPhotoDlg = class FzPhotoDlg extends Base {
-    #state_accessor_storage = PhotoState.video;
-    get state() { return this.#state_accessor_storage; }
-    set state(value) { this.#state_accessor_storage = value; }
-    modal;
-    video;
-    canvas;
-    imageCapture;
-    imageBitmap;
-    status = "Initializing";
-    get isVideo() { return this.state === PhotoState.video; }
-    static get styles() {
-        return [
-            ...super.styles,
-            i$5 `
-            div {
-                color: black
-            }
-            `
-        ];
-    }
-    render() {
-        return x `
-            <fz-dialog modal-title="Prendre une photo ..." @click="${this.stopEvent}" @close="${this.close}" > 
-                <div class="row">
-                    <video  class=col autoplay style="display:block" .title="${this.status}">Chargement en cours ...</video>
-                </div>
-                <div class="row">
-                    <canvas class=col id='canvas' style="display:none" ></canvas>
-                </div>
-                <div class="btn-toolbar m-3 row" role="toolbar">
-                        <button class="btn btn-primary col m-1" ?disabled="${this.isVideo}" @click="${this.retry}"><i class="bi bi-arrow-counterclockwise"></i></button>
-                        <button class="btn btn-primary col m-1" ?disabled="${!this.isVideo}" @click="${this.takePhotoLowres}"><i class="bi bi-camera"></i><sup> - </sup></button>
-                        <button class="btn btn-primary col m-1" ?disabled="${!this.isVideo}" @click="${this.takePhotoHires}"><i class="bi bi-camera"></i><sup> + </sup></button>
-               </div>
-            </fz-dialog>
-            `;
-    }
-    stopEvent(evt) {
-        evt.preventDefault();
-        evt.stopPropagation();
-    }
-    close(evt) {
-        if (this.video) {
-            this.video?.pause();
-            this.video.srcObject = null;
-            this.imageCapture?.track.stop();
-        }
-        const detail = evt.detail;
-        this.canvas?.toBlob((blob) => {
-            if (!blob)
-                return;
-            const url = URL.createObjectURL(blob);
-            if (!evt.detail.dismissed) {
-                evt.detail.imageBitmap = this.imageBitmap;
-                evt.detail.url = url;
-                evt.detail.blob = blob;
-            }
-            this.dispatchEvent(new CustomEvent("close", { detail }));
-            this.imageBitmap = undefined;
-            this.modal?.valid(false);
-        }, "image/png", 0.80);
-    }
-    firstUpdated() {
-        this.modal = this.shadowRoot?.querySelector('fz-dialog');
-        this.video = this.shadowRoot?.querySelector('video');
-        this.canvas = this.shadowRoot?.querySelector('canvas');
-    }
-    getUserMedia() {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-            .then(mediaStream => {
-            if (this.video) {
-                this.video.srcObject = mediaStream;
-                const track = mediaStream.getVideoTracks()[0];
-                this.imageCapture = new ImageCapture(track);
-                this.setState(PhotoState.video);
-            }
-        })
-            .catch(error => this.status = `Unable to initialize Camera : ${String(error)}`);
-    }
-    retry(evt) {
-        evt.preventDefault();
-        evt.stopPropagation();
-        this.imageBitmap = undefined;
-        this.modal?.valid(false);
-        this.setState(PhotoState.video);
-    }
-    takePhotoLowres(evt) {
-        evt.preventDefault();
-        evt.stopPropagation();
-        if (this.imageCapture) {
-            this.imageCapture.grabFrame()
-                .then((imageBitmap) => {
-                this.imageBitmap = imageBitmap;
-                this.modal?.valid(true);
-                this.drawCanvas();
-                this.setState(PhotoState.lowres);
-            })
-                .catch((error) => this.status = `Unable to grab Lowres photo : ${String(error)}`);
-        }
-    }
-    takePhotoHires(evt) {
-        evt.preventDefault();
-        evt.stopPropagation();
-        if (this.imageCapture) {
-            this.imageCapture.takePhoto()
-                .then((blob) => createImageBitmap(blob))
-                .then((imageBitmap) => {
-                this.imageBitmap = imageBitmap;
-                this.modal?.valid(true);
-                this.drawCanvas();
-                this.setState(PhotoState.hires);
-            })
-                .catch((error) => this.status = `Unable to grab Hires photo : ${String(error)}`);
-        }
-    }
-    drawCanvas() {
-        if (!this.canvas || !this.video || !this.imageBitmap)
-            return;
-        this.canvas.width = this.video.offsetWidth;
-        this.canvas.height = this.video.offsetHeight;
-        const ratio = Math.min(this.canvas.width / this.imageBitmap.width, this.canvas.height / this.imageBitmap.height);
-        const x = (this.canvas.width - this.imageBitmap.width * ratio) / 2;
-        const y = (this.canvas.height - this.imageBitmap.height * ratio) / 2;
-        this.canvas.getContext('2d')?.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.canvas.getContext('2d')?.drawImage(this.imageBitmap, 0, 0, this.imageBitmap.width, this.imageBitmap.height, x, y, this.imageBitmap.width * ratio, this.imageBitmap.height * ratio);
-    }
-    open() {
-        this.setState(PhotoState.notready);
-        if (this.modal)
-            this.modal.open();
-        this.getUserMedia();
-    }
-    setState(state) {
-        if (this.video && this.canvas) {
-            switch (state) {
-                case PhotoState.notready:
-                    this.video.style.display = 'block';
-                    this.canvas.style.display = 'none';
-                    this.status = 'NOTREADY';
-                    break;
-                case PhotoState.video:
-                    this.video.style.display = 'block';
-                    this.canvas.style.display = 'none';
-                    this.status = 'VIDEO';
-                    break;
-                case PhotoState.lowres:
-                    this.video.style.display = 'none';
-                    this.canvas.style.display = 'block';
-                    this.status = `IMAGE LOWRES : ${this.imageBitmap?.width} x ${this.imageBitmap?.height} px`;
-                    break;
-                case PhotoState.hires:
-                    this.video.style.display = 'none';
-                    this.canvas.style.display = 'block';
-                    this.status = `IMAGE HIRES : ${this.imageBitmap?.width} x ${this.imageBitmap?.height} px`;
-                    break;
-            }
-        }
-        this.state = state;
-    }
-};
-__decorate([
-    r$4()
-], FzPhotoDlg.prototype, "state", null);
-FzPhotoDlg = __decorate([
-    t$4("fz-photo-dlg")
-], FzPhotoDlg);
-
-let FzItemDlg = class FzItemDlg extends Base {
-    #reference_accessor_storage;
-    get reference() { return this.#reference_accessor_storage; }
-    set reference(value) { this.#reference_accessor_storage = value; }
-    modal;
-    arraySchema;
-    itemSchema;
-    array;
-    index;
-    pointer;
-    refname;
-    static get styles() {
-        return [
-            ...super.styles,
-            i$5 `
-            div {
-                color: black
-            }
-            `
-        ];
-    }
-    render() {
-        return x `
-            <fz-dialog modal-title="Ajouter un element ..." @click="${this.stopEvent}" @close="${this.close}" > 
-                ${(this.itemSchema != null || this.arraySchema?.items?.oneOf == null) ? '' :
-            x `<div class="btn-group" role="group">
-                    <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
-                        @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    ${"Choose type"}
-                    </button> 
-                    <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-                        ${this.arraySchema?.items.oneOf.map((schema, i) => x `<a class="dropdown-item"
-                        @click="${() => this.addItem(schema)}" >${schema.title || "Type" + i}</a>`)}
-                    </div>
-                </div>`}
-                ${this.itemSchema == null
-            ? '' :
-            x `<fz-object id="form-object" .pointer="${this.pointer}/${this.index}"  .schema="${this.itemSchema}" .name="${undefined}" .index="${this.index}" .data="${this.array}"></fz-object>`}
-            </fz-dialog>`;
-    }
-    updated(_changedProperties) {
-        if (this.reference) {
-            this.pointer = this.reference?.pointer;
-            this.array = this.reference?.target;
-            this.refname = this.reference?.name;
-            this.arraySchema = getSchema(this.array);
-        }
-        else {
-            this.pointer = undefined;
-            this.array = undefined;
-            this.refname = undefined;
-            this.arraySchema = undefined;
-            this.itemSchema = undefined;
-        }
-    }
-    toggleDropdown() {
-        const menu = this.shadowRoot?.querySelector(".dropdown-menu");
-        menu?.style.setProperty("display", menu?.style.display == "block" ? "none" : "block");
-    }
-    addItem(schema) {
-        this.itemSchema = schema;
-        const value = this.itemSchema._default(this.array);
-        this.index = this.array?.length;
-        this.array?.push(value);
-        this.modal?.valid();
-        this.requestUpdate();
-    }
-    stopEvent(evt) {
-        evt.preventDefault();
-        evt.stopPropagation();
-    }
-    close(evt) {
-        const detail = evt.detail;
-        if (!evt.detail.dismissed) {
-            const field = this.shadowRoot?.getElementById("form-object");
-            evt.detail.value = field.value[this.refname ?? "id"];
-            evt.detail.abstract = field.abstract();
-        }
-        this.reference = undefined;
-        this.stopEvent(evt);
-        this.dispatchEvent(new CustomEvent("close", { detail }));
-        this.modal?.valid(false);
-    }
-    firstUpdated() {
-        this.modal = this.shadowRoot?.querySelector('fz-dialog');
-    }
-    open() {
-        if (this.modal)
-            this.modal.open();
-        if (this.arraySchema?.homogeneous && this.index === undefined) {
-            this.arraySchema?.items && this.addItem(this.arraySchema?.items);
-        }
-    }
-};
-__decorate([
-    n$2({ type: Object })
-], FzItemDlg.prototype, "reference", null);
-FzItemDlg = __decorate([
-    t$4("fz-item-dlg")
-], FzItemDlg);
-
-const SCHEMA = Symbol("FZ_FORM_SCHEMA");
-const PARENT = Symbol("FZ_FORM_PARENT");
-const KEY = Symbol("FZ_FORM_PARENT");
-const ROOT = Symbol("FZ_FORM_ROOT");
-
-/**
  * class to compile schema for fz-form
  * compilation process is a in-depth walkthrough schema applying in order all
  * the compile time actions
@@ -33809,7 +33751,7 @@ class CSDefinition extends CompilationStep {
     definition(schema) {
         const ref = schema.$ref;
         if (!ref.startsWith("#/definitions/"))
-            throw this.error(`only '#/definitions/<name>' allowed => ${ref}]`);
+            throw this.error(`only '/definitions/<name>' allowed => ${ref}]`);
         if (this.root.definitions == null)
             throw this.error(`No "definitions" property in root schema`);
         const defname = ref.split("/")[2];
@@ -34124,7 +34066,7 @@ class CSPointer extends CompilationStep {
         return !(this.property in schema);
     }
     apply(schema, parent, name) {
-        schema.pointer = parent ? `${parent.pointer}/${name}` : `#`;
+        schema.pointer = parent ? `${parent.pointer}/${name}` : `/`;
     }
 }
 /**
@@ -34643,8 +34585,8 @@ let FzForm = class FzForm extends Base {
     renderForm() {
         return x `
             ${Array.isArray(this.root)
-            ? x `<fz-array pointer="#" name="content"  .data="${this.obj}" .schema="${this.schema}"></fz-array>`
-            : x `<fz-object  pointer="#" name="content" .data="${this.obj}" .schema="${this.schema}"></fz-object>`}
+            ? x `<fz-array pointer="" name="content"  .data="${this.obj}" .schema="${this.schema}"></fz-array>`
+            : x `<fz-object  pointer="" name="content" .data="${this.obj}" .schema="${this.schema}"></fz-object>`}
             ${this.renderButtons()}`;
     }
     renderButtons() {
@@ -34676,21 +34618,30 @@ let FzForm = class FzForm extends Base {
     }
     check() {
         // collect errors and dispatch error on fields (registered in this.fieldMap)
-        const valid = this.validator?.validate(this.root);
         const errorMap = new Map();
-        if (!valid) {
-            // dispatch all errors over the fields 
+        const valid = this.validator?.validate(this.root);
+        if (isBoolean(valid) && !valid) {
             for (const error of this.validator.errors) {
-                const { instancePath, message, params, keyword } = error;
+                let { instancePath, message, params, keyword } = error;
+                instancePath = `/${instancePath}`;
+                // required applies to object must down the error to child
+                if (keyword === "required") {
+                    instancePath = `${instancePath === '/' ? '' : ''}/${params.missingProperty}`;
+                    message = "required";
+                }
                 if (!errorMap.has(instancePath))
                     errorMap.set(instancePath, []);
-                const detail = Object.entries(params).map(([s, v]) => v == null ? null : `${s}: ${v}`).filter(v => v).join(',');
-                const msg = `${keyword}: ${message} (${detail})`;
-                errorMap.get(instancePath)?.push(msg);
+                //const detail =Object.entries(params).map(([s,v]) => v == null ? null : `${s}: ${v}`).filter(v => v).join(',')
+                errorMap.get(instancePath)?.push(message ?? "unidentified error");
             }
         }
+        // dispatch all errors over the fields 
         for (const [pointer, field] of this.fieldMap.entries()) {
-            field.errors = errorMap.get(pointer) ?? [];
+            // if field is not touched (not manually updated) valid/invalid not displayed
+            if (field.errors != NOT_TOUCHED) {
+                field.errors = errorMap.get(pointer) ?? IS_VALID;
+                console.log(`VALIDATION: ${field.pointer} -> ${field.errors === IS_VALID ? "Y" : "N"}`);
+            }
         }
     }
     /**

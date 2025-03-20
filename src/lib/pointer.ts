@@ -6,7 +6,6 @@ class Pointer {
     private readonly key?: string | number
 
     constructor(root: any, pointer: string = "/") {
-        if (pointer.startsWith("#")) pointer = pointer.substring(1)
         if (!pointer.startsWith("/")) throw new Error(`Pointer.constructor: ${pointer}" must start with '/'`)
         this.root = root
         const parts = this.parse(pointer)
@@ -30,7 +29,6 @@ class Pointer {
     }
     
     at(pointer: string): Pointer {
-        if (pointer.startsWith("#")) pointer = pointer.substring(1)
         const { up, path, key } = this.parse(pointer); // Reuse `parse`
         if (up === -1)  return new Pointer(this.root, pointer);
         const tokens = this.path.slice(0, Math.max(0, this.path.length - up)).concat(path);

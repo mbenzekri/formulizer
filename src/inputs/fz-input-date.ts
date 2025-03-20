@@ -34,7 +34,7 @@ export class FzInputDate extends FzInputBase {
     renderInput() {
         return html`<input
             id="input" 
-            class="form-control" 
+            class="form-control ${this.validationMap}" 
             type="date" 
             ?readonly="${this.readonly}" 
             @input="${this.change}"

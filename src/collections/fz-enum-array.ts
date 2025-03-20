@@ -2,8 +2,6 @@
 import { customElement } from "lit/decorators.js"
 import { html, TemplateResult } from "lit"
 import { repeat } from "lit/directives/repeat.js"
-import { Validator } from "../lib/validation"
-import { getCircularReplacer } from "../lib/tools";
 import { FZCollection } from "./fz-collection";
 import { Pojo } from "../lib/types";
 
@@ -15,7 +13,6 @@ import { Pojo } from "../lib/types";
  */
 @customElement("fz-enum-array")
 export class FzArray extends FZCollection {
-    private validator!: Validator
 
     override toField(): void {
         // all is done at rendering
@@ -49,7 +46,7 @@ export class FzArray extends FZCollection {
             </div>`
     }
 
-    override check() {
+    //override check() {
         //     if (!this.validator) return
         //     this.valid = true
         //     this.message = ''
@@ -69,21 +66,10 @@ export class FzArray extends FZCollection {
         //     this.content = this.shadowRoot?.getElementById('content') ?? undefined
         //     this.content?.classList.add(this.valid ? 'valid' : 'invalid')
         //     this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
-    }
+    //}
 
     override connectedCallback() {
         super.connectedCallback()
-        this.listen(this, 'update', () => this.check())
-    }
-
-    override update(changedProperties: Map<string, unknown>) {
-        if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema).length !== 0) {
-            const json = JSON.stringify(this.schema, getCircularReplacer)
-            this.validator = new Validator(JSON.parse(json));
-
-            this.check()
-        }
-        super.update(changedProperties)
     }
 
     toggle(value: any) {

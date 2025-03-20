@@ -17,7 +17,7 @@ export class FzArray extends FZCollection {
     @property({ attribute: false }) accessor current: number | null = null
     private schemas: Schema[] = []
     private currentSchema?: Schema
-    private content?: HTMLElement
+    //private content?: HTMLElement
     //private validator!: DataValidator
     get nomore(): boolean {
         return this.schema.maxItems && this.value && this.value.length >= this.schema.maxItems
@@ -45,42 +45,15 @@ export class FzArray extends FZCollection {
     override toValue(): void {
         // items are updated but array reference doesn't change 
     }
-
-    // override update(changedProperties: Map<string, unknown>) {
-    //     if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema).length !== 0) {
-    //         const json = JSON.stringify(this.schema, getCircularReplacer)
-    //         this.validator = new DataValidator(JSON.parse(json));
-
-    //         this.check()
-    //     }
-    //     super.update(changedProperties);
+    
+    // override check() {
+    //     this.content = this.shadowRoot?.getElementById('content') ?? undefined
+    //     this.content?.classList.add(this.valid ? 'valid' : 'invalid')
+    //     this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
     // }
-
-    override check() {
-        // if (!this.validator) return
-
-        // this.valid = true
-        // this.message = ''
-        // switch (true) {
-        //     case (this.required && this.value == undefined):
-        //         this.valid = false
-        //         this.message = formatMsg('valueMissing')
-        //         break
-        //     case !this.required && this.value == undefined:
-        //         break
-        //     default:
-        //         this.valid = this.validator.validate(this.value)
-        //         const errors = this.validator.errors.filter(e => e.instancePath.match(/\//g)?.length === 1 )
-        //         if (this.valid == false && errors && errors.length > 0) this.message = this.validator.errorsText(errors)
-        // }
-        this.content = this.shadowRoot?.getElementById('content') ?? undefined
-        this.content?.classList.add(this.valid ? 'valid' : 'invalid')
-        this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
-    }
 
     override connectedCallback() {
         super.connectedCallback()
-        this.listen(this, 'update', () =>  this.check())
         this.listen(this, 'toggle-item', evt => (this.close(),this.eventStop(evt)))
     }
     override requestUpdate(name?: PropertyKey | undefined, oldvalue?: unknown): void {

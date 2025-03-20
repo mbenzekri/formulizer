@@ -36,7 +36,7 @@ export class FzInputGeolocation extends FzInputBase {
 
     renderInput() {
         return html`
-            <div class="input-group">
+            <div class="input-group ${this.validationMap}">
                 <input
                     class="form-control"
                     type="text"

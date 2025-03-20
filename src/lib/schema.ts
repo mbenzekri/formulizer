@@ -209,7 +209,7 @@ export class Schema extends JSONSchemaDraft07 {
     /**
      * trackers function parse expression to extract watched values and set trackers
      * array in corresponding schema.
-     * a value is watched by using the pointer dereference operation in expresions: $`#/a/b/c`
+     * a value is watched by using the pointer dereference operation in expresions: $`/a/b/c`
      * the tracker is the Object desribed by the schema and the objserved value is the value 
      * pointed by $`...`
      * @param root schema for absolute pointers in expr

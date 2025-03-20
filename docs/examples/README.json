@@ -8,7 +8,7 @@
             },
             "hello": {
                 "type": "string",
-                "expression": " `Hello, ${ $`#/who` } !` ",
+                "expression": " `Hello, ${ $`/who` } !` ",
                 "readonly": true
             }
         }

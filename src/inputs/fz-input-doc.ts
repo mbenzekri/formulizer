@@ -123,7 +123,7 @@ export class FzInputDoc extends FzInputBase {
                         <span class="input-group-text"  @click="${this.open}"><i class="bi bi-eye"></i></span>
                     </div>` : null
                 }
-                <input class="form-control"  type="text" spellcheck="false"
+                <input class="form-control ${this.validationMap}"  type="text" spellcheck="false"
                     placeholder="photo, document, ..."
                     .value="${this.filename ?? ''}"
                     ?readonly="${this.readonly}" 
@@ -157,7 +157,6 @@ export class FzInputDoc extends FzInputBase {
 
     override connectedCallback() {
         super.connectedCallback()
-        this.listen(this, 'update', () =>  this.check())
     }
 
     override async firstUpdated(changedProperties: any) {

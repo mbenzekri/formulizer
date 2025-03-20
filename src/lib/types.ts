@@ -73,3 +73,5 @@ export type WithMetadata<T> = T & {
 
 export type Pojo = WithMetadata<JSONValue>
 
+export const IS_VALID = []
+export const NOT_TOUCHED = []

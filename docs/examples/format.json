@@ -3,44 +3,44 @@
         "type": "object",
         "title": "Demo format",
         "properties": {
-            "field1": {
+            "datetime": {
                 "title": "format date-time",
                 "type": "string",
                 "format": "date-time",
                 "min": "2021-11-30T11:00"
             },
-            "field2": {
+            "time": {
                 "title": "format time",
                 "type": "string",
                 "format": "time"
             },
-            "field3": {
+            "date": {
                 "title": "format date",
                 "type": "string",
                 "format": "date",
                 "min": "2021-11-30"
             },
-            "field4": {
+            "email": {
                 "title": "format email",
                 "type": "string",
                 "format": "email"
             },
-            "field5": {
+            "uri": {
                 "title": "format uri",
                 "type": "string",
                 "format": "uri"
             },
-            "field6": {
+            "password": {
                 "title": "format password",
                 "type": "string",
                 "format": "password"
             },
-            "field7": {
+            "color": {
                 "title": "format color",
                 "type": "string",
                 "format": "color"
             },
-            "field8": {
+            "signature": {
                 "title": "format signature",
                 "type": "string",
                 "format": "signature"
@@ -50,24 +50,24 @@
                 "type": "string",
                 "format": "uuid"
             },
-            "field9": {
+            "geo": {
                 "title": "format geolocation",
                 "type": "string",
                 "format": "geo"
             },
-            "field10": {
+            "doc": {
                 "type": "string",
                 "title": "format doc",
                 "format": "doc",
                 "preview": true,
                 "readonly": false
             },
-            "field11": {
+            "barcode": {
                 "type": "string",
                 "title": "format barcode",
                 "format": "barcode"
             },
-            "field12": {
+            "markdown": {
                 "type": "string",
                 "format": "markdown",
                 "expression": [
@@ -78,14 +78,11 @@
                     "## Title 2",
                     "### Title 3",
                     "#### Title 4",
-                    "add fields from data : ${ $`#/field1` }"
+                    "add fields from data : ${ $`/field1` }"
                 ]
             }
         }
     },
     "data": {
-        "field1": "2021-12-15T11:00:00Z",
-        "field2": "12:00:25",
-        "field3": "2021-12-15"
     }
 }

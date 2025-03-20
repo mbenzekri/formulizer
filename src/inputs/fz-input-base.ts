@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { html, TemplateResult } from "lit";
-import { FzElement } from "../fz-element";
+import { FzField } from "../fz-element";
 import { getCircularReplacer } from "../lib/tools";
 
 const invalidkeys = [
@@ -17,7 +17,7 @@ const invalidkeys = [
 ]
 
 
-export abstract class FzInputBase extends FzElement {
+export abstract class FzInputBase extends FzField {
 
     abstract renderInput(): any;
     abstract override toField(): void;
@@ -42,12 +42,10 @@ export abstract class FzInputBase extends FzElement {
     /**
      * on first updated set listeners
      */
-    override firstUpdated(_changedProperties: any) {
+    override firstUpdate() {
+        super.firstUpdate()
         // for debug 'F9' output state of field
         if (this.input) this.listen(this.input,'keydown', (evt: Event) => this.debugKey(evt as KeyboardEvent))
-        // initialize input from value
-        this.toField()
-        this.check()
     }
 
     /**
@@ -81,7 +79,7 @@ export abstract class FzInputBase extends FzElement {
         }
     }
 
-    override check() {
+    // override check() {
         // const input = this.input
         // if (!input) {
         //     this.valid = false
@@ -102,6 +100,6 @@ export abstract class FzInputBase extends FzElement {
         // this.message = this.valid ? '' : message
         // this.input?.classList.add(this.valid ? 'valid' : 'invalid')
         // this.input?.classList.remove(this.valid ? 'invalid' : 'valid')
-    }
+    // }
 
 }

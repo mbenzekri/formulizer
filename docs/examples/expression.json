@@ -15,17 +15,17 @@
             "delta": {
                 "type": "number",
                 "title": "b²-ac",
-                "expression": " $`#/b`**2-4*$`#/a`*$`#/c` "
+                "expression": " $`/b`**2-4*$`/a`*$`/c` "
             },
             "solution 1": {
                 "type": ["number","null"],
                 "title": "solution 1",
-                "expression": "$`#/delta` < 0 ? null: $`#/delta` === 0 ? -$`#/b`/(2*$`#/a`) : (-$`#/b`+Math.sqrt($`#/delta`))/(2*$`#/a`)"
+                "expression": "$`/delta` < 0 ? null: $`/delta` === 0 ? -$`/b`/(2*$`/a`) : (-$`/b`+Math.sqrt($`/delta`))/(2*$`/a`)"
             },
             "solution 2": {
                 "type": ["number","null"],
                 "title": "solution 2",
-                "expression": "$`#/delta` <= 0 ? null : $`#/delta` === 0 ? null : ((-$`#/b`-Math.sqrt($`#/delta`))/(2*$`#/a`))"
+                "expression": "$`/delta` <= 0 ? null : $`/delta` === 0 ? null : ((-$`/b`-Math.sqrt($`/delta`))/(2*$`/a`))"
             }
         }
     },

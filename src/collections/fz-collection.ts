@@ -1,6 +1,6 @@
-import { FzElement } from "../fz-element";
+import { FzField } from "../fz-element";
 
-export abstract class FZCollection extends FzElement {
+export abstract class FZCollection extends FzField {
 
 
 }

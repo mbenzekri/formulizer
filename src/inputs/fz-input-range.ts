@@ -88,7 +88,7 @@ export class FzRange extends FzInputBase {
                     max="${ifDefined(this.max)}"
                     step="1"
                     ?required="${this.required}"
-                    class="form-control" 
+                    class="form-control ${this.validationMap}" 
                 />
                 <div class="input-group-append" style="max-width:5em" >
                     <span class="input-group-text" >${this.value}</span>

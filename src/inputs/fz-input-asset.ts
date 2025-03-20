@@ -45,7 +45,7 @@ export class FzInputAsset extends FzInputBase {
                     @input="${this.change}"
                     placeholder="${ifDefined(this.label ?? "")}"
                     readonly
-                    class="form-control"
+                    class="form-control ${this.validationMap}"
                 />
                 <button
                     type="button"

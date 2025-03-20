@@ -28,7 +28,7 @@ export class FzInputTextarea extends FzInputBase {
     renderInput() {
         return html`
             <textarea  
-                class="form-control" 
+                class="form-control ${this.validationMap}" 
                 id="input"
                 placeholder="${ifDefined(this.label)}"
                 .value="${this.value}" 

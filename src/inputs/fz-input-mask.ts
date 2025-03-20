@@ -27,7 +27,7 @@ export class FzInputMask extends FzInputBase {
         return html`
             <div class="input-group">
                 <input
-                    class="form-control"
+                    class="form-control ${this.validationMap}"
                     type="text"
                     id="input"
                     placeholder="${this.mask}"

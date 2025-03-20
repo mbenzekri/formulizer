@@ -2,10 +2,10 @@
 import { html } from "lit";
 import { Base } from "./base"
 import { property, customElement } from "lit/decorators.js";
-import { IAsset, IOptions, Pojo } from "./lib/types"
-import { FzElement } from "./fz-element";
+import { IAsset, IOptions, IS_VALID, NOT_TOUCHED, Pojo } from "./lib/types"
+import { FzField } from "./fz-element";
 import { validateSchema, validateErrors, Validator } from "./lib/validation"
-import { setGlobalHandler } from "./lib/tools"
+import { isBoolean, setGlobalHandler } from "./lib/tools"
 import { SchemaCompiler, DataCompiler } from "./lib/compiler"
 import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { Schema, schemaAttrConverter, DEFAULT_SCHEMA } from "./lib/schema";
@@ -30,8 +30,8 @@ export class FzForm extends Base {
     private accessor i_options: IOptions = {}
     public store: IBlobStore = new BlobMemory()
     public asset!: IAsset
-    private readonly fieldMap: Map<string, FzElement> = new Map()
-    private readonly schemaMap: Map<string, FzElement> = new Map()
+    private readonly fieldMap: Map<string, FzField> = new Map()
+    private readonly schemaMap: Map<string, FzField> = new Map()
 
     @property({ type: Object, attribute: "schema", converter: schemaAttrConverter }) accessor i_schema = DEFAULT_SCHEMA
     @property({ type: Boolean, attribute: "actions" }) accessor actions = false
@@ -112,7 +112,7 @@ export class FzForm extends Base {
     public getField(pointer: string) {
         return this.fieldMap.get(pointer)
     }
-    addField(schemaPointer: string, dataPointer: string, field: FzElement) {
+    addField(schemaPointer: string, dataPointer: string, field: FzField) {
         this.schemaMap.set(schemaPointer, field)
         this.fieldMap.set(dataPointer, field)
     }
@@ -135,8 +135,8 @@ export class FzForm extends Base {
     private renderForm() {
         return html`
             ${Array.isArray(this.root)
-                ? html`<fz-array pointer="#" name="content"  .data="${this.obj}" .schema="${this.schema}"></fz-array>`
-                : html`<fz-object  pointer="#" name="content" .data="${this.obj}" .schema="${this.schema}"></fz-object>`
+                ? html`<fz-array pointer="" name="content"  .data="${this.obj}" .schema="${this.schema}"></fz-array>`
+                : html`<fz-object  pointer="" name="content" .data="${this.obj}" .schema="${this.schema}"></fz-object>`
             }
             ${this.renderButtons()}`
     }
@@ -174,20 +174,30 @@ export class FzForm extends Base {
 
     check() {
         // collect errors and dispatch error on fields (registered in this.fieldMap)
-        const valid = this.validator?.validate(this.root)
         const errorMap = new Map<string,string[]>()
-        if (!valid) {
-            // dispatch all errors over the fields 
+        const valid = this.validator?.validate(this.root)
+        if (isBoolean(valid) && !valid) {
             for (const error of this.validator.errors) {
-                const { instancePath, message, params, keyword } = error;
+                let { instancePath, message, params, keyword } = error;
+                instancePath =`/${instancePath}`
+                // required applies to object must down the error to child
+                if (keyword === "required") {
+                    instancePath = `${instancePath === '/' ? '' : ''}/${params.missingProperty}`
+                    message = "required"
+                }
                 if (!errorMap.has(instancePath)) errorMap.set(instancePath,[])
-                const detail =Object.entries(params).map(([s,v]) => v == null ? null : `${s}: ${v}`).filter(v => v).join(',')
-                const msg =  `${keyword}: ${message} (${detail})`
-                errorMap.get(instancePath)?.push(msg)
+                //const detail =Object.entries(params).map(([s,v]) => v == null ? null : `${s}: ${v}`).filter(v => v).join(',')
+                errorMap.get(instancePath)?.push(message ?? "unidentified error")
             }
         }
+
+        // dispatch all errors over the fields 
         for (const [pointer,field] of this.fieldMap.entries()) {
-            field.errors = errorMap.get(pointer) ?? []
+            // if field is not touched (not manually updated) valid/invalid not displayed
+            if (field.errors != NOT_TOUCHED) {
+                field.errors =  errorMap.get(pointer) ?? IS_VALID
+                console.log(`VALIDATION: ${field.pointer} -> ${field.errors === IS_VALID ? "Y" : "N" }`)
+            }
         }
     }
     /**

@@ -36,7 +36,7 @@
                         "type":"array",
                         "items":{
                             "type":"string",
-                            "refTo": "#/teams/id",
+                            "refTo": "/teams/id",
                             "addTo": true
                         }
                     }
@@ -64,7 +64,7 @@
                         "title": "",
                         "items":{
                             "type":"string",
-                            "refTo": "#/heroes/id",
+                            "refTo": "/heroes/id",
                             "addTo": true
                         }
                     }

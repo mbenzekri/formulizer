@@ -16,7 +16,7 @@
                 "title": "Mot de passe",
                 "type": "string",
                 "format": "password",
-                "readonly" : "! $`#/changemdp` "
+                "readonly" : "! $`/changemdp` "
             }
         },
         "required" : ["prenom","nom"]

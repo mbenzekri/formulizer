@@ -22,7 +22,7 @@ export class FzInputString extends FzInputBase {
     }
     override toValue(): void {
         if (notNull(this.input)) {
-            this.value = notNull(this.input.value) ? this.input.value : this.empty 
+            this.value = notNull(this.input.value) && this.input.value != "" ? this.input.value : this.empty 
         }
     }
 
@@ -39,7 +39,7 @@ export class FzInputString extends FzInputBase {
         return html`
             <div class="input-group" >
                 <input
-                    class="form-control" 
+                    class="form-control ${this.validationMap}" 
                     type="${this.type}" 
                     id="input"
                     placeholder="${this.label}"

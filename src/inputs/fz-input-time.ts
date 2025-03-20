@@ -29,7 +29,7 @@ export class FzInputTime extends FzInputBase {
     renderInput() {
         return html`
             <input 
-                class="form-control timepicker" 
+                class="form-control timepicker ${this.validationMap}" 
                 type="time" 
                 id="input" 
                 step="1"

@@ -2,7 +2,7 @@ import { html, css } from "lit"
 import { property, customElement } from "lit/decorators.js"
 import { FzDialog } from "./dialog"
 import { getSchema } from "../lib/tools"
-import { FzElement } from "../fz-element"
+import { FzField } from "../fz-element"
 import { Base } from "../base"
 import { Schema } from "../lib/schema"
 import { FromObject } from "../lib/types"
@@ -84,7 +84,7 @@ export class FzItemDlg extends Base {
     close(evt: CustomEvent) {
         const detail = evt.detail
         if (!evt.detail.dismissed) {
-            const field = this.shadowRoot?.getElementById("form-object") as FzElement
+            const field = this.shadowRoot?.getElementById("form-object") as FzField
             evt.detail.value = field.value[this.refname ?? "id"]
             evt.detail.abstract = field.abstract()
         }

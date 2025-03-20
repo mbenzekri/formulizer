@@ -2,10 +2,8 @@
 import { property, customElement } from "lit/decorators.js"
 import { html, css, TemplateResult } from "lit"
 import { FZCollection } from "./fz-collection"
-import { FzElement } from "../fz-element"
+import { FzField } from "../fz-element"
 import { Pojo, FieldOrder } from "../lib/types"
-import { Validator } from "../lib/validation"
-import { getCircularReplacer } from "../lib/tools"
 
 /**
  * @prop schema
@@ -18,7 +16,6 @@ export class FzObject extends FZCollection {
 
     @property({ attribute: false }) accessor collapsed = false
     @property({ attribute: false }) accessor activegroup: { [tabname: string]: string } = {}
-    private validator!: Validator
     seen: WeakSet<object> | undefined
 
     static override get styles() {
@@ -40,46 +37,16 @@ export class FzObject extends FZCollection {
     override toValue(): void {
         // properties are updated but object reference doesn't change 
     }
-    override check() {
-    //     if (!this.validator) return
+    // override check() {
+    //     // this.content = this.shadowRoot?.getElementById('content') ?? undefined
+    //     // this.content?.classList.add(this.valid ? 'valid' : 'invalid')
+    //     // this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
+    // }
 
-    //     this.valid = true
-    //     this.message = ''
-    //     switch (true) {
-    //         case (this.required && this.value == undefined):
-    //             this.valid = false
-    //             this.message = formatMsg('valueMissing')
-    //             break
-    //         case !this.required && this.value == undefined:
-    //             break
-    //         default:
-    //             this.valid = this.validator.validate(this.value)
-    //             const errors = this.validator.errors.filter(e => e.instancePath.match(/\//g)?.length === 1 )
-    //             if (this.valid == false && errors && errors.length > 0) this.message = this.validator.text
-    //     }
-
-    //     this.content = this.shadowRoot?.getElementById('content') ?? undefined
-    //     this.content?.classList.add(this.valid ? 'valid' : 'invalid')
-    //     this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
-    }
-
-    override connectedCallback() {
-        super.connectedCallback()
-        this.listen(this, 'update', _ => (this.check(), this.requestUpdate()) )
-    }
 
     override firstUpdated(changedProperties: any) {
         super.firstUpdated(changedProperties)
         this.setCollapsed()
-    }
-
-    override update(changedProperties: Map<string, unknown>) {
-        if (!this.validator && changedProperties.has("schema") && Object.keys(this.schema.properties ?? {})?.length > 0) {
-            const json = JSON.stringify(this.schema, getCircularReplacer)
-            this.validator = new Validator(JSON.parse(json));
-            this.check()
-        }
-        super.update(changedProperties);
     }
 
     private setCollapsed() {
@@ -180,11 +147,8 @@ export class FzObject extends FZCollection {
     }
 
     async delete() {
-        this.value = this.empty
         if (this.collapsed !== null) this.collapsed = true
-        this.requestUpdate()
-        await this.updateComplete
-        this.fields().forEach(field => field.check())
+        this.value = this.empty
     }
 
     override renderField(): TemplateResult {
@@ -226,12 +190,12 @@ export class FzObject extends FZCollection {
         return !!this.schema.required?.includes(name)
     }
 
-    override fields(): FzElement[] {
-        const fields: FzElement[] = []
+    override fields(): FzField[] {
+        const fields: FzField[] = []
         const tags = Object.values(this.schema.properties ?? {})
             .map((property) => property.field).join(', ')
         const list = this.shadowRoot?.querySelectorAll(tags)
-        list?.forEach((elem: Element) => fields.push(elem as FzElement))
+        list?.forEach((elem: Element) => fields.push(elem as FzField))
         return fields
     }
 

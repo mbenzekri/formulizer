@@ -17,7 +17,11 @@ export class FzInputFloat extends FzInputBase {
 
     override toField(): void {
         if (notNull(this.input)) {
-            this.input.valueAsNumber = isNumber(this.value)  ? this.value : NaN
+            if (isNumber(this.value) ) {
+                this.input.valueAsNumber =  this.value 
+            } else {
+                this.input.value =  "" 
+            }
         }
     }
     override toValue(): void {
@@ -47,7 +51,7 @@ export class FzInputFloat extends FzInputBase {
         return html`
             <div class="input-group">
                 <input 
-                    class="form-control" 
+                    class="form-control ${this.validationMap}" 
                     type="number" 
                     id="input"
                     ?readonly="${this.readonly}"

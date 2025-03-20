@@ -109,7 +109,6 @@ export function closestAscendantFrom(selector: string, item: Element): Element |
  * @returns 
  */
 export function derefPointerData(root: Pojo, parent: Pojo, key: string | number, pointer: string): any {
-    pointer = pointer.startsWith("#") ? pointer.substring(1) : pointer
     const tokens = pointer.split(/\//)
     const relative = /^\d+$/.test(tokens[0])
     let base: Pojo|undefined = relative ? parent : root

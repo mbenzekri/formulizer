@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property } from "lit/decorators.js"
-import { html, css, TemplateResult } from "lit"
+import { html, css, TemplateResult, PropertyValues } from "lit"
 import { derefPointerData, isEmptyValue, newValue, getSchema, closestAscendantFrom, isFunction, notNull } from "./lib/tools"
-import { Pojo } from "./lib/types"
+import { NOT_TOUCHED, Pojo } from "./lib/types"
 import { FzForm } from "./fz-form"
 import { Base } from "./base"
 import { EMPTY_SCHEMA, Schema } from "./lib/schema"
+import { classMap } from "lit/directives/class-map.js"
 
 const fiedtypes = [
     "fz-array",
@@ -40,27 +41,31 @@ const fieldtypeslist = fiedtypes.join(',')
  * @prop index
  * @prop required
  */
-export abstract class FzElement extends Base {
+export abstract class FzField extends Base {
 
-    @property({ type: String }) accessor pointer = '#'
+    @property({ type: String }) accessor pointer = '/'
     @property({ type: Object }) accessor schema = EMPTY_SCHEMA
     @property({ type: Object }) accessor data: Pojo = {}
     @property({ type: String }) accessor name: string | null = null
     @property({ type: Number }) accessor index: number | null = null
-
-    errors: string[] = []
+    @property({ type: Boolean, attribute:false}) accessor touched = false
+    @property({ type: Array, attribute:false}) accessor errors: string[] = NOT_TOUCHED
+    
     private _initdone = false
     private _dofocus = false
     private _form?: FzForm
 
     abstract renderField(): TemplateResult;
-    abstract check(): void;
     abstract toField(): void;
     abstract toValue(): void;
 
     get valid() {
         return this.errors.length === 0
     }
+    get invalid() {
+        return this.errors.length > 0
+    }
+
     get value(): any {
         // Warning side effects is prohibited in this method, never update this.data 
         if (this.data == null) return undefined
@@ -72,6 +77,11 @@ export abstract class FzElement extends Base {
     set value(value: any) {
         if (value === this.value) return
         this.cascadeValue(value)
+        this.errors = []
+        this.form?.check()
+    }
+    get validationMap() {
+        return classMap({ "is-valid" : this.valid, "is-invalid" : this.invalid})
     }
 
     /**
@@ -93,8 +103,7 @@ export abstract class FzElement extends Base {
             // this.data is nullish
             // --------------------
             // we need to set this value and all the nullish ascendant found (cascading sets)
-            // c'est le moment de les initialiser...
-            // imagine if current pointer is #/a/b/c/d/e 
+            // imagine if current pointer is '/a/b/c/d/e' 
             // we must check if d,c,b, and a are nullish (suppose d,c,b are nullish)
             // we will set new newValue() for b,c,d first 
 
@@ -107,25 +116,25 @@ export abstract class FzElement extends Base {
                 return false
             }
             // we split pointer to obtain the path as an array of properties or indexes
-            // ex '#/a/b/c/d/e => [#,a,b,c,d,e]
-            const properties = this.pointer.split('/').map(name => /^\d+$/.test(name) ? parseInt(name, 10) : name)
+            // ex '/a/b/c/d/e => ['',a,b,c,d,e]
+            const keys = this.pointer.split('/').map(name => /^\d+$/.test(name) ? parseInt(name, 10) : name)
 
             // for each properties in path we calculate a corresponding schema
             // because heterogeneous types in arrays we are not allways able to do it
             const schemas: Schema[] = []
             for (let ischema: Schema | undefined = schema; ischema; ischema = ischema.parent) { schemas.unshift(ischema) }
-            if (properties.length !== schemas.length) {
+            if (keys.length !== schemas.length) {
                 // not sure this is possible to happen because if we are ther choices had be done then intermidiary schema/values exists
                 console.error(`cascadeValue fail not all schema found on path `)
                 return false
             }
 
             // we calculate a newValue for each missing property/index  in path in descending order until this target 
-            const fields: FzElement[] = []
+            const fields: FzField[] = []
             let ipointer: string = ''
             let parent = form.root
-            for (let i = 0; i < properties.length && parent; i++) {
-                const key = properties[i]
+            for (let i = 0; i < keys.length && parent; i++) {
+                const key = keys[i]
                 const schema = schemas[i]
                 ipointer = i ? `${ipointer}/${key}` : `${key}`
                 const field = form.getField(ipointer)
@@ -133,10 +142,10 @@ export abstract class FzElement extends Base {
                 const type = schema.basetype
                 switch (true) {
                     // root nothing to do
-                    case key == '#':
+                    case key === '':
                         break
                     // last property empty => affecting
-                    case i === properties.length - 1: {
+                    case i === keys.length - 1: {
                         const v = newValue(value, parent, schema)
                         if (field && !field.data) field.data = parent
                         parent = parent[key] = v
@@ -161,7 +170,10 @@ export abstract class FzElement extends Base {
                 }
             }
             // trigger a requestUpdate for each field
-            fields.forEach(f => (f.toField(),f.requestUpdate()))
+            fields.forEach(f => {
+                f.toField()
+                f.requestUpdate()
+            })
 
         }
         // trigger a requestUpdate for this field
@@ -245,9 +257,9 @@ export abstract class FzElement extends Base {
         event.stopPropagation()
     }
 
-    fields(): FzElement[] {
-        const fields: FzElement[] = []
-        this.shadowRoot?.querySelectorAll(fieldtypeslist).forEach(elem => fields.push(elem as FzElement))
+    fields(): FzField[] {
+        const fields: FzField[] = []
+        this.shadowRoot?.querySelectorAll(fieldtypeslist).forEach(elem => fields.push(elem as FzField))
         return fields
     }
 
@@ -381,15 +393,13 @@ export abstract class FzElement extends Base {
     override connectedCallback() {
         super.connectedCallback()
         this.form?.addField(this.schema.pointer, this.pointer, this)
+        this.toField()
+        this.form?.check()       
     }
 
     override disconnectedCallback() {
         super.disconnectedCallback()
         this.form?.removeField(this.schema.pointer, this.pointer)
-    }
-
-    override requestUpdate(name?: PropertyKey, oldvalue?: unknown): void {
-        super.requestUpdate(name, oldvalue)
     }
 
     /**
@@ -404,7 +414,6 @@ export abstract class FzElement extends Base {
         if (!this._initdone) {
             this.firstUpdate()
             this._initdone = true
-            this.toField()
         }
         super.update(changedProps)
         if (this._dofocus) {
@@ -416,7 +425,12 @@ export abstract class FzElement extends Base {
     /**
      * to be specialized if needed
      */
-    firstUpdate() { return; }
+    firstUpdate() { return }
+    
+    protected override firstUpdated(_changedProperties: PropertyValues): void {
+        this.toField()
+    }
+
 
     /**
      * 'click' handler when click occurs on field label element
@@ -437,8 +451,6 @@ export abstract class FzElement extends Base {
         // changed occurs evaluate change keyword extension
         this.toValue()
         this.evalExpr("change")
-        // validation and error dispatching
-        this.check()
 
         // signal field update for ascendant
         const event = new CustomEvent('update', {
@@ -506,7 +518,7 @@ export abstract class FzElement extends Base {
     /**
      * return tagged template '$' for pointer derefencing in expression or code used in schema
      * the pointer derefencing is done relativatly to this.data
-     *  @example $`#/a/b/c` // absolute dereferencing
+     *  @example $`/a/b/c` // absolute dereferencing
      *  @example $`1/b/c`   // relative dereferencing
      */
     get derefFunc() {
@@ -521,7 +533,9 @@ export abstract class FzElement extends Base {
      */
     trackedValueChange() {
         // actually only expression update directly the value ofther extension
-        // keywords are called on demand 
-        this.value = this.evalExpr("expression")
+        // keywords are called on demand
+        if (this.schema.expression) {
+            this.value = this.evalExpr("expression")
+        }
     }
 }
