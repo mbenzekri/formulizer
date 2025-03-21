@@ -36,7 +36,8 @@ export class FzArray extends FZCollection {
                                                 type="checkbox"
                                                 ?disabled="${this.readonly ? true : false}"
                                                 ?checked="${this.value?.includes(item.value)}"
-                                                @click="${() => this.toggle(item.value)}"/>
+                                                @click="${() => this.toggle(item.value)}"
+                                                autocomplete=off  spellcheck="false"/>
                                             <label class="form-check-label">${item.label}</label>
                                         </div>
                                     </li>

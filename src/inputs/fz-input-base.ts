@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { html, TemplateResult } from "lit";
+import { html, PropertyValues, TemplateResult } from "lit";
 import { FzField } from "../fz-element";
 import { getCircularReplacer } from "../lib/tools";
 
@@ -42,8 +42,8 @@ export abstract class FzInputBase extends FzField {
     /**
      * on first updated set listeners
      */
-    override firstUpdate() {
-        super.firstUpdate()
+    protected override firstUpdated(changedProperties: PropertyValues): void {
+        super.firstUpdated(changedProperties)
         // for debug 'F9' output state of field
         if (this.input) this.listen(this.input,'keydown', (evt: Event) => this.debugKey(evt as KeyboardEvent))
     }

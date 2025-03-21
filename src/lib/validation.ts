@@ -1,23 +1,30 @@
 import JsonSchemaDraft  from "../assets/draft-07-schema.json"
 import Ajv from "ajv";
-import { Schema } from "./schema"
+import { FZ_FORMATS, FZ_KEYWORDS, Schema } from "./schema"
 import { AjvError } from "./types";
 import { ValidateFunction } from "ajv"
 import Ajvi18n from "ajv-i18n/localize/en"
-const ajv = new Ajv({ strictNumbers: false, strictSchema: false, coerceTypes: true })
+import addFormats from 'ajv-formats'
 
-ajv.addFormat("color", /./)
-ajv.addFormat("signature", /./)
-ajv.addFormat("password", /./)
-ajv.addFormat("doc", /./)
-ajv.addFormat("uuid", /./)
-ajv.addFormat("geo", /./)
-ajv.addFormat("markdown", /./)
-ajv.addFormat("asset", /./)
-ajv.addFormat("date", /./)
-ajv.addFormat("time", /./)
-ajv.addFormat("date-time", /./)
-ajv.addFormat("email", /./)
+const ajv = new Ajv({ 
+    allErrors: true,
+    strict: true,
+    allowUnionTypes: true,
+    strictSchema: true, 
+    strictNumbers: false, 
+    coerceTypes: false
+})
+addFormats(ajv)
+// register FzForm added formats 
+FZ_FORMATS.forEach(format => ajv.addFormat(format, /./))
+// register FzForm specific keywords
+FZ_KEYWORDS.forEach(keyword => ajv.addKeyword({ keyword, valid: true }))
+    // type: "string",              // optional: applies to schemas of this type
+    // schemaType: "boolean",       // or "object" | "string" | etc.
+    // metaSchema: { type: "boolean" }, // to validate the value of the keyword
+
+  
+
 
 
 const schemaValidate = ajv.compile(JsonSchemaDraft)

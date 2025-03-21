@@ -35,6 +35,7 @@ export class FzInputMask extends FzInputBase {
                     @keydown="${this.handleKeydown}"
                     @input="${this.handleInput}"
                     ?required="${this.required}"
+                    autocomplete=off  spellcheck="false"
                 />
             </div>`;
     }

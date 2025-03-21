@@ -18,7 +18,8 @@ export class FzInputBoolean extends FzInputBase {
                             ?required="${this.required}"
                             @change="${this.tryChange}"
                             @click="${this.tryChange}"
-                            class="form-check-input align-self-start ${this.validationMap}" 
+                            class="form-check-input align-self-start ${this.validationMap}"
+                            autocomplete=off  spellcheck="false"
                         />
                         <label class="form-check-label ms-2" for="input">${super.label}</label>
                     </div>

@@ -49,6 +49,7 @@ export class FzInputString extends FzInputBase {
                     maxlength="${ifDefined(this.maxlength)}"
                     pattern="${ifDefined(this.pattern)}"
                     ?required="${this.required}"
+                    autocomplete=off  spellcheck="false"
                 />
                 ${this.type === 'color' && this.value != null 
                     ? html`<span class="input-group-text" style="max-width:5em">${this.value}</span>`

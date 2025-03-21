@@ -12353,7 +12353,7 @@ Promise.all(fonts.map(font => font.load())).then((fonts) => {
     fonts.forEach(font => {
         document.fonts.add(font);
     });
-    console.log("FONTS LOADED");
+    // console.log("FONTS LOADED");
 });
 const bootstrapIconsCss = i$5 `
   [class^="bi-"]::before,
@@ -13827,12 +13827,12 @@ class JSONSchemaDraft07 {
     transient;
     trackers;
     target;
-    enumRef;
+    enumFetch;
     isenum;
     filter;
     isenumarray;
     homogeneous;
-    requiredWhen;
+    requiredIf;
     field;
     from;
     order;
@@ -13852,6 +13852,41 @@ class JSONSchemaDraft07 {
     tab;
     group;
 }
+const FZ_FORMATS = ["color", "signature", "password", "doc", "uuid", "geo", "markdown", "asset", "date", "time", "date-time", "email",];
+const FZ_KEYWORDS = [
+    "root",
+    "parent",
+    "basetype",
+    "pointer",
+    "nullAllowed",
+    "transient",
+    "trackers",
+    "target",
+    "enumFetch",
+    "isenum",
+    "filter",
+    "isenumarray",
+    "homogeneous",
+    "requiredIf",
+    "field",
+    "from",
+    "order",
+    "abstract",
+    "case",
+    "visible",
+    "readonly",
+    "collapsed",
+    "orderBy",
+    "expression",
+    "change",
+    //"nullable",
+    "assets",
+    "preview",
+    "mimetype",
+    "mask",
+    "tab",
+    "group",
+];
 function isSchema(value) {
     return notNull(value) && value instanceof Schema;
 }
@@ -14051,6 +14086,26 @@ class CompilationStep {
         this.root = root;
         this.property = property;
     }
+    set(schema, value, expr) {
+        schema[this.property] = value;
+        if (expr)
+            schema[this.property].expresion = expr;
+    }
+    compileExpr(schema, expression, body) {
+        const arrexpr = isString$2(expression) ? [expression] : expression;
+        try {
+            arrexpr.forEach(expr => schema._track(expr));
+            this.set(schema, new Function("schema", "value", "parent", "property", "$", "userdata", body), expression);
+        }
+        catch (e) {
+            throw Error(`compilation for keyword ${this.property} failed schema:${schema.pointer}\n    - ${String(e)}`);
+        }
+    }
+    buildCode(expression) {
+        const lines = expression.map((expr, i) => `    const cst${i} = \`${expr}\n\``);
+        lines.push(`    return ( ${expression.map((_e, i) => `cst${i}`).join(' + ')} ) `);
+        return lines.join(';\n');
+    }
     appliable(_schema, _parent, _name) {
         // default applied on all schemas
         return true;
@@ -14094,7 +14149,7 @@ const schemaAttrConverter = {
         }
     }
 };
-const DEFAULT_SCHEMA = new Schema({ type: "object", "properties": {} });
+const DEFAULT_SCHEMA = new Schema({ type: "object", properties: {}, collapsed: false });
 const EMPTY_SCHEMA = new Schema({});
 
 /**
@@ -14164,11 +14219,11 @@ class FzField extends Base {
     #errors_accessor_storage = NOT_TOUCHED;
     get errors() { return this.#errors_accessor_storage; }
     set errors(value) { this.#errors_accessor_storage = value; }
-    _initdone = false;
+    //private _initdone = false
     _dofocus = false;
     _form;
     get valid() {
-        return this.errors.length === 0;
+        return this.errors.length === 0 && this.errors != NOT_TOUCHED;
     }
     get invalid() {
         return this.errors.length > 0;
@@ -14334,8 +14389,8 @@ class FzField extends Base {
      */
     get required() {
         let required = false;
-        if (this.isProperty && this.schema.requiredWhen) {
-            required = this.evalExpr("requiredWhen") ?? false;
+        if (this.isProperty && this.schema.requiredIf) {
+            required = this.evalExpr("requiredIf") ?? false;
         }
         return required;
     }
@@ -14499,8 +14554,6 @@ class FzField extends Base {
     connectedCallback() {
         super.connectedCallback();
         this.form?.addField(this.schema.pointer, this.pointer, this);
-        this.toField();
-        this.form?.check();
     }
     disconnectedCallback() {
         super.disconnectedCallback();
@@ -14514,22 +14567,15 @@ class FzField extends Base {
     update(changedProps) {
         if (this.schema.expression)
             this.value = this.evalExpr("expression");
-        if (!this._initdone) {
-            this.firstUpdate();
-            this._initdone = true;
-        }
         super.update(changedProps);
         if (this._dofocus) {
             this._dofocus = false;
             this.focus();
         }
     }
-    /**
-     * to be specialized if needed
-     */
-    firstUpdate() { return; }
     firstUpdated(_changedProperties) {
         this.toField();
+        this.form?.check();
     }
     /**
      * 'click' handler when click occurs on field label element
@@ -14689,8 +14735,8 @@ class FzInputBase extends FzField {
     /**
      * on first updated set listeners
      */
-    firstUpdate() {
-        super.firstUpdate();
+    firstUpdated(changedProperties) {
+        super.firstUpdated(changedProperties);
         // for debug 'F9' output state of field
         if (this.input)
             this.listen(this.input, 'keydown', (evt) => this.debugKey(evt));
@@ -14726,9 +14772,12 @@ class FzInputBase extends FzField {
     }
 }
 
+const FETCHING = [];
+const EMPTY = [];
+const DEFAULT_FETCH_TIMEOUT = 10000; // 10sec 
 class FzEnumBase extends FzInputBase {
     modal;
-    enums;
+    enums = [];
     refenum;
     get extend() {
         return !!this.refenum?.extend;
@@ -14777,17 +14826,25 @@ class FzEnumBase extends FzInputBase {
     }
     isSelected(value) { return this.value === value; }
     evalEnums() {
-        this.enums = [];
+        // if fetching is on going just wait result 
+        if (this.enums == FETCHING || this.enums == EMPTY)
+            return;
         switch (true) {
             case isFunction$1(this.schema.from):
-                this.enums = this.getInsideEnum();
+                this.enums = this.getFrom();
                 break;
-            case notNull(this.schema.enumRef):
-                this.enums = this.getUserEnum();
+            case notNull(this.schema.enumFetch):
+                this.fetchEnum()
+                    .then((enums) => (this.enums = enums, this.requestUpdate()), (err) => (this.errors = [String(err)]));
                 break;
             default:
                 this.enums = this.getEnum();
+                if (this.enums.length == 0)
+                    this.enums = EMPTY;
         }
+        // result is empty enum , or fetching , or no empty enum list
+        if (this.enums != FETCHING && this.enums?.length == 0)
+            this.enums = EMPTY;
     }
     getEnum() {
         const unfiltered = Schema.inferEnums(this.schema);
@@ -14800,18 +14857,41 @@ class FzEnumBase extends FzInputBase {
             return list;
         }, []);
     }
-    getUserEnum() {
-        const name = this.schema.enumRef;
-        const event = new CustomEvent("enum", {
-            detail: { name, enum: [] },
-            bubbles: true,
-            cancelable: false,
-            composed: true
+    async fetchEnum() {
+        return new Promise((resolve, reject) => {
+            const name = this.schema.enumFetch;
+            let resolved = false;
+            const event = new CustomEvent("enum", {
+                detail: {
+                    name,
+                    success: (data) => {
+                        clearTimeout(timeout);
+                        if (!resolved) {
+                            resolved = true;
+                            resolve(data);
+                        }
+                    },
+                    failure: (message) => {
+                        clearTimeout(timeout);
+                        if (!resolved) {
+                            resolved = true;
+                            reject(new Error(`EnumFetch "${name}" failed: ${message}`));
+                        }
+                    },
+                    timeout: DEFAULT_FETCH_TIMEOUT
+                },
+                bubbles: true,
+                cancelable: false,
+                composed: true
+            });
+            this.dispatchEvent(event);
+            const timeout = setTimeout(() => {
+                if (!resolved)
+                    reject(new Error(`Timeout when fetching enumeration"${name}"`));
+            }, event.detail.timeout ?? DEFAULT_FETCH_TIMEOUT);
         });
-        this.dispatchEvent(event);
-        return event.detail.enum;
     }
-    getInsideEnum() {
+    getFrom() {
         const obj = this.evalExpr("from");
         if (isFrom(obj)) {
             this.refenum = obj;
@@ -14874,6 +14954,15 @@ let FzEnumSelect = class FzEnumSelect extends FzEnumBase {
         ];
     }
     renderEnum() {
+        if (this.enums == FETCHING) {
+            return x `
+                <div class="form-control d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm text-secondary me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    Loading...
+                </div>`;
+        }
         return x `
             <select 
                 id="input" 
@@ -14920,7 +15009,7 @@ let FzEnumCheck = class FzEnumCheck extends FzEnumBase {
         }
         else {
             this.selected = this.enums.findIndex(item => item.value === this.value);
-            if (this.selected > 0)
+            if (this.selected >= 0)
                 this.radios[this.selected].checked = true;
         }
     }
@@ -14930,6 +15019,16 @@ let FzEnumCheck = class FzEnumCheck extends FzEnumBase {
         }
     }
     renderEnum() {
+        if (this.enums == FETCHING) {
+            return x `
+                <div class="form-control d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm text-secondary me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    Loading...
+                </div>`;
+        }
+        // ?checked="${this.selected == i}"
         return x `
             ${this.enums?.map((item, i) => x `
                 <div class="form-check form-check-inline">
@@ -14940,8 +15039,8 @@ let FzEnumCheck = class FzEnumCheck extends FzEnumBase {
                         ?disabled=${this.readonly}
                         @click="${() => this.select(i)}"
                         ?required=${this.required}
-                        ?checked="${this.selected == i}"
-                        class="form-check-input" 
+                        class="form-check-input"
+                        autocomplete=off  spellcheck="false" tabindex=${i + 1} 
                     />
                     <label class="form-check-label" for="${i}-input">${item.title}</label>
                 </div>`)}`;
@@ -15007,6 +15106,15 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
         }
     }
     renderEnum() {
+        if (this.enums == FETCHING) {
+            return x `
+                <div class="form-control d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm text-secondary me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    Loading...
+                </div>`;
+        }
         const styles = { display: this.isopen ? "block" : "none" };
         return x `
             <div class="dropdown">
@@ -15021,6 +15129,7 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
                     @input=${this.filter}
                     @change=${this.filter}
                     @focus=${this.show}
+                    autocomplete=off  spellcheck="false"
                 />
                 <div id="list" style="${o$1(styles)}" class="dropdown-menu w-100">
                     ${this.filtered?.length == 0 ? x `<a class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : ''}
@@ -15047,9 +15156,9 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
     }
     select(index) {
         this.selected = index;
+        this.isopen = false;
         this.queryElem.value = this.filtered[this.selected].title;
         this.change();
-        this.isopen = false;
     }
     // get the enum list to display filter by query string (first 10 items)
     filter() {
@@ -15112,6 +15221,7 @@ let FzInputDate = class FzInputDate extends FzInputBase {
             min="${o(this.min)}"
             max="${o(this.max)}"
             ?required="${this.required}"
+            autocomplete=off  spellcheck="false"
         />`;
     }
     get min() {
@@ -15155,7 +15265,8 @@ let FzInputDatetime = class FzInputDatetime extends FzInputBase {
             max="${o(this.max)}"
             ?readonly="${this.readonly}" 
             ?required="${this.required}"
-            class="form-control ${this.validationMap}" 
+            class="form-control ${this.validationMap}"
+            autocomplete=off  spellcheck="false"
         />`;
     }
     get min() {
@@ -15200,6 +15311,7 @@ let FzInputTime = class FzInputTime extends FzInputBase {
                 ?readonly="${this.readonly}"
                 @input="${this.change}"
                 ?required="${this.required}"
+                autocomplete=off  spellcheck="false"
             />`;
     }
 };
@@ -15288,6 +15400,7 @@ let FzInputString = class FzInputString extends FzInputBase {
                     maxlength="${o(this.maxlength)}"
                     pattern="${o(this.pattern)}"
                     ?required="${this.required}"
+                    autocomplete=off  spellcheck="false"
                 />
                 ${this.type === 'color' && this.value != null
             ? x `<span class="input-group-text" style="max-width:5em">${this.value}</span>`
@@ -15340,6 +15453,7 @@ let FzInputMask = class FzInputMask extends FzInputBase {
                     @keydown="${this.handleKeydown}"
                     @input="${this.handleInput}"
                     ?required="${this.required}"
+                    autocomplete=off  spellcheck="false"
                 />
             </div>`;
     }
@@ -15676,7 +15790,8 @@ let FzInputBoolean = class FzInputBoolean extends FzInputBase {
                             ?required="${this.required}"
                             @change="${this.tryChange}"
                             @click="${this.tryChange}"
-                            class="form-check-input align-self-start ${this.validationMap}" 
+                            class="form-check-input align-self-start ${this.validationMap}"
+                            autocomplete=off  spellcheck="false"
                         />
                         <label class="form-check-label ms-2" for="input">${super.label}</label>
                     </div>
@@ -15784,6 +15899,7 @@ let FzInputFloat = class FzInputFloat extends FzInputBase {
                     step="1e-12"
                     ?required="${this.required}"
                     @keypress="${this.keypress}"
+                    autocomplete=off  spellcheck="false"
                 />
             </div>`;
     }
@@ -15893,7 +16009,8 @@ let FzRange = class FzRange extends FzInputBase {
                     max="${o(this.max)}"
                     step="1"
                     ?required="${this.required}"
-                    class="form-control ${this.validationMap}" 
+                    class="form-control ${this.validationMap}"
+                    autocomplete=off  spellcheck="false"
                 />
                 <div class="input-group-append" style="max-width:5em" >
                     <span class="input-group-text" >${this.value}</span>
@@ -15960,6 +16077,7 @@ let FzInputGeolocation = class FzInputGeolocation extends FzInputBase {
                     readonly
                     placeholder="${this.label}"
                     ?readonly="${this.readonly}" 
+                    autocomplete=off  spellcheck="false"
                 />
                 <div class="btn-group">
                     <button 
@@ -16030,6 +16148,7 @@ let FzInputInteger = class FzInputInteger extends FzInputBase {
                     max="${o(this.max)}"
                     step="1"
                     ?required="${this.required}"
+                    autocomplete=off  spellcheck="false"
                 />
             </div>`;
     }
@@ -16316,6 +16435,7 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
                     @input="${(e) => e.preventDefault()}"
                     @keypress="${(e) => e.preventDefault()}"
                     ?required="${this.required}"
+                    autocomplete=off  spellcheck="false"
                 />
                 ${(this.isEmpty || this.readonly) ? x `` : x `
                     <button  @click="${this.delete}"  type="button" class="close-right btn-close" aria-label="Close"> </button>`}
@@ -16326,7 +16446,8 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
                             @change="${this.save}"
                             ?disabled="${this.readonly}" 
                             accept="${this.mimetype}"
-                            class="btn-block"/>
+                            class="btn-block"
+                            autocomplete=off  spellcheck="false"/>
                         <i class="bi bi-file-earmark-richtext"></i>
                     </span>`}
             </div>`;
@@ -25454,7 +25575,8 @@ let FzArray = class FzArray extends FZCollection {
                                                 type="checkbox"
                                                 ?disabled="${this.readonly ? true : false}"
                                                 ?checked="${this.value?.includes(item.value)}"
-                                                @click="${() => this.toggle(item.value)}"/>
+                                                @click="${() => this.toggle(item.value)}"
+                                                autocomplete=off  spellcheck="false"/>
                                             <label class="form-check-label">${item.label}</label>
                                         </div>
                                     </li>
@@ -33572,19 +33694,372 @@ function requireEn () {
 var enExports = requireEn();
 var Ajvi18n = /*@__PURE__*/getDefaultExportFromCjs(enExports);
 
-const ajv = new Ajv({ strictNumbers: false, strictSchema: false, coerceTypes: true });
-ajv.addFormat("color", /./);
-ajv.addFormat("signature", /./);
-ajv.addFormat("password", /./);
-ajv.addFormat("doc", /./);
-ajv.addFormat("uuid", /./);
-ajv.addFormat("geo", /./);
-ajv.addFormat("markdown", /./);
-ajv.addFormat("asset", /./);
-ajv.addFormat("date", /./);
-ajv.addFormat("time", /./);
-ajv.addFormat("date-time", /./);
-ajv.addFormat("email", /./);
+var dist = {exports: {}};
+
+var formats = {};
+
+var hasRequiredFormats;
+
+function requireFormats () {
+	if (hasRequiredFormats) return formats;
+	hasRequiredFormats = 1;
+	(function (exports) {
+		Object.defineProperty(exports, "__esModule", { value: true });
+		exports.formatNames = exports.fastFormats = exports.fullFormats = void 0;
+		function fmtDef(validate, compare) {
+		    return { validate, compare };
+		}
+		exports.fullFormats = {
+		    // date: http://tools.ietf.org/html/rfc3339#section-5.6
+		    date: fmtDef(date, compareDate),
+		    // date-time: http://tools.ietf.org/html/rfc3339#section-5.6
+		    time: fmtDef(getTime(true), compareTime),
+		    "date-time": fmtDef(getDateTime(true), compareDateTime),
+		    "iso-time": fmtDef(getTime(), compareIsoTime),
+		    "iso-date-time": fmtDef(getDateTime(), compareIsoDateTime),
+		    // duration: https://tools.ietf.org/html/rfc3339#appendix-A
+		    duration: /^P(?!$)((\d+Y)?(\d+M)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+S)?)?|(\d+W)?)$/,
+		    uri,
+		    "uri-reference": /^(?:[a-z][a-z0-9+\-.]*:)?(?:\/?\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:]|%[0-9a-f]{2})*@)?(?:\[(?:(?:(?:(?:[0-9a-f]{1,4}:){6}|::(?:[0-9a-f]{1,4}:){5}|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}|(?:(?:[0-9a-f]{1,4}:){0,1}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::)(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?))|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|[Vv][0-9a-f]+\.[a-z0-9\-._~!$&'()*+,;=:]+)\]|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)|(?:[a-z0-9\-._~!$&'"()*+,;=]|%[0-9a-f]{2})*)(?::\d*)?(?:\/(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})*)*|\/(?:(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})*)*)?|(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})*)*)?(?:\?(?:[a-z0-9\-._~!$&'"()*+,;=:@/?]|%[0-9a-f]{2})*)?(?:#(?:[a-z0-9\-._~!$&'"()*+,;=:@/?]|%[0-9a-f]{2})*)?$/i,
+		    // uri-template: https://tools.ietf.org/html/rfc6570
+		    "uri-template": /^(?:(?:[^\x00-\x20"'<>%\\^`{|}]|%[0-9a-f]{2})|\{[+#./;?&=,!@|]?(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?(?:,(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?)*\})*$/i,
+		    // For the source: https://gist.github.com/dperini/729294
+		    // For test cases: https://mathiasbynens.be/demo/url-regex
+		    url: /^(?:https?|ftp):\/\/(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z0-9\u{00a1}-\u{ffff}]+-)*[a-z0-9\u{00a1}-\u{ffff}]+)(?:\.(?:[a-z0-9\u{00a1}-\u{ffff}]+-)*[a-z0-9\u{00a1}-\u{ffff}]+)*(?:\.(?:[a-z\u{00a1}-\u{ffff}]{2,})))(?::\d{2,5})?(?:\/[^\s]*)?$/iu,
+		    email: /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i,
+		    hostname: /^(?=.{1,253}\.?$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[-0-9a-z]{0,61}[0-9a-z])?)*\.?$/i,
+		    // optimized https://www.safaribooksonline.com/library/view/regular-expressions-cookbook/9780596802837/ch07s16.html
+		    ipv4: /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/,
+		    ipv6: /^((([0-9a-f]{1,4}:){7}([0-9a-f]{1,4}|:))|(([0-9a-f]{1,4}:){6}(:[0-9a-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9a-f]{1,4}:){5}(((:[0-9a-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9a-f]{1,4}:){4}(((:[0-9a-f]{1,4}){1,3})|((:[0-9a-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9a-f]{1,4}:){3}(((:[0-9a-f]{1,4}){1,4})|((:[0-9a-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9a-f]{1,4}:){2}(((:[0-9a-f]{1,4}){1,5})|((:[0-9a-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9a-f]{1,4}:){1}(((:[0-9a-f]{1,4}){1,6})|((:[0-9a-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9a-f]{1,4}){1,7})|((:[0-9a-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))$/i,
+		    regex,
+		    // uuid: http://tools.ietf.org/html/rfc4122
+		    uuid: /^(?:urn:uuid:)?[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i,
+		    // JSON-pointer: https://tools.ietf.org/html/rfc6901
+		    // uri fragment: https://tools.ietf.org/html/rfc3986#appendix-A
+		    "json-pointer": /^(?:\/(?:[^~/]|~0|~1)*)*$/,
+		    "json-pointer-uri-fragment": /^#(?:\/(?:[a-z0-9_\-.!$&'()*+,;:=@]|%[0-9a-f]{2}|~0|~1)*)*$/i,
+		    // relative JSON-pointer: http://tools.ietf.org/html/draft-luff-relative-json-pointer-00
+		    "relative-json-pointer": /^(?:0|[1-9][0-9]*)(?:#|(?:\/(?:[^~/]|~0|~1)*)*)$/,
+		    // the following formats are used by the openapi specification: https://spec.openapis.org/oas/v3.0.0#data-types
+		    // byte: https://github.com/miguelmota/is-base64
+		    byte,
+		    // signed 32 bit integer
+		    int32: { type: "number", validate: validateInt32 },
+		    // signed 64 bit integer
+		    int64: { type: "number", validate: validateInt64 },
+		    // C-type float
+		    float: { type: "number", validate: validateNumber },
+		    // C-type double
+		    double: { type: "number", validate: validateNumber },
+		    // hint to the UI to hide input strings
+		    password: true,
+		    // unchecked string payload
+		    binary: true,
+		};
+		exports.fastFormats = {
+		    ...exports.fullFormats,
+		    date: fmtDef(/^\d\d\d\d-[0-1]\d-[0-3]\d$/, compareDate),
+		    time: fmtDef(/^(?:[0-2]\d:[0-5]\d:[0-5]\d|23:59:60)(?:\.\d+)?(?:z|[+-]\d\d(?::?\d\d)?)$/i, compareTime),
+		    "date-time": fmtDef(/^\d\d\d\d-[0-1]\d-[0-3]\dt(?:[0-2]\d:[0-5]\d:[0-5]\d|23:59:60)(?:\.\d+)?(?:z|[+-]\d\d(?::?\d\d)?)$/i, compareDateTime),
+		    "iso-time": fmtDef(/^(?:[0-2]\d:[0-5]\d:[0-5]\d|23:59:60)(?:\.\d+)?(?:z|[+-]\d\d(?::?\d\d)?)?$/i, compareIsoTime),
+		    "iso-date-time": fmtDef(/^\d\d\d\d-[0-1]\d-[0-3]\d[t\s](?:[0-2]\d:[0-5]\d:[0-5]\d|23:59:60)(?:\.\d+)?(?:z|[+-]\d\d(?::?\d\d)?)?$/i, compareIsoDateTime),
+		    // uri: https://github.com/mafintosh/is-my-json-valid/blob/master/formats.js
+		    uri: /^(?:[a-z][a-z0-9+\-.]*:)(?:\/?\/)?[^\s]*$/i,
+		    "uri-reference": /^(?:(?:[a-z][a-z0-9+\-.]*:)?\/?\/)?(?:[^\\\s#][^\s#]*)?(?:#[^\\\s]*)?$/i,
+		    // email (sources from jsen validator):
+		    // http://stackoverflow.com/questions/201323/using-a-regular-expression-to-validate-an-email-address#answer-8829363
+		    // http://www.w3.org/TR/html5/forms.html#valid-e-mail-address (search for 'wilful violation')
+		    email: /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i,
+		};
+		exports.formatNames = Object.keys(exports.fullFormats);
+		function isLeapYear(year) {
+		    // https://tools.ietf.org/html/rfc3339#appendix-C
+		    return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+		}
+		const DATE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
+		const DAYS = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+		function date(str) {
+		    // full-date from http://tools.ietf.org/html/rfc3339#section-5.6
+		    const matches = DATE.exec(str);
+		    if (!matches)
+		        return false;
+		    const year = +matches[1];
+		    const month = +matches[2];
+		    const day = +matches[3];
+		    return (month >= 1 &&
+		        month <= 12 &&
+		        day >= 1 &&
+		        day <= (month === 2 && isLeapYear(year) ? 29 : DAYS[month]));
+		}
+		function compareDate(d1, d2) {
+		    if (!(d1 && d2))
+		        return undefined;
+		    if (d1 > d2)
+		        return 1;
+		    if (d1 < d2)
+		        return -1;
+		    return 0;
+		}
+		const TIME = /^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(z|([+-])(\d\d)(?::?(\d\d))?)?$/i;
+		function getTime(strictTimeZone) {
+		    return function time(str) {
+		        const matches = TIME.exec(str);
+		        if (!matches)
+		            return false;
+		        const hr = +matches[1];
+		        const min = +matches[2];
+		        const sec = +matches[3];
+		        const tz = matches[4];
+		        const tzSign = matches[5] === "-" ? -1 : 1;
+		        const tzH = +(matches[6] || 0);
+		        const tzM = +(matches[7] || 0);
+		        if (tzH > 23 || tzM > 59 || (strictTimeZone && !tz))
+		            return false;
+		        if (hr <= 23 && min <= 59 && sec < 60)
+		            return true;
+		        // leap second
+		        const utcMin = min - tzM * tzSign;
+		        const utcHr = hr - tzH * tzSign - (utcMin < 0 ? 1 : 0);
+		        return (utcHr === 23 || utcHr === -1) && (utcMin === 59 || utcMin === -1) && sec < 61;
+		    };
+		}
+		function compareTime(s1, s2) {
+		    if (!(s1 && s2))
+		        return undefined;
+		    const t1 = new Date("2020-01-01T" + s1).valueOf();
+		    const t2 = new Date("2020-01-01T" + s2).valueOf();
+		    if (!(t1 && t2))
+		        return undefined;
+		    return t1 - t2;
+		}
+		function compareIsoTime(t1, t2) {
+		    if (!(t1 && t2))
+		        return undefined;
+		    const a1 = TIME.exec(t1);
+		    const a2 = TIME.exec(t2);
+		    if (!(a1 && a2))
+		        return undefined;
+		    t1 = a1[1] + a1[2] + a1[3];
+		    t2 = a2[1] + a2[2] + a2[3];
+		    if (t1 > t2)
+		        return 1;
+		    if (t1 < t2)
+		        return -1;
+		    return 0;
+		}
+		const DATE_TIME_SEPARATOR = /t|\s/i;
+		function getDateTime(strictTimeZone) {
+		    const time = getTime(strictTimeZone);
+		    return function date_time(str) {
+		        // http://tools.ietf.org/html/rfc3339#section-5.6
+		        const dateTime = str.split(DATE_TIME_SEPARATOR);
+		        return dateTime.length === 2 && date(dateTime[0]) && time(dateTime[1]);
+		    };
+		}
+		function compareDateTime(dt1, dt2) {
+		    if (!(dt1 && dt2))
+		        return undefined;
+		    const d1 = new Date(dt1).valueOf();
+		    const d2 = new Date(dt2).valueOf();
+		    if (!(d1 && d2))
+		        return undefined;
+		    return d1 - d2;
+		}
+		function compareIsoDateTime(dt1, dt2) {
+		    if (!(dt1 && dt2))
+		        return undefined;
+		    const [d1, t1] = dt1.split(DATE_TIME_SEPARATOR);
+		    const [d2, t2] = dt2.split(DATE_TIME_SEPARATOR);
+		    const res = compareDate(d1, d2);
+		    if (res === undefined)
+		        return undefined;
+		    return res || compareTime(t1, t2);
+		}
+		const NOT_URI_FRAGMENT = /\/|:/;
+		const URI = /^(?:[a-z][a-z0-9+\-.]*:)(?:\/?\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:]|%[0-9a-f]{2})*@)?(?:\[(?:(?:(?:(?:[0-9a-f]{1,4}:){6}|::(?:[0-9a-f]{1,4}:){5}|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}|(?:(?:[0-9a-f]{1,4}:){0,1}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::)(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?))|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|[Vv][0-9a-f]+\.[a-z0-9\-._~!$&'()*+,;=:]+)\]|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)|(?:[a-z0-9\-._~!$&'()*+,;=]|%[0-9a-f]{2})*)(?::\d*)?(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*|\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)?|(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)(?:\?(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?(?:#(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?$/i;
+		function uri(str) {
+		    // http://jmrware.com/articles/2009/uri_regexp/URI_regex.html + optional protocol + required "."
+		    return NOT_URI_FRAGMENT.test(str) && URI.test(str);
+		}
+		const BYTE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/gm;
+		function byte(str) {
+		    BYTE.lastIndex = 0;
+		    return BYTE.test(str);
+		}
+		const MIN_INT32 = -2147483648;
+		const MAX_INT32 = 2 ** 31 - 1;
+		function validateInt32(value) {
+		    return Number.isInteger(value) && value <= MAX_INT32 && value >= MIN_INT32;
+		}
+		function validateInt64(value) {
+		    // JSON and javascript max Int is 2**53, so any int that passes isInteger is valid for Int64
+		    return Number.isInteger(value);
+		}
+		function validateNumber() {
+		    return true;
+		}
+		const Z_ANCHOR = /[^\\]\\Z/;
+		function regex(str) {
+		    if (Z_ANCHOR.test(str))
+		        return false;
+		    try {
+		        new RegExp(str);
+		        return true;
+		    }
+		    catch (e) {
+		        return false;
+		    }
+		}
+		
+	} (formats));
+	return formats;
+}
+
+var limit = {};
+
+var hasRequiredLimit;
+
+function requireLimit () {
+	if (hasRequiredLimit) return limit;
+	hasRequiredLimit = 1;
+	(function (exports) {
+		Object.defineProperty(exports, "__esModule", { value: true });
+		exports.formatLimitDefinition = void 0;
+		const ajv_1 = requireAjv();
+		const codegen_1 = requireCodegen();
+		const ops = codegen_1.operators;
+		const KWDs = {
+		    formatMaximum: { okStr: "<=", ok: ops.LTE, fail: ops.GT },
+		    formatMinimum: { okStr: ">=", ok: ops.GTE, fail: ops.LT },
+		    formatExclusiveMaximum: { okStr: "<", ok: ops.LT, fail: ops.GTE },
+		    formatExclusiveMinimum: { okStr: ">", ok: ops.GT, fail: ops.LTE },
+		};
+		const error = {
+		    message: ({ keyword, schemaCode }) => (0, codegen_1.str) `should be ${KWDs[keyword].okStr} ${schemaCode}`,
+		    params: ({ keyword, schemaCode }) => (0, codegen_1._) `{comparison: ${KWDs[keyword].okStr}, limit: ${schemaCode}}`,
+		};
+		exports.formatLimitDefinition = {
+		    keyword: Object.keys(KWDs),
+		    type: "string",
+		    schemaType: "string",
+		    $data: true,
+		    error,
+		    code(cxt) {
+		        const { gen, data, schemaCode, keyword, it } = cxt;
+		        const { opts, self } = it;
+		        if (!opts.validateFormats)
+		            return;
+		        const fCxt = new ajv_1.KeywordCxt(it, self.RULES.all.format.definition, "format");
+		        if (fCxt.$data)
+		            validate$DataFormat();
+		        else
+		            validateFormat();
+		        function validate$DataFormat() {
+		            const fmts = gen.scopeValue("formats", {
+		                ref: self.formats,
+		                code: opts.code.formats,
+		            });
+		            const fmt = gen.const("fmt", (0, codegen_1._) `${fmts}[${fCxt.schemaCode}]`);
+		            cxt.fail$data((0, codegen_1.or)((0, codegen_1._) `typeof ${fmt} != "object"`, (0, codegen_1._) `${fmt} instanceof RegExp`, (0, codegen_1._) `typeof ${fmt}.compare != "function"`, compareCode(fmt)));
+		        }
+		        function validateFormat() {
+		            const format = fCxt.schema;
+		            const fmtDef = self.formats[format];
+		            if (!fmtDef || fmtDef === true)
+		                return;
+		            if (typeof fmtDef != "object" ||
+		                fmtDef instanceof RegExp ||
+		                typeof fmtDef.compare != "function") {
+		                throw new Error(`"${keyword}": format "${format}" does not define "compare" function`);
+		            }
+		            const fmt = gen.scopeValue("formats", {
+		                key: format,
+		                ref: fmtDef,
+		                code: opts.code.formats ? (0, codegen_1._) `${opts.code.formats}${(0, codegen_1.getProperty)(format)}` : undefined,
+		            });
+		            cxt.fail$data(compareCode(fmt));
+		        }
+		        function compareCode(fmt) {
+		            return (0, codegen_1._) `${fmt}.compare(${data}, ${schemaCode}) ${KWDs[keyword].fail} 0`;
+		        }
+		    },
+		    dependencies: ["format"],
+		};
+		const formatLimitPlugin = (ajv) => {
+		    ajv.addKeyword(exports.formatLimitDefinition);
+		    return ajv;
+		};
+		exports.default = formatLimitPlugin;
+		
+	} (limit));
+	return limit;
+}
+
+var hasRequiredDist;
+
+function requireDist () {
+	if (hasRequiredDist) return dist.exports;
+	hasRequiredDist = 1;
+	(function (module, exports) {
+		Object.defineProperty(exports, "__esModule", { value: true });
+		const formats_1 = requireFormats();
+		const limit_1 = requireLimit();
+		const codegen_1 = requireCodegen();
+		const fullName = new codegen_1.Name("fullFormats");
+		const fastName = new codegen_1.Name("fastFormats");
+		const formatsPlugin = (ajv, opts = { keywords: true }) => {
+		    if (Array.isArray(opts)) {
+		        addFormats(ajv, opts, formats_1.fullFormats, fullName);
+		        return ajv;
+		    }
+		    const [formats, exportName] = opts.mode === "fast" ? [formats_1.fastFormats, fastName] : [formats_1.fullFormats, fullName];
+		    const list = opts.formats || formats_1.formatNames;
+		    addFormats(ajv, list, formats, exportName);
+		    if (opts.keywords)
+		        (0, limit_1.default)(ajv);
+		    return ajv;
+		};
+		formatsPlugin.get = (name, mode = "full") => {
+		    const formats = mode === "fast" ? formats_1.fastFormats : formats_1.fullFormats;
+		    const f = formats[name];
+		    if (!f)
+		        throw new Error(`Unknown format "${name}"`);
+		    return f;
+		};
+		function addFormats(ajv, list, fs, exportName) {
+		    var _a;
+		    var _b;
+		    (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : (_b.formats = (0, codegen_1._) `require("ajv-formats/dist/formats").${exportName}`);
+		    for (const f of list)
+		        ajv.addFormat(f, fs[f]);
+		}
+		module.exports = exports = formatsPlugin;
+		Object.defineProperty(exports, "__esModule", { value: true });
+		exports.default = formatsPlugin;
+		
+	} (dist, dist.exports));
+	return dist.exports;
+}
+
+var distExports = requireDist();
+var addFormats = /*@__PURE__*/getDefaultExportFromCjs(distExports);
+
+const ajv = new Ajv({
+    allErrors: true,
+    strict: true,
+    allowUnionTypes: true,
+    strictSchema: true,
+    strictNumbers: false,
+    coerceTypes: false
+});
+addFormats(ajv);
+// register FzForm added formats 
+FZ_FORMATS.forEach(format => ajv.addFormat(format, /./));
+// register FzForm specific keywords
+FZ_KEYWORDS.forEach(keyword => ajv.addKeyword({ keyword, valid: true }));
+// type: "string",              // optional: applies to schemas of this type
+// schemaType: "boolean",       // or "object" | "string" | etc.
+// metaSchema: { type: "boolean" }, // to validate the value of the keyword
 const schemaValidate = ajv.compile(JsonSchemaDraft);
 //const schemaValidate = ajv.getSchema("http://json-schema.org/draft-07/schema#")
 function validateSchema(data) {
@@ -33659,7 +34134,7 @@ class SchemaCompiler {
                 new CSEnumArray(this.root),
                 new CSUniform(this.root),
                 new CSTrackers(this.root),
-                new CSRequiredWhen(this.root),
+                new CSRequiredIf(this.root),
                 new CSField(this.root),
                 new CSOrder(this.root),
             ],
@@ -33669,7 +34144,7 @@ class SchemaCompiler {
                 new CSBool(this.root, 'case', () => false),
                 new CSBool(this.root, 'visible', () => true),
                 new CSBool(this.root, 'readonly', () => false),
-                new CSBool(this.root, 'requiredWhen', () => false),
+                new CSBool(this.root, 'requiredIf', () => false),
                 new CSBool(this.root, 'collapsed', () => false),
                 new CSBool(this.root, 'filter', () => true),
                 new CSAny(this.root, 'orderBy', () => true),
@@ -33886,27 +34361,6 @@ class CSTargetType extends CompilationStep {
     }
 }
 /**
- * Adds a oneOf enum schema obtained through options.ref callback
- * provided at form initialization
- */
-// class CSAppEnum extends CompilationStep {
-//     private options: any
-//     constructor(root: Schema, options: any) {
-//         super(root,"enumRef")
-//         this.options = options
-//     }
-//     override appliable(schema: Schema) { // when property absent
-//         return this.property in schema
-//     }
-//     override apply(schema: Schema): void {
-//         if (!this.options.ref)
-//             throw Error(`missing 'ref' function in options`)
-//         const list = this.options.ref(schema.enumRef)
-//         const oneof: any[] = list.map((x: any) => ({ "const": x.value, "title": x.title }))
-//         schema.oneOf = oneof
-//     }
-// }
-/**
  * Adds a boolean property 'isenum' true if enumeration detected
  * and only primitive types may be enums
  * 3 flavors :
@@ -34085,12 +34539,12 @@ class CSRoot extends CompilationStep {
     }
 }
 /**
- * Adds a string property 'requiredWhen' to each schema which is a required field
+ * Adds a string property 'requiredIf' to each schema which is a required field
  * this field will be compiled to getter to manage conditional mandatory values
  */
-class CSRequiredWhen extends CompilationStep {
+class CSRequiredIf extends CompilationStep {
     constructor(root) {
-        super(root, "requiredWhen");
+        super(root, "requiredIf");
     }
     appliable(schema) {
         return schema.basetype === "object" && schema.properties != null && schema.required != null;
@@ -34098,7 +34552,7 @@ class CSRequiredWhen extends CompilationStep {
     apply(schema) {
         schema.required?.forEach((name) => {
             if (schema.properties && name in schema.properties)
-                schema.properties[name].requiredWhen = "true";
+                schema.properties[name].requiredIf = "true";
         });
     }
 }
@@ -34249,25 +34703,20 @@ class CSTemplate extends CompilationStep {
     }
     apply(schema, _parent, name) {
         const expression = schema[this.property];
-        schema[this.property] = this.defunc;
-        if (typeof expression == 'string') {
-            const code = `
+        this.set(schema, this.defunc);
+        if (isString$2(expression)) {
+            const body = `
                 ${this.sourceURL(name)}
                 try { 
                     return nvl\`${expression}\`
-                } catch(e) { 
-                    console.error(\`unable to produce ${this.property} property due to :\${e.toString()}\`)
+                } catch(e) {  
+                    console.error(
+                        \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
+                        \`    => \${String(e)}\`) 
                 }
                 return ''
             `;
-            try {
-                schema._track(expression);
-                schema[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code);
-                schema[this.property].expression = expression;
-            }
-            catch (e) {
-                throw Error(`unable to compile ${this.property} expression "${expression}" due to ::\n\t=>${String(e)}`);
-            }
+            this.compileExpr(schema, expression, body);
         }
     }
 }
@@ -34275,87 +34724,63 @@ class CSTemplate extends CompilationStep {
  * compile a given property written as a function returning boolean
  */
 class CSBool extends CompilationStep {
-    defunc;
+    defaultFunc;
     constructor(root, property, defunc) {
         super(root, property);
-        this.defunc = defunc;
+        this.defaultFunc = defunc;
     }
     appliable(schema) {
-        return this.property in schema && ["string", "boolean"].includes(typeof schema[this.property]);
+        return this.property in schema && typeof schema[this.property] == "boolean";
     }
     apply(schema, _parent, name) {
         const expression = schema[this.property];
-        schema[this.property] = this.defunc;
-        if (typeof expression == 'boolean' || expression === null) {
-            schema[this.property] = expression === null ? () => null : () => expression;
-        }
-        else if (typeof expression == 'string') {
-            const code = `
+        this.set(schema, this.defaultFunc);
+        if (isNull(expression) || isBoolean(expression))
+            return this.set(schema, () => expression);
+        if (!isString$2(expression))
+            return this.set(schema, () => !!(expression));
+        const body = `
             ${this.sourceURL(name)}
             try {  
-                    const result = (${expression}) 
-
-                    return result === null ? result : !!result
-                }
-                catch(e) {  console.error(\`unable to produce ${this.property} property due to :\n\t=>\${e.toString()}\`) }
-                return true
-            `;
-            try {
-                schema._track(expression);
-                schema[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code);
-                schema[this.property].expression = expression;
+                const result = (${expression}) 
+                return result === null ? result : !!result
+            } catch(e) {  
+                console.error(
+                    \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
+                    \`    => \${String(e)}\`) 
             }
-            catch (e) {
-                throw Error(`unable to compile ${this.property} expression "${expression}" due to ::\n\t=>${String(e)}`);
-            }
-        }
+            return true
+        `;
+        this.compileExpr(schema, expression, body);
     }
 }
 class CSAny extends CompilationStep {
-    defunc;
+    defaultFunc;
     constructor(root, property, defunc) {
         super(root, property);
-        this.defunc = defunc;
+        this.defaultFunc = defunc;
     }
     appliable(schema) {
         return this.property in schema && typeof schema[this.property] !== "function";
     }
     apply(schema, _parent, name) {
         const expression = schema[this.property];
-        schema[this.property] = this.defunc;
-        let code = "return null";
-        switch (true) {
-            case typeof expression == 'boolean':
-                code = expression ? `return true ;` : `return false ;`;
-                break;
-            case typeof expression == 'string':
-                code = `return ${expression} ;`;
-                break;
-            case Array.isArray(expression):
-                const lines = expression.map((expr, i) => `    const cst${i} = \`${expr}\n\``);
-                lines.push(`return ( ${expression.map((_e, i) => `cst${i}`).join(' + ')} );`);
-                code = lines.join(';\n');
-                break;
-        }
+        this.set(schema, this.defaultFunc);
+        if (!isString$2(expression) && !isArray(expression))
+            return this.set(schema, () => expression);
+        let code = `return null`;
+        code = isString$2(expression) ? `return ${expression}` : this.buildCode(expression);
         const body = `
-            try {  
-                ${code} 
-            }
-            catch(e) {  console.error(\`unable to produce ${this.property} property due to :\n\t=>\${e.toString()}\`) }
-            return null
             ${this.sourceURL(name)}
+            try {
+                ${code} 
+            } catch(e) {  
+                console.error(
+                    \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
+                    \`    => \${String(e)}\`) }
+            return null
         `;
-        try {
-            if (Array.isArray(expression))
-                expression.forEach((expr) => schema._track(expr));
-            if (typeof expression == 'string')
-                schema._track(expression);
-            schema[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", body);
-            schema[this.property].expression = expression;
-        }
-        catch (e) {
-            console.error(`unable to compile ${this.property} expression "${expression}" due to ::\n\t=>${String(e)}`);
-        }
+        this.compileExpr(schema, expression, body);
     }
 }
 /**
@@ -34527,6 +34952,7 @@ let FzForm = class FzForm extends Base {
     get schema() { return this.i_schema; }
     set schema(value) {
         this.i_schema = validateSchema(value) ? new Schema(JSON.parse(JSON.stringify(value))) : DEFAULT_SCHEMA;
+        this.i_schema.collapsed = false;
         this.schemaErrors = validateErrors();
         this.validator = new Validator(this.i_schema);
         this.compile();
@@ -34616,6 +35042,10 @@ let FzForm = class FzForm extends Base {
         super.disconnectedCallback();
         this.removeEventListener('data-updated', (e) => this.handleDataUpdate(e));
     }
+    firstUpdated(changedProperties) {
+        // this is an unused callback actually (needed only for breakpoints)
+        super.firstUpdated(changedProperties);
+    }
     check() {
         // collect errors and dispatch error on fields (registered in this.fieldMap)
         const errorMap = new Map();
@@ -34640,7 +35070,7 @@ let FzForm = class FzForm extends Base {
             // if field is not touched (not manually updated) valid/invalid not displayed
             if (field.errors != NOT_TOUCHED) {
                 field.errors = errorMap.get(pointer) ?? IS_VALID;
-                console.log(`VALIDATION: ${field.pointer} -> ${field.errors === IS_VALID ? "Y" : "N"}`);
+                // console.log(`VALIDATION: ${field.pointer} -> ${field.errors === IS_VALID ? "Y" : "N" }`)
             }
         }
     }
@@ -34687,6 +35117,28 @@ let FzForm = class FzForm extends Base {
             console.error(this.message);
         }
         this.dispatchEvent(new CustomEvent('ready'));
+    }
+    debug(pointer) {
+        const field = this.fieldMap.get(pointer);
+        if (!field)
+            throw new Error(`No field found for pointer: ${pointer}`);
+        if (!field.data || !field.key)
+            throw new Error(`Field at ${pointer} has no parent/key`);
+        const obj = field.data;
+        const key = field.key;
+        let value = obj[key];
+        Object.defineProperty(obj, key, {
+            get() {
+                return value;
+            },
+            set(newValue) {
+                console.debug(`Formulizer watchPointer: ${pointer} (${key}) changed from`, value, "to", newValue);
+                debugger;
+                value = newValue;
+            },
+            configurable: true,
+            enumerable: true
+        });
     }
 };
 __decorate([

@@ -37,6 +37,7 @@ export class FzInputTime extends FzInputBase {
                 ?readonly="${this.readonly}"
                 @input="${this.change}"
                 ?required="${this.required}"
+                autocomplete=off  spellcheck="false"
             />`
     }
 

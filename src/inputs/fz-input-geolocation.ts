@@ -44,6 +44,7 @@ export class FzInputGeolocation extends FzInputBase {
                     readonly
                     placeholder="${this.label}"
                     ?readonly="${this.readonly}" 
+                    autocomplete=off  spellcheck="false"
                 />
                 <div class="btn-group">
                     <button 

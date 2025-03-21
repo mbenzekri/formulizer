@@ -17,7 +17,7 @@ Promise.all(fonts.map(font => font.load())).then((fonts: FontFace[]) => {
     fonts.forEach(font => {
         document.fonts.add(font);
     })
-    console.log("FONTS LOADED");
+    // console.log("FONTS LOADED");
 })
 
 export const bootstrapIconsCss = css`

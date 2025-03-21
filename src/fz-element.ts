@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property } from "lit/decorators.js"
 import { html, css, TemplateResult, PropertyValues } from "lit"
-import { derefPointerData, isEmptyValue, newValue, getSchema, closestAscendantFrom, isFunction, notNull } from "./lib/tools"
+import { derefPointerData, isEmptyValue, newValue, getSchema, closestAscendantFrom, isFunction, notNull, isArray } from "./lib/tools"
 import { NOT_TOUCHED, Pojo } from "./lib/types"
 import { FzForm } from "./fz-form"
 import { Base } from "./base"
@@ -51,7 +51,7 @@ export abstract class FzField extends Base {
     @property({ type: Boolean, attribute:false}) accessor touched = false
     @property({ type: Array, attribute:false}) accessor errors: string[] = NOT_TOUCHED
     
-    private _initdone = false
+    //private _initdone = false
     private _dofocus = false
     private _form?: FzForm
 
@@ -60,7 +60,7 @@ export abstract class FzField extends Base {
     abstract toValue(): void;
 
     get valid() {
-        return this.errors.length === 0
+        return this.errors.length === 0 && this.errors != NOT_TOUCHED
     }
     get invalid() {
         return this.errors.length > 0
@@ -186,8 +186,9 @@ export abstract class FzField extends Base {
     * check if field is nullable
     */
     get nullable() {
-        if ("_nullable" in this.schema) return this.schema._nullable;
-        return this.schema.nullAllowed;
+        if (this.schema.type === "null") return true
+        if (isArray(this.schema.type) &&  this.schema.type.includes("null")) return true
+        return this.schema.nullAllowed
     }
 
     get key(): string | number {
@@ -222,8 +223,8 @@ export abstract class FzField extends Base {
      */
     get required() {
         let required = false
-        if (this.isProperty && this.schema.requiredWhen) {
-            required = this.evalExpr("requiredWhen") ?? false
+        if (this.isProperty && this.schema.requiredIf) {
+            required = this.evalExpr("requiredIf") ?? false
         }
         return required
     }
@@ -393,8 +394,6 @@ export abstract class FzField extends Base {
     override connectedCallback() {
         super.connectedCallback()
         this.form?.addField(this.schema.pointer, this.pointer, this)
-        this.toField()
-        this.form?.check()       
     }
 
     override disconnectedCallback() {
@@ -411,10 +410,6 @@ export abstract class FzField extends Base {
         if (this.schema.expression)
             this.value = this.evalExpr("expression")
 
-        if (!this._initdone) {
-            this.firstUpdate()
-            this._initdone = true
-        }
         super.update(changedProps)
         if (this._dofocus) {
             this._dofocus = false
@@ -422,13 +417,9 @@ export abstract class FzField extends Base {
         }
     }
 
-    /**
-     * to be specialized if needed
-     */
-    firstUpdate() { return }
-    
     protected override firstUpdated(_changedProperties: PropertyValues): void {
         this.toField()
+        this.form?.check()       
     }
 
 

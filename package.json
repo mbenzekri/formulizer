@@ -19,9 +19,10 @@
     "lint": "npm run lint:lit-analyzer && npm run lint:eslint",
     "lint:eslint": "eslint 'src/**/*.ts'",
     "lint:lit-analyzer": "lit-analyzer",
-    "test" : "npx playwright test --project=chromium",
+    "test": "npx playwright test --project=chromium",
     "test:all": "npx playwright test",
-    "test:debug": "npx playwright test --headed --debug"
+    "test:debug": "npx playwright test --debug --project=chromium -g",
+    "test:one": "npx playwright test  --project=chromium -g "
   },
   "keywords": [
     "web-components",
@@ -37,6 +38,7 @@
     "@lit/context": "^1.1.4",
     "@types/markdown-it": "^14.1.2",
     "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
     "ajv-i18n": "^4.2.0",
     "bootstrap": "^5.3.3",
     "lit": "^3.2.0",

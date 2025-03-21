@@ -12,5 +12,8 @@
       "editor.insertSpaces": true
     },
     "diffEditor.ignoreTrimWhitespace": true,
-    "CodeGPT.apiKey": "OpenAI"
+    "CodeGPT.apiKey": "OpenAI",
+    "[html]": {
+        "editor.defaultFormatter": "vscode.html-language-features"
+    }
 }

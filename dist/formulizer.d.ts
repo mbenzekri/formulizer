@@ -1,6 +1,6 @@
 import * as lit_html from 'lit-html';
 import * as lit from 'lit';
-import { LitElement, TemplateResult, PropertyValues } from 'lit';
+import { LitElement, PropertyValues, TemplateResult } from 'lit';
 import * as lit_html_directive from 'lit-html/directive';
 import * as lit_html_directives_class_map from 'lit-html/directives/class-map';
 
@@ -59,12 +59,12 @@ declare class JSONSchemaDraft07 {
     transient?: boolean;
     trackers: string[];
     target: string[];
-    enumRef?: string;
+    enumFetch?: string;
     isenum: boolean;
     filter?: Function;
     isenumarray: boolean;
     homogeneous: boolean;
-    requiredWhen: string | Function;
+    requiredIf: string | Function;
     field: string;
     from?: {
         pointer: string;
@@ -75,7 +75,7 @@ declare class JSONSchemaDraft07 {
     case?: string | ExprFunc<boolean>;
     visible?: string | ExprFunc<boolean>;
     readonly?: string | ExprFunc<boolean>;
-    collapsed?: string | ExprFunc<boolean>;
+    collapsed?: boolean | ExprFunc<boolean>;
     orderBy?: string | ExprFunc<any>;
     expression?: string | ExprFunc<any>;
     change?: string | ExprFunc<any>;
@@ -238,6 +238,7 @@ declare class FzForm extends Base {
     private renderError;
     connectedCallback(): void;
     disconnectedCallback(): void;
+    protected firstUpdated(changedProperties: PropertyValues): void;
     check(): void;
     /**
      * 'data-updated' event handler for data change.
@@ -247,6 +248,7 @@ declare class FzForm extends Base {
     private confirm;
     private cancel;
     private compile;
+    debug(pointer: string): void;
 }
 
 /**
@@ -264,7 +266,6 @@ declare abstract class FzField extends Base {
     accessor index: number | null;
     accessor touched: boolean;
     accessor errors: string[];
-    private _initdone;
     private _dofocus;
     private _form?;
     abstract renderField(): TemplateResult;
@@ -349,10 +350,6 @@ declare abstract class FzField extends Base {
      * @param changedProps changed properties
      */
     update(changedProps: any): void;
-    /**
-     * to be specialized if needed
-     */
-    firstUpdate(): void;
     protected firstUpdated(_changedProperties: PropertyValues): void;
     /**
      * 'click' handler when click occurs on field label element

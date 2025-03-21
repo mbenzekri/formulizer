@@ -61,6 +61,7 @@ export class FzInputFloat extends FzInputBase {
                     step="1e-12"
                     ?required="${this.required}"
                     @keypress="${this.keypress}"
+                    autocomplete=off  spellcheck="false"
                 />
             </div>`
     }

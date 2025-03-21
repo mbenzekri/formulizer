@@ -61,7 +61,7 @@
             "type": "string",
             "field": "fz-enum-typeahead",
             "change": "goto(value)",
-            "enumRef": "TOC"
+            "enumFetch": "TOC"
         }
     }
 }

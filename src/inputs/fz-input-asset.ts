@@ -46,6 +46,7 @@ export class FzInputAsset extends FzInputBase {
                     placeholder="${ifDefined(this.label ?? "")}"
                     readonly
                     class="form-control ${this.validationMap}"
+                    autocomplete=off  spellcheck="false"
                 />
                 <button
                     type="button"

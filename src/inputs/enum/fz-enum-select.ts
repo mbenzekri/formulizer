@@ -1,6 +1,6 @@
 import { customElement, property, queryAll } from "lit/decorators.js"
 import { html,css } from "lit"
-import { FzEnumBase } from "./fz-enum-base";
+import { FETCHING, FzEnumBase } from "./fz-enum-base";
 import { classMap } from 'lit/directives/class-map.js';
 import { isNull, notNull } from "../../lib/tools";
 
@@ -41,6 +41,16 @@ export class FzEnumSelect extends FzEnumBase {
         ]
     }
     renderEnum() {
+        if (this.enums == FETCHING) {
+            return html`
+                <div class="form-control d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm text-secondary me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    Loading...
+                </div>`
+        }
+
         return html`
             <select 
                 id="input" 

@@ -1,5 +1,5 @@
 import { test, expect, Page, ElementHandle, JSHandle, Locator } from '@playwright/test';
-import { elemAllHandle, elemHandle, fieldHandle, formInit, formState, formStatus, FzField, TEST_PAGE } from './helpers'
+import { elemAllHandle, elemHandle, fieldHandle, formInit, formState, FzField, TEST_PAGE } from './helpers'
 
 test.describe('fz-enum-select field', () => {
   const SCHEMA = {
@@ -26,9 +26,9 @@ test.describe('fz-enum-select field', () => {
 
   async function init(page: Page, testSchema:any = SCHEMA, testData:any = DATA) {
     form_l = await formInit(page, testSchema, testData)
-    field_h = await fieldHandle(form_l, '#/color')
-    select_h = await elemHandle(form_l, '#/color', 'select') as ElementHandle<HTMLSelectElement>
-    options_h = await elemAllHandle(form_l, '#/color', 'option') as JSHandle<HTMLOptionElement[]>
+    field_h = await fieldHandle(form_l, '/color')
+    select_h = await elemHandle(form_l, '/color', 'select') as ElementHandle<HTMLSelectElement>
+    options_h = await elemAllHandle(form_l, '/color', 'option') as JSHandle<HTMLOptionElement[]>
   }
 
   test.beforeEach(async ({ page }) => {

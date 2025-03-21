@@ -6,7 +6,7 @@
             "raccordable": {
                 "type" : "string",
                 "title" : "Raccordable ?",
-                "enumRef" : "T_REF_RR",
+                "enumFetch" : "T_REF_RR",
                 "change" : "userdata.itv.CD_DOM_RR = value"
             }
         }

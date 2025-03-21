@@ -1,0 +1,43 @@
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="module" src="./src/formulizer.js"></script>
+</head>
+
+<body>
+
+    <fz-form id="myform" oninit=oninit onready=onready actions onvalidate=onvalidate ondismiss=ondismiss></fz-form>
+    <br>
+    <pre id="mydata" lang=""></pre>
+    <script>
+        function oninit(evt) {
+            // console.log("Event 'init' trigerred")
+        }
+        function onready(evt) {
+            // console.log("Event 'ready' trigerred")
+        }
+        function onvalidate(evt) {
+            // console.log("Event 'validate' trigerred")
+        }
+        function ondismiss(evt) {
+            // console.log("Event 'dismiss' trigerred")
+        }
+        window.onload = () => {
+            const form = document.getElementById("myform")
+            form.schema = {
+                type: "object",
+                properties: {
+                    "answer": {
+                        "type": "string",
+                        "enum": ["yes", "no"]
+                    }
+                }
+            }
+            form.data = { answer: undefined }
+        }
+    </script>
+</body>
+
+</html>

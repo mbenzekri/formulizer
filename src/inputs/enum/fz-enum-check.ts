@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement,property,queryAll } from "lit/decorators.js"
 import { html } from "lit"
-import { FzEnumBase } from "./fz-enum-base";
+import { FETCHING, FzEnumBase } from "./fz-enum-base";
 import { isNull, notNull } from "../../lib/tools";
 
 @customElement("fz-enum-check")
@@ -16,7 +16,7 @@ export class FzEnumCheck extends FzEnumBase {
             this.selected = -1
         } else {
             this.selected = this.enums.findIndex(item => item.value === this.value) 
-            if (this.selected > 0)  this.radios[this.selected].checked = true
+            if (this.selected >= 0)  this.radios[this.selected].checked = true
         }
     }
 
@@ -27,6 +27,16 @@ export class FzEnumCheck extends FzEnumBase {
     }
 
     renderEnum() {
+        if (this.enums == FETCHING) {
+            return html`
+                <div class="form-control d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm text-secondary me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    Loading...
+                </div>`
+        }
+                        // ?checked="${this.selected == i}"
         return html`
             ${this.enums?.map((item, i) => html`
                 <div class="form-check form-check-inline">
@@ -37,8 +47,8 @@ export class FzEnumCheck extends FzEnumBase {
                         ?disabled=${this.readonly}
                         @click="${() => this.select(i)}"
                         ?required=${this.required}
-                        ?checked="${this.selected == i}"
-                        class="form-check-input" 
+                        class="form-check-input"
+                        autocomplete=off  spellcheck="false" tabindex=${i+1} 
                     />
                     <label class="form-check-label" for="${i}-input">${item.title}</label>
                 </div>`)

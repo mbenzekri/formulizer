@@ -7,12 +7,14 @@ import { isFrom, Schema } from "../../lib/schema";
 import { EnumItem, FromObject, Pojo } from "../../lib/types";
 import { query } from "lit/decorators.js";
 
-
+export const FETCHING = []
+export const EMPTY = []
+const DEFAULT_FETCH_TIMEOUT = 10000 // 10sec 
 export abstract class FzEnumBase extends FzInputBase {
 
     @query('fz-item-dlg') private modal?: FzItemDlg
     abstract renderEnum(): TemplateResult
-    protected enums?: EnumItem[]
+    protected enums?: EnumItem[] = []
     protected refenum?: FromObject
 
     get extend() {
@@ -67,17 +69,25 @@ export abstract class FzEnumBase extends FzInputBase {
     isSelected(value: any) { return this.value === value }
 
     evalEnums() {
-        this.enums = []
+        // if fetching is on going just wait result 
+        if (this.enums == FETCHING || this.enums == EMPTY) return
         switch (true) {
             case isFunction(this.schema.from):
-                this.enums = this.getInsideEnum()
+                this.enums = this.getFrom()
                 break
-            case notNull(this.schema.enumRef):
-                this.enums = this.getUserEnum()
+            case notNull(this.schema.enumFetch):
+                this.fetchEnum()
+                .then(
+                    (enums) => (this.enums = enums, this.requestUpdate()),  
+                    (err) => (this.errors=[String(err)])
+                )
                 break
             default: 
                 this.enums = this.getEnum()
+                if (this.enums.length == 0) this.enums = EMPTY
         }
+        // result is empty enum , or fetching , or no empty enum list
+        if (this.enums != FETCHING && this.enums?.length == 0) this.enums = EMPTY
     }
 
     private getEnum() {
@@ -90,20 +100,38 @@ export abstract class FzEnumBase extends FzInputBase {
         }, []) 
     }
 
-    private getUserEnum() {
-        const name = this.schema.enumRef
-        const event = new CustomEvent("enum", {
-            detail: { name, enum: [] as EnumItem[] },
-            bubbles: true,
-            cancelable: false,
-            composed: true
+    private async fetchEnum(): Promise<EnumItem[]> {
+        return new Promise<EnumItem[]>((resolve, reject) => {
+            const name = this.schema.enumFetch;
+            let resolved = false;
 
-        })
-        this.dispatchEvent(event);
-        return event.detail.enum
+            const event = new CustomEvent("enum", {
+                detail: {
+                    name,
+                    success: (data: EnumItem[]) => {
+                        clearTimeout(timeout);
+                        if (!resolved) { resolved = true; resolve(data); }
+                    },
+                    failure: (message: string) => {
+                        clearTimeout(timeout);
+                        if (!resolved) { resolved = true; reject(new Error(`EnumFetch "${name}" failed: ${message}`)); }
+                    },
+                    timeout: DEFAULT_FETCH_TIMEOUT
+                },
+                bubbles: true,
+                cancelable: false,
+                composed: true
+            });
+    
+            this.dispatchEvent(event);
+            const timeout = setTimeout(() => {
+                if (!resolved)  reject(new Error(`Timeout when fetching enumeration"${name}"`))
+            }, event.detail.timeout ?? DEFAULT_FETCH_TIMEOUT)
+
+        });
     }
-
-    private getInsideEnum(): EnumItem[] {
+    
+    private getFrom(): EnumItem[] {
         const obj = this.evalExpr("from")
         if (isFrom(obj)) {
             this.refenum = obj 

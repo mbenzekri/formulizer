@@ -1,5 +1,5 @@
 import { Pojo, FieldOrder, ExprFunc, IOptions, FromObject, SCHEMA, ROOT, PARENT, KEY } from "./types"
-import { pointerSchema, derefPointerData, complement, intersect, union, isPrimitive, isArray, isFunction, notNull, getSchema, isObject } from "./tools";
+import { pointerSchema, derefPointerData, complement, intersect, union, isPrimitive, isArray, isFunction, notNull, getSchema, isObject, isBoolean, isNull, isString } from "./tools";
 import { Schema, CompilationStep, isenumarray, } from "./schema";
 
 /**
@@ -49,7 +49,7 @@ export class SchemaCompiler {
                 new CSEnumArray(this.root,),
                 new CSUniform(this.root,),
                 new CSTrackers(this.root,),
-                new CSRequiredWhen(this.root,),
+                new CSRequiredIf(this.root,),
                 new CSField(this.root),
                 new CSOrder(this.root),
             ],
@@ -59,7 +59,7 @@ export class SchemaCompiler {
                 new CSBool(this.root, 'case', () => false),
                 new CSBool(this.root, 'visible', () => true),
                 new CSBool(this.root, 'readonly', () => false),
-                new CSBool(this.root, 'requiredWhen', () => false),
+                new CSBool(this.root, 'requiredIf', () => false),
                 new CSBool(this.root, 'collapsed', () => false),
                 new CSBool(this.root, 'filter', () => true),
                 new CSAny(this.root, 'orderBy', () => true),
@@ -125,8 +125,6 @@ export class SchemaCompiler {
     }
 
 }
-
-
 
 /**
  * Replace schemas defined by reference ($ref) by their real 
@@ -297,29 +295,6 @@ class CSTargetType extends CompilationStep {
     }
 
 }
-/**
- * Adds a oneOf enum schema obtained through options.ref callback 
- * provided at form initialization
- */
-// class CSAppEnum extends CompilationStep {
-//     private options: any
-
-//     constructor(root: Schema, options: any) {
-//         super(root,"enumRef")
-//         this.options = options
-//     }
-
-//     override appliable(schema: Schema) { // when property absent
-//         return this.property in schema
-//     }
-//     override apply(schema: Schema): void {
-//         if (!this.options.ref)
-//             throw Error(`missing 'ref' function in options`)
-//         const list = this.options.ref(schema.enumRef)
-//         const oneof: any[] = list.map((x: any) => ({ "const": x.value, "title": x.title }))
-//         schema.oneOf = oneof
-//     }
-// }
 
 /**
  * Adds a boolean property 'isenum' true if enumeration detected
@@ -530,13 +505,13 @@ class CSRoot extends CompilationStep {
 }
 
 /**
- * Adds a string property 'requiredWhen' to each schema which is a required field
+ * Adds a string property 'requiredIf' to each schema which is a required field
  * this field will be compiled to getter to manage conditional mandatory values
  */
-class CSRequiredWhen extends CompilationStep {
+class CSRequiredIf extends CompilationStep {
 
     constructor(root: Schema) {
-        super(root, "requiredWhen")
+        super(root, "requiredIf")
     }
 
     override appliable(schema: Schema) {
@@ -544,7 +519,7 @@ class CSRequiredWhen extends CompilationStep {
     }
     override apply(schema: Schema): void {
         schema.required?.forEach((name: any) => {
-            if (schema.properties && name in schema.properties) schema.properties[name].requiredWhen = "true"
+            if (schema.properties && name in schema.properties) schema.properties[name].requiredIf = "true"
         })
     }
 }
@@ -697,24 +672,20 @@ class CSTemplate extends CompilationStep {
     }
     override apply(schema: Schema, _parent: Schema, name: string) {
         const expression = schema[this.property]
-            ; (schema as any)[this.property] = this.defunc
-        if (typeof expression == 'string') {
-            const code = `
+        this.set(schema, this.defunc)
+        if (isString(expression)) {
+            const body = `
                 ${this.sourceURL(name)}
                 try { 
                     return nvl\`${expression}\`
-                } catch(e) { 
-                    console.error(\`unable to produce ${this.property} property due to :\${e.toString()}\`)
+                } catch(e) {  
+                    console.error(
+                        \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
+                        \`    => \${String(e)}\`) 
                 }
                 return ''
             `
-            try {
-                schema._track(expression)
-                    ; (schema as any)[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code)
-                    ; (schema as any)[this.property].expression = expression
-            } catch (e) {
-                throw Error(`unable to compile ${this.property} expression "${expression}" due to ::\n\t=>${String(e)}`)
-            }
+            this.compileExpr(schema,expression,body)
         }
     }
 }
@@ -724,47 +695,41 @@ class CSTemplate extends CompilationStep {
  * compile a given property written as a function returning boolean  
  */
 class CSBool extends CompilationStep {
-    private defunc: ExprFunc<boolean>
+    private defaultFunc: ExprFunc<boolean>
     constructor(root: Schema, property: keyof Schema, defunc: ExprFunc<boolean>) {
         super(root, property)
-        this.defunc = defunc
+        this.defaultFunc = defunc
     }
     override appliable(schema: Schema) {
-        return this.property in schema && ["string", "boolean"].includes(typeof schema[this.property])
+        return this.property in schema &&  typeof schema[this.property] == "boolean"
     }
     override apply(schema: Schema, _parent: Schema, name: string) {
         const expression = schema[this.property]
-            ; (schema as any)[this.property] = this.defunc
-        if (typeof expression == 'boolean' || expression === null) {
-            (schema as any)[this.property] = expression === null ? () => null : () => expression
-        } else if (typeof expression == 'string') {
-            const code = `
+        this.set(schema,this.defaultFunc)
+        if (isNull(expression) || isBoolean(expression)) return  this.set(schema,() => expression)
+        if (!isString(expression)) return  this.set(schema,() => !!(expression))
+        const body = `
             ${this.sourceURL(name)}
             try {  
-                    const result = (${expression}) 
-
-                    return result === null ? result : !!result
-                }
-                catch(e) {  console.error(\`unable to produce ${this.property} property due to :\n\t=>\${e.toString()}\`) }
-                return true
-            `
-            try {
-                schema._track(expression)
-                    ; (schema as any)[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", code)
-                schema[this.property].expression = expression
-            } catch (e) {
-                throw Error(`unable to compile ${this.property} expression "${expression}" due to ::\n\t=>${String(e)}`)
+                const result = (${expression}) 
+                return result === null ? result : !!result
+            } catch(e) {  
+                console.error(
+                    \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
+                    \`    => \${String(e)}\`) 
             }
-        }
+            return true
+        `
+        this.compileExpr(schema,expression,body)
     }
 }
 
 
 class CSAny extends CompilationStep {
-    private defunc: ExprFunc<any>
+    private defaultFunc: ExprFunc<any>
     constructor(root: Schema, property: keyof Schema, defunc: ExprFunc<any>) {
         super(root, property)
-        this.defunc = defunc
+        this.defaultFunc = defunc
     }
     override appliable(schema: Schema) {
         return this.property in schema && typeof schema[this.property] !== "function"
@@ -772,37 +737,22 @@ class CSAny extends CompilationStep {
     }
     override apply(schema: Schema, _parent: Schema, name: string) {
         const expression = schema[this.property]
-            ; (schema as any)[this.property] = this.defunc
-        let code = "return null"
-        switch (true) {
-            case typeof expression == 'boolean':
-                code = expression ? `return true ;` : `return false ;`
-                break
-            case typeof expression == 'string':
-                code = `return ${expression} ;`
-                break
-            case Array.isArray(expression):
-                const lines = expression.map((expr: any, i: any) => `    const cst${i} = \`${expr}\n\``)
-                lines.push(`return ( ${expression.map((_e: any, i: number) => `cst${i}`).join(' + ')} );`)
-                code = lines.join(';\n')
-                break
-        }
+        this.set(schema,this.defaultFunc)
+        if (!isString(expression) && !isArray(expression)) return  this.set(schema,() => expression)
+        let code =  `return null`
+        code =  isString(expression) ? `return ${expression}`: this.buildCode(expression)
         const body = `
-            try {  
-                ${code} 
-            }
-            catch(e) {  console.error(\`unable to produce ${this.property} property due to :\n\t=>\${e.toString()}\`) }
-            return null
             ${this.sourceURL(name)}
+            try {
+                ${code} 
+            } catch(e) {  
+                console.error(
+                    \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
+                    \`    => \${String(e)}\`) }
+            return null
         `
-        try {
-            if (Array.isArray(expression)) expression.forEach((expr: string) => schema._track(expr))
-            if (typeof expression == 'string') schema._track(expression)
-                ; (schema as any)[this.property] = new Function("schema", "value", "parent", "property", "$", "userdata", body)
-            schema[this.property].expression = expression
-        } catch (e) {
-            console.error(`unable to compile ${this.property} expression "${expression}" due to ::\n\t=>${String(e)}`)
-        }
+        this.compileExpr(schema,expression,body)
+
     }
 }
 
@@ -828,10 +778,6 @@ export class DataCompiler {
                     data[PARENT] = parent
                     data[KEY] = key
                     data[ROOT] = data
-                    // data[EVAL] = function(attribute: keyof Schema, userdata: any) {
-                    //     if (!isFunction(this[SCHEMA]?.[attribute])) return undefined
-                    //     return (this[SCHEMA][attribute] as ExprFunc<any>)(this[SCHEMA],this,parent, key, this.derefFunc, userdata)
-                    // }
                 }
             }
         ]

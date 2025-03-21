@@ -25,9 +25,9 @@ export class CSUpgradeId extends CompilationStep {
         return this.property in schema && (schema.$id as string).includes("#");
     }
 
-    override apply(schema: Schema): void {
-        const [base, _anchor] = (schema.$id as string).split("#");
-        schema.$id = base;
+    override apply(_schema: Schema): void {
+        //const [base, _anchor] = (schema.$id as string).split("#");
+        //schema.$id = base;
         //schema.$anchor = anchor;
     }
 }

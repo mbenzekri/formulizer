@@ -43,6 +43,7 @@ export class FzInputInteger extends FzInputBase {
                     max="${ifDefined(this.max)}"
                     step="1"
                     ?required="${this.required}"
+                    autocomplete=off  spellcheck="false"
                 />
             </div>`
     }

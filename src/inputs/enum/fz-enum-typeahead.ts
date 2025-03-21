@@ -3,7 +3,7 @@ import { customElement, property, query } from "lit/decorators.js"
 import { unsafeHTML } from "lit/directives/unsafe-html.js"
 import { styleMap } from "lit/directives/style-map.js";
 import { html } from "lit"
-import { FzEnumBase } from "./fz-enum-base";
+import { FETCHING, FzEnumBase } from "./fz-enum-base";
 import { EnumItem } from "../../lib/types";
 import { isNull } from "../../lib/tools";
 
@@ -38,8 +38,17 @@ export class FzEnumTypeahead extends FzEnumBase {
     }
 
     renderEnum() {
-        const styles = { display: this.isopen ? "block" : "none" };
+        if (this.enums == FETCHING) {
+            return html`
+                <div class="form-control d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm text-secondary me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    Loading...
+                </div>`
+        }
 
+        const styles = { display: this.isopen ? "block" : "none" };
         return html`
             <div class="dropdown">
                 <input  
@@ -53,6 +62,7 @@ export class FzEnumTypeahead extends FzEnumBase {
                     @input=${this.filter}
                     @change=${this.filter}
                     @focus=${this.show}
+                    autocomplete=off  spellcheck="false"
                 />
                 <div id="list" style="${styleMap(styles)}" class="dropdown-menu w-100">
                     ${ this.filtered?.length == 0 ? html`<a class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : '' }
@@ -80,9 +90,9 @@ export class FzEnumTypeahead extends FzEnumBase {
     
     private select(index: number) {
         this.selected = index
+        this.isopen = false
         this.queryElem.value = this.filtered[this.selected].title
         this.change()
-        this.isopen = false
     }
     // get the enum list to display filter by query string (first 10 items)
     private filter(): void {

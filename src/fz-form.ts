@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { html } from "lit";
+import { html, PropertyValues } from "lit";
 import { Base } from "./base"
 import { property, customElement } from "lit/decorators.js";
 import { IAsset, IOptions, IS_VALID, NOT_TOUCHED, Pojo } from "./lib/types"
@@ -71,6 +71,7 @@ export class FzForm extends Base {
     get schema() { return this.i_schema }
     set schema(value: Schema) {
         this.i_schema = validateSchema(value) ? new Schema(JSON.parse(JSON.stringify(value))) : DEFAULT_SCHEMA
+        this.i_schema.collapsed = false 
         this.schemaErrors = validateErrors()
         this.validator = new Validator(this.i_schema)
         this.compile()
@@ -170,7 +171,11 @@ export class FzForm extends Base {
         super.disconnectedCallback()
         this.removeEventListener('data-updated', (e) => this.handleDataUpdate(e))
     }
-
+    protected override firstUpdated(changedProperties: PropertyValues): void {
+        // this is an unused callback actually (needed only for breakpoints)
+        super.firstUpdated(changedProperties)
+        null;
+    }
 
     check() {
         // collect errors and dispatch error on fields (registered in this.fieldMap)
@@ -196,7 +201,7 @@ export class FzForm extends Base {
             // if field is not touched (not manually updated) valid/invalid not displayed
             if (field.errors != NOT_TOUCHED) {
                 field.errors =  errorMap.get(pointer) ?? IS_VALID
-                console.log(`VALIDATION: ${field.pointer} -> ${field.errors === IS_VALID ? "Y" : "N" }`)
+                // console.log(`VALIDATION: ${field.pointer} -> ${field.errors === IS_VALID ? "Y" : "N" }`)
             }
         }
     }
@@ -244,6 +249,29 @@ export class FzForm extends Base {
             console.error(this.message)
         }
         this.dispatchEvent(new CustomEvent('ready'))
+    }
+
+    debug(pointer: string) {
+        const field = this.fieldMap.get(pointer);
+        if (!field) throw new Error(`No field found for pointer: ${pointer}`);
+        if (!field.data || !field.key) throw new Error(`Field at ${pointer} has no parent/key`);
+    
+        const obj = field.data;
+        const key = field.key;
+        let value = obj[key];
+    
+        Object.defineProperty(obj, key, {
+            get() {
+                return value;
+            },
+            set(newValue) {
+                console.debug(`Formulizer watchPointer: ${pointer} (${key}) changed from`, value, "to", newValue);
+                debugger;
+                value = newValue;
+            },
+            configurable: true,
+            enumerable: true
+        });
     }
 
 }

@@ -132,6 +132,7 @@ export class FzInputDoc extends FzInputBase {
                     @input="${(e:Event) => e.preventDefault()}"
                     @keypress="${(e:Event) => e.preventDefault()}"
                     ?required="${this.required}"
+                    autocomplete=off  spellcheck="false"
                 />
                 ${ (this.isEmpty || this.readonly)  ? html`` : html`
                     <button  @click="${this.delete}"  type="button" class="close-right btn-close" aria-label="Close"> </button>`
@@ -143,7 +144,8 @@ export class FzInputDoc extends FzInputBase {
                             @change="${this.save}"
                             ?disabled="${this.readonly}" 
                             accept="${this.mimetype}"
-                            class="btn-block"/>
+                            class="btn-block"
+                            autocomplete=off  spellcheck="false"/>
                         <i class="bi bi-file-earmark-richtext"></i>
                     </span>`
                 }

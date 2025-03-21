@@ -78,20 +78,20 @@ class JSONSchemaDraft07 {
     transient?: boolean;
     trackers!: string[];
     target!: string[];
-    enumRef?: string;
+    enumFetch?: string;
     isenum!: boolean;
     filter?: Function;
     isenumarray!: boolean;
     homogeneous!: boolean;
-    requiredWhen!: string | Function;
+    requiredIf!: string | Function;
     field!: string;
-    from?: {pointer:string, extend:boolean} | ExprFunc<any>;
+    from?: { pointer: string, extend: boolean } | ExprFunc<any>;
     order?: FieldOrder[];
     abstract?: string | ExprFunc<string>;
     case?: string | ExprFunc<boolean>;
     visible?: string | ExprFunc<boolean>;
     readonly?: string | ExprFunc<boolean>;
-    collapsed?: string | ExprFunc<boolean>;
+    collapsed?: boolean | ExprFunc<boolean>;
     orderBy?: string | ExprFunc<any>;
     expression?: string | ExprFunc<any>;
     change?: string | ExprFunc<any>;
@@ -101,9 +101,45 @@ class JSONSchemaDraft07 {
     mimetype?: string;
     mask?: string;
 
-    tab?:string;
-    group?:string;
+    tab?: string;
+    group?: string;
 }
+
+export const FZ_FORMATS = ["color", "signature", "password", "doc", "uuid", "geo", "markdown", "asset", "date", "time", "date-time", "email",]
+export const FZ_KEYWORDS = [
+    "root",
+    "parent",
+    "basetype",
+    "pointer",
+    "nullAllowed",
+    "transient",
+    "trackers",
+    "target",
+    "enumFetch",
+    "isenum",
+    "filter",
+    "isenumarray",
+    "homogeneous",
+    "requiredIf",
+    "field",
+    "from",
+    "order",
+    "abstract",
+    "case",
+    "visible",
+    "readonly",
+    "collapsed",
+    "orderBy",
+    "expression",
+    "change",
+    //"nullable",
+    "assets",
+    "preview",
+    "mimetype",
+    "mask",
+    "tab",
+    "group",
+]
 
 export function isSchema(value: unknown): value is Schema {
     return notNull(value) && value instanceof Schema
@@ -160,7 +196,7 @@ export class Schema extends JSONSchemaDraft07 {
         switch (true) {
             case ("const" in this):
                 return this.const
-            case isPrimitive(this,true) && 'default' in this:
+            case isPrimitive(this, true) && 'default' in this:
                 return this.default
             case this.basetype === 'object': {
                 return this.properties ? Object.entries(this.properties).reduce((object, [key, property]) => {
@@ -237,19 +273,19 @@ export class Schema extends JSONSchemaDraft07 {
 
     static wrapSchema(schema: JSONSchema) {
         Object.setPrototypeOf(schema, Schema.prototype)
-        if (isObject(schema.properties)) Object.values(schema.properties).forEach((child)  => Schema.wrapSchema(child)) 
-        if (isArray(schema.items))  schema.items.forEach((child)  => Schema.wrapSchema(child)) 
+        if (isObject(schema.properties)) Object.values(schema.properties).forEach((child) => Schema.wrapSchema(child))
+        if (isArray(schema.items)) schema.items.forEach((child) => Schema.wrapSchema(child))
         if (isObject(schema.items)) Schema.wrapSchema(schema.items)
-        if (isArray(schema.oneOf)) schema.oneOf.forEach((child)  => Schema.wrapSchema(child)) 
-        if (isArray(schema.anyOf)) schema.anyOf.forEach((child)  => Schema.wrapSchema(child)) 
-        if (isArray(schema.allOf)) schema.allOf.forEach((child)  => Schema.wrapSchema(child)) 
+        if (isArray(schema.oneOf)) schema.oneOf.forEach((child) => Schema.wrapSchema(child))
+        if (isArray(schema.anyOf)) schema.anyOf.forEach((child) => Schema.wrapSchema(child))
+        if (isArray(schema.allOf)) schema.allOf.forEach((child) => Schema.wrapSchema(child))
         if (schema.not) Schema.wrapSchema(schema.not)
         return schema as Schema
     }
 
     static inferEnums(schema: Schema): EnumItem[] | undefined {
         // Exclude nullish schema, "array" and "object" from being enums
-        if (!isObject(schema) || !isPrimitive(schema,true)) return;
+        if (!isObject(schema) || !isPrimitive(schema, true)) return;
 
         // Direct "enum" keyword
         if (isArray(schema.enum)) {
@@ -259,7 +295,7 @@ export class Schema extends JSONSchemaDraft07 {
         // "const" keyword (supports primitives, objects, and arrays)
         if (schema.const !== undefined) {
             const value = schema.const
-            const title =  String(schema.title ?? schema.const)
+            const title = String(schema.title ?? schema.const)
             return [{ value, title }];
         }
 
@@ -295,7 +331,7 @@ export class Schema extends JSONSchemaDraft07 {
         if (this.const) return this.const
         return this.nullAllowed ? null : undefined
     }
-    
+
 }
 
 export abstract class CompilationStep {
@@ -308,6 +344,28 @@ export abstract class CompilationStep {
     constructor(root: Schema, property: keyof Schema) {
         this.root = root
         this.property = property
+    }
+    set(schema: Schema, value: any, expr?: string | any[]) {
+        (schema as any)[this.property] = value
+        if (expr) schema[this.property].expresion = expr
+    }
+    compileExpr(schema: Schema, expression: string | any[], body: string) {
+        const arrexpr = isString(expression) ? [expression] : expression
+        try {
+            arrexpr.forEach(expr => schema._track(expr))
+            this.set(schema, new Function("schema", "value", "parent", "property", "$", "userdata", body), expression)
+        } catch (e) {
+            throw Error(`compilation for keyword ${this.property} failed schema:${schema.pointer}\n    - ${String(e)}`)
+        }
+    }
+    buildCode(expression: any[]) {
+        const lines = expression.map((expr: any, i: any) =>
+            `    const cst${i} = \`${expr}\n\``
+        )
+        lines.push(
+            `    return ( ${expression.map((_e: any, i: number) => `cst${i}`).join(' + ')} ) `
+        )
+        return lines.join(';\n')
     }
 
     appliable(_schema: JSONSchema, _parent?: JSONSchema, _name?: string): boolean {
@@ -361,7 +419,7 @@ export const schemaAttrConverter = {
     }
 }
 
-export const DEFAULT_SCHEMA = new Schema({ type: "object", "properties": {} })
+export const DEFAULT_SCHEMA = new Schema({ type: "object", properties: {}, collapsed: false })
 export const EMPTY_SCHEMA = new Schema({})
 
 

@@ -5,6 +5,8 @@ import { ErrorObject } from "ajv/dist/types"
 
 export type AjvError = ErrorObject
 
+
+
 type JSONValue =
     | undefined
     | string
