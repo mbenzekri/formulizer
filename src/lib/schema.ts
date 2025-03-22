@@ -73,6 +73,7 @@ class JSONSchemaDraft07 {
     root!: Schema;
     parent?: Schema;
     basetype!: string;
+    empty!: null | undefined;
     pointer!: string
     nullAllowed?: boolean;
     transient?: boolean;
@@ -333,17 +334,31 @@ export class Schema extends JSONSchemaDraft07 {
     }
 
 }
+export type CompilationPhase = "upgrade" | "pre" | "post"
 
 export abstract class CompilationStep {
 
     private static sourceCount = 1
+    constructor(readonly root: Schema, readonly property: keyof Schema, readonly phase: CompilationPhase, readonly after: (keyof Schema)[]) {
+        // only properties to init
+    }
+    appliable(_schema: JSONSchema, _parent?: JSONSchema, _name?: string): boolean {
+        // default applied on all schemas
+        return true
+    }
 
-    readonly root: Schema
-    readonly property: keyof Schema
+    /**
+     * @param schema shema to compile the property
+     * @param parent parent schema to compile containing propery <name> the property
+     * @param name name of the property to compile in <parent> 
+     */
+    abstract apply(schema: JSONSchema, parent?: JSONSchema, name?: string): void;
 
-    constructor(root: Schema, property: keyof Schema) {
-        this.root = root
-        this.property = property
+    sourceURL(dataProperty?: string) {
+        let source = `_FZ_${this.property}_${dataProperty ?? ''}_${CompilationStep.sourceCount++}.js`.replace(/ +/g, "_")
+        source = source.replace(/[^a-z0-9_]/ig, "")
+        console.log(`builded source :${source}`)
+        return `\n    //# sourceURL=${source}\n`
     }
     set(schema: Schema, value: any, expr?: string | any[]) {
         (schema as any)[this.property] = value
@@ -366,25 +381,6 @@ export abstract class CompilationStep {
             `    return ( ${expression.map((_e: any, i: number) => `cst${i}`).join(' + ')} ) `
         )
         return lines.join(';\n')
-    }
-
-    appliable(_schema: JSONSchema, _parent?: JSONSchema, _name?: string): boolean {
-        // default applied on all schemas
-        return true
-    }
-
-    /**
-     * @param schema shema to compile the property
-     * @param parent parent schema to compile containing propery <name> the property
-     * @param name name of the property to compile in <parent> 
-     */
-    abstract apply(schema: JSONSchema, parent?: JSONSchema, name?: string): void;
-
-    sourceURL(dataProperty?: string) {
-        let source = `_FZ_${this.property}_${dataProperty ?? ''}_${CompilationStep.sourceCount++}.js`.replace(/ +/g, "_")
-        source = source.replace(/[^a-z0-9_]/ig, "")
-        console.log(`builded source :${source}`)
-        return `\n    //# sourceURL=${source}\n`
     }
 
     error(message: string) {

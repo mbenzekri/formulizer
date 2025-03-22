@@ -1,6 +1,7 @@
 import { Pojo, FieldOrder, ExprFunc, IOptions, FromObject, SCHEMA, ROOT, PARENT, KEY } from "./types"
 import { pointerSchema, derefPointerData, complement, intersect, union, isPrimitive, isArray, isFunction, notNull, getSchema, isObject, isBoolean, isNull, isString } from "./tools";
 import { Schema, CompilationStep, isenumarray, } from "./schema";
+import { CSUpgradeRef, CSUpgradeAdditionalProperties, CSUpgradeDependencies, CSUpgradeId, CSUpgradeItems, CSUpgradeNullable } from "./upgrade";
 
 /**
  * class to compile schema for fz-form 
@@ -17,7 +18,13 @@ export class SchemaCompiler {
     static DIALECT_2020_12 = "https://json-schema.org/draft/2020-12/schema"
     readonly root: Schema
     readonly dialect: string
-    readonly passes: CompilationStep[][]
+    readonly steps: CompilationStep[]
+    readonly passes = {
+        upgrade: [] as CompilationStep[],
+        pre: [] as CompilationStep[],
+        post: [] as CompilationStep[]
+      }
+  
     errors: string[] = []
     constructor(root: Schema, options: IOptions, data: Pojo) {
         this.root = root
@@ -27,24 +34,20 @@ export class SchemaCompiler {
             throw Error(`schema dialect '${this.dialect}' not implemented (implmented are draft-07,2019-09 and 2020-12)`)
 
         // upgrade from Draft07 and 2019-09 to 2020-12
-        this.passes = [
+        this.steps = [
+                new CSUpgradeRef(this.root),
+                new CSUpgradeAdditionalProperties(this.root),
+                new CSUpgradeDependencies(this.root),
+                new CSUpgradeId(this.root),
+                new CSUpgradeItems(this.root),
+                new CSUpgradeNullable(this.root),
 
-            // MBZ-TBD upgrade phase draft-07 and 2019-09 to 2020-12
-            // [
-            //     new CSUpgradeRef(this.root),
-            //     new CSUpgradeAdditionalProperties(this.root),
-            //     new CSUpgradeDependencies(this.root),
-            //     new CSUpgradeId(this.root),
-            //     new CSUpgradeItems(this.root),
-            //     new CSUpgradeNullable(this.root)
-            // ],
-            [
                 new CSDefinition(this.root),
                 new CSParent(this.root,),
                 new CSPointer(this.root,),
                 new CSRoot(this.root),
                 new CSTargetType(this.root,),
-                //new CSAppEnum(this.root,options,),
+                new CSEmpty(this.root,options),
                 new CSEnum(this.root,),
                 new CSEnumArray(this.root,),
                 new CSUniform(this.root,),
@@ -52,8 +55,7 @@ export class SchemaCompiler {
                 new CSRequiredIf(this.root,),
                 new CSField(this.root),
                 new CSOrder(this.root),
-            ],
-            [
+
                 new CSInsideRef(this.root, data),
                 new CSTemplate(this.root, 'abstract', Schema._abstractFunc()),
                 new CSBool(this.root, 'case', () => false),
@@ -65,8 +67,14 @@ export class SchemaCompiler {
                 new CSAny(this.root, 'orderBy', () => true),
                 new CSAny(this.root, 'expression', () => ''),
                 new CSAny(this.root, 'change', () => ''),
-            ]
         ]
+        for (const step of this.steps) {
+            this.passes[step.phase].push(step)
+        }
+        // Sort each phase topologically
+        this.passes.upgrade = this.topologicalSort(this.passes.upgrade)
+        this.passes.pre = this.topologicalSort(this.passes.pre)
+        this.passes.post = this.topologicalSort(this.passes.post)
 
     }
     extractDialect(options: IOptions, schemaUri?: string) {
@@ -91,7 +99,8 @@ export class SchemaCompiler {
     }
     compile() {
         this.errors = []
-        for (const pass of this.passes) {
+        for (const pass of Object.values(this.passes)) {
+            //pass.forEach(step => console.log(step.constructor.name))
             this.walkSchema(pass, this.root)
         }
         // this is a special use case when all dependencies between pointers is setted
@@ -123,7 +132,31 @@ export class SchemaCompiler {
         if (schema.allOf) return schema.allOf.forEach((child: Schema) => this.walkSchema(steps, child, parent, name))
         if (schema.anyOf) return schema.anyOf.forEach((child: Schema) => this.walkSchema(steps, child, parent, name))
     }
-
+    private topologicalSort(steps: CompilationStep[]): CompilationStep[] {
+    
+        function visit(s: CompilationStep, stack: Set<string>) {
+          if (visited.has(s.property)) return
+          if (stack.has(s.property)) throw new Error(`Cycle in step dependencies: ${s.property}`)
+    
+          stack.add(s.property)
+          for (const dep of s.after) {
+            const match = steps.find(step => step.property === dep)
+            if (match) visit(match, stack)
+          }
+          stack.delete(s.property)
+    
+          visited.add(s.property)
+          sorted.push(s)
+        }
+    
+        const sorted: CompilationStep[] = []
+        const visited = new Set<string>()
+        for (const step of steps) {
+          visit(step, new Set())
+        }
+        return sorted
+      }
+    
 }
 
 /**
@@ -133,7 +166,7 @@ export class SchemaCompiler {
 class CSDefinition extends CompilationStep {
 
     constructor(root: Schema) {
-        super(root, "$ref")
+        super(root, "$ref","pre",[])
     }
 
     override apply(schema: Schema): void {
@@ -161,6 +194,59 @@ class CSDefinition extends CompilationStep {
         return Schema.wrapSchema(defcopy)
     }
 }
+/** 
+ * adds a 'parent' property to each schema
+ * it store the parent schema of the currently processed schema
+ */
+class CSParent extends CompilationStep {
+
+    constructor(root: Schema) {
+        super(root, "parent","pre",[])
+    }
+
+    override appliable(schema: Schema) {
+        return !(this.property in schema)
+    }
+    override apply(schema: Schema, parent: Schema): void {
+        schema.parent = parent
+    }
+}
+
+/**
+ * Adds a 'pointer' property to each schema
+ * this porperty store the schema pointer of currently processed schema
+ */
+class CSPointer extends CompilationStep {
+
+    constructor(root: Schema) {
+        super(root, "pointer","pre",[])
+    }
+
+    override appliable(schema: Schema) {
+        return !(this.property in schema)
+    }
+    override apply(schema: Schema, parent: Schema, name: string): void {
+        schema.pointer = parent ? `${parent.pointer}/${name}` : `/`
+    }
+}
+
+/**
+ * Adds a 'root' property to each schema
+ * this property store the root schema 
+ */
+class CSRoot extends CompilationStep {
+
+    constructor(root: Schema) {
+        super(root, "root","pre",[])
+    }
+
+    override appliable(schema: Schema) {
+        return !(this.property in schema)
+    }
+    override apply(schema: Schema): void {
+        schema.root = this.root
+    }
+}
 
 /**
  * Adds a string property 'basetype' wich identify basetype (not null)
@@ -174,7 +260,7 @@ class CSTargetType extends CompilationStep {
     static OBJECTKW = ["required", "properties", "additionalProperties", "patternProperties", "minProperties", "maxProperties", "dependencies"]
     static ALL = new Set(["string", "integer", "number", "object", "array", "boolean", "null"])
     constructor(root: Schema) {
-        super(root, "basetype")
+        super(root, "basetype","pre",[])
     }
 
     override appliable(schema: Schema) {
@@ -296,6 +382,24 @@ class CSTargetType extends CompilationStep {
 
 }
 
+
+export class CSEmpty extends CompilationStep {
+    private preferNull: boolean
+  
+    constructor(root: Schema, options: any) {
+      super(root, "empty","pre",["basetype"])
+      this.preferNull = options?.preferNull ?? false
+    }
+  
+    override appliable(schema: Schema): boolean {
+      return !(this.property in schema)
+    }
+  
+    override apply(schema: Schema): void {
+      schema.empty = !schema.nullAllowed ? undefined : this.preferNull ? null : undefined
+    }
+  }
+  
 /**
  * Adds a boolean property 'isenum' true if enumeration detected
  * and only primitive types may be enums
@@ -307,7 +411,7 @@ class CSTargetType extends CompilationStep {
 class CSEnum extends CompilationStep {
 
     constructor(root: Schema) {
-        super(root, "isenum")
+        super(root, "isenum","pre",[])
     }
 
     override appliable(schema: Schema) { // when property absent
@@ -336,7 +440,7 @@ class CSEnum extends CompilationStep {
 class CSEnumArray extends CompilationStep {
 
     constructor(root: Schema) {
-        super(root, "isenumarray")
+        super(root, "isenumarray","pre",[])
     }
 
     override appliable(schema: Schema) {
@@ -354,7 +458,7 @@ class CSEnumArray extends CompilationStep {
 class CSUniform extends CompilationStep {
 
     constructor(root: Schema) {
-        super(root, "homogeneous")
+        super(root, "homogeneous","pre",["basetype"])
     }
 
     override appliable(schema: Schema) {
@@ -375,7 +479,7 @@ class CSUniform extends CompilationStep {
 class CSTrackers extends CompilationStep {
     static ALL? = new Map<string, string[]>()
     constructor(root: Schema) {
-        super(root, "trackers")
+        super(root, "trackers","pre",["pointer"])
     }
 
     override appliable(schema: Schema) {
@@ -449,60 +553,6 @@ class CSTrackers extends CompilationStep {
     }
 }
 
-/** 
- * adds a 'parent' property to each schema
- * it store the parent schema of the currently processed schema
- */
-class CSParent extends CompilationStep {
-
-    constructor(root: Schema) {
-        super(root, "parent")
-    }
-
-    override appliable(schema: Schema) {
-        return !(this.property in schema)
-    }
-    override apply(schema: Schema, parent: Schema): void {
-        schema.parent = parent
-    }
-}
-
-
-/**
- * Adds a 'pointer' property to each schema
- * this porperty store the schema pointer of currently processed schema
- */
-class CSPointer extends CompilationStep {
-
-    constructor(root: Schema) {
-        super(root, "pointer")
-    }
-
-    override appliable(schema: Schema) {
-        return !(this.property in schema)
-    }
-    override apply(schema: Schema, parent: Schema, name: string): void {
-        schema.pointer = parent ? `${parent.pointer}/${name}` : `/`
-    }
-}
-
-/**
- * Adds a 'root' property to each schema
- * this property store the root schema 
- */
-class CSRoot extends CompilationStep {
-
-    constructor(root: Schema) {
-        super(root, "root")
-    }
-
-    override appliable(schema: Schema) {
-        return !(this.property in schema)
-    }
-    override apply(schema: Schema): void {
-        schema.root = this.root
-    }
-}
 
 /**
  * Adds a string property 'requiredIf' to each schema which is a required field
@@ -511,7 +561,7 @@ class CSRoot extends CompilationStep {
 class CSRequiredIf extends CompilationStep {
 
     constructor(root: Schema) {
-        super(root, "requiredIf")
+        super(root, "requiredIf","pre",["basetype"])
     }
 
     override appliable(schema: Schema) {
@@ -532,7 +582,7 @@ class CSRequiredIf extends CompilationStep {
 class CSField extends CompilationStep {
 
     constructor(root: Schema) {
-        super(root, "field")
+        super(root, "field","pre",["basetype","isenum","isenumarray"])
     }
 
     override appliable(schema: Schema) {
@@ -599,7 +649,7 @@ class CSField extends CompilationStep {
 class CSOrder extends CompilationStep {
 
     constructor(root: Schema) {
-        super(root, "order")
+        super(root, "order","pre",["basetype"])
     }
 
     override appliable(schema: Schema) {
@@ -631,10 +681,11 @@ class CSOrder extends CompilationStep {
     }
 }
 
+
 class CSInsideRef extends CompilationStep {
     private data: Pojo
     constructor(root: Schema, data: Pojo) {
-        super(root, "from")
+        super(root, "from","post",["pointer","trackers"])
         this.data = data
     }
     override appliable(schema: Schema) {
@@ -664,7 +715,7 @@ class CSInsideRef extends CompilationStep {
 class CSTemplate extends CompilationStep {
     private defunc: ExprFunc<string>
     constructor(root: Schema, property: keyof Schema, defunc: ExprFunc<string>) {
-        super(root, property)
+        super(root, property,"post",[])
         this.defunc = defunc
     }
     override appliable(schema: Schema) {
@@ -697,7 +748,7 @@ class CSTemplate extends CompilationStep {
 class CSBool extends CompilationStep {
     private defaultFunc: ExprFunc<boolean>
     constructor(root: Schema, property: keyof Schema, defunc: ExprFunc<boolean>) {
-        super(root, property)
+        super(root, property,"post",[])
         this.defaultFunc = defunc
     }
     override appliable(schema: Schema) {
@@ -728,7 +779,7 @@ class CSBool extends CompilationStep {
 class CSAny extends CompilationStep {
     private defaultFunc: ExprFunc<any>
     constructor(root: Schema, property: keyof Schema, defunc: ExprFunc<any>) {
-        super(root, property)
+        super(root, property,"post",[])
         this.defaultFunc = defunc
     }
     override appliable(schema: Schema) {

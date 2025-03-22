@@ -54,6 +54,7 @@ declare class JSONSchemaDraft07 {
     root: Schema;
     parent?: Schema;
     basetype: string;
+    empty: null | undefined;
     pointer: string;
     nullAllowed?: boolean;
     transient?: boolean;
@@ -282,7 +283,7 @@ declare abstract class FzField extends Base {
      * @returns
      */
     private cascadeValue;
-    get nullable(): unknown;
+    get nullable(): boolean | undefined;
     get key(): string | number;
     /**
      * calculate label for this field

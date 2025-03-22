@@ -13822,6 +13822,7 @@ class JSONSchemaDraft07 {
     root;
     parent;
     basetype;
+    empty;
     pointer;
     nullAllowed;
     transient;
@@ -14079,12 +14080,27 @@ class Schema extends JSONSchemaDraft07 {
     }
 }
 class CompilationStep {
-    static sourceCount = 1;
     root;
     property;
-    constructor(root, property) {
+    phase;
+    after;
+    static sourceCount = 1;
+    constructor(root, property, phase, after) {
         this.root = root;
         this.property = property;
+        this.phase = phase;
+        this.after = after;
+        // only properties to init
+    }
+    appliable(_schema, _parent, _name) {
+        // default applied on all schemas
+        return true;
+    }
+    sourceURL(dataProperty) {
+        let source = `_FZ_${this.property}_${dataProperty ?? ''}_${CompilationStep.sourceCount++}.js`.replace(/ +/g, "_");
+        source = source.replace(/[^a-z0-9_]/ig, "");
+        console.log(`builded source :${source}`);
+        return `\n    //# sourceURL=${source}\n`;
     }
     set(schema, value, expr) {
         schema[this.property] = value;
@@ -14105,16 +14121,6 @@ class CompilationStep {
         const lines = expression.map((expr, i) => `    const cst${i} = \`${expr}\n\``);
         lines.push(`    return ( ${expression.map((_e, i) => `cst${i}`).join(' + ')} ) `);
         return lines.join(';\n');
-    }
-    appliable(_schema, _parent, _name) {
-        // default applied on all schemas
-        return true;
-    }
-    sourceURL(dataProperty) {
-        let source = `_FZ_${this.property}_${dataProperty ?? ''}_${CompilationStep.sourceCount++}.js`.replace(/ +/g, "_");
-        source = source.replace(/[^a-z0-9_]/ig, "");
-        console.log(`builded source :${source}`);
-        return `\n    //# sourceURL=${source}\n`;
     }
     error(message) {
         return Error(`Compilation step ${this.property}: ${message} `);
@@ -14353,8 +14359,10 @@ class FzField extends Base {
     * check if field is nullable
     */
     get nullable() {
-        if ("_nullable" in this.schema)
-            return this.schema._nullable;
+        if (this.schema.type === "null")
+            return true;
+        if (isArray(this.schema.type) && this.schema.type.includes("null"))
+            return true;
         return this.schema.nullAllowed;
     }
     get key() {
@@ -34091,6 +34099,90 @@ class Validator {
     }
 }
 
+class CSUpgradeNullable extends CompilationStep {
+    constructor(root) {
+        super(root, "nullable", "upgrade", []);
+    }
+    appliable(schema) {
+        return this.property in schema;
+    }
+    apply(schema) {
+        if (schema.nullable) {
+            if (schema.type === undefined) {
+                schema.type = ["null"];
+            }
+            else if (Array.isArray(schema.type)) {
+                schema.type = [...schema.type, "null"];
+            }
+            else {
+                schema.type = [schema.type, "null"];
+            }
+        }
+        schema[this.property] = undefined;
+    }
+}
+class CSUpgradeId extends CompilationStep {
+    constructor(root) {
+        super(root, "$id", "upgrade", []);
+    }
+    appliable(schema) {
+        return this.property in schema && schema.$id.includes("#");
+    }
+    apply(schema) {
+        const [base, anchor] = schema.$id.split("#");
+        schema.$id = base;
+        schema.$anchor = anchor;
+    }
+}
+class CSUpgradeDependencies extends CompilationStep {
+    constructor(root) {
+        super(root, "dependencies", "upgrade", []);
+    }
+    appliable(schema) {
+        return this.property in schema;
+    }
+    apply(schema) {
+        schema.dependentRequired = { ...schema[this.property] };
+        schema.dependencies = undefined;
+    }
+}
+class CSUpgradeItems extends CompilationStep {
+    constructor(root) {
+        super(root, "items", "upgrade", []);
+    }
+    appliable(schema) {
+        return Array.isArray(schema[this.property]);
+    }
+    apply(schema) {
+        schema.prefixItems = schema[this.property];
+        schema.items = undefined;
+    }
+}
+class CSUpgradeAdditionalProperties extends CompilationStep {
+    constructor(root) {
+        super(root, "additionalProperties", "upgrade", []);
+    }
+    appliable(schema) {
+        return schema.additionalProperties === false;
+    }
+    apply(schema) {
+        schema.unevaluatedProperties = false;
+        schema.additionalProperties = undefined;
+    }
+}
+class CSUpgradeRef extends CompilationStep {
+    constructor(root) {
+        super(root, "$ref", "upgrade", []);
+    }
+    appliable(schema) {
+        return this.property in schema;
+    }
+    apply(schema) {
+        schema.$dynamicRef = schema[this.property];
+        schema.$ref = undefined;
+    }
+}
+
 /**
  * class to compile schema for fz-form
  * compilation process is a in-depth walkthrough schema applying in order all
@@ -34105,7 +34197,12 @@ class SchemaCompiler {
     static DIALECT_2020_12 = "https://json-schema.org/draft/2020-12/schema";
     root;
     dialect;
-    passes;
+    steps;
+    passes = {
+        upgrade: [],
+        pre: [],
+        post: []
+    };
     errors = [];
     constructor(root, options, data) {
         this.root = root;
@@ -34113,45 +34210,45 @@ class SchemaCompiler {
         if (SchemaCompiler.unimplemented.includes(this.dialect))
             throw Error(`schema dialect '${this.dialect}' not implemented (implmented are draft-07,2019-09 and 2020-12)`);
         // upgrade from Draft07 and 2019-09 to 2020-12
-        this.passes = [
-            // MBZ-TBD upgrade phase draft-07 and 2019-09 to 2020-12
-            // [
-            //     new CSUpgradeRef(this.root),
-            //     new CSUpgradeAdditionalProperties(this.root),
-            //     new CSUpgradeDependencies(this.root),
-            //     new CSUpgradeId(this.root),
-            //     new CSUpgradeItems(this.root),
-            //     new CSUpgradeNullable(this.root)
-            // ],
-            [
-                new CSDefinition(this.root),
-                new CSParent(this.root),
-                new CSPointer(this.root),
-                new CSRoot(this.root),
-                new CSTargetType(this.root),
-                //new CSAppEnum(this.root,options,),
-                new CSEnum(this.root),
-                new CSEnumArray(this.root),
-                new CSUniform(this.root),
-                new CSTrackers(this.root),
-                new CSRequiredIf(this.root),
-                new CSField(this.root),
-                new CSOrder(this.root),
-            ],
-            [
-                new CSInsideRef(this.root, data),
-                new CSTemplate(this.root, 'abstract', Schema._abstractFunc()),
-                new CSBool(this.root, 'case', () => false),
-                new CSBool(this.root, 'visible', () => true),
-                new CSBool(this.root, 'readonly', () => false),
-                new CSBool(this.root, 'requiredIf', () => false),
-                new CSBool(this.root, 'collapsed', () => false),
-                new CSBool(this.root, 'filter', () => true),
-                new CSAny(this.root, 'orderBy', () => true),
-                new CSAny(this.root, 'expression', () => ''),
-                new CSAny(this.root, 'change', () => ''),
-            ]
+        this.steps = [
+            new CSUpgradeRef(this.root),
+            new CSUpgradeAdditionalProperties(this.root),
+            new CSUpgradeDependencies(this.root),
+            new CSUpgradeId(this.root),
+            new CSUpgradeItems(this.root),
+            new CSUpgradeNullable(this.root),
+            new CSDefinition(this.root),
+            new CSParent(this.root),
+            new CSPointer(this.root),
+            new CSRoot(this.root),
+            new CSTargetType(this.root),
+            new CSEmpty(this.root, options),
+            new CSEnum(this.root),
+            new CSEnumArray(this.root),
+            new CSUniform(this.root),
+            new CSTrackers(this.root),
+            new CSRequiredIf(this.root),
+            new CSField(this.root),
+            new CSOrder(this.root),
+            new CSInsideRef(this.root, data),
+            new CSTemplate(this.root, 'abstract', Schema._abstractFunc()),
+            new CSBool(this.root, 'case', () => false),
+            new CSBool(this.root, 'visible', () => true),
+            new CSBool(this.root, 'readonly', () => false),
+            new CSBool(this.root, 'requiredIf', () => false),
+            new CSBool(this.root, 'collapsed', () => false),
+            new CSBool(this.root, 'filter', () => true),
+            new CSAny(this.root, 'orderBy', () => true),
+            new CSAny(this.root, 'expression', () => ''),
+            new CSAny(this.root, 'change', () => ''),
         ];
+        for (const step of this.steps) {
+            this.passes[step.phase].push(step);
+        }
+        // Sort each phase topologically
+        this.passes.upgrade = this.topologicalSort(this.passes.upgrade);
+        this.passes.pre = this.topologicalSort(this.passes.pre);
+        this.passes.post = this.topologicalSort(this.passes.post);
     }
     extractDialect(options, schemaUri) {
         switch (true) {
@@ -34171,7 +34268,8 @@ class SchemaCompiler {
     }
     compile() {
         this.errors = [];
-        for (const pass of this.passes) {
+        for (const pass of Object.values(this.passes)) {
+            //pass.forEach(step => console.log(step.constructor.name))
             this.walkSchema(pass, this.root);
         }
         // this is a special use case when all dependencies between pointers is setted
@@ -34208,6 +34306,29 @@ class SchemaCompiler {
         if (schema.anyOf)
             return schema.anyOf.forEach((child) => this.walkSchema(steps, child, parent, name));
     }
+    topologicalSort(steps) {
+        function visit(s, stack) {
+            if (visited.has(s.property))
+                return;
+            if (stack.has(s.property))
+                throw new Error(`Cycle in step dependencies: ${s.property}`);
+            stack.add(s.property);
+            for (const dep of s.after) {
+                const match = steps.find(step => step.property === dep);
+                if (match)
+                    visit(match, stack);
+            }
+            stack.delete(s.property);
+            visited.add(s.property);
+            sorted.push(s);
+        }
+        const sorted = [];
+        const visited = new Set();
+        for (const step of steps) {
+            visit(step, new Set());
+        }
+        return sorted;
+    }
 }
 /**
  * Replace schemas defined by reference ($ref) by their real
@@ -34215,7 +34336,7 @@ class SchemaCompiler {
  */
 class CSDefinition extends CompilationStep {
     constructor(root) {
-        super(root, "$ref");
+        super(root, "$ref", "pre", []);
     }
     apply(schema) {
         const properties = schema.properties;
@@ -34239,6 +34360,51 @@ class CSDefinition extends CompilationStep {
     }
 }
 /**
+ * adds a 'parent' property to each schema
+ * it store the parent schema of the currently processed schema
+ */
+class CSParent extends CompilationStep {
+    constructor(root) {
+        super(root, "parent", "pre", []);
+    }
+    appliable(schema) {
+        return !(this.property in schema);
+    }
+    apply(schema, parent) {
+        schema.parent = parent;
+    }
+}
+/**
+ * Adds a 'pointer' property to each schema
+ * this porperty store the schema pointer of currently processed schema
+ */
+class CSPointer extends CompilationStep {
+    constructor(root) {
+        super(root, "pointer", "pre", []);
+    }
+    appliable(schema) {
+        return !(this.property in schema);
+    }
+    apply(schema, parent, name) {
+        schema.pointer = parent ? `${parent.pointer}/${name}` : `/`;
+    }
+}
+/**
+ * Adds a 'root' property to each schema
+ * this property store the root schema
+ */
+class CSRoot extends CompilationStep {
+    constructor(root) {
+        super(root, "root", "pre", []);
+    }
+    appliable(schema) {
+        return !(this.property in schema);
+    }
+    apply(schema) {
+        schema.root = this.root;
+    }
+}
+/**
  * Adds a string property 'basetype' wich identify basetype (not null)
  * @param schema shema to comp base type
  */
@@ -34249,7 +34415,7 @@ class CSTargetType extends CompilationStep {
     static OBJECTKW = ["required", "properties", "additionalProperties", "patternProperties", "minProperties", "maxProperties", "dependencies"];
     static ALL = new Set(["string", "integer", "number", "object", "array", "boolean", "null"]);
     constructor(root) {
-        super(root, "basetype");
+        super(root, "basetype", "pre", []);
     }
     appliable(schema) {
         return !(this.property in schema);
@@ -34360,6 +34526,19 @@ class CSTargetType extends CompilationStep {
             : null;
     }
 }
+class CSEmpty extends CompilationStep {
+    preferNull;
+    constructor(root, options) {
+        super(root, "empty", "pre", ["basetype"]);
+        this.preferNull = options?.preferNull ?? false;
+    }
+    appliable(schema) {
+        return !(this.property in schema);
+    }
+    apply(schema) {
+        schema.empty = !schema.nullAllowed ? undefined : this.preferNull ? null : undefined;
+    }
+}
 /**
  * Adds a boolean property 'isenum' true if enumeration detected
  * and only primitive types may be enums
@@ -34370,7 +34549,7 @@ class CSTargetType extends CompilationStep {
  */
 class CSEnum extends CompilationStep {
     constructor(root) {
-        super(root, "isenum");
+        super(root, "isenum", "pre", []);
     }
     appliable(schema) {
         return !(this.property in schema);
@@ -34397,7 +34576,7 @@ class CSEnum extends CompilationStep {
  */
 class CSEnumArray extends CompilationStep {
     constructor(root) {
-        super(root, "isenumarray");
+        super(root, "isenumarray", "pre", []);
     }
     appliable(schema) {
         return !(this.property in schema);
@@ -34412,7 +34591,7 @@ class CSEnumArray extends CompilationStep {
  */
 class CSUniform extends CompilationStep {
     constructor(root) {
-        super(root, "homogeneous");
+        super(root, "homogeneous", "pre", ["basetype"]);
     }
     appliable(schema) {
         return !(this.property in schema) && schema.basetype === "array";
@@ -34430,7 +34609,7 @@ class CSUniform extends CompilationStep {
 class CSTrackers extends CompilationStep {
     static ALL = new Map();
     constructor(root) {
-        super(root, "trackers");
+        super(root, "trackers", "pre", ["pointer"]);
     }
     appliable(schema) {
         return !(this.property in schema);
@@ -34494,57 +34673,12 @@ class CSTrackers extends CompilationStep {
     }
 }
 /**
- * adds a 'parent' property to each schema
- * it store the parent schema of the currently processed schema
- */
-class CSParent extends CompilationStep {
-    constructor(root) {
-        super(root, "parent");
-    }
-    appliable(schema) {
-        return !(this.property in schema);
-    }
-    apply(schema, parent) {
-        schema.parent = parent;
-    }
-}
-/**
- * Adds a 'pointer' property to each schema
- * this porperty store the schema pointer of currently processed schema
- */
-class CSPointer extends CompilationStep {
-    constructor(root) {
-        super(root, "pointer");
-    }
-    appliable(schema) {
-        return !(this.property in schema);
-    }
-    apply(schema, parent, name) {
-        schema.pointer = parent ? `${parent.pointer}/${name}` : `/`;
-    }
-}
-/**
- * Adds a 'root' property to each schema
- * this property store the root schema
- */
-class CSRoot extends CompilationStep {
-    constructor(root) {
-        super(root, "root");
-    }
-    appliable(schema) {
-        return !(this.property in schema);
-    }
-    apply(schema) {
-        schema.root = this.root;
-    }
-}
-/**
  * Adds a string property 'requiredIf' to each schema which is a required field
  * this field will be compiled to getter to manage conditional mandatory values
  */
 class CSRequiredIf extends CompilationStep {
     constructor(root) {
-        super(root, "requiredIf");
+        super(root, "requiredIf", "pre", ["basetype"]);
     }
     appliable(schema) {
         return schema.basetype === "object" && schema.properties != null && schema.required != null;
@@ -34562,7 +34696,7 @@ class CSRequiredIf extends CompilationStep {
  */
 class CSField extends CompilationStep {
     constructor(root) {
-        super(root, "field");
+        super(root, "field", "pre", ["basetype", "isenum", "isenumarray"]);
     }
     appliable(schema) {
         return !(this.property in schema);
@@ -34631,7 +34765,7 @@ class CSField extends CompilationStep {
  */
 class CSOrder extends CompilationStep {
     constructor(root) {
-        super(root, "order");
+        super(root, "order", "pre", ["basetype"]);
     }
     appliable(schema) {
         return !(this.property in schema) && schema.basetype === 'object' && schema.properties != null;
@@ -34665,7 +34799,7 @@ class CSOrder extends CompilationStep {
 class CSInsideRef extends CompilationStep {
     data;
     constructor(root, data) {
-        super(root, "from");
+        super(root, "from", "post", ["pointer", "trackers"]);
         this.data = data;
     }
     appliable(schema) {
@@ -34695,7 +34829,7 @@ class CSInsideRef extends CompilationStep {
 class CSTemplate extends CompilationStep {
     defunc;
     constructor(root, property, defunc) {
-        super(root, property);
+        super(root, property, "post", []);
         this.defunc = defunc;
     }
     appliable(schema) {
@@ -34726,7 +34860,7 @@ class CSTemplate extends CompilationStep {
 class CSBool extends CompilationStep {
     defaultFunc;
     constructor(root, property, defunc) {
-        super(root, property);
+        super(root, property, "post", []);
         this.defaultFunc = defunc;
     }
     appliable(schema) {
@@ -34757,7 +34891,7 @@ class CSBool extends CompilationStep {
 class CSAny extends CompilationStep {
     defaultFunc;
     constructor(root, property, defunc) {
-        super(root, property);
+        super(root, property, "post", []);
         this.defaultFunc = defunc;
     }
     appliable(schema) {
@@ -34803,10 +34937,6 @@ class DataCompiler {
                     data[PARENT] = parent;
                     data[KEY] = key;
                     data[ROOT] = data;
-                    // data[EVAL] = function(attribute: keyof Schema, userdata: any) {
-                    //     if (!isFunction(this[SCHEMA]?.[attribute])) return undefined
-                    //     return (this[SCHEMA][attribute] as ExprFunc<any>)(this[SCHEMA],this,parent, key, this.derefFunc, userdata)
-                    // }
                 }
             }
         ];
