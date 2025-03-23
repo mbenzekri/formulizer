@@ -5,12 +5,14 @@ import { property, customElement } from "lit/decorators.js";
 import { IAsset, IOptions, IS_VALID, NOT_TOUCHED, Pojo } from "./lib/types"
 import { FzField } from "./fz-element";
 import { validateSchema, validateErrors, Validator } from "./lib/validation"
-import { isBoolean, setGlobalHandler } from "./lib/tools"
+import { isBoolean, isString, setGlobalHandler } from "./lib/tools"
 import { SchemaCompiler, DataCompiler } from "./lib/compiler"
 import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { Schema, schemaAttrConverter, DEFAULT_SCHEMA } from "./lib/schema";
 
-
+const BOOTSTRAP_URL = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+const ICONS_URL = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+const WOFF_URL = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/fonts/bootstrap-icons.woff2?1fa40e8900654d2863d011707b9fb6f2"
 
 /**
  * @prop schema
@@ -21,9 +23,7 @@ import { Schema, schemaAttrConverter, DEFAULT_SCHEMA } from "./lib/schema";
 export class FzForm extends Base {
 
     static override get styles() {
-        return [
-            ...super.styles
-        ]
+        return [...super.styles]
     }
 
     private readonly obj = { content: {} as Pojo }
@@ -45,22 +45,21 @@ export class FzForm extends Base {
     @property({ type: String, attribute: 'onvalidate', converter: (v) => v }) onvalidate: string | null = null;
     @property({ type: String, attribute: 'ondismiss', converter: (v) => v }) ondismiss: string | null = null;
 
-    
+
     private schemaErrors: Array<any> = []
     private dataErrors: Array<any> = []
     private validator!: Validator
     private message = ""
-
     constructor() {
         super()
-        // this is a workaround to convert string with global function name into a handler
-        // into corresponding event handler (quite deprecated)
-        // ex: HTML: oninit="myFunc" became: this.addEventListener(myFunc)
-        // because this cant be used in @property(...) declaration
-        ;["oninit", "onready", "onvaliddata", "oninvaliddata", "onvalidate", "ondismiss"].forEach(event => {
-            (this.constructor as any).elementProperties.get(event).converter =
-                (value: string) => { setGlobalHandler(this,event.substring(2), value); return value }
-        })
+            // this is a workaround to convert string with global function name into a handler
+            // into corresponding event handler (quite deprecated)
+            // ex: HTML: oninit="myFunc" became: this.addEventListener(myFunc)
+            // because this cant be used in @property(...) declaration
+            ;["oninit", "onready", "onvaliddata", "oninvaliddata", "onvalidate", "ondismiss"].forEach(event => {
+                (this.constructor as any).elementProperties.get(event).converter =
+                    (value: string) => { setGlobalHandler(this, event.substring(2), value); return value }
+            })
     }
 
     get root(): any { return this.obj.content }
@@ -71,7 +70,7 @@ export class FzForm extends Base {
     get schema() { return this.i_schema }
     set schema(value: Schema) {
         this.i_schema = validateSchema(value) ? new Schema(JSON.parse(JSON.stringify(value))) : DEFAULT_SCHEMA
-        this.i_schema.collapsed = false 
+        this.i_schema.collapsed = false
         this.schemaErrors = validateErrors()
         this.validator = new Validator(this.i_schema)
         this.compile()
@@ -93,9 +92,9 @@ export class FzForm extends Base {
     get data() { return JSON.parse(JSON.stringify(this.root)) }
     set data(value: Pojo) {
         // dont accept data before having a valid JSON
-        if (this.schemaErrors.length > 0)  return
+        if (this.schemaErrors.length > 0) return
         // data must be valid (if checkin option is true)
-        this.dataErrors = this.checkIn && this.validator.validate(value) ? this.validator?.errors ?? []  : []
+        this.dataErrors = this.checkIn && this.validator.validate(value) ? this.validator?.errors ?? [] : []
         this.obj.content = this.dataErrors.length == 0 ? value : {}
         this.compile()
         this.requestUpdate()
@@ -130,7 +129,7 @@ export class FzForm extends Base {
 
     override render() {
         const failed = this.schemaErrors.length > 0 || this.dataErrors.length > 0
-        return failed ? this.renderError() : this.renderForm() 
+        return failed ? this.renderError() : this.renderForm()
     }
 
     private renderForm() {
@@ -153,9 +152,9 @@ export class FzForm extends Base {
     }
 
     private renderError() {
-        const formatError = (e:any) =>
+        const formatError = (e: any) =>
             html`<li>property : ${(e.dataPath == undefined) ? e.instancePath : e.dataPath} : ${e.keyword} ➜ ${e.message}</li>`
-        return [ 
+        return [
             html`<hr>`,
             this.schemaErrors.length ? html`<pre><ol> Schema errors : ${this.schemaErrors.map(formatError)} </ol></pre>` : html``,
             this.dataErrors.length ? html`<pre><ol> Data errors : ${this.dataErrors.map(formatError)} </ol></pre>` : html``
@@ -179,28 +178,28 @@ export class FzForm extends Base {
 
     check() {
         // collect errors and dispatch error on fields (registered in this.fieldMap)
-        const errorMap = new Map<string,string[]>()
+        const errorMap = new Map<string, string[]>()
         const valid = this.validator?.validate(this.root)
         if (isBoolean(valid) && !valid) {
             for (const error of this.validator.errors) {
                 let { instancePath, message, params, keyword } = error;
-                instancePath =`/${instancePath}`
+                instancePath = `/${instancePath}`
                 // required applies to object must down the error to child
                 if (keyword === "required") {
                     instancePath = `${instancePath === '/' ? '' : ''}/${params.missingProperty}`
                     message = "required"
                 }
-                if (!errorMap.has(instancePath)) errorMap.set(instancePath,[])
+                if (!errorMap.has(instancePath)) errorMap.set(instancePath, [])
                 //const detail =Object.entries(params).map(([s,v]) => v == null ? null : `${s}: ${v}`).filter(v => v).join(',')
                 errorMap.get(instancePath)?.push(message ?? "unidentified error")
             }
         }
 
         // dispatch all errors over the fields 
-        for (const [pointer,field] of this.fieldMap.entries()) {
+        for (const [pointer, field] of this.fieldMap.entries()) {
             // if field is not touched (not manually updated) valid/invalid not displayed
             if (field.errors != NOT_TOUCHED) {
-                field.errors =  errorMap.get(pointer) ?? IS_VALID
+                field.errors = errorMap.get(pointer) ?? IS_VALID
                 // console.log(`VALIDATION: ${field.pointer} -> ${field.errors === IS_VALID ? "Y" : "N" }`)
             }
         }
@@ -255,11 +254,11 @@ export class FzForm extends Base {
         const field = this.fieldMap.get(pointer);
         if (!field) throw new Error(`No field found for pointer: ${pointer}`);
         if (!field.data || !field.key) throw new Error(`Field at ${pointer} has no parent/key`);
-    
+
         const obj = field.data;
         const key = field.key;
         let value = obj[key];
-    
+
         Object.defineProperty(obj, key, {
             get() {
                 return value;
@@ -274,4 +273,51 @@ export class FzForm extends Base {
         });
     }
 
+    // ------------------------------------------------------------------
+    // user API to load external Bootstrap and Bootstap Icons (mandatory)
+    // ------------------------------------------------------------------
+
+    static async registerBootstrap( 
+        bootstrap_url: CSSStyleSheet | string = BOOTSTRAP_URL, 
+        icons_url: CSSStyleSheet | string = ICONS_URL,
+        woff_url: FontFace | string = WOFF_URL
+    ): Promise<void> {
+        let bootstrap_sheet: CSSStyleSheet
+        if (isString(bootstrap_url)) {
+            const bootstrapcss_text = await fetch(bootstrap_url)
+                .then(resp => resp.ok ? resp.text() : (console.error(`unable to load boootstrap css: ${String(resp.statusText)}`), ""))
+                .catch(e => (console.error(`unable to load boootstrap css: ${String(e)}`),''))
+            bootstrap_sheet = new CSSStyleSheet()
+            bootstrap_sheet.replaceSync(bootstrapcss_text.replaceAll(':root', ':host, :root'))
+        } else {
+            bootstrap_sheet = bootstrap_url
+        }
+
+        let icons_sheet: CSSStyleSheet
+        if (isString(icons_url)) {
+            const iconscss_text = await fetch(icons_url)
+                .then(resp => resp.ok ? resp.text() : (console.error(`unable to load boootstrap css: ${String(resp.statusText)}`), ""))
+                .catch(e => (console.error(`unable to load icons css: ${String(e)}`),''))
+            icons_sheet = new CSSStyleSheet()
+            icons_sheet.replaceSync(iconscss_text.replaceAll(':root', ':host, :root'))
+        } else {
+            icons_sheet = icons_url
+        }
+
+        let font_face: FontFace
+        if (isString(woff_url)) {
+            font_face = new FontFace("bootstrap-icons", `url("${woff_url}")`)
+        } else {
+            font_face = woff_url
+        }
+
+        const loaded = await font_face.load()
+        document.fonts.add(loaded)
+
+        Base.sheets = [bootstrap_sheet, icons_sheet]
+    }
+
 }
+
+// Optional: expose globally
+(window as any).FzForm = FzForm

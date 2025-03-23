@@ -418,6 +418,7 @@ export abstract class FzField extends Base {
     }
 
     protected override firstUpdated(_changedProperties: PropertyValues): void {
+        super.firstUpdated(_changedProperties)
         this.toField()
         this.form?.check()       
     }

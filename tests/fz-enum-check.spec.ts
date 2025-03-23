@@ -1,7 +1,7 @@
 import { test, expect, Page, Locator, ElementHandle, JSHandle } from '@playwright/test';
 import { fieldHandle, formInit, elemAllHandle, elemHandle, TEST_PAGE, FzField } from './helpers'
 
-let schema = {
+let SCHEMA = {
   type: "object",
   properties: {
     "answer": {
@@ -10,14 +10,14 @@ let schema = {
     }
   }
 }
-let data = { answer: "yes" }
+let DATA = { answer: "yes" }
 
 let form_l: Locator
 let field_h: ElementHandle<FzField>
 let inputs: JSHandle<HTMLInputElement[]>
 
 async function init(page, testSchema?: any, testData?: any) {
-  form_l = await formInit(page, testSchema ?? schema, testData ?? data)
+  form_l = await formInit(page, testSchema ?? SCHEMA, testData ?? DATA)
   field_h = await fieldHandle(form_l, '/answer')
   inputs = await elemAllHandle(form_l, '/answer', '.form-check-input') as JSHandle<HTMLInputElement[]>
 }
@@ -26,14 +26,11 @@ test.describe('fz-enum-check field', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto(TEST_PAGE)
-    form_l = await formInit(page, schema, data)
-    field_h = await fieldHandle(form_l, '/answer')
-
   });
 
 
   test('should be in correct state when yes => no', async ({ page }) => {
-    await init(page,schema,{ answer: "yes" })
+    await init(page,SCHEMA,DATA)
 
     expect(await field_h.evaluate(node => node.constructor.name === "FzEnumCheck")).toBe(true);
     expect(await inputs.evaluate(inputs => inputs.length)).toBe(2)
@@ -42,8 +39,8 @@ test.describe('fz-enum-check field', () => {
   })
 
   test('should radios be in correct state when undefined => yes => no', async ({ page }) => {
-    await init(page,schema,{})
-
+    await init(page,SCHEMA,{})
+    
     expect(await inputs.evaluate(inputs => inputs.length)).toBe(2)
     //expect(await inputs.evaluate(inputs =>  inputs.every(i => !i.checked))).toBe(true)
 
@@ -58,7 +55,7 @@ test.describe('fz-enum-check field', () => {
   })
 
   test('should radios be in correct state when null => yes => no', async ({ page }) => {
-    await init(page,schema,{ "answer": null })
+    await init(page,SCHEMA,{ "answer": null })
 
     expect(await inputs.evaluate(inputs => inputs.length)).toBe(2)
     //expect(await inputs.evaluate(inputs => inputs.every(i => !i.checked))).toBe(true)
@@ -77,7 +74,7 @@ test.describe('fz-enum-check field', () => {
   })
 
   test('should radios be in correct state when dummy => yes => no', async ({ page }) => {
-    await init(page,schema,{ "answer": "dummy" })
+    await init(page,SCHEMA,{ "answer": "dummy" })
 
     expect(await inputs.evaluate(inputs => inputs.length)).toBe(2)
     //expect(await inputs.evaluate(inputs => inputs.every(i => !i.checked))).toBe(true)

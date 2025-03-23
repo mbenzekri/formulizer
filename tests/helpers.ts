@@ -15,7 +15,6 @@ export const TEST_PAGE = 'http://127.0.0.1:5500/docs/test.html'
 
 
 export async function formInit(page: Page, schema: any, data: any): Promise<Locator> {
-    const formL = page.locator('fz-form');
     page.on('console', msg => {
         console.log(`[Browser] ${msg.type()}: ${msg.text()}`);
     });
@@ -25,6 +24,7 @@ export async function formInit(page: Page, schema: any, data: any): Promise<Loca
         const form = document.querySelector('fz-form') as any;
         return form && typeof form.getField === 'function';
     });
+    const formL = page.locator('fz-form');
     await formL.evaluate((form: any, { schema, data }) => {
         // console.log("", JSON.stringify(schema))
         // console.log("", JSON.stringify(data))

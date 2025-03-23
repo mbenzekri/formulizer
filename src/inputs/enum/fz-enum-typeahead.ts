@@ -53,20 +53,19 @@ export class FzEnumTypeahead extends FzEnumBase {
             <div class="dropdown">
                 <input  
                     id="query"
-                    class="form-control" 
                     type="text" 
-                    autocomplete="off"
                     placeholder=${this.label ?? ""}
                     ?readonly=${this.readonly}
                     ?required=${this.required}
                     @input=${this.filter}
                     @change=${this.filter}
                     @focus=${this.show}
+                    class="form-control" 
                     autocomplete=off  spellcheck="false"
                 />
                 <div id="list" style="${styleMap(styles)}" class="dropdown-menu w-100">
-                    ${ this.filtered?.length == 0 ? html`<a class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : '' }
-                    ${ this.filtered?.map((item,i) => html`<a class="dropdown-item" @click="${() => this.select(i)}" >${this.boldPrefix(item.title) }</a>`)}
+                    ${ this.filtered?.length == 0 ? html`<a data-testid="nomatch-item" class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : '' }
+                    ${ this.filtered?.map((item,i) => html`<a data-testid="selected-item" class="dropdown-item" @click="${() => this.select(i)}" >${this.boldPrefix(item.title) }</a>`)}
                 </div>
             </div>`
     }

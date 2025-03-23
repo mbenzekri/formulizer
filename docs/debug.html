@@ -29,13 +29,18 @@
             form.schema = {
                 type: "object",
                 properties: {
-                    "answer": {
+                    "country": {
                         "type": "string",
-                        "enum": ["yes", "no"]
+                        "enum": [
+                            "France", "Germany", "Spain", "Italy", "United Kingdom", "United States",
+                            "Canada", "Brazil", "Argentina", "Mexico", "China", "Japan", "India", "Russia",
+                            "Australia", "South Africa", "Egypt", "Nigeria", "Saudi Arabia", "Turkey",
+                            "South Korea", "Indonesia", "Thailand", "Vietnam", "Colombia"
+                        ]
                     }
                 }
             }
-            form.data = { answer: undefined }
+            form.data = { country: "Spain" }
         }
     </script>
 </body>

@@ -106,7 +106,7 @@ class JSONSchemaDraft07 {
     group?: string;
 }
 
-export const FZ_FORMATS = ["color", "signature", "password", "doc", "uuid", "geo", "markdown", "asset", "date", "time", "date-time", "email",]
+export const FZ_FORMATS = ["color", "signature", "password", "doc", "uuid", "geo", "markdown", "asset", "date", "time", "date-time", "email","barcode"]
 export const FZ_KEYWORDS = [
     "root",
     "parent",

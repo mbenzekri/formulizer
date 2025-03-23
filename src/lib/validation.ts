@@ -8,7 +8,7 @@ import addFormats from 'ajv-formats'
 
 const ajv = new Ajv({ 
     allErrors: true,
-    strict: true,
+    //strict: true,
     allowUnionTypes: true,
     strictSchema: true, 
     strictNumbers: false, 

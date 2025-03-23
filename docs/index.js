@@ -3,12 +3,9 @@
 const defaultTuto = {
     "form": {
         "type": "object",
+        "title": "",
         "properties": {
-            "field": {
-                "type": "string",
-                "const": "No demo for this chapter",
-                "title" : ""
-            }
+            "field": {"const": "No demo for this chapter", title:""}
         }
     },
     "data": {}
@@ -95,6 +92,7 @@ const enumHandler = (evt) =>  {
 
 // function to load and render provided name example
 const goto = async (name) => {
+    await FzForm.registerBootstrap() // bootstrap loaded from CDN 
     const subject = name ?? "basic"
     if (subject) {
         tutodata = await fetch(`./examples/${subject}.json`).then(r => r.ok ? r.json() : defaultTuto).catch(() => defaultTuto)

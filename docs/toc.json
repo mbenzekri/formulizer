@@ -4,6 +4,7 @@
             "General": {
                 "README": "What is Formulizer",
                 "api": "Component API",
+                "bootstrap": "register Bootstrap",
                 "definition": "Reusable definitions",
                 "typenull": "typenull"
             },

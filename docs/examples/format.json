@@ -6,8 +6,7 @@
             "datetime": {
                 "title": "format date-time",
                 "type": "string",
-                "format": "date-time",
-                "min": "2021-11-30T11:00"
+                "format": "date-time"
             },
             "time": {
                 "title": "format time",
@@ -17,8 +16,7 @@
             "date": {
                 "title": "format date",
                 "type": "string",
-                "format": "date",
-                "min": "2021-11-30"
+                "format": "date"
             },
             "email": {
                 "title": "format email",

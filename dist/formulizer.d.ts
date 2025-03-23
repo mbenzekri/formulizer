@@ -1,6 +1,6 @@
 import * as lit_html from 'lit-html';
 import * as lit from 'lit';
-import { LitElement, PropertyValues, TemplateResult } from 'lit';
+import { LitElement, CSSResult, PropertyValues, TemplateResult } from 'lit';
 import * as lit_html_directive from 'lit-html/directive';
 import * as lit_html_directives_class_map from 'lit-html/directives/class-map';
 
@@ -184,7 +184,9 @@ type Pojo = WithMetadata<JSONValue>;
 
 declare class Base extends LitElement {
     private handlers;
-    static get styles(): lit.CSSResult[];
+    static sheets: CSSStyleSheet[];
+    static styles: CSSResult[];
+    protected firstUpdated(_changedProperties: PropertyValues): void;
     listen(target: EventTarget, event: string, handler: (evt: Event) => void, options?: AddEventListenerOptions | boolean): void;
     unlisten(target: EventTarget, event: string, handler: (evt: Event) => void, options?: AddEventListenerOptions | boolean): void;
     connectedCallback(): void;
@@ -250,6 +252,7 @@ declare class FzForm extends Base {
     private cancel;
     private compile;
     debug(pointer: string): void;
+    static registerBootstrap(bootstrap_url?: CSSStyleSheet | string, icons_url?: CSSStyleSheet | string, woff_url?: FontFace | string): Promise<void>;
 }
 
 /**
