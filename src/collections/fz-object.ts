@@ -169,8 +169,8 @@ export class FzObject extends FZCollection {
         return html`${this.isItem
             ? html`<div>${this.renderLabel}</div>${itemTemplates}`
             : this.schema.title === "" ?  html`<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`
-            : html`<div class="panel" id="content" >
-                <div class="panel-heading">
+            : html`<div class="panel" id="content"  class="${this.schema.parent ? '' : 'border-0'}">
+                <div class="panel-heading" ?hidden="${!this.schema.parent}" >
                     <div>
                         ${this.renderLabel}
                         ${this.collapsed ? html`${this.abstract()}` : html``}
@@ -180,8 +180,8 @@ export class FzObject extends FZCollection {
                             type="button" style="float:right" class="btn-close" aria-label="Close">
                         </button>
                     </div>
+                    <hr ?hidden="${this.collapsed}" style="margin: 0 0" >
                 </div>
-                <hr ?hidden="${this.collapsed}" style="margin: 0 0" >
                 <div ?hidden="${this.collapsed}" > ${itemTemplates} </div>
                 </div>`}`
     }

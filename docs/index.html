@@ -8,7 +8,7 @@
     <!-- Inclusion de Bootstrap 5 via CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
-    <script type="module" src="./src/formulizer.js"></script>
+    <script type="module" src="./dist/formulizer.js"></script>
     <style>
         /* Apply the thin scrollbar */
         .scrollable-div::-webkit-scrollbar {
@@ -154,7 +154,7 @@
         <div class="row full-height">
             <!-- Panneau toc (1/12 de la largeur) -->
             <div class="col-lg-2 p-0 d-flex flex-column d-lg-none">
-                <fz-form id="toc" class="" style="margin: 5px;"></fz-form>
+                <fz-form id="toc" useajv class="" style="margin: 5px;"></fz-form>
             </div>
             <div class="toc col-lg-2 p-0 d-flex flex-column d-none d-lg-block vh-100 scrollable-div">
                 <h4>Table of Content</h4>
@@ -194,7 +194,7 @@
                     </ul>
                     <div class="tab-content mt-3" id="myTabContent">
                         <div class="tab-pane fade show active" id="form" role="tabpanel" aria-labelledby="form-tab">
-                            <div id=formPanel> <fz-form id=fzform></fz-form> </div>
+                            <div id=formPanel> <fz-form id=fzform useajv ></fz-form> </div>
                         </div>
                         <div class="tab-pane fade" id="schema" role="tabpanel" aria-labelledby="schema-tab">
                             <div id=schemaPanel>

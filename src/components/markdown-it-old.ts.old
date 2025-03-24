@@ -1,53 +1,41 @@
 import { customElement, property } from "lit/decorators.js"
 import { unsafeHTML } from "lit/directives/unsafe-html.js"
-import { css, html, PropertyValues } from "lit"
+import { css, html } from "lit"
+import MarkdownIt from "markdown-it"
 import { Base } from "../base"
-type MarkdownIt = { 
-    render(src: string): string 
-    renderer: any
-} 
-let md: MarkdownIt | null = null
 
-async function ensureMarkdownIt(): Promise<MarkdownIt> {
-  if (!md) {
-    const mod = await import("markdown-it")
-    md = new mod.default({
-        html: true,                // Enable HTML tags in source
-        xhtmlOut: false,            // Use '/' to close single tags (<br />). This is only for full CommonMark compatibility.
-        breaks: false,              // Convert '\n' in paragraphs into <br>
-        langPrefix: 'language-',    // CSS language prefix for fenced blocks. Can be useful for external highlighters.
-        linkify: true,              // Autoconvert URL-like text to links
-        // Enable some language-neutral replacement + quotes beautification
-        // For the full list of replacements, see https://github.com/markdown-it/markdown-it/blob/master/lib/rules_core/replacements.js
-        typographer: true,
-    
-        // Double + single quotes replacement pairs, when typographer enabled,
-        // and smartquotes on. Could be either a String or an Array.
-        //
-        // For example, you can use '«»„“' for Russian, '„“‚‘' for German,
-        // and ['«\xA0', '\xA0»', '‹\xA0', '\xA0›'] for French (including nbsp).
-        quotes: '""\'\'',
-    
-        // Highlighter function. Should return escaped HTML,
-        // or '' if the source string is not changed and should be escaped externally.
-        // If result starts with <pre... internal wrapper is skipped.
-        highlight: function (_str, _lang) { return ''; }
-    })
-    patchAttr(md, "table", "class", "table table-striped table-responsive")
-    patchImg(md, 100, 100)
-  }
-  return md
-}
+const md = new MarkdownIt({
+    html: true,                // Enable HTML tags in source
+    xhtmlOut: false,            // Use '/' to close single tags (<br />). This is only for full CommonMark compatibility.
+    breaks: false,              // Convert '\n' in paragraphs into <br>
+    langPrefix: 'language-',    // CSS language prefix for fenced blocks. Can be useful for external highlighters.
+    linkify: true,              // Autoconvert URL-like text to links
+    // Enable some language-neutral replacement + quotes beautification
+    // For the full list of replacements, see https://github.com/markdown-it/markdown-it/blob/master/lib/rules_core/replacements.js
+    typographer: true,
+
+    // Double + single quotes replacement pairs, when typographer enabled,
+    // and smartquotes on. Could be either a String or an Array.
+    //
+    // For example, you can use '«»„“' for Russian, '„“‚‘' for German,
+    // and ['«\xA0', '\xA0»', '‹\xA0', '\xA0›'] for French (including nbsp).
+    quotes: '""\'\'',
+
+    // Highlighter function. Should return escaped HTML,
+    // or '' if the source string is not changed and should be escaped externally.
+    // If result starts with <pre... internal wrapper is skipped.
+    highlight: function (_str, _lang) { return ''; }
+})
 
 function patchAttr(md: MarkdownIt, tagname: string, attrname: string, content: string) {
 
 
     // Save the original rendering rule for table_open (if any)
-    const defaultRender = md.renderer.rules.table_open || function defRender(tokens: any, idx: any, options: any, _env: any, self: any) {
+    const defaultRender = md.renderer.rules.table_open || function defRender(tokens, idx, options, _env, self) {
         return self.renderToken(tokens, idx, options);
     };
 
-    md.renderer.rules[`${tagname}_open`] = (tokens: any, idx: any, options: any, env: any, self: any) => {
+    md.renderer.rules[`${tagname}_open`] = (tokens, idx, options, env, self) => {
         // Get the current token for the <table> opening tag.
         const token = tokens[idx];
 
@@ -61,18 +49,18 @@ function patchAttr(md: MarkdownIt, tagname: string, attrname: string, content: s
 
         // Proceed with default rendering.
         return defaultRender(tokens, idx, options, env, self);
-    }
+    };
 
 }
 
 function patchImg(md: MarkdownIt, width: number, height: number) {
 
     const defaultImageRender = md.renderer.rules.image ||
-        function (tokens: any, idx: any, options: any, _env: any, self: any) {
+        function (tokens, idx, options, _env, self) {
             return self.renderToken(tokens, idx, options);
         };
 
-    md.renderer.rules.image = function (tokens: any, idx: any, options: any, env: any, self: any) {
+    md.renderer.rules.image = function (tokens, idx, options, env, self) {
         const token = tokens[idx];
         // If no width/height is set, add defaults.
         if (!token.attrGet('width')) token.attrSet('width', `${width}`); // set default width
@@ -81,12 +69,13 @@ function patchImg(md: MarkdownIt, width: number, height: number) {
     };
 }
 
+patchAttr(md, "table", "class", "table table-striped table-responsive")
+patchImg(md, 100, 100)
 
 @customElement("markdown-it")
 export class FzMarkdownIt extends Base {
 
     @property({ attribute: "markdown", type: String, reflect: true}) markdown: string = ""
-    @property({ attribute: false, type: Object})  mdrenderer?: MarkdownIt
 
     static override styles = [
         ...super.styles,
@@ -130,18 +119,16 @@ export class FzMarkdownIt extends Base {
             }
         `]
 
-    protected override async firstUpdated(_changedProperties: PropertyValues): Promise<void> {
-        super.firstUpdated(_changedProperties)
-        this.mdrenderer = await ensureMarkdownIt()
+    override render() {
+        const rendered = md.render(this.markdown)
+        return html`<div>
+            ${unsafeHTML(rendered)}
+        </div>`
     }
-    override async render() {
-        if (this.mdrenderer) {
-            const rendered = this.mdrenderer.render(this.markdown)
-            return html`<div> ${unsafeHTML(rendered)} </div>`
+}
 
-        } else {
-            return html`<div> Loading ...</div>`
-
-        }
+declare global {
+    interface HTMLElementTagNameMap {
+        'markdown-it': FzMarkdownIt;
     }
 }

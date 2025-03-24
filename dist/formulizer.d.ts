@@ -163,7 +163,6 @@ type IOptions = {
     userdata?: any;
     asset?: IAsset;
     dialect?: string;
-    enums?: (id: string) => EnumItem[];
 };
 declare const SCHEMA: unique symbol;
 declare const PARENT: unique symbol;
@@ -199,13 +198,14 @@ declare class Base extends LitElement {
  */
 declare class FzForm extends Base {
     static get styles(): lit.CSSResult[];
-    private readonly obj;
+    private readonly i_root;
     private accessor i_options;
     store: IBlobStore;
     asset: IAsset;
     private readonly fieldMap;
     private readonly schemaMap;
-    accessor i_schema: Schema;
+    useAjv: boolean;
+    accessor sourceSchema: Schema;
     accessor actions: boolean;
     accessor readonly: boolean;
     accessor checkIn: boolean;
@@ -216,13 +216,12 @@ declare class FzForm extends Base {
     oninvaliddata: string | null;
     onvalidate: string | null;
     ondismiss: string | null;
-    private schemaErrors;
-    private dataErrors;
-    private validator;
+    private compiledSchema;
+    private validator?;
     private message;
     constructor();
     get root(): any;
-    get valid(): boolean;
+    get valid(): boolean | undefined;
     get schema(): Schema;
     set schema(value: Schema);
     get options(): IOptions;
@@ -241,8 +240,8 @@ declare class FzForm extends Base {
     private renderError;
     connectedCallback(): void;
     disconnectedCallback(): void;
-    protected firstUpdated(changedProperties: PropertyValues): void;
-    check(): void;
+    protected firstUpdated(changedProperties: PropertyValues): Promise<void>;
+    check(forced?: boolean): void;
     /**
      * 'data-updated' event handler for data change.
      * It applies a field.requestUpdate() on each traker associated FzField
@@ -390,15 +389,16 @@ declare abstract class FzField extends Base {
     trackedValueChange(): void;
 }
 
+type MarkdownIt = {
+    render(src: string): string;
+    renderer: any;
+};
 declare class FzMarkdownIt extends Base {
     markdown: string;
+    mdrenderer?: MarkdownIt;
     static styles: lit.CSSResult[];
-    render(): lit_html.TemplateResult<1>;
-}
-declare global {
-    interface HTMLElementTagNameMap {
-        'markdown-it': FzMarkdownIt;
-    }
+    protected firstUpdated(_changedProperties: PropertyValues): Promise<void>;
+    render(): Promise<lit_html.TemplateResult<1>>;
 }
 
 declare global {

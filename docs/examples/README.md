@@ -8,10 +8,9 @@ an extended JSON Schema format.
 >- Formulizer is provided as a [W3C web component](https://www.webcomponents.org/introduction)
 >- The component (tag: `<fz-form>`) expect a form description (in `schema` property) and initial data (in `data` property)
 >- The form description is provided in [JSON Schema ](https://json-schema.org/) format.
->- Formulizer extends this format with specific keywords.
->- JSON Schema didn't provided UI oriented keywords therefore Formulizer extends JSON Schema with specific keywords.
->- The generated form UI is designed with bootstrap 5.
->- The data is provided and retrieved in Javascript plain object (JSON serializable).  
+>- Formulizer extends JSON Schema with specific keywords (UI and Form specific keywords).
+>- The generated form UI is designed with bootstrap 5 (see bootstrap integration).
+>- The data is provided and retrieved in JSON (JSON serializable JS objects).  
 >- The bundle is provided as a unique javascript file to be loaded in your page (provide in CDN).
 >- Formulizer is developped using typescript and lit3.
 
@@ -21,9 +20,9 @@ This README page is the root of the formulizer documentation.
 Here is some important pages.
 - `<fz-form>` web component API documentation (go there link)
 - JSON Schema keywords and how that impact the form rendering (go there link)
-- Some examples : use the search box to select an example (ch. Examples)
+- Some examples : use the search box to select an example or click a table of content item.
 
-## 💡 The unsurprising "[Hello, world!](./hello.html)" tuto
+## 💡 A "[Hello, world!](./hello.html)" tuto
 
 ```html
 <html>

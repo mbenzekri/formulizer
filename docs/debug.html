@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script type="module" src="./src/formulizer.js"></script>
+    <script type="module" src="./dist/formulizer.js"></script>
 </head>
 
 <body>
 
-    <fz-form id="myform" oninit=oninit onready=onready actions onvalidate=onvalidate ondismiss=ondismiss></fz-form>
+    <fz-form id="myform" useajv oninit=oninit onready=onready actions onvalidate=onvalidate ondismiss=ondismiss></fz-form>
     <br>
     <pre id="mydata" lang=""></pre>
     <script>
@@ -24,23 +24,19 @@
         function ondismiss(evt) {
             // console.log("Event 'dismiss' trigerred")
         }
-        window.onload = () => {
+        window.onload = async () => {
+            await FzForm.registerBootstrap() // bootstrap loaded from CDN 
             const form = document.getElementById("myform")
+            const feedback = document.getElementById("mydata")
+            const output = () => feedback.innerHTML = `${form.valid ? "valid" :"invalid"} =>${JSON.stringify(form.data)}`
+            form.addEventListener("data-valid",output)
+            form.addEventListener("data-invalid",output)
             form.schema = {
-                type: "object",
-                properties: {
-                    "country": {
-                        "type": "string",
-                        "enum": [
-                            "France", "Germany", "Spain", "Italy", "United Kingdom", "United States",
-                            "Canada", "Brazil", "Argentina", "Mexico", "China", "Japan", "India", "Russia",
-                            "Australia", "South Africa", "Egypt", "Nigeria", "Saudi Arabia", "Turkey",
-                            "South Korea", "Indonesia", "Thailand", "Vietnam", "Colombia"
-                        ]
-                    }
-                }
+                type: 'object',
+                properties: { active: { type: 'boolean' } }
             }
-            form.data = { country: "Spain" }
+            form.data = { active: "dummy" }
+            output()
         }
     </script>
 </body>

@@ -168,6 +168,9 @@ class CSDefinition extends CompilationStep {
     constructor(root: Schema) {
         super(root, "$ref","pre",[])
     }
+    override appliable(schema: Schema) {
+        return isString(schema.$ref)
+    }
 
     override apply(schema: Schema): void {
         const properties = schema.properties
@@ -175,6 +178,8 @@ class CSDefinition extends CompilationStep {
             ([pname, pschema]) => pschema.$ref && (properties[pname] = this.definition(pschema))
         )
         schema.items && schema.items.$ref && (schema.items = this.definition(schema.items))
+        schema.items && schema.items.oneOf && (schema.items.oneOf = schema.items.oneOf.map((schema: Schema) => schema.$ref ? this.definition(schema) : schema))
+        schema.items && schema.items.oneOf && (schema.items.oneOf = schema.items.oneOf.map((schema: Schema) => schema.$ref ? this.definition(schema) : schema))
         schema.items && schema.items.oneOf && (schema.items.oneOf = schema.items.oneOf.map((schema: Schema) => schema.$ref ? this.definition(schema) : schema))
     }
 
@@ -226,7 +231,7 @@ class CSPointer extends CompilationStep {
         return !(this.property in schema)
     }
     override apply(schema: Schema, parent: Schema, name: string): void {
-        schema.pointer = parent ? `${parent.pointer}/${name}` : `/`
+        schema.pointer = parent ? `${parent.pointer}/${name}` : ``
     }
 }
 

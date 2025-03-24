@@ -14,6 +14,7 @@ import typescript from '@rollup/plugin-typescript';
 import dts from "rollup-plugin-dts";
 import json from '@rollup/plugin-json';
 import commonjs from '@rollup/plugin-commonjs';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 
 import path from "path";
@@ -73,15 +74,22 @@ const terserPlugin = terser({
   },
 });
 
+function manualChunks(id) {
+    if (id.includes('markdown-it')) return 'markdown'
+    if (id.includes('ajv')) return 'ajv'
+}
+
 export default [
 
   // produce developement bundle
   {
     input: './dist/main.js',
     output: {
-      file: './dist/formulizer.js',
-      format: 'esm',
-      sourcemap: true,
+        dir: './dist',
+        entryFileNames: 'formulizer.js',
+        format: 'esm',
+        sourcemap: true,
+        manualChunks,
     },
     onwarn,
     plugins: [...commonPlugins,summary()],
@@ -91,12 +99,21 @@ export default [
   {
     input: './dist/main.js',
     output: {
-      file: './dist/formulizer.min.js',
-      format: 'esm',
-      sourcemap: false,
+        dir: './dist',
+        entryFileNames: 'formulizer.min.js',
+        format: 'esm',
+        sourcemap: false,
+        manualChunks,
     },
     onwarn,
-    plugins: [...commonPlugins,terserPlugin,summary()],
+    plugins: [...commonPlugins,terserPlugin,summary(),
+        visualizer({ template: 'treemap', filename: "stats_treemap.html",  gzipSize: true, brotliSize: true,}),
+        visualizer({ template: 'network', filename: "stats_network.html",  gzipSize: true, brotliSize: true, }),
+        visualizer({ template: 'sunburst', filename: "stats_sunburst.html",  gzipSize: true, brotliSize: true, }),
+        visualizer({ template: 'flamegraph', filename: "stats_flamegraph.html",  gzipSize: true, brotliSize: true, }),
+        visualizer({ template: 'raw-data', filename: "stats_rawdata.html",  gzipSize: true, brotliSize: true, }),
+        visualizer({ template: 'list', filename: "stats_list.html",  gzipSize: true, brotliSize: true, }),
+    ],
   },
 
   // produce type declarations

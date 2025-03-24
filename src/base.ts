@@ -9,7 +9,9 @@ export class Base extends LitElement {
     static override styles: CSSResult[] = []
 
     protected override firstUpdated(_changedProperties: PropertyValues): void {
-        Base.sheets.forEach(sheet => this.shadowRoot?.adoptedStyleSheets.push(sheet))
+        Base.sheets
+            .filter(sheet => !this.shadowRoot?.adoptedStyleSheets.includes(sheet))
+            .forEach(sheet => this.shadowRoot?.adoptedStyleSheets.push(sheet))
         super.firstUpdated(_changedProperties)
     }
 

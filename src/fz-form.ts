@@ -4,8 +4,8 @@ import { Base } from "./base"
 import { property, customElement } from "lit/decorators.js";
 import { IAsset, IOptions, IS_VALID, NOT_TOUCHED, Pojo } from "./lib/types"
 import { FzField } from "./fz-element";
-import { validateSchema, validateErrors, Validator } from "./lib/validation"
-import { isBoolean, isString, setGlobalHandler } from "./lib/tools"
+import { Validator } from "./lib/validation"
+import { isString, setGlobalHandler } from "./lib/tools"
 import { SchemaCompiler, DataCompiler } from "./lib/compiler"
 import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { Schema, schemaAttrConverter, DEFAULT_SCHEMA } from "./lib/schema";
@@ -26,14 +26,15 @@ export class FzForm extends Base {
         return [...super.styles]
     }
 
-    private readonly obj = { content: {} as Pojo }
+    private readonly i_root = { content: {} as Pojo }
     private accessor i_options: IOptions = {}
     public store: IBlobStore = new BlobMemory()
     public asset!: IAsset
     private readonly fieldMap: Map<string, FzField> = new Map()
     private readonly schemaMap: Map<string, FzField> = new Map()
 
-    @property({ type: Object, attribute: "schema", converter: schemaAttrConverter }) accessor i_schema = DEFAULT_SCHEMA
+    @property({ type: Boolean, attribute: "useajv" }) useAjv = false
+    @property({ type: Object, attribute: "schema", converter: schemaAttrConverter }) accessor sourceSchema = DEFAULT_SCHEMA
     @property({ type: Boolean, attribute: "actions" }) accessor actions = false
     @property({ type: Boolean, attribute: "readonly" }) accessor readonly = false
     @property({ type: Boolean, attribute: "checkin" }) accessor checkIn = false
@@ -45,10 +46,8 @@ export class FzForm extends Base {
     @property({ type: String, attribute: 'onvalidate', converter: (v) => v }) onvalidate: string | null = null;
     @property({ type: String, attribute: 'ondismiss', converter: (v) => v }) ondismiss: string | null = null;
 
-
-    private schemaErrors: Array<any> = []
-    private dataErrors: Array<any> = []
-    private validator!: Validator
+    private compiledSchema = DEFAULT_SCHEMA
+    private validator?: Validator
     private message = ""
     constructor() {
         super()
@@ -62,18 +61,25 @@ export class FzForm extends Base {
             })
     }
 
-    get root(): any { return this.obj.content }
+    get root(): any { return this.i_root.content }
     get valid() {
-        return this.validator?.validate(this.root) ?? false
+        this.validator?.validate(this.root) 
+        return  this.validator?.valid
     }
 
-    get schema() { return this.i_schema }
+    get schema() { return this.compiledSchema }
     set schema(value: Schema) {
-        this.i_schema = validateSchema(value) ? new Schema(JSON.parse(JSON.stringify(value))) : DEFAULT_SCHEMA
-        this.i_schema.collapsed = false
-        this.schemaErrors = validateErrors()
-        this.validator = new Validator(this.i_schema)
+        this.validator = Validator.getValidator(value)
+        if (this.validator.schemaValid) {
+            this.sourceSchema = new Schema(JSON.parse(JSON.stringify(value)))
+            this.compiledSchema = new Schema(JSON.parse(JSON.stringify(value)))
+        } else {
+            this.sourceSchema = new Schema(JSON.parse(JSON.stringify(DEFAULT_SCHEMA)))
+            this.compiledSchema = new Schema(JSON.parse(JSON.stringify(DEFAULT_SCHEMA)))
+            this.validator = Validator.getValidator(this.sourceSchema)
+        }
         this.compile()
+        this.compiledSchema.collapsed = () => false
         this.requestUpdate()
     }
 
@@ -91,11 +97,11 @@ export class FzForm extends Base {
 
     get data() { return JSON.parse(JSON.stringify(this.root)) }
     set data(value: Pojo) {
-        // dont accept data before having a valid JSON
-        if (this.schemaErrors.length > 0) return
-        // data must be valid (if checkin option is true)
-        this.dataErrors = this.checkIn && this.validator.validate(value) ? this.validator?.errors ?? [] : []
-        this.obj.content = this.dataErrors.length == 0 ? value : {}
+        // dont accept data before having a valid Schema
+        if (!this.validator?.schemaValid) return
+        // TBD data must be valid (if checkin option is true)
+        this.validator?.validate(value)
+        this.i_root.content = value
         this.compile()
         this.requestUpdate()
     }
@@ -106,6 +112,11 @@ export class FzForm extends Base {
             // Utilise le converter instance-spécifique pour convertir l'attribut
             const converted = schemaAttrConverter.fromAttribute(newValue)
             this.schema = converted
+        }
+        if (name === 'useajv') {
+            Validator.loadValidator(this.useAjv)
+            .then(() => { this.firstUpdated(new Map()) })
+            .catch((e) => console.error(`VALIDATION: Validator loading fails due to ${e}`))    
         }
     }
 
@@ -128,15 +139,14 @@ export class FzForm extends Base {
     }
 
     override render() {
-        const failed = this.schemaErrors.length > 0 || this.dataErrors.length > 0
-        return failed ? this.renderError() : this.renderForm()
+        return this.validator?.schemaValid ? this.renderForm() : this.renderError()
     }
 
     private renderForm() {
         return html`
-            ${Array.isArray(this.root)
-                ? html`<fz-array pointer="" name="content"  .data="${this.obj}" .schema="${this.schema}"></fz-array>`
-                : html`<fz-object  pointer="" name="content" .data="${this.obj}" .schema="${this.schema}"></fz-object>`
+            ${this.schema.basetype == "array"
+                ? html`<fz-array pointer="" name="content"  .data="${this.i_root}" .schema="${this.schema}"></fz-array>`
+                : html`<fz-object  pointer="" name="content" .data="${this.i_root}" .schema="${this.schema}"></fz-object>`
             }
             ${this.renderButtons()}`
     }
@@ -156,8 +166,8 @@ export class FzForm extends Base {
             html`<li>property : ${(e.dataPath == undefined) ? e.instancePath : e.dataPath} : ${e.keyword} ➜ ${e.message}</li>`
         return [
             html`<hr>`,
-            this.schemaErrors.length ? html`<pre><ol> Schema errors : ${this.schemaErrors.map(formatError)} </ol></pre>` : html``,
-            this.dataErrors.length ? html`<pre><ol> Data errors : ${this.dataErrors.map(formatError)} </ol></pre>` : html``
+            !this.validator?.schemaValid ? html`<pre><ol> Schema errors : ${this.validator?.schemaErrors.map(formatError)} </ol></pre>` : html``,
+            !this.validator?.valid ? html`<pre><ol> Data errors : ${this.validator?.errors.map(formatError)} </ol></pre>` : html``
         ]
     }
 
@@ -170,39 +180,25 @@ export class FzForm extends Base {
         super.disconnectedCallback()
         this.removeEventListener('data-updated', (e) => this.handleDataUpdate(e))
     }
-    protected override firstUpdated(changedProperties: PropertyValues): void {
-        // this is an unused callback actually (needed only for breakpoints)
+    protected override async firstUpdated(changedProperties: PropertyValues) {
         super.firstUpdated(changedProperties)
-        null;
+        this.check();
     }
 
-    check() {
+    check(forced = false) {
         // collect errors and dispatch error on fields (registered in this.fieldMap)
-        const errorMap = new Map<string, string[]>()
-        const valid = this.validator?.validate(this.root)
-        if (isBoolean(valid) && !valid) {
-            for (const error of this.validator.errors) {
-                let { instancePath, message, params, keyword } = error;
-                instancePath = `/${instancePath}`
-                // required applies to object must down the error to child
-                if (keyword === "required") {
-                    instancePath = `${instancePath === '/' ? '' : ''}/${params.missingProperty}`
-                    message = "required"
-                }
-                if (!errorMap.has(instancePath)) errorMap.set(instancePath, [])
-                //const detail =Object.entries(params).map(([s,v]) => v == null ? null : `${s}: ${v}`).filter(v => v).join(',')
-                errorMap.get(instancePath)?.push(message ?? "unidentified error")
-            }
-        }
-
+        const validated = this.valid 
+        const errorMap =  validated ? this.validator?.errorMap() : undefined
         // dispatch all errors over the fields 
         for (const [pointer, field] of this.fieldMap.entries()) {
             // if field is not touched (not manually updated) valid/invalid not displayed
-            if (field.errors != NOT_TOUCHED) {
-                field.errors = errorMap.get(pointer) ?? IS_VALID
-                // console.log(`VALIDATION: ${field.pointer} -> ${field.errors === IS_VALID ? "Y" : "N" }`)
+            if (field.errors != NOT_TOUCHED || forced) {
+                field.errors = errorMap?.get(pointer) ?? IS_VALID
+                console.log(`VALIDATION: ${field.pointer} -> ${field.errors === IS_VALID ? "Y" : "N" }`)
             }
         }
+        const event =  new CustomEvent(validated ? "data-valid" : "data-invalid")
+        this.dispatchEvent(event);
     }
     /**
      * 'data-updated' event handler for data change. 
@@ -232,7 +228,7 @@ export class FzForm extends Base {
     private compile() {
 
         // All schema compilation are fatal (unable to build the form)
-        const schema_compiler = new SchemaCompiler(this.schema, this.options, this.obj.content)
+        const schema_compiler = new SchemaCompiler(this.compiledSchema, this.options, this.i_root.content)
         const schema_errors = schema_compiler.compile()
         if (schema_errors.length > 0) {
             this.message = `Schema compilation failed: \n    - ${schema_errors.join('\n    - ')}`
@@ -241,7 +237,7 @@ export class FzForm extends Base {
         }
 
         // Data compilation never fail otherwise it's a bug to fix
-        const data_compiler = new DataCompiler(this.obj.content, this.schema)
+        const data_compiler = new DataCompiler(this.i_root.content, this.schema)
         const data_errors = data_compiler.compile()
         if (data_errors.length > 0) {
             this.message = `Data compilation failed: \n    - ${data_errors.join('\n    - ')}`
@@ -315,6 +311,9 @@ export class FzForm extends Base {
         document.fonts.add(loaded)
 
         Base.sheets = [bootstrap_sheet, icons_sheet]
+        for (const item of document.getElementsByTagName("fz-form") as HTMLCollectionOf<FzForm>) {
+            item.firstUpdated(new Map())
+        }
     }
 
 }
