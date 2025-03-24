@@ -529,5 +529,6 @@ export abstract class FzField extends Base {
         if (this.schema.expression) {
             this.value = this.evalExpr("expression")
         }
+        this.requestUpdate()
     }
 }

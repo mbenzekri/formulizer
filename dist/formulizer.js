@@ -1,5 +1,4 @@
-import { e as e$1, i as i$1, t as t$1, T, _ as __decorate, B as Base, a as i$2, x, n as n$1, b as e$2, r as r$1, c as t$2, o as o$2, E, Z, d as r$2 } from './markdown-BU1S1FJe.js';
-export { F as FzMarkdownIt } from './markdown-BU1S1FJe.js';
+import { e as e$1, i as i$1, t as t$1, T, _ as __decorate, B as Base, a as i$2, x, n as n$1, b as e$2, r as r$1, c as t$2, o as o$2, E, Z, d as r$2, F as FzMarkdownIt } from './markdown-Yc8W8GK4.js';
 
 function notNull(value) {
     return value != null;
@@ -1095,6 +1094,7 @@ class FzField extends Base {
         if (this.schema.expression) {
             this.value = this.evalExpr("expression");
         }
+        this.requestUpdate();
     }
 }
 __decorate([
@@ -3388,7 +3388,7 @@ let FzObject = class FzObject extends FZCollection {
         return x `${this.isItem
             ? x `<div>${this.renderLabel}</div>${itemTemplates}`
             : this.schema.title === "" ? x `<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`
-                : x `<div class="panel" id="content"  class="${this.schema.parent ? '' : 'border-0'}">
+                : x `<div class="panel ${this.schema.parent ? '' : 'border-0'}" id="content" >
                 <div class="panel-heading" ?hidden="${!this.schema.parent}" >
                     <div>
                         ${this.renderLabel}
@@ -4617,10 +4617,9 @@ class SchemaCompiler {
     }
     compile() {
         this.errors = [];
-        for (const pass of Object.values(this.passes)) {
-            //pass.forEach(step => console.log(step.constructor.name))
-            this.walkSchema(pass, this.root);
-        }
+        //this.walkSchema(this.passes.upgrade, this.root)
+        this.walkSchema(this.passes.pre, this.root);
+        this.walkSchema(this.passes.post, this.root);
         // this is a special use case when all dependencies between pointers is setted
         // we need to break potential cycle to avoid infinite loop
         CSTrackers.breakCycles();
@@ -4688,10 +4687,27 @@ class CSDefinition extends CompilationStep {
         super(root, "$ref", "pre", []);
     }
     apply(schema) {
-        const properties = schema.properties;
-        properties && Object.entries(properties).forEach(([pname, pschema]) => pschema.$ref && (properties[pname] = this.definition(pschema)));
-        schema.items && schema.items.$ref && (schema.items = this.definition(schema.items));
-        schema.items && schema.items.oneOf && (schema.items.oneOf = schema.items.oneOf.map((schema) => schema.$ref ? this.definition(schema) : schema));
+        const batch = [];
+        for (const [property, child] of Object.entries(schema.properties ?? {})) {
+            if (child.$ref)
+                batch.push({ parent: schema.properties ?? {}, property });
+        }
+        for (const [i, child] of (schema.oneOf ?? []).entries()) {
+            if (child.$ref)
+                batch.push({ parent: schema.oneOf ?? [], property: i });
+        }
+        for (const [i, child] of (schema.anyOf ?? []).entries()) {
+            if (child.$ref)
+                batch.push({ parent: schema.anyOf ?? [], property: i });
+        }
+        for (const [i, child] of (schema.allOf ?? []).entries()) {
+            if (child.$ref)
+                batch.push({ parent: schema.allOf ?? [], property: i });
+        }
+        // process collected $ref schemas
+        for (const item of batch) {
+            item.parent[item.property] = this.definition(item.parent[item.property]);
+        }
     }
     definition(schema) {
         const ref = schema.$ref;
@@ -5213,7 +5229,7 @@ class CSBool extends CompilationStep {
         this.defaultFunc = defunc;
     }
     appliable(schema) {
-        return this.property in schema && typeof schema[this.property] == "boolean";
+        return this.property in schema;
     }
     apply(schema, _parent, name) {
         const expression = schema[this.property];
@@ -5394,6 +5410,7 @@ let FzForm = class FzForm extends Base {
     fieldMap = new Map();
     schemaMap = new Map();
     useAjv = false;
+    useMarkdown = false;
     #sourceSchema_accessor_storage = DEFAULT_SCHEMA;
     get sourceSchema() { return this.#sourceSchema_accessor_storage; }
     set sourceSchema(value) { this.#sourceSchema_accessor_storage = value; }
@@ -5444,6 +5461,8 @@ let FzForm = class FzForm extends Base {
         }
         this.compile();
         this.compiledSchema.collapsed = () => false;
+        this.fieldMap.clear();
+        this.schemaMap.clear();
         this.requestUpdate();
     }
     get options() { return this.i_options; }
@@ -5478,6 +5497,11 @@ let FzForm = class FzForm extends Base {
             Validator.loadValidator(this.useAjv)
                 .then(() => { this.firstUpdated(new Map()); })
                 .catch((e) => console.error(`VALIDATION: Validator loading fails due to ${e}`));
+        }
+        if (name === 'usemarkdown') {
+            FzMarkdownIt.loadMarkdownIt(this.useMarkdown)
+                .then(() => null)
+                .catch((e) => console.error(`MARKDOWN: MarkdownIt loading fails due to ${e}`));
         }
     }
     getField(pointer) {
@@ -5664,6 +5688,9 @@ __decorate([
     n$1({ type: Boolean, attribute: "useajv" })
 ], FzForm.prototype, "useAjv", void 0);
 __decorate([
+    n$1({ type: Boolean, attribute: "usemarkdown" })
+], FzForm.prototype, "useMarkdown", void 0);
+__decorate([
     n$1({ type: Object, attribute: "schema", converter: schemaAttrConverter })
 ], FzForm.prototype, "sourceSchema", null);
 __decorate([
@@ -5702,5 +5729,5 @@ FzForm = __decorate([
 // Optional: expose globally
 window.FzForm = FzForm;
 
-export { FzForm };
+export { FzForm, FzMarkdownIt };
 //# sourceMappingURL=formulizer.js.map

@@ -169,7 +169,7 @@ export class FzObject extends FZCollection {
         return html`${this.isItem
             ? html`<div>${this.renderLabel}</div>${itemTemplates}`
             : this.schema.title === "" ?  html`<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`
-            : html`<div class="panel" id="content"  class="${this.schema.parent ? '' : 'border-0'}">
+            : html`<div class="panel ${this.schema.parent ? '' : 'border-0'}" id="content" >
                 <div class="panel-heading" ?hidden="${!this.schema.parent}" >
                     <div>
                         ${this.renderLabel}

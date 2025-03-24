@@ -9,6 +9,7 @@ import { isString, setGlobalHandler } from "./lib/tools"
 import { SchemaCompiler, DataCompiler } from "./lib/compiler"
 import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { Schema, schemaAttrConverter, DEFAULT_SCHEMA } from "./lib/schema";
+import { FzMarkdownIt } from "./components/markdown-it";
 
 const BOOTSTRAP_URL = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
 const ICONS_URL = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
@@ -34,6 +35,7 @@ export class FzForm extends Base {
     private readonly schemaMap: Map<string, FzField> = new Map()
 
     @property({ type: Boolean, attribute: "useajv" }) useAjv = false
+    @property({ type: Boolean, attribute: "usemarkdown" }) useMarkdown = false
     @property({ type: Object, attribute: "schema", converter: schemaAttrConverter }) accessor sourceSchema = DEFAULT_SCHEMA
     @property({ type: Boolean, attribute: "actions" }) accessor actions = false
     @property({ type: Boolean, attribute: "readonly" }) accessor readonly = false
@@ -80,6 +82,8 @@ export class FzForm extends Base {
         }
         this.compile()
         this.compiledSchema.collapsed = () => false
+        this.fieldMap.clear()
+        this.schemaMap.clear()
         this.requestUpdate()
     }
 
@@ -117,6 +121,11 @@ export class FzForm extends Base {
             Validator.loadValidator(this.useAjv)
             .then(() => { this.firstUpdated(new Map()) })
             .catch((e) => console.error(`VALIDATION: Validator loading fails due to ${e}`))    
+        }
+        if (name === 'usemarkdown') {
+            FzMarkdownIt.loadMarkdownIt(this.useMarkdown)
+            .then(() => null )
+            .catch((e) => console.error(`MARKDOWN: MarkdownIt loading fails due to ${e}`))    
         }
     }
 

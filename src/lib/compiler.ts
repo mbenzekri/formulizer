@@ -99,10 +99,11 @@ export class SchemaCompiler {
     }
     compile() {
         this.errors = []
-        for (const pass of Object.values(this.passes)) {
-            //pass.forEach(step => console.log(step.constructor.name))
-            this.walkSchema(pass, this.root)
-        }
+        
+        //this.walkSchema(this.passes.upgrade, this.root)
+        this.walkSchema(this.passes.pre, this.root)
+        this.walkSchema(this.passes.post, this.root)
+
         // this is a special use case when all dependencies between pointers is setted
         // we need to break potential cycle to avoid infinite loop
         CSTrackers.breakCycles()
@@ -168,19 +169,27 @@ class CSDefinition extends CompilationStep {
     constructor(root: Schema) {
         super(root, "$ref","pre",[])
     }
-    override appliable(schema: Schema) {
-        return isString(schema.$ref)
-    }
 
     override apply(schema: Schema): void {
-        const properties = schema.properties
-        properties && Object.entries(properties).forEach(
-            ([pname, pschema]) => pschema.$ref && (properties[pname] = this.definition(pschema))
-        )
-        schema.items && schema.items.$ref && (schema.items = this.definition(schema.items))
-        schema.items && schema.items.oneOf && (schema.items.oneOf = schema.items.oneOf.map((schema: Schema) => schema.$ref ? this.definition(schema) : schema))
-        schema.items && schema.items.oneOf && (schema.items.oneOf = schema.items.oneOf.map((schema: Schema) => schema.$ref ? this.definition(schema) : schema))
-        schema.items && schema.items.oneOf && (schema.items.oneOf = schema.items.oneOf.map((schema: Schema) => schema.$ref ? this.definition(schema) : schema))
+        const batch = [] as { parent:Record<string,any>, property: string | number}[]
+
+        for (const [property,child] of Object.entries(schema.properties ?? {})) {
+            if (child.$ref) 
+                batch.push({parent: schema.properties ?? {},property})
+        }
+        for (const [i,child] of (schema.oneOf ?? []).entries()) {
+            if (child.$ref) batch.push({ parent: schema.oneOf ?? [], property: i })
+        }
+        for (const [i,child] of (schema.anyOf ?? []).entries()) {
+            if (child.$ref) batch.push({ parent: schema.anyOf ?? [], property: i })
+        }
+        for (const [i,child] of (schema.allOf ?? []).entries()) {
+            if (child.$ref) batch.push({ parent: schema.allOf ?? [], property: i })
+        }
+        // process collected $ref schemas
+        for (const item of batch) {
+            item.parent[item.property] = this.definition(item.parent[item.property])
+        } 
     }
 
     definition(schema: Schema) {
@@ -757,7 +766,7 @@ class CSBool extends CompilationStep {
         this.defaultFunc = defunc
     }
     override appliable(schema: Schema) {
-        return this.property in schema &&  typeof schema[this.property] == "boolean"
+        return this.property in schema
     }
     override apply(schema: Schema, _parent: Schema, name: string) {
         const expression = schema[this.property]

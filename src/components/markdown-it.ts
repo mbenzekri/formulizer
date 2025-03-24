@@ -6,12 +6,13 @@ type MarkdownIt = {
     render(src: string): string 
     renderer: any
 } 
-let md: MarkdownIt | null = null
+
+let MD: MarkdownIt | null = null
 
 async function ensureMarkdownIt(): Promise<MarkdownIt> {
-  if (!md) {
+  if (!MD) {
     const mod = await import("markdown-it")
-    md = new mod.default({
+    MD = new mod.default({
         html: true,                // Enable HTML tags in source
         xhtmlOut: false,            // Use '/' to close single tags (<br />). This is only for full CommonMark compatibility.
         breaks: false,              // Convert '\n' in paragraphs into <br>
@@ -33,10 +34,10 @@ async function ensureMarkdownIt(): Promise<MarkdownIt> {
         // If result starts with <pre... internal wrapper is skipped.
         highlight: function (_str, _lang) { return ''; }
     })
-    patchAttr(md, "table", "class", "table table-striped table-responsive")
-    patchImg(md, 100, 100)
+    patchAttr(MD, "table", "class", "table table-striped table-responsive")
+    patchImg(MD, 100, 100)
   }
-  return md
+  return MD
 }
 
 function patchAttr(md: MarkdownIt, tagname: string, attrname: string, content: string) {
@@ -86,7 +87,6 @@ function patchImg(md: MarkdownIt, width: number, height: number) {
 export class FzMarkdownIt extends Base {
 
     @property({ attribute: "markdown", type: String, reflect: true}) markdown: string = ""
-    @property({ attribute: false, type: Object})  mdrenderer?: MarkdownIt
 
     static override styles = [
         ...super.styles,
@@ -132,16 +132,20 @@ export class FzMarkdownIt extends Base {
 
     protected override async firstUpdated(_changedProperties: PropertyValues): Promise<void> {
         super.firstUpdated(_changedProperties)
-        this.mdrenderer = await ensureMarkdownIt()
     }
     override async render() {
-        if (this.mdrenderer) {
-            const rendered = this.mdrenderer.render(this.markdown)
-            return html`<div> ${unsafeHTML(rendered)} </div>`
+        if (MD) {
+            const rendered = MD.render(this.markdown)
+            return unsafeHTML(rendered)
 
         } else {
             return html`<div> Loading ...</div>`
 
+        }
+    }
+    static async loadMarkdownIt(useit: boolean) {
+        if (useit){
+            await ensureMarkdownIt()
         }
     }
 }

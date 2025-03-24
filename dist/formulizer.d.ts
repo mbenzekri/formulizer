@@ -3,6 +3,7 @@ import * as lit from 'lit';
 import { LitElement, CSSResult, PropertyValues, TemplateResult } from 'lit';
 import * as lit_html_directive from 'lit-html/directive';
 import * as lit_html_directives_class_map from 'lit-html/directives/class-map';
+import * as lit_html_directives_unsafe_html from 'lit-html/directives/unsafe-html';
 
 declare class JSONSchema {
     [key: string]: any;
@@ -205,6 +206,7 @@ declare class FzForm extends Base {
     private readonly fieldMap;
     private readonly schemaMap;
     useAjv: boolean;
+    useMarkdown: boolean;
     accessor sourceSchema: Schema;
     accessor actions: boolean;
     accessor readonly: boolean;
@@ -389,16 +391,12 @@ declare abstract class FzField extends Base {
     trackedValueChange(): void;
 }
 
-type MarkdownIt = {
-    render(src: string): string;
-    renderer: any;
-};
 declare class FzMarkdownIt extends Base {
     markdown: string;
-    mdrenderer?: MarkdownIt;
     static styles: lit.CSSResult[];
     protected firstUpdated(_changedProperties: PropertyValues): Promise<void>;
-    render(): Promise<lit_html.TemplateResult<1>>;
+    render(): Promise<lit_html_directive.DirectiveResult<typeof lit_html_directives_unsafe_html.UnsafeHTMLDirective>>;
+    static loadMarkdownIt(useit: boolean): Promise<void>;
 }
 
 declare global {
