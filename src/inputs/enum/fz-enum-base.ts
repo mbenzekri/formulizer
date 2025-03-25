@@ -22,7 +22,7 @@ export abstract class FzEnumBase extends FzInputBase {
     }
 
     get showNullChoice() {
-        if (!this.schema.nullAllowed) return false
+        if (!this.schema?.nullAllowed) return false
         const show = this.schema.nullAllowed && (
             !this.schema.enum?.includes(null) ||
             !this.schema.oneOf?.some((item: any) => item.const === null) ||
@@ -72,10 +72,10 @@ export abstract class FzEnumBase extends FzInputBase {
         // if fetching is on going just wait result 
         if (this.enums == FETCHING || this.enums == EMPTY) return
         switch (true) {
-            case isFunction(this.schema.from):
+            case isFunction(this.schema?.from):
                 this.enums = this.getFrom()
                 break
-            case notNull(this.schema.enumFetch):
+            case notNull(this.schema?.enumFetch):
                 this.fetchEnum()
                 .then(
                     (enums) => (this.enums = enums, this.requestUpdate()),  

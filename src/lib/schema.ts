@@ -133,7 +133,7 @@ export const FZ_KEYWORDS = [
     "orderBy",
     "expression",
     "change",
-    //"nullable",
+    "_nullable",
     "assets",
     "preview",
     "mimetype",

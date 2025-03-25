@@ -66,13 +66,13 @@ export class FzInputFloat extends FzInputBase {
             </div>`
     }
     get max(): number | undefined{
-        if (isNumber(this.schema.maximum)) return this.schema.maximum
-        if (isNumber(this.schema.exclusiveMaximum)) return this.schema.exclusiveMaximum
+        if (isNumber(this.schema?.maximum)) return this.schema.maximum
+        if (isNumber(this.schema?.exclusiveMaximum)) return this.schema.exclusiveMaximum
         return
     }
     get min() {
-        if (isNumber(this.schema.minimum)) return this.schema.minimum
-        if (isNumber(this.schema.exclusiveMinimum)) return this.schema.exclusiveMinimum
+        if (isNumber(this.schema?.minimum)) return this.schema.minimum
+        if (isNumber(this.schema?.exclusiveMinimum)) return this.schema.exclusiveMinimum
         return
     }
 

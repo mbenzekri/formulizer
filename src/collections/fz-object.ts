@@ -152,7 +152,7 @@ export class FzObject extends FZCollection {
     }
 
     override renderField(): TemplateResult {
-        if (!this.schema.properties) return html``
+        if (!this.schema?.properties) return html``
         const itemTemplates: TemplateResult[] = [];
         const fields = this.schema.order as FieldOrder[]
         let fieldpos = 0
@@ -168,7 +168,7 @@ export class FzObject extends FZCollection {
         }
         return html`${this.isItem
             ? html`<div>${this.renderLabel}</div>${itemTemplates}`
-            : this.schema.title === "" ?  html`<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`
+            : (this.schema.title ?? '') === "" ?  html`<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`
             : html`<div class="panel ${this.schema.parent ? '' : 'border-0'}" id="content" >
                 <div class="panel-heading" ?hidden="${!this.schema.parent}" >
                     <div>

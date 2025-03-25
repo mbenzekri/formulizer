@@ -12,6 +12,7 @@ import { FzInputBase } from "./fz-input-base";
  */
 @customElement("fz-geolocation")
 export class FzInputGeolocation extends FzInputBase {
+    private watchId?: number
 
     override toField(): void {
         if (notNull(this.input)) {
@@ -33,7 +34,7 @@ export class FzInputGeolocation extends FzInputBase {
             }`
         ]
     }
-
+    
     renderInput() {
         return html`
             <div class="input-group ${this.validationMap}">
@@ -56,25 +57,53 @@ export class FzInputGeolocation extends FzInputBase {
                     </button>
                     <button 
                         type="button"
-                        class="btn btn-primary btn-sm"
+                        ?disabled=${!navigator.geolocation}
                         @click="${this.geolocate}"
-                        aria-label="Geolocate">
+                        aria-label="Geolocate"
+                        class="btn btn-primary btn-sm"
+                    >
                             <i class="bi bi-geo-alt"></i>
                     </button>
                 </div>
             </div>`
     }
-
     geolocate() { 
-        navigator.geolocation.getCurrentPosition((position: any) => {
-            this.input.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`
-            this.change()
-        });
+        // navigator.geolocation.getCurrentPosition((position: any) => {
+        //     this.input.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`
+        //     this.change()
+        // });
+
+        this.watchId = navigator.geolocation.watchPosition(
+            position => {
+                if (!this.isConnected) return
+                if (this.watchId !== undefined) navigator.geolocation.clearWatch(this.watchId)
+                this.value = this.input.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`
+                this.change()
+            },
+            err => {
+                if (this.watchId !== undefined) navigator.geolocation.clearWatch(this.watchId)
+                console.warn("Geolocation error:", err)
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            }
+        )
     }
+
 
     override remove() {
         this.input.value = ""
         this.change()
+    }
+
+    override disconnectedCallback(): void {
+        super.disconnectedCallback()
+        if (this.watchId !== undefined) {
+            navigator.geolocation.clearWatch(this.watchId)
+            this.watchId = undefined
+        }
     }
 
 }

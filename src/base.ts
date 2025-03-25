@@ -39,6 +39,7 @@ export class Base extends LitElement {
         for (const item of this.handlers) {
             item.target.removeEventListener(item.event, item.handler)
         }
+        this.handlers = []
     }
 
 }

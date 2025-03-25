@@ -42,10 +42,15 @@ export abstract class FzInputBase extends FzField {
     /**
      * on first updated set listeners
      */
-    protected override firstUpdated(changedProperties: PropertyValues): void {
+    override firstUpdated(changedProperties: PropertyValues): void {
         super.firstUpdated(changedProperties)
         // for debug 'F9' output state of field
         if (this.input) this.listen(this.input,'keydown', (evt: Event) => this.debugKey(evt as KeyboardEvent))
+    }
+
+    override disconnectedCallback(): void {
+        this.input && (this.input.value = "")
+        super.disconnectedCallback()
     }
 
     /**

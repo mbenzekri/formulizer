@@ -58,11 +58,11 @@ export class FzInputString extends FzInputBase {
             </div>`
     }
 
-    get minlength() { return this.schema.minLength }
-    get maxlength() { return this.schema.maxLength }
-    get pattern() { return this.schema.pattern }
+    get minlength() { return this.schema?.minLength }
+    get maxlength() { return this.schema?.maxLength }
+    get pattern() { return this.schema?.pattern }
     get type() { 
-        switch(this.schema.format) {
+        switch(this.schema?.format) {
             case 'color' :return 'color'
             case 'email' : return 'email'
             case 'password' : return 'password'

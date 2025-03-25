@@ -69,7 +69,7 @@ export class FzArray extends FZCollection {
         return html`
             <div @focusout="${this.focusout}">
                 <div class="form-group row">
-                ${ this.schema.title === "" ? html`` : this.renderLabel }
+                ${ (this.schema?.title ?? '')  === "" ? html`` : this.renderLabel }
                     <div class="col-sm">
                         <ul id="content" class="list-group">
                             ${lines}
@@ -216,7 +216,7 @@ export class FzArray extends FZCollection {
         this.requestUpdate()
     }
     private solveSchemas(force = false) {
-        if (!isObject(this.schema.items)) return
+        if (!isObject(this.schema?.items)) return
         if (!force && this.currentSchema && this.schemas) return
         if (!this.currentSchema) this.currentSchema = this.schema.homogeneous ?  this.schema.items : (this.schema.items.oneOf?.[0] ?? EMPTY_SCHEMA)
         this.schemas = this.value == null ? [] : this.schema.homogeneous

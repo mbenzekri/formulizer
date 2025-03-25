@@ -52,6 +52,16 @@ export class FzDialog extends Base {
         this.modal = this.shadowRoot?.getElementById('modal');
         this.backdrop = this.shadowRoot?.getElementById('backdrop');
     }
+    override disconnectedCallback(): void {
+        super.disconnectedCallback()
+        this.modal = undefined as any
+        this.backdrop = undefined as any
+        this.validable = undefined as any
+        this.modalTitle = undefined as any
+        this.okLabel = undefined as any
+        this.dismissLabel = undefined as any
+    
+    }
 
     open() {
         if (this.backdrop) this.backdrop.style.display = "block"

@@ -40,7 +40,7 @@ export class FzInputMask extends FzInputBase {
             </div>`;
     }
     get mask() {
-        return this.schema.mask ?? ""
+        return this.schema?.mask ?? ""
     }
     // Handle user input (apply mask and store formatted value)
     private handleInput(event: InputEvent) {

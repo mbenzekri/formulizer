@@ -46,10 +46,10 @@ export class FzInputDatetime extends FzInputBase {
     }
 
     get min() {
-        return this.schema.minimum
+        return this.schema?.minimum
     }
 
     get max() {
-        return this.schema.maximum
+        return this.schema?.maximum
     }
 }

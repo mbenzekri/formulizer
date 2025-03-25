@@ -1,4 +1,4 @@
-import { e as e$1, i as i$1, t as t$1, T, _ as __decorate, B as Base, a as i$2, x, n as n$1, b as e$2, r as r$1, c as t$2, o as o$2, E, Z, d as r$2, F as FzMarkdownIt } from './markdown-Yc8W8GK4.js';
+import { e as e$1, i as i$1, t as t$1, T, _ as __decorate, B as Base, a as i$2, x, n as n$1, b as e$2, r as r$1, c as t$2, o as o$2, E, Z, d as r$2, F as FzMarkdownIt } from './markdown-BVFQ2WYP.js';
 
 function notNull(value) {
     return value != null;
@@ -170,14 +170,6 @@ window.nvl = function nvl(templates, ...values) {
     const cleaned = values.map(v => v ?? '');
     return String.raw(templates, cleaned);
 };
-function setGlobalHandler(target, event, value) {
-    if (value) {
-        const fn = window[value]; // Look up the function in the global scope
-        if (typeof fn === 'function') {
-            target.addEventListener(event, fn);
-        }
-    }
-}
 
 const SCHEMA = Symbol("FZ_FORM_SCHEMA");
 const PARENT = Symbol("FZ_FORM_PARENT");
@@ -292,7 +284,7 @@ const FZ_KEYWORDS = [
     "orderBy",
     "expression",
     "change",
-    //"nullable",
+    "_nullable",
     "assets",
     "preview",
     "mimetype",
@@ -634,10 +626,10 @@ class FzField extends Base {
     _dofocus = false;
     _form;
     get valid() {
-        return this.errors.length === 0 && this.errors != NOT_TOUCHED;
+        return (this.errors?.length ?? 0) === 0 && this.errors != NOT_TOUCHED;
     }
     get invalid() {
-        return this.errors.length > 0;
+        return (this.errors?.length ?? 0) > 0;
     }
     get value() {
         // Warning side effects is prohibited in this method, never update this.data 
@@ -777,7 +769,7 @@ class FzField extends Base {
      * calculate label for this field
      */
     get label() {
-        return (this.isItem ? String(this.index != null ? this.index + 1 : '-') : this.schema.title ?? this.name) ?? "";
+        return (this.isItem ? String(this.index != null ? this.index + 1 : '-') : this.schema?.title ?? this.name) ?? "";
     }
     /**
      * return true if this field is item of array, false otherwise
@@ -903,7 +895,7 @@ class FzField extends Base {
      * render method for label
      */
     get renderLabel() {
-        if (this.schema.title === "")
+        if ((this.schema?.title ?? "") === "")
             return x ``;
         if (this.isItem)
             return x `
@@ -971,6 +963,15 @@ class FzField extends Base {
     disconnectedCallback() {
         super.disconnectedCallback();
         this.form?.removeField(this.schema.pointer, this.pointer);
+        this.pointer = undefined;
+        this.schema = undefined;
+        this.data = undefined;
+        this.name = undefined;
+        this.index = undefined;
+        this.touched = undefined;
+        this.errors = undefined;
+        this._dofocus = undefined;
+        this._form = undefined;
     }
     /**
      * before each update
@@ -978,7 +979,7 @@ class FzField extends Base {
      * @param changedProps changed properties
      */
     update(changedProps) {
-        if (this.schema.expression)
+        if (this.schema?.expression)
             this.value = this.evalExpr("expression");
         super.update(changedProps);
         if (this._dofocus) {
@@ -1091,7 +1092,7 @@ class FzField extends Base {
     trackedValueChange() {
         // actually only expression update directly the value ofther extension
         // keywords are called on demand
-        if (this.schema.expression) {
+        if (this.schema?.expression) {
             this.value = this.evalExpr("expression");
         }
         this.requestUpdate();
@@ -1156,6 +1157,10 @@ class FzInputBase extends FzField {
         if (this.input)
             this.listen(this.input, 'keydown', (evt) => this.debugKey(evt));
     }
+    disconnectedCallback() {
+        this.input && (this.input.value = "");
+        super.disconnectedCallback();
+    }
     /**
      * overide focus for all input based fields
      */
@@ -1198,7 +1203,7 @@ class FzEnumBase extends FzInputBase {
         return !!this.refenum?.extend;
     }
     get showNullChoice() {
-        if (!this.schema.nullAllowed)
+        if (!this.schema?.nullAllowed)
             return false;
         const show = this.schema.nullAllowed && (!this.schema.enum?.includes(null) ||
             !this.schema.oneOf?.some((item) => item.const === null) ||
@@ -1245,10 +1250,10 @@ class FzEnumBase extends FzInputBase {
         if (this.enums == FETCHING || this.enums == EMPTY)
             return;
         switch (true) {
-            case isFunction(this.schema.from):
+            case isFunction(this.schema?.from):
                 this.enums = this.getFrom();
                 break;
-            case notNull(this.schema.enumFetch):
+            case notNull(this.schema?.enumFetch):
                 this.fetchEnum()
                     .then((enums) => (this.enums = enums, this.requestUpdate()), (err) => (this.errors = [String(err)]));
                 break;
@@ -1633,10 +1638,10 @@ let FzInputDate = class FzInputDate extends FzInputBase {
         />`;
     }
     get min() {
-        return this.schema.minimum;
+        return this.schema?.minimum;
     }
     get max() {
-        return this.schema.maximum;
+        return this.schema?.maximum;
     }
 };
 FzInputDate = __decorate([
@@ -1678,10 +1683,10 @@ let FzInputDatetime = class FzInputDatetime extends FzInputBase {
         />`;
     }
     get min() {
-        return this.schema.minimum;
+        return this.schema?.minimum;
     }
     get max() {
-        return this.schema.maximum;
+        return this.schema?.maximum;
     }
 };
 FzInputDatetime = __decorate([
@@ -1760,9 +1765,9 @@ let FzInputTextarea = class FzInputTextarea extends FzInputBase {
                 rows="5"
             ></textarea>`;
     }
-    get minlength() { return this.schema.minLength; }
-    get maxlength() { return this.schema.maxLength; }
-    get pattern() { return this.schema.pattern; }
+    get minlength() { return this.schema?.minLength; }
+    get maxlength() { return this.schema?.maxLength; }
+    get pattern() { return this.schema?.pattern; }
 };
 FzInputTextarea = __decorate([
     t$2("fz-textarea")
@@ -1815,11 +1820,11 @@ let FzInputString = class FzInputString extends FzInputBase {
             : ''}
             </div>`;
     }
-    get minlength() { return this.schema.minLength; }
-    get maxlength() { return this.schema.maxLength; }
-    get pattern() { return this.schema.pattern; }
+    get minlength() { return this.schema?.minLength; }
+    get maxlength() { return this.schema?.maxLength; }
+    get pattern() { return this.schema?.pattern; }
     get type() {
-        switch (this.schema.format) {
+        switch (this.schema?.format) {
             case 'color': return 'color';
             case 'email': return 'email';
             case 'password': return 'password';
@@ -1866,7 +1871,7 @@ let FzInputMask = class FzInputMask extends FzInputBase {
             </div>`;
     }
     get mask() {
-        return this.schema.mask ?? "";
+        return this.schema?.mask ?? "";
     }
     // Handle user input (apply mask and store formatted value)
     handleInput(event) {
@@ -2035,6 +2040,15 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
         }
         this.image = this.shadowRoot?.getElementById('image') ?? undefined;
         this.load();
+    }
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.content = undefined;
+        this.image = undefined;
+        this.canvas = undefined;
+        this.context = undefined;
+        this.observer?.disconnect();
+        this.observer = undefined;
     }
     resize() {
         if (this.content) {
@@ -2312,16 +2326,16 @@ let FzInputFloat = class FzInputFloat extends FzInputBase {
             </div>`;
     }
     get max() {
-        if (isNumber(this.schema.maximum))
+        if (isNumber(this.schema?.maximum))
             return this.schema.maximum;
-        if (isNumber(this.schema.exclusiveMaximum))
+        if (isNumber(this.schema?.exclusiveMaximum))
             return this.schema.exclusiveMaximum;
         return;
     }
     get min() {
-        if (isNumber(this.schema.minimum))
+        if (isNumber(this.schema?.minimum))
             return this.schema.minimum;
-        if (isNumber(this.schema.exclusiveMinimum))
+        if (isNumber(this.schema?.exclusiveMinimum))
             return this.schema.exclusiveMinimum;
         return;
     }
@@ -2426,16 +2440,16 @@ let FzRange = class FzRange extends FzInputBase {
             </div>`;
     }
     get max() {
-        if (isNumber(this.schema.maximum))
+        if (isNumber(this.schema?.maximum))
             return this.schema.maximum;
-        if (isNumber(this.schema.exclusiveMaximum))
+        if (isNumber(this.schema?.exclusiveMaximum))
             return this.schema.exclusiveMaximum;
         return;
     }
     get min() {
-        if (isNumber(this.schema.minimum))
+        if (isNumber(this.schema?.minimum))
             return this.schema.minimum;
-        if (isNumber(this.schema.exclusiveMinimum))
+        if (isNumber(this.schema?.exclusiveMinimum))
             return this.schema.exclusiveMinimum;
         return;
     }
@@ -2456,6 +2470,7 @@ FzRange = __decorate([
  * @prop index
  */
 let FzInputGeolocation = class FzInputGeolocation extends FzInputBase {
+    watchId;
     toField() {
         if (notNull(this.input)) {
             this.input.value = String(this.value ?? "");
@@ -2497,23 +2512,48 @@ let FzInputGeolocation = class FzInputGeolocation extends FzInputBase {
                     </button>
                     <button 
                         type="button"
-                        class="btn btn-primary btn-sm"
+                        ?disabled=${!navigator.geolocation}
                         @click="${this.geolocate}"
-                        aria-label="Geolocate">
+                        aria-label="Geolocate"
+                        class="btn btn-primary btn-sm"
+                    >
                             <i class="bi bi-geo-alt"></i>
                     </button>
                 </div>
             </div>`;
     }
     geolocate() {
-        navigator.geolocation.getCurrentPosition((position) => {
-            this.input.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`;
+        // navigator.geolocation.getCurrentPosition((position: any) => {
+        //     this.input.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`
+        //     this.change()
+        // });
+        this.watchId = navigator.geolocation.watchPosition(position => {
+            if (!this.isConnected)
+                return;
+            if (this.watchId !== undefined)
+                navigator.geolocation.clearWatch(this.watchId);
+            this.value = this.input.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`;
             this.change();
+        }, err => {
+            if (this.watchId !== undefined)
+                navigator.geolocation.clearWatch(this.watchId);
+            console.warn("Geolocation error:", err);
+        }, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
         });
     }
     remove() {
         this.input.value = "";
         this.change();
+    }
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        if (this.watchId !== undefined) {
+            navigator.geolocation.clearWatch(this.watchId);
+            this.watchId = undefined;
+        }
     }
 };
 FzInputGeolocation = __decorate([
@@ -2561,16 +2601,16 @@ let FzInputInteger = class FzInputInteger extends FzInputBase {
             </div>`;
     }
     get max() {
-        if (isNumber(this.schema.maximum))
+        if (isNumber(this.schema?.maximum))
             return this.schema.maximum;
-        if (isNumber(this.schema.exclusiveMaximum))
+        if (isNumber(this.schema?.exclusiveMaximum))
             return this.schema.exclusiveMaximum;
         return;
     }
     get min() {
-        if (isNumber(this.schema.minimum))
+        if (isNumber(this.schema?.minimum))
             return this.schema.minimum;
-        if (isNumber(this.schema.exclusiveMinimum))
+        if (isNumber(this.schema?.exclusiveMinimum))
             return this.schema.exclusiveMinimum;
         return;
     }
@@ -3048,7 +3088,7 @@ let FzArray$1 = class FzArray extends FZCollection {
         return x `
             <div @focusout="${this.focusout}">
                 <div class="form-group row">
-                ${this.schema.title === "" ? x `` : this.renderLabel}
+                ${(this.schema?.title ?? '') === "" ? x `` : this.renderLabel}
                     <div class="col-sm">
                         <ul id="content" class="list-group">
                             ${lines}
@@ -3191,7 +3231,7 @@ let FzArray$1 = class FzArray extends FZCollection {
         this.requestUpdate();
     }
     solveSchemas(force = false) {
-        if (!isObject(this.schema.items))
+        if (!isObject(this.schema?.items))
             return;
         if (!force && this.currentSchema && this.schemas)
             return;
@@ -3368,7 +3408,7 @@ let FzObject = class FzObject extends FZCollection {
         this.value = this.empty;
     }
     renderField() {
-        if (!this.schema.properties)
+        if (!this.schema?.properties)
             return x ``;
         const itemTemplates = [];
         const fields = this.schema.order;
@@ -3387,7 +3427,7 @@ let FzObject = class FzObject extends FZCollection {
         }
         return x `${this.isItem
             ? x `<div>${this.renderLabel}</div>${itemTemplates}`
-            : this.schema.title === "" ? x `<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`
+            : (this.schema.title ?? '') === "" ? x `<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`
                 : x `<div class="panel ${this.schema.parent ? '' : 'border-0'}" id="content" >
                 <div class="panel-heading" ?hidden="${!this.schema.parent}" >
                     <div>
@@ -3633,6 +3673,15 @@ let FzDialog = class FzDialog extends Base {
     firstUpdated() {
         this.modal = this.shadowRoot?.getElementById('modal');
         this.backdrop = this.shadowRoot?.getElementById('backdrop');
+    }
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.modal = undefined;
+        this.backdrop = undefined;
+        this.validable = undefined;
+        this.modalTitle = undefined;
+        this.okLabel = undefined;
+        this.dismissLabel = undefined;
     }
     open() {
         if (this.backdrop)
@@ -5437,10 +5486,14 @@ let FzForm = class FzForm extends Base {
     message = "";
     constructor() {
         super();
-        ["oninit", "onready", "onvaliddata", "oninvaliddata", "onvalidate", "ondismiss"].forEach(event => {
-            this.constructor.elementProperties.get(event).converter =
-                (value) => { setGlobalHandler(this, event.substring(2), value); return value; };
-        });
+        // this is a workaround to convert string with global function name into a handler
+        // into corresponding event handler (quite deprecated)
+        // ex: HTML: oninit="myFunc" became: this.addEventListener(myFunc)
+        // because this cant be used in @property(...) declaration
+        // ;["oninit", "onready", "onvaliddata", "oninvaliddata", "onvalidate", "ondismiss"].forEach(event => {
+        //     (this.constructor as any).elementProperties.get(event).converter =
+        //         (value: string) => { setGlobalHandler(this, event.substring(2), value); return value }
+        // })
     }
     get root() { return this.i_root.content; }
     get valid() {
@@ -5556,7 +5609,28 @@ let FzForm = class FzForm extends Base {
     }
     disconnectedCallback() {
         super.disconnectedCallback();
-        this.removeEventListener('data-updated', (e) => this.handleDataUpdate(e));
+        // this.i_root = {}
+        this.i_options = undefined;
+        this.store = undefined;
+        this.asset = undefined;
+        this.fieldMap.clear();
+        this.schemaMap.clear();
+        this.useAjv = undefined;
+        this.useMarkdown = undefined;
+        this.sourceSchema = DEFAULT_SCHEMA;
+        this.actions = undefined;
+        this.readonly = undefined;
+        this.checkIn = undefined;
+        this.checkOut = undefined;
+        this.oninit = undefined;
+        this.onready = undefined;
+        this.onvaliddata = undefined;
+        this.oninvaliddata = undefined;
+        this.onvalidate = undefined;
+        this.ondismiss = undefined;
+        this.compiledSchema = undefined;
+        this.validator = undefined;
+        this.message = undefined;
     }
     async firstUpdated(changedProperties) {
         super.firstUpdated(changedProperties);

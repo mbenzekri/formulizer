@@ -102,6 +102,18 @@ export class FzInputSignature extends FzInputBase {
         this.image = this.shadowRoot?.getElementById('image')as HTMLImageElement ?? undefined
         this.load()
     }
+
+    override disconnectedCallback(): void {
+        super.disconnectedCallback()
+        this.content = undefined as any
+        this.image = undefined as any
+        this.canvas = undefined as any
+        this.context = undefined as any
+        this.observer?.disconnect()
+        this.observer = undefined as any
+
+    }
+
     private resize() {
         if (this.content) {
             const width = this.content.offsetWidth

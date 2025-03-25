@@ -5,7 +5,7 @@ import { property, customElement } from "lit/decorators.js";
 import { IAsset, IOptions, IS_VALID, NOT_TOUCHED, Pojo } from "./lib/types"
 import { FzField } from "./fz-element";
 import { Validator } from "./lib/validation"
-import { isString, setGlobalHandler } from "./lib/tools"
+import { isString } from "./lib/tools"
 import { SchemaCompiler, DataCompiler } from "./lib/compiler"
 import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { Schema, schemaAttrConverter, DEFAULT_SCHEMA } from "./lib/schema";
@@ -57,10 +57,10 @@ export class FzForm extends Base {
             // into corresponding event handler (quite deprecated)
             // ex: HTML: oninit="myFunc" became: this.addEventListener(myFunc)
             // because this cant be used in @property(...) declaration
-            ;["oninit", "onready", "onvaliddata", "oninvaliddata", "onvalidate", "ondismiss"].forEach(event => {
-                (this.constructor as any).elementProperties.get(event).converter =
-                    (value: string) => { setGlobalHandler(this, event.substring(2), value); return value }
-            })
+            // ;["oninit", "onready", "onvaliddata", "oninvaliddata", "onvalidate", "ondismiss"].forEach(event => {
+            //     (this.constructor as any).elementProperties.get(event).converter =
+            //         (value: string) => { setGlobalHandler(this, event.substring(2), value); return value }
+            // })
     }
 
     get root(): any { return this.i_root.content }
@@ -187,7 +187,32 @@ export class FzForm extends Base {
     }
     override disconnectedCallback() {
         super.disconnectedCallback()
-        this.removeEventListener('data-updated', (e) => this.handleDataUpdate(e))
+
+        // this.i_root = {}
+        this.i_options = undefined as any
+        this.store= undefined as any
+        this.asset= undefined as any
+        this.fieldMap.clear()
+        this.schemaMap.clear()
+    
+        this.useAjv = undefined as any
+        this.useMarkdown = undefined as any
+        this.sourceSchema = DEFAULT_SCHEMA
+        this.actions = undefined as any
+        this.readonly = undefined as any
+        this.checkIn = undefined as any
+        this.checkOut = undefined as any
+        this.oninit = undefined as any
+        this.onready  = undefined as any
+        this.onvaliddata = undefined as any
+        this.oninvaliddata = undefined as any
+        this.onvalidate = undefined as any
+        this.ondismiss = undefined as any
+    
+        this.compiledSchema = undefined as any
+        this.validator = undefined as any
+        this.message = undefined as any
+    
     }
     protected override async firstUpdated(changedProperties: PropertyValues) {
         super.firstUpdated(changedProperties)

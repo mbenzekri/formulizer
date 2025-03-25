@@ -41,9 +41,9 @@ export class FzInputTextarea extends FzInputBase {
                 rows="5"
             ></textarea>`
     }
-    get minlength() { return this.schema.minLength }
-    get maxlength() { return this.schema.maxLength }
-    get pattern() { return this.schema.pattern }
+    get minlength() { return this.schema?.minLength }
+    get maxlength() { return this.schema?.maxLength }
+    get pattern() { return this.schema?.pattern }
     //get password() {return !!this.schema.options?.password }
 
 }

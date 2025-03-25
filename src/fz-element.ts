@@ -60,10 +60,10 @@ export abstract class FzField extends Base {
     abstract toValue(): void;
 
     get valid() {
-        return this.errors.length === 0 && this.errors != NOT_TOUCHED
+        return (this.errors?.length ?? 0) === 0 && this.errors != NOT_TOUCHED
     }
     get invalid() {
-        return this.errors.length > 0
+        return (this.errors?.length ?? 0) > 0
     }
 
     get value(): any {
@@ -198,7 +198,7 @@ export abstract class FzField extends Base {
      * calculate label for this field
      */
     get label() {
-        return (this.isItem ? String(this.index != null ? this.index + 1 : '-') : this.schema.title ?? this.name) ?? ""
+        return (this.isItem ? String(this.index != null ? this.index + 1 : '-') : this.schema?.title ?? this.name) ?? ""
     }
     /**
      * return true if this field is item of array, false otherwise
@@ -331,7 +331,7 @@ export abstract class FzField extends Base {
      * render method for label
      */
     get renderLabel() {
-        if (this.schema.title === "") return html``
+        if ((this.schema?.title ?? "") === "") return html``
         if (this.isItem) return html`
             <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
                 <div @click="${this.labelClicked}"><span class="badge bg-primary rounded-pill">${this.label}</span></div>
@@ -399,6 +399,15 @@ export abstract class FzField extends Base {
     override disconnectedCallback() {
         super.disconnectedCallback()
         this.form?.removeField(this.schema.pointer, this.pointer)
+        this.pointer = undefined as any
+        this.schema = undefined as any
+        this.data = undefined as any
+        this.name = undefined as any
+        this.index = undefined as any
+        this.touched = undefined as any
+        this.errors = undefined as any
+        this._dofocus = undefined as any
+        this._form = undefined as any
     }
 
     /**
@@ -407,7 +416,7 @@ export abstract class FzField extends Base {
      * @param changedProps changed properties 
      */
     override update(changedProps: any) {
-        if (this.schema.expression)
+        if (this.schema?.expression)
             this.value = this.evalExpr("expression")
 
         super.update(changedProps)
@@ -526,7 +535,7 @@ export abstract class FzField extends Base {
     trackedValueChange() {
         // actually only expression update directly the value ofther extension
         // keywords are called on demand
-        if (this.schema.expression) {
+        if (this.schema?.expression) {
             this.value = this.evalExpr("expression")
         }
         this.requestUpdate()
