@@ -12,9 +12,9 @@
     "dist/"
   ],
   "scripts": {
-    "build": "tsc && rollup -c",
+    "build": "rimraf 'dist/**/*-dynamic*.*' && tsc && rollup -c",
     "build:watch": "concurrently 'tsc --watch' 'rollup -c --watch'",
-    "clean": "rimraf 'dist/**/*.{d.ts,d.ts.map,js,js.map,html}'",
+    "clean": "rimraf 'dist/**/*'",
     "clean:build": "npm run clean && npm run build",
     "lint": "npm run lint:lit-analyzer && npm run lint:eslint",
     "lint:eslint": "eslint 'src/**/*.ts'",

@@ -5,7 +5,8 @@ custom-elements.json
 !/dist/formulizer.min.js
 !/dist/formulizer.js.map
 !/dist/formulizer.d.ts
-
+!/dist/*-dynamic-*.map
+!/dist/*-dynamic-*.js
 # Playwright
 node_modules/
 /test-results/
