@@ -740,7 +740,7 @@ class CSTemplate extends CompilationStep {
         this.set(schema, this.defunc)
         if (isString(expression)) {
             const body = `
-                ${this.sourceURL(name)}
+                ${this.sourceURL(schema,name)}
                 try { 
                     return nvl\`${expression}\`
                 } catch(e) {  
@@ -774,7 +774,7 @@ class CSBool extends CompilationStep {
         if (isNull(expression) || isBoolean(expression)) return  this.set(schema,() => expression)
         if (!isString(expression)) return  this.set(schema,() => !!(expression))
         const body = `
-            ${this.sourceURL(name)}
+            ${this.sourceURL(schema,name)}
             try {  
                 const result = (${expression}) 
                 return result === null ? result : !!result
@@ -807,7 +807,7 @@ class CSAny extends CompilationStep {
         let code =  `return null`
         code =  isString(expression) ? `return ${expression}`: this.buildCode(expression)
         const body = `
-            ${this.sourceURL(name)}
+            ${this.sourceURL(schema,name)}
             try {
                 ${code} 
             } catch(e) {  

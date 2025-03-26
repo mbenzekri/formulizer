@@ -28,6 +28,7 @@ import "./components/fz-barcode-dlg"
 import "./components/fz-photo-dlg"
 import "./components/fz-item-dlg"
 
+import "./lib/logger"
 import { FzForm } from "./fz-form";
 import { FzMarkdownIt } from "./components/markdown-it";
 export { FzForm, FzMarkdownIt }

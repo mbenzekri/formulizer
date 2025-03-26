@@ -92,6 +92,7 @@ const enumHandler = (evt) =>  {
 
 // function to load and render provided name example
 const goto = async (name) => {
+    await FzLogger.set("DEBUG","validation","tracker","compilation","input","data-update")
     await FzForm.registerBootstrap() // bootstrap loaded from CDN 
     const subject = name ?? "basic"
     if (subject) {

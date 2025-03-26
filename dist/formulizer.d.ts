@@ -407,4 +407,33 @@ declare global {
     let ImageCapture: any;
 }
 
+type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'NONE';
+interface FzLogContext {
+    [name: string]: any;
+}
+type LoggerMethods = {
+    debug: (...args: any[]) => void;
+    info: (...args: any[]) => void;
+    warn: (...args: any[]) => void;
+    error: (...args: any[]) => void;
+    if: {
+        debug: (cond: boolean, ...args: any[]) => void;
+        info: (cond: boolean, ...args: any[]) => void;
+        warn: (cond: boolean, ...args: any[]) => void;
+        error: (cond: boolean, ...args: any[]) => void;
+    };
+};
+declare class _FzLogger {
+    private static levels;
+    private static registry;
+    /** Set global log level per domain */
+    static set(...args: (string | LogLevel)[]): void;
+    /** Returns a logger for a domain, optionally scoped with context */
+    static get(domain: string, context?: FzLogContext): LoggerMethods;
+}
+
+declare global {
+    var FzLogger: typeof _FzLogger;
+}
+
 export { FzForm, FzMarkdownIt };

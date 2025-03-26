@@ -467,7 +467,6 @@ export abstract class FzField extends Base {
 
         // signal field update for trackers
         if (this.schema.trackers.length) {
-            // TBD with options console.log(`DATA ${this.pointer} update triggering "data-updated" event`)
             this.dispatchEvent(new CustomEvent('data-updated', {
                 detail: {
                     trackers: this.schema.trackers,
@@ -476,6 +475,8 @@ export abstract class FzField extends Base {
                 bubbles: true,
                 composed: true
             }))
+            const logger = FzLogger.get("data-update",{field:this,schema:this.schema})
+            logger.info(`event "data-updated" triggered`)
         }
         this.requestUpdate()
     }

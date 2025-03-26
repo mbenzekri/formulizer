@@ -26,6 +26,7 @@
         }
         window.onload = async () => {
             await FzForm.registerBootstrap() // bootstrap loaded from CDN 
+            FzLogger.set("DEBUG","validation","tracker","compilation","input","data-update")
             const form = document.getElementById("myform")
             const feedback = document.getElementById("mydata")
             const output = () => feedback.innerHTML = `${form.valid ? "valid" :"invalid"} =>${JSON.stringify(form.data)}`

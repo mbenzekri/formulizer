@@ -63,24 +63,26 @@ export abstract class FzInputBase extends FzField {
      * @param evt keyboard event to trap key
      */
     private debugKey(evt: KeyboardEvent) {
+        const logger = FzLogger.get("input",{field:this})
         if (evt.key === 'F9') {
             (window as any)._FZ_FORM_FIELD_DEBUG = this
-            console.log(invalidkeys.map((key) => `${key} = ${(this.input.validity as any)[key]}`).join('\n'))
+            const mapping = invalidkeys.map((key) => `${key} = ${(this.input.validity as any)[key]}`).join('\n')
+            logger.info("invalid mapping \n%s",mapping)
             const outlist = [
+                ['schema', JSON.stringify(this.schema, getCircularReplacer).substring(0,100)],
+                ['data', JSON.stringify(this.data, (key, value) => typeof key === 'symbol' ? undefined : value).substring(1,100)],
+                ['pointer',this.pointer],
                 ['name', this.name],
                 ['valid', this.valid],
                 ['visible', this.visible],
                 ['required', this.required],
                 ['readonly', this.readonly],
                 ['check', JSON.stringify(this.input.validity)],
-                ['data', JSON.stringify(this.data, (key, value) => typeof key === 'symbol' ? undefined : value, 4)],
                 ['input', this.input.value],
                 ['value', this.value],
-                ['schema', JSON.stringify(this.schema, getCircularReplacer)],
-            ]
-            console.log(outlist.map(item => item.join(" = ")).join("\n"))
+            ].map(item => item.join(" = ")).join("\n")
+            logger.info("Field info",outlist)
             this.eventStop(evt)
-            debugger
         }
     }
 

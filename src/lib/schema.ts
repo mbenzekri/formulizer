@@ -254,12 +254,14 @@ export class Schema extends JSONSchemaDraft07 {
      * @param expr function body or arrow function body to parse 
      */
     _track(expr: string): void {
+        const logger = FzLogger.get("tracker")
         const POINTER_RE = /\$\`([^`]+)`/g
         let matches
         while ((matches = POINTER_RE.exec(expr)) != null) {
             const pointer = matches[1]
             const trackedSchema = this._deref(pointer)
             if (trackedSchema != null && !trackedSchema.trackers.includes(this.pointer)) {
+                logger.info("tracking set between %s -> %s",this.pointer, trackedSchema.pointer)
                 trackedSchema.trackers.push(this.pointer)
             }
         }
@@ -354,10 +356,11 @@ export abstract class CompilationStep {
      */
     abstract apply(schema: JSONSchema, parent?: JSONSchema, name?: string): void;
 
-    sourceURL(dataProperty?: string) {
+    sourceURL(schema: Schema,dataProperty?: string) {
+        const logger = FzLogger.get("compilation",{schema, property: this.property})
         let source = `_FZ_${this.property}_${dataProperty ?? ''}_${CompilationStep.sourceCount++}.js`.replace(/ +/g, "_")
         source = source.replace(/[^a-z0-9_]/ig, "")
-        console.log(`builded source :${source}`)
+        logger.info("compiled expression to function %s",source)
         return `\n    //# sourceURL=${source}\n`
     }
     set(schema: Schema, value: any, expr?: string | any[]) {

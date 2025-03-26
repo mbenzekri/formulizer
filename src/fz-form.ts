@@ -182,7 +182,7 @@ export class FzForm extends Base {
 
     override connectedCallback() {
         super.connectedCallback()
-        this.listen(this, 'data-updated', (e: Event) => this.handleDataUpdate(e))
+        this.listen(this, 'data-updated', (e: Event) => this.handleDataUpdate(e as CustomEvent))
         this.dispatchEvent(new CustomEvent('init'))
     }
     override disconnectedCallback() {
@@ -225,11 +225,12 @@ export class FzForm extends Base {
         const errorMap =  validated ? this.validator?.errorMap() : undefined
         // dispatch all errors over the fields 
         for (const [pointer, field] of this.fieldMap.entries()) {
+            const logger = FzLogger.get("validation",{field,schema: field.schema})
             // if field is not touched (not manually updated) valid/invalid not displayed
             if (field.errors != NOT_TOUCHED || forced) {
                 field.errors = errorMap?.get(pointer) ?? IS_VALID
-                console.log(`VALIDATION: ${field.pointer} -> ${field.errors === IS_VALID ? "Y" : "N" }`)
             }
+            logger.debug('is valid %s (touched=%s)',(field.errors === IS_VALID) ? "✅" : "❌",field.errors != NOT_TOUCHED)
         }
         const event =  new CustomEvent(validated ? "data-valid" : "data-invalid")
         this.dispatchEvent(event);
@@ -238,12 +239,13 @@ export class FzForm extends Base {
      * 'data-updated' event handler for data change. 
      * It applies a field.requestUpdate() on each traker associated FzField
      */
-    private handleDataUpdate(evt: Event) {
+    private handleDataUpdate(evt: CustomEvent) {
         if (this === evt.composedPath()[0]) return
         const trackers: string[] = (evt as CustomEvent).detail.trackers
         trackers.forEach(pointer => {
             const field = this.getfieldFromSchema(pointer)
-            // TBD with options => console.log(`TRACKER ${field?.pointer} refreshed`)
+            const logger = FzLogger.get("tracker",{field,schema:field?.schema})
+            logger.info(`refreshed by %s`,evt.detail.field.pointer)
             field?.trackedValueChange()
         })
     }

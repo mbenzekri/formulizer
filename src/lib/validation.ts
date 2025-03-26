@@ -144,3 +144,209 @@ export class AjvValidator extends Validator {
 
 }
 
+
+// class SimpleJSONSchemaValidator {
+//     private schema: JSONSchema;
+
+//     constructor(schema: JSONSchema) {
+//         this.schema = schema;
+//     }
+
+//     validate(instance: any): string[] {
+//         return this.validateInstance(this.schema, instance);
+//     }
+
+//     private validateInstance(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+
+//         if (schema.type) {
+//             switch (schema.type) {
+//                 case 'object':
+//                     errors.push(...this.validateObject(schema, instance));
+//                     break;
+//                 case 'array':
+//                     errors.push(...this.validateArray(schema, instance));
+//                     break;
+//                 case 'string':
+//                     errors.push(...this.validateString(schema, instance));
+//                     break;
+//                 case 'number':
+//                     errors.push(...this.validateNumber(schema, instance));
+//                     break;
+//                 case 'boolean':
+//                     errors.push(...this.validateBoolean(schema, instance));
+//                     break;
+//                 case 'null':
+//                     errors.push(...this.validateNull(schema, instance));
+//                     break;
+//                 default:
+//                     errors.push(`Unknown type: ${schema.type}`);
+//             }
+//         }
+
+//         if (schema.required) {
+//             errors.push(...this.validateRequired(schema, instance));
+//         }
+
+//         return errors;
+//     }
+
+//     private validateObject(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+//         if (typeof instance !== 'object' || instance === null || Array.isArray(instance)) {
+//             errors.push("Expected an object");
+//             return errors;
+//         }
+
+//         const properties = schema.properties || {};
+//         for (const prop in properties) {
+//             if (instance.hasOwnProperty(prop)) {
+//                 errors.push(...this.validateInstance(properties[prop], instance[prop]));
+//             }
+//         }
+
+//         return errors;
+//     }
+
+//     private validateArray(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+//         if (!Array.isArray(instance)) {
+//             errors.push("Expected an array");
+//             return errors;
+//         }
+
+//         const itemsSchema = schema.items || {};
+//         for (const item of instance) {
+//             errors.push(...this.validateInstance(itemsSchema, item));
+//         }
+
+//         if (schema.minItems !== undefined && instance.length < schema.minItems) {
+//             errors.push(`Expected at least ${schema.minItems} items`);
+//         }
+
+//         if (schema.maxItems !== undefined && instance.length > schema.maxItems) {
+//             errors.push(`Expected no more than ${schema.maxItems} items`);
+//         }
+
+//         return errors;
+//     }
+
+//     private validateString(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+//         if (typeof instance !== 'string') {
+//             errors.push("Expected a string");
+//             return errors;
+//         }
+
+//         if (schema.minLength !== undefined && instance.length < schema.minLength) {
+//             errors.push(`Expected at least ${schema.minLength} characters`);
+//         }
+
+//         if (schema.maxLength !== undefined && instance.length > schema.maxLength) {
+//             errors.push(`Expected no more than ${schema.maxLength} characters`);
+//         }
+
+//         if (schema.pattern) {
+//             const regex = new RegExp(schema.pattern);
+//             if (!regex.test(instance)) {
+//                 errors.push(`String does not match pattern: ${schema.pattern}`);
+//             }
+//         }
+
+//         if (schema.format) {
+//             errors.push(...this.validateFormat(schema.format, instance));
+//         }
+
+//         return errors;
+//     }
+
+//     private validateNumber(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+//         if (typeof instance !== 'number') {
+//             errors.push("Expected a number");
+//             return errors;
+//         }
+
+//         if (schema.minimum !== undefined && instance < schema.minimum) {
+//             errors.push(`Expected value to be at least ${schema.minimum}`);
+//         }
+
+//         if (schema.maximum !== undefined && instance > schema.maximum) {
+//             errors.push(`Expected value to be at most ${schema.maximum}`);
+//         }
+
+//         return errors;
+//     }
+
+//     private validateBoolean(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+//         if (typeof instance !== 'boolean') {
+//             errors.push("Expected a boolean");
+//         }
+//         return errors;
+//     }
+
+//     private validateNull(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+//         if (instance !== null) {
+//             errors.push("Expected null");
+//         }
+//         return errors;
+//     }
+
+//     private validateRequired(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+//         if (typeof instance !== 'object' || instance === null || Array.isArray(instance)) {
+//             return errors;
+//         }
+
+//         const requiredProperties = schema.required || [];
+//         for (const prop of requiredProperties) {
+//             if (!instance.hasOwnProperty(prop)) {
+//                 errors.push(`Missing required property: ${prop}`);
+//             }
+//         }
+
+//         return errors;
+//     }
+
+//     private validateFormat(format: string, instance: string): string[] {
+//         const errors: string[] = [];
+//         switch (format) {
+//             case 'email':
+//                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//                 if (!emailRegex.test(instance)) {
+//                     errors.push("Invalid email format");
+//                 }
+//                 break;
+//             case 'date':
+//                 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+//                 if (!dateRegex.test(instance)) {
+//                     errors.push("Invalid date format (YYYY-MM-DD)");
+//                 }
+//                 break;
+//             case 'date-time':
+//                 const dateTimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?$/;
+//                 if (!dateTimeRegex.test(instance)) {
+//                     errors.push("Invalid date-time format (YYYY-MM-DDTHH:MM:SSZ)");
+//                 }
+//                 break;
+//             case 'time':
+//                 const timeRegex = /^\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?$/;
+//                 if (!timeRegex.test(instance)) {
+//                     errors.push("Invalid time format (HH:MM:SSZ)");
+//                 }
+//                 break;
+//             case 'uri':
+//                 const uriRegex = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/;
+//                 if (!uriRegex.test(instance)) {
+//                     errors.push("Invalid URI format");
+//                 }
+//                 break;
+//             // Add more format validations as needed
+//             default:
+//                 errors.push(`Unknown format: ${format}`);
+//         }
+//         return errors;
+//     }
+// }

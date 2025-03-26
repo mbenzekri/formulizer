@@ -405,12 +405,14 @@ class Schema extends JSONSchemaDraft07 {
      * @param expr function body or arrow function body to parse
      */
     _track(expr) {
+        const logger = FzLogger.get("tracker");
         const POINTER_RE = /\$\`([^`]+)`/g;
         let matches;
         while ((matches = POINTER_RE.exec(expr)) != null) {
             const pointer = matches[1];
             const trackedSchema = this._deref(pointer);
             if (trackedSchema != null && !trackedSchema.trackers.includes(this.pointer)) {
+                logger.info("tracking set between %s -> %s", this.pointer, trackedSchema.pointer);
                 trackedSchema.trackers.push(this.pointer);
             }
         }
@@ -500,10 +502,11 @@ class CompilationStep {
         // default applied on all schemas
         return true;
     }
-    sourceURL(dataProperty) {
+    sourceURL(schema, dataProperty) {
+        const logger = FzLogger.get("compilation", { schema, property: this.property });
         let source = `_FZ_${this.property}_${dataProperty ?? ''}_${CompilationStep.sourceCount++}.js`.replace(/ +/g, "_");
         source = source.replace(/[^a-z0-9_]/ig, "");
-        console.log(`builded source :${source}`);
+        logger.info("compiled expression to function %s", source);
         return `\n    //# sourceURL=${source}\n`;
     }
     set(schema, value, expr) {
@@ -1024,7 +1027,6 @@ class FzField extends Base {
         this.dispatchEvent(event);
         // signal field update for trackers
         if (this.schema.trackers.length) {
-            // TBD with options console.log(`DATA ${this.pointer} update triggering "data-updated" event`)
             this.dispatchEvent(new CustomEvent('data-updated', {
                 detail: {
                     trackers: this.schema.trackers,
@@ -1033,6 +1035,8 @@ class FzField extends Base {
                 bubbles: true,
                 composed: true
             }));
+            const logger = FzLogger.get("data-update", { field: this, schema: this.schema });
+            logger.info(`event "data-updated" triggered`);
         }
         this.requestUpdate();
     }
@@ -1170,24 +1174,26 @@ class FzInputBase extends FzField {
      * @param evt keyboard event to trap key
      */
     debugKey(evt) {
+        const logger = FzLogger.get("input", { field: this });
         if (evt.key === 'F9') {
             window._FZ_FORM_FIELD_DEBUG = this;
-            console.log(invalidkeys.map((key) => `${key} = ${this.input.validity[key]}`).join('\n'));
+            const mapping = invalidkeys.map((key) => `${key} = ${this.input.validity[key]}`).join('\n');
+            logger.info("invalid mapping \n%s", mapping);
             const outlist = [
+                ['schema', JSON.stringify(this.schema, getCircularReplacer).substring(0, 100)],
+                ['data', JSON.stringify(this.data, (key, value) => typeof key === 'symbol' ? undefined : value).substring(1, 100)],
+                ['pointer', this.pointer],
                 ['name', this.name],
                 ['valid', this.valid],
                 ['visible', this.visible],
                 ['required', this.required],
                 ['readonly', this.readonly],
                 ['check', JSON.stringify(this.input.validity)],
-                ['data', JSON.stringify(this.data, (key, value) => typeof key === 'symbol' ? undefined : value, 4)],
                 ['input', this.input.value],
                 ['value', this.value],
-                ['schema', JSON.stringify(this.schema, getCircularReplacer)],
-            ];
-            console.log(outlist.map(item => item.join(" = ")).join("\n"));
+            ].map(item => item.join(" = ")).join("\n");
+            logger.info("Field info", outlist);
             this.eventStop(evt);
-            debugger;
         }
     }
 }
@@ -4143,6 +4149,87 @@ FzItemDlg = __decorate([
     t$2("fz-item-dlg")
 ], FzItemDlg);
 
+class _FzLogger {
+    static levels = {
+        DEBUG: 0,
+        INFO: 1,
+        WARN: 2,
+        ERROR: 3,
+        NONE: 4
+    };
+    static registry = new Map();
+    /** Set global log level per domain */
+    static set(...args) {
+        let level = "NONE";
+        for (const item of args) {
+            if (['DEBUG', 'INFO', 'WARN', 'ERROR', 'NONE'].includes(item)) {
+                level = item;
+            }
+            else {
+                FzLogger.registry.set(item, level);
+            }
+        }
+    }
+    /** Returns a logger for a domain, optionally scoped with context */
+    static get(domain, context) {
+        function isA(obj, name) {
+            let proto = Object.getPrototypeOf(obj ?? {});
+            while (proto) {
+                if (proto.constructor?.name === name)
+                    return true;
+                proto = Object.getPrototypeOf(proto);
+            }
+            return false;
+        }
+        const ctxstrings = [];
+        for (const property in context) {
+            if (isA(context[property], "FzField") || isA(context[property], "Schema"))
+                ctxstrings.push(`${property}: ${context[property].pointer}`);
+        }
+        const shouldLog = (lvl) => {
+            const level = FzLogger.registry.get(domain);
+            return (level == null) ? false : FzLogger.levels[lvl] >= FzLogger.levels[level];
+        };
+        const format = (msg, ...args) => {
+            return [`[${domain}][${ctxstrings.join(" ")}] ${msg}`, ...args];
+        };
+        const log = (lvl, ...args) => {
+            if (!shouldLog(lvl))
+                return;
+            const pattern = args.shift();
+            const msg = format(pattern, ...args);
+            switch (lvl) {
+                case 'DEBUG':
+                    console.debug(...msg);
+                    break;
+                case 'INFO':
+                    console.info(...msg);
+                    break;
+                case 'WARN':
+                    console.warn(...msg);
+                    break;
+                case 'ERROR':
+                    console.error(...msg);
+                    break;
+            }
+        };
+        return {
+            debug: (...a) => log('DEBUG', ...a),
+            info: (...a) => log('INFO', ...a),
+            warn: (...a) => log('WARN', ...a),
+            error: (...a) => log('ERROR', ...a),
+            if: {
+                debug: (c, ...a) => c && log('DEBUG', ...a),
+                info: (c, ...a) => c && log('INFO', ...a),
+                warn: (c, ...a) => c && log('WARN', ...a),
+                error: (c, ...a) => c && log('ERROR', ...a),
+            }
+        };
+    }
+}
+// Attach to global
+globalThis.FzLogger = _FzLogger;
+
 var $schema = "http://json-schema.org/draft-07/schema#";
 var $id = "http://json-schema.org/draft-07/schema-3s#";
 var title = "Core schema meta-schema";
@@ -4496,6 +4583,181 @@ class AjvValidator extends Validator {
     }
     get errors() { return this.dataParser.errors ?? []; }
 }
+// class SimpleJSONSchemaValidator {
+//     private schema: JSONSchema;
+//     constructor(schema: JSONSchema) {
+//         this.schema = schema;
+//     }
+//     validate(instance: any): string[] {
+//         return this.validateInstance(this.schema, instance);
+//     }
+//     private validateInstance(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+//         if (schema.type) {
+//             switch (schema.type) {
+//                 case 'object':
+//                     errors.push(...this.validateObject(schema, instance));
+//                     break;
+//                 case 'array':
+//                     errors.push(...this.validateArray(schema, instance));
+//                     break;
+//                 case 'string':
+//                     errors.push(...this.validateString(schema, instance));
+//                     break;
+//                 case 'number':
+//                     errors.push(...this.validateNumber(schema, instance));
+//                     break;
+//                 case 'boolean':
+//                     errors.push(...this.validateBoolean(schema, instance));
+//                     break;
+//                 case 'null':
+//                     errors.push(...this.validateNull(schema, instance));
+//                     break;
+//                 default:
+//                     errors.push(`Unknown type: ${schema.type}`);
+//             }
+//         }
+//         if (schema.required) {
+//             errors.push(...this.validateRequired(schema, instance));
+//         }
+//         return errors;
+//     }
+//     private validateObject(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+//         if (typeof instance !== 'object' || instance === null || Array.isArray(instance)) {
+//             errors.push("Expected an object");
+//             return errors;
+//         }
+//         const properties = schema.properties || {};
+//         for (const prop in properties) {
+//             if (instance.hasOwnProperty(prop)) {
+//                 errors.push(...this.validateInstance(properties[prop], instance[prop]));
+//             }
+//         }
+//         return errors;
+//     }
+//     private validateArray(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+//         if (!Array.isArray(instance)) {
+//             errors.push("Expected an array");
+//             return errors;
+//         }
+//         const itemsSchema = schema.items || {};
+//         for (const item of instance) {
+//             errors.push(...this.validateInstance(itemsSchema, item));
+//         }
+//         if (schema.minItems !== undefined && instance.length < schema.minItems) {
+//             errors.push(`Expected at least ${schema.minItems} items`);
+//         }
+//         if (schema.maxItems !== undefined && instance.length > schema.maxItems) {
+//             errors.push(`Expected no more than ${schema.maxItems} items`);
+//         }
+//         return errors;
+//     }
+//     private validateString(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+//         if (typeof instance !== 'string') {
+//             errors.push("Expected a string");
+//             return errors;
+//         }
+//         if (schema.minLength !== undefined && instance.length < schema.minLength) {
+//             errors.push(`Expected at least ${schema.minLength} characters`);
+//         }
+//         if (schema.maxLength !== undefined && instance.length > schema.maxLength) {
+//             errors.push(`Expected no more than ${schema.maxLength} characters`);
+//         }
+//         if (schema.pattern) {
+//             const regex = new RegExp(schema.pattern);
+//             if (!regex.test(instance)) {
+//                 errors.push(`String does not match pattern: ${schema.pattern}`);
+//             }
+//         }
+//         if (schema.format) {
+//             errors.push(...this.validateFormat(schema.format, instance));
+//         }
+//         return errors;
+//     }
+//     private validateNumber(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+//         if (typeof instance !== 'number') {
+//             errors.push("Expected a number");
+//             return errors;
+//         }
+//         if (schema.minimum !== undefined && instance < schema.minimum) {
+//             errors.push(`Expected value to be at least ${schema.minimum}`);
+//         }
+//         if (schema.maximum !== undefined && instance > schema.maximum) {
+//             errors.push(`Expected value to be at most ${schema.maximum}`);
+//         }
+//         return errors;
+//     }
+//     private validateBoolean(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+//         if (typeof instance !== 'boolean') {
+//             errors.push("Expected a boolean");
+//         }
+//         return errors;
+//     }
+//     private validateNull(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+//         if (instance !== null) {
+//             errors.push("Expected null");
+//         }
+//         return errors;
+//     }
+//     private validateRequired(schema: JSONSchema, instance: any): string[] {
+//         const errors: string[] = [];
+//         if (typeof instance !== 'object' || instance === null || Array.isArray(instance)) {
+//             return errors;
+//         }
+//         const requiredProperties = schema.required || [];
+//         for (const prop of requiredProperties) {
+//             if (!instance.hasOwnProperty(prop)) {
+//                 errors.push(`Missing required property: ${prop}`);
+//             }
+//         }
+//         return errors;
+//     }
+//     private validateFormat(format: string, instance: string): string[] {
+//         const errors: string[] = [];
+//         switch (format) {
+//             case 'email':
+//                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//                 if (!emailRegex.test(instance)) {
+//                     errors.push("Invalid email format");
+//                 }
+//                 break;
+//             case 'date':
+//                 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+//                 if (!dateRegex.test(instance)) {
+//                     errors.push("Invalid date format (YYYY-MM-DD)");
+//                 }
+//                 break;
+//             case 'date-time':
+//                 const dateTimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?$/;
+//                 if (!dateTimeRegex.test(instance)) {
+//                     errors.push("Invalid date-time format (YYYY-MM-DDTHH:MM:SSZ)");
+//                 }
+//                 break;
+//             case 'time':
+//                 const timeRegex = /^\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?$/;
+//                 if (!timeRegex.test(instance)) {
+//                     errors.push("Invalid time format (HH:MM:SSZ)");
+//                 }
+//                 break;
+//             case 'uri':
+//                 const uriRegex = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/;
+//                 if (!uriRegex.test(instance)) {
+//                     errors.push("Invalid URI format");
+//                 }
+//                 break;
+//             // Add more format validations as needed
+//             default:
+//                 errors.push(`Unknown format: ${format}`);
+//         }
+//         return errors;
+//     }
+// }
 
 class CSUpgradeNullable extends CompilationStep {
     constructor(root) {
@@ -5254,7 +5516,7 @@ class CSTemplate extends CompilationStep {
         this.set(schema, this.defunc);
         if (isString(expression)) {
             const body = `
-                ${this.sourceURL(name)}
+                ${this.sourceURL(schema, name)}
                 try { 
                     return nvl\`${expression}\`
                 } catch(e) {  
@@ -5288,7 +5550,7 @@ class CSBool extends CompilationStep {
         if (!isString(expression))
             return this.set(schema, () => !!(expression));
         const body = `
-            ${this.sourceURL(name)}
+            ${this.sourceURL(schema, name)}
             try {  
                 const result = (${expression}) 
                 return result === null ? result : !!result
@@ -5319,7 +5581,7 @@ class CSAny extends CompilationStep {
         let code = `return null`;
         code = isString(expression) ? `return ${expression}` : this.buildCode(expression);
         const body = `
-            ${this.sourceURL(name)}
+            ${this.sourceURL(schema, name)}
             try {
                 ${code} 
             } catch(e) {  
@@ -5642,11 +5904,12 @@ let FzForm = class FzForm extends Base {
         const errorMap = validated ? this.validator?.errorMap() : undefined;
         // dispatch all errors over the fields 
         for (const [pointer, field] of this.fieldMap.entries()) {
+            const logger = FzLogger.get("validation", { field, schema: field.schema });
             // if field is not touched (not manually updated) valid/invalid not displayed
             if (field.errors != NOT_TOUCHED || forced) {
                 field.errors = errorMap?.get(pointer) ?? IS_VALID;
-                console.log(`VALIDATION: ${field.pointer} -> ${field.errors === IS_VALID ? "Y" : "N"}`);
             }
+            logger.debug('is valid %s (touched=%s)', (field.errors === IS_VALID) ? "✅" : "❌", field.errors != NOT_TOUCHED);
         }
         const event = new CustomEvent(validated ? "data-valid" : "data-invalid");
         this.dispatchEvent(event);
@@ -5661,7 +5924,8 @@ let FzForm = class FzForm extends Base {
         const trackers = evt.detail.trackers;
         trackers.forEach(pointer => {
             const field = this.getfieldFromSchema(pointer);
-            // TBD with options => console.log(`TRACKER ${field?.pointer} refreshed`)
+            const logger = FzLogger.get("tracker", { field, schema: field?.schema });
+            logger.info(`refreshed by %s`, evt.detail.field.pointer);
             field?.trackedValueChange();
         });
     }

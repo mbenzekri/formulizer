@@ -26,8 +26,6 @@ export async function formInit(page: Page, schema: any, data: any): Promise<Loca
     });
     const formL = page.locator('fz-form');
     await formL.evaluate((form: any, { schema, data }) => {
-        // console.log("", JSON.stringify(schema))
-        // console.log("", JSON.stringify(data))
         form.schema = schema;
         form.data = data;
     }, { schema, data });
