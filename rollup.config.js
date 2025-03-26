@@ -90,8 +90,8 @@ const productionPlugins = [
 ]
 
 function manualChunks(id) {
-    if (id.includes('markdown-it')) return 'markdown'
-    if (id.includes('ajv')) return 'ajv'
+    if (id.includes('/markdown-it') || id.includes('dist/markdown')  ) return 'markdown'
+    if (id.includes('/ajv')) return 'ajv'
 }
 
 export default [
