@@ -1,4 +1,4 @@
-import { i as isEmptyValue, a as isArray, b as isObject, n as newValue, c as isPrimitive, d as isString, e as notNull, f as e$1, g as i$1, t as t$1, T, _ as __decorate, B as Base, h as closestAscendantFrom, j as i$2, x, k as isFunction, l as getSchema, m as derefPointerData, o as n$1, p as getCircularReplacer, q as e$2, r as isNull, s as r$1, u as t$2, v as o$2, E, w as isBoolean, y as isNumber, Z, z as r$2, A as pointerSchema, C as intersect, D as union, F as complement, G as FzMarkdownIt } from './markdown-dynamic-B99Nlxw0.js';
+import { i as isEmptyValue, a as isArray, b as isObject, n as newValue, c as isPrimitive, d as isString, e as notNull, f as e$1, g as i$1, t as t$1, T, _ as __decorate, B as Base, h as closestAscendantFrom, j as i$2, x, k as isFunction, l as getSchema, m as derefPointerData, o as n$1, p as getCircularReplacer, q as e$2, r as isNull, s as r$1, u as t$2, v as o$2, E, w as isBoolean, y as isNumber, Z, z as r$2, A as pointerSchema, C as intersect, D as union, F as complement, G as FzMarkdownIt } from './markdown-dynamic.js';
 
 const SCHEMA = Symbol("FZ_FORM_SCHEMA");
 const PARENT = Symbol("FZ_FORM_PARENT");
@@ -4405,15 +4405,15 @@ let addFormats;
 async function loadValidator(useAjv = false) {
     if (useAjv) {
         {
-            const mod = await import('./ajv-dynamic-C3Srx0PE.js').then(function (n) { return n.a; });
+            const mod = await import('./ajv-dynamic.js').then(function (n) { return n.a; });
             Ajv = mod.default;
         }
         {
-            const mod = await import('./ajv-dynamic-C3Srx0PE.js').then(function (n) { return n.i; });
+            const mod = await import('./ajv-dynamic.js').then(function (n) { return n.i; });
             Ajvi18n = mod.default;
         }
         {
-            const mod = await import('./ajv-dynamic-C3Srx0PE.js').then(function (n) { return n.b; });
+            const mod = await import('./ajv-dynamic.js').then(function (n) { return n.b; });
             addFormats = mod.default;
         }
     }

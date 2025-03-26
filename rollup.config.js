@@ -90,18 +90,19 @@ const productionPlugins = [
 ]
 
 function manualChunks(id) {
-    if (id.includes('markdown-it')) return 'markdown-dynamic'
-    if (id.includes('ajv')) return 'ajv-dynamic'
+    if (id.includes('markdown-it')) return 'markdown'
+    if (id.includes('ajv')) return 'ajv'
 }
 
 export default [
 
     // produce developement bundle
     {
-        input: './dist/main.js',
+        input: './dist/formulizer.js',
         output: {
             dir: './dist',
-            entryFileNames: 'formulizer.js',
+            entryFileNames: '[name].js',
+            chunkFileNames: "[name]-dynamic.js",
             format: 'esm',
             sourcemap: true,
             manualChunks,
@@ -112,10 +113,11 @@ export default [
 
     // produce minified bundle
     {
-        input: './dist/main.js',
+        input: './dist/formulizer.js',
         output: {
             dir: './dist',
-            entryFileNames: 'formulizer.min.js',
+            entryFileNames: '[name].min.js',
+            chunkFileNames: "[name]-dynamic.min.js",
             format: 'esm',
             sourcemap: false,
             manualChunks,
@@ -133,7 +135,7 @@ export default [
 
     // produce type declarations
     {
-        input: "src/main.ts", // Ensure this is your root file
+        input: "src/formulizer.ts", // Ensure this is your root file
         output: {
             file: "dist/formulizer.d.ts",
             format: "es",
