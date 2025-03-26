@@ -12,8 +12,10 @@ export function isNull(value:any): value is null|undefined
 }
 
 
-export function isString(value: any): value is string {
-    return value !== null && typeof value === "string"
+export function isString(value: any,notempty=false): value is string {
+    const istring = value !== null && typeof value === "string"
+    return (notempty)  ? istring && value !== "" : istring
+
 }
 
 export function isNumber(value: any): value is number {

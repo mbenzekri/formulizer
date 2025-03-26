@@ -1,175 +1,4 @@
-import { e as e$1, i as i$1, t as t$1, T, _ as __decorate, B as Base, a as i$2, x, n as n$1, b as e$2, r as r$1, c as t$2, o as o$2, E, Z, d as r$2, F as FzMarkdownIt } from './markdown-BVFQ2WYP.js';
-
-function notNull(value) {
-    return value != null;
-}
-function isNull(value) {
-    return value == null;
-}
-function isString(value) {
-    return value !== null && typeof value === "string";
-}
-function isNumber(value) {
-    return typeof value === "number" && !isNaN(value);
-}
-function isBoolean(value) {
-    return typeof value === "boolean";
-}
-function isObject(value) {
-    return value !== null && typeof value === "object" && !isArray(value);
-}
-function isArray(value) {
-    return Array.isArray(value);
-}
-function isFunction(value) {
-    return typeof value === "function" && value !== null;
-}
-const primitiveornulltypes = new Set(['string', 'integer', 'number', 'boolean', 'null']);
-function isPrimitive(value, ornull) {
-    if (isObject(value) && value.target.every(t => primitiveornulltypes.has(t)))
-        return true;
-    if (typeof value == "string" && primitiveornulltypes.has(value))
-        return true;
-    return false;
-}
-function intersect(sets) {
-    return sets.reduce((acc, set) => new Set([...acc].filter(x => set.has(x))), sets[0]);
-}
-function complement(set, full) {
-    if (set == null)
-        return new Set();
-    return new Set([...full].filter(x => !set.has(x)));
-}
-function union(sets) {
-    return sets.reduce((acc, set) => new Set([...acc, ...set]), new Set());
-}
-/**
- * find in the ancestors of an element a webcomponent matching a given selector
- * @param selector selector to matching the searched element
- * @param el element from which to start searching
- * @returns Element corresponding to selector, null otherwise
- */
-function closestAscendantFrom(selector, item) {
-    if (item instanceof Element) {
-        const elem = item.assignedSlot ?? item;
-        const found = elem.closest(selector);
-        const parent = elem.getRootNode().host;
-        return found ?? closestAscendantFrom(selector, parent);
-    }
-    return null;
-}
-/**
- * get the data corresponding to a jsonpointer (absolute or relative)
- * @param root root data for absolute pointer
- * @param parent current data for relative pointer
- * @param pointer pointer to dereference
- * @returns
- */
-function derefPointerData(root, parent, key, pointer) {
-    const tokens = pointer.split(/\//);
-    const relative = /^\d+$/.test(tokens[0]);
-    let base = relative ? parent : root;
-    if (relative) {
-        const count = parseInt(tokens[0]);
-        if (count === 0) {
-            base = base[key];
-        }
-        else {
-            for (let i = 1; i < count; i++)
-                base = getParent(base);
-        }
-        if (!base) {
-            console.error(`enable to dereference pointer ${pointer} (no more parents)`);
-            return null;
-        }
-    }
-    tokens.shift();
-    for (const token of tokens) {
-        if (base == null || !["array", "object"].includes(typeof base))
-            return undefined;
-        const key = /^\d+$/.test(token) ? parseInt(token) : token;
-        base = base[key];
-    }
-    return base;
-}
-function pointerSchema(parent, property, prev = "") {
-    if (!parent)
-        return (property ? property : "");
-    if (!property)
-        return "";
-    const root = parent.root;
-    prev = property + ((prev === "") ? "" : "/" + prev);
-    if (root == parent)
-        return "/" + prev;
-    return pointerSchema(parent.parent, prev);
-}
-const SCHEMASYM = Symbol("FZ_FORM_SCHEMA");
-const PARENTSYM = Symbol("FZ_FORM_PARENT");
-const ROOTSYM = Symbol("FZ_FORM_ROOT");
-function setHiddenProperty(data, property, value) {
-    if (data && typeof data === "object" && value) {
-        Object.defineProperty(data, property, {
-            enumerable: false,
-            value: value,
-            writable: true,
-        });
-    }
-    return data;
-}
-function newValue(value, parent, schema) {
-    setSchema(value, schema);
-    setParent(value, parent);
-    setRoot(value, getRoot(parent));
-    return value;
-}
-function setSchema(data, schema) {
-    return setHiddenProperty(data, SCHEMASYM, schema);
-}
-function getSchema(data) {
-    return data?.[SCHEMASYM];
-}
-function setParent(data, parent) {
-    return setHiddenProperty(data, PARENTSYM, parent);
-}
-function getParent(data) {
-    return data[PARENTSYM];
-}
-function setRoot(data, root) {
-    return setHiddenProperty(data, ROOTSYM, root);
-}
-function getRoot(data) {
-    return data[ROOTSYM];
-}
-/**
-    * stringify method to remove circular references in JSON object
-    * @param key key of the attribute to find
-    * @param value value of the attribute to replace
-    *
-*/
-function getCircularReplacer(key, value) {
-    if (key === 'root')
-        return undefined;
-    if (key === 'parent')
-        return undefined;
-    return value;
-}
-function isEmptyValue(value) {
-    if (value === undefined)
-        return true;
-    if (value === null)
-        return true;
-    if (value === "")
-        return true;
-    if (typeof value === 'object')
-        return Object.keys(value).every(key => value[key] === undefined);
-    if (Array.isArray(value))
-        return value.length === 0;
-    return false;
-}
-window.nvl = function nvl(templates, ...values) {
-    const cleaned = values.map(v => v ?? '');
-    return String.raw(templates, cleaned);
-};
+import { i as isEmptyValue, a as isArray, b as isObject, n as newValue, c as isPrimitive, d as isString, e as notNull, f as e$1, g as i$1, t as t$1, T, _ as __decorate, B as Base, h as closestAscendantFrom, j as i$2, x, k as isFunction, l as getSchema, m as derefPointerData, o as n$1, p as getCircularReplacer, q as e$2, r as isNull, s as r$1, u as t$2, v as o$2, E, w as isBoolean, y as isNumber, Z, z as r$2, A as pointerSchema, C as intersect, D as union, F as complement, G as FzMarkdownIt } from './markdown-B99Nlxw0.js';
 
 const SCHEMA = Symbol("FZ_FORM_SCHEMA");
 const PARENT = Symbol("FZ_FORM_PARENT");
@@ -594,6 +423,7 @@ const fiedtypes = [
     "fz-enum-typeahead",
     "fz-time",
     "fz-uuid",
+    "fz-color",
 ];
 const fieldtypeslist = fiedtypes.join(',');
 /**
@@ -953,6 +783,7 @@ class FzField extends Base {
             case "fz-uuid": return x ` <fz-uuid .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-uuid>`;
             case "fz-markdown": return x ` <fz-markdown .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-markdown>`;
             case "fz-enum-typeahead": return x ` <fz-enum-typeahead .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-typeahead>`;
+            case "fz-color": return x ` <fz-color .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-color>`;
             case 'fz-error':
             default: return x `<div class="alert alert-warning" role="alert">field name=${name} type ${schema.basetype}/${schema.field} not implemented !</div>`;
         }
@@ -1603,6 +1434,83 @@ FzEnumTypeahead = __decorate([
     t$2("fz-enum-typeahead")
 ], FzEnumTypeahead);
 
+const RGBA_RE = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/;
+/**
+ * @prop schema
+ * @prop data
+ * @prop name
+ * @prop index
+ */
+let FzInputString$1 = class FzInputString extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            if (!isString(this.value))
+                this.input.value = "#000000";
+            else if (this.value.match(RGBA_RE))
+                this.input.value = this.rgbaToHex(this.value);
+            else
+                this.input.value = this.value;
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            if (!isString(this.input.value, true))
+                this.value = this.empty;
+            else if (this.input.value.match(RGBA_RE))
+                this.value = this.rgbaToHex(this.input.value);
+            else
+                this.value = this.input.value;
+        }
+    }
+    // static override get styles() {
+    //     return [
+    //         ...super.styles,
+    //         css`
+    //         input[type="color"] {
+    //             height: 38px
+    //         }`
+    //     ]
+    // }
+    renderInput() {
+        return x `
+            <div class="input-group ${this.validationMap}" >
+                <input
+                    id="input"
+                    type="color" 
+                    placeholder="${this.label}"
+                    ?readonly="${this.readonly}"
+                    @input="${this.change}"
+                    ?required="${this.required}"
+                    autocomplete=off  spellcheck="false"
+                    class="form-control form-control-color" 
+                />
+                <span class="input-group-text" style="max-width:5em">${isNull(this.value) ? '~' : this.value}</span>
+            </div>`;
+    }
+    rgbaToHex(rgba) {
+        // Regular expression to extract the RGBA components
+        const match = rgba.match(RGBA_RE);
+        if (!match)
+            throw new Error("Invalid RGBA format");
+        const [, r, g, b, _a] = match.map(Number);
+        // Convert RGB components to hexadecimal
+        const toHex = (component) => {
+            const hex = component.toString(16);
+            return hex.length === 1 ? '0' + hex : hex;
+        };
+        const hex = `${toHex(r)}${toHex(g)}${toHex(b)}`;
+        // // Optionally handle alpha component
+        // if (a !== undefined) {
+        //     const alpha = Math.round(a * 255).toString(16);
+        //     return `#${hex}${alpha.length === 1 ? '0' + alpha : alpha}`;
+        // }
+        return `#${hex}`;
+    }
+};
+FzInputString$1 = __decorate([
+    t$2("fz-color")
+], FzInputString$1);
+
 /**
  * @license
  * Copyright 2018 Google LLC
@@ -1633,14 +1541,14 @@ let FzInputDate = class FzInputDate extends FzInputBase {
     renderInput() {
         return x `<input
             id="input" 
-            class="form-control ${this.validationMap}" 
             type="date" 
-            ?readonly="${this.readonly}" 
             @input="${this.change}"
+            ?readonly="${this.readonly}" 
+            ?required="${this.required}"
             min="${o(this.min)}"
             max="${o(this.max)}"
-            ?required="${this.required}"
             autocomplete=off  spellcheck="false"
+            class="form-control ${this.validationMap}" 
         />`;
     }
     get min() {
@@ -1667,7 +1575,12 @@ let FzInputDatetime = class FzInputDatetime extends FzInputBase {
     toField() {
         if (notNull(this.input)) {
             const redate = /\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ?/;
-            this.input.valueAsDate = redate.test(this.value) ? new Date(this.value.substring(0, 16)) : null;
+            if (this.input.valueAsDate) {
+                this.input.valueAsDate = redate.test(this.value) ? new Date(this.value.substring(0, 16)) : null;
+            }
+            else {
+                this.input.value = redate.test(this.value) ? this.value.substring(0, 16) : '';
+            }
         }
     }
     toValue() {
@@ -1809,21 +1722,18 @@ let FzInputString = class FzInputString extends FzInputBase {
         return x `
             <div class="input-group" >
                 <input
-                    class="form-control ${this.validationMap}" 
-                    type="${this.type}" 
                     id="input"
-                    placeholder="${this.label}"
-                    ?readonly="${this.readonly}"
+                    type="${this.type}" 
                     @input="${this.change}"
+                    ?readonly="${this.readonly}"
+                    ?required="${this.required}"
+                    placeholder="${this.label}"
                     minlength="${o(this.minlength)}"
                     maxlength="${o(this.maxlength)}"
                     pattern="${o(this.pattern)}"
-                    ?required="${this.required}"
                     autocomplete=off  spellcheck="false"
+                    class="form-control ${this.validationMap}" 
                 />
-                ${this.type === 'color' && this.value != null
-            ? x `<span class="input-group-text" style="max-width:5em">${this.value}</span>`
-            : ''}
             </div>`;
     }
     get minlength() { return this.schema?.minLength; }
@@ -2211,15 +2121,15 @@ let FzInputBoolean = class FzInputBoolean extends FzInputBase {
         return x `
             <div class="form-group row">
                 <div class="col-sm-12">
-                    <div class="form-check d-flex">
+                    <div class="form-control">
                         <input 
                             id="input"
                             type="checkbox"
                             ?required="${this.required}"
                             @change="${this.tryChange}"
                             @click="${this.tryChange}"
-                            class="form-check-input align-self-start ${this.validationMap}"
                             autocomplete=off  spellcheck="false"
+                            class="form-check-input align-self-start ${this.validationMap}"
                         />
                         <label class="form-check-label ms-2" for="input">${super.label}</label>
                     </div>
@@ -3021,7 +2931,10 @@ let FzInputUuid = class FzInputUuid extends FzInputBase {
         }
     }
     renderInput() {
-        return x `<div class="input-group ${this.validationMap}" >${this.value}</div>`;
+        return x `
+            <div class="input-group">
+                <div class="form-control">${this.value}</div>
+            </div>`;
     }
     connectedCallback() {
         super.connectedCallback();
@@ -5418,6 +5331,7 @@ class CSField extends CompilationStep {
                 if (schema.mask)
                     return schema.field = "fz-mask";
                 switch (schema.format) {
+                    case "color": return schema.field = 'fz-color';
                     case "uuid": return schema.field = 'fz-uuid';
                     case "uuid": return schema.field = 'fz-uuid';
                     case "signature": return schema.field = 'fz-signature';
@@ -5701,9 +5615,6 @@ class BlobMemory {
     }
 }
 
-const BOOTSTRAP_URL = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css";
-const ICONS_URL = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css";
-const WOFF_URL = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/fonts/bootstrap-icons.woff2?1fa40e8900654d2863d011707b9fb6f2";
 /**
  * @prop schema
  * @prop data
@@ -5837,6 +5748,8 @@ let FzForm = class FzForm extends Base {
         this.getField(pointer)?.requestUpdate();
     }
     render() {
+        if (!Base.isBootStrapLoaded())
+            return '';
         return this.validator?.schemaValid ? this.renderForm() : this.renderError();
     }
     renderForm() {
@@ -5857,6 +5770,8 @@ let FzForm = class FzForm extends Base {
             </div>`;
     }
     renderError() {
+        if (this.validator?.schemaValid && this.validator?.valid)
+            return x ``;
         const formatError = (e) => x `<li>property : ${(e.dataPath == undefined) ? e.instancePath : e.dataPath} : ${e.keyword} ➜ ${e.message}</li>`;
         return [
             x `<hr>`,
@@ -5981,44 +5896,12 @@ let FzForm = class FzForm extends Base {
             enumerable: true
         });
     }
-    // ------------------------------------------------------------------
-    // user API to load external Bootstrap and Bootstap Icons (mandatory)
-    // ------------------------------------------------------------------
-    static async registerBootstrap(bootstrap_url = BOOTSTRAP_URL, icons_url = ICONS_URL, woff_url = WOFF_URL) {
-        let bootstrap_sheet;
-        if (isString(bootstrap_url)) {
-            const bootstrapcss_text = await fetch(bootstrap_url)
-                .then(resp => resp.ok ? resp.text() : (console.error(`unable to load boootstrap css: ${String(resp.statusText)}`), ""))
-                .catch(e => (console.error(`unable to load boootstrap css: ${String(e)}`), ''));
-            bootstrap_sheet = new CSSStyleSheet();
-            bootstrap_sheet.replaceSync(bootstrapcss_text.replaceAll(':root', ':host, :root'));
-        }
-        else {
-            bootstrap_sheet = bootstrap_url;
-        }
-        let icons_sheet;
-        if (isString(icons_url)) {
-            const iconscss_text = await fetch(icons_url)
-                .then(resp => resp.ok ? resp.text() : (console.error(`unable to load boootstrap css: ${String(resp.statusText)}`), ""))
-                .catch(e => (console.error(`unable to load icons css: ${String(e)}`), ''));
-            icons_sheet = new CSSStyleSheet();
-            icons_sheet.replaceSync(iconscss_text.replaceAll(':root', ':host, :root'));
-        }
-        else {
-            icons_sheet = icons_url;
-        }
-        let font_face;
-        if (isString(woff_url)) {
-            font_face = new FontFace("bootstrap-icons", `url("${woff_url}")`);
-        }
-        else {
-            font_face = woff_url;
-        }
-        const loaded = await font_face.load();
-        document.fonts.add(loaded);
-        Base.sheets = [bootstrap_sheet, icons_sheet];
+    static async loadBootstrap(bootstrap_url, icons_url, woff_url) {
+        if (Base.isBootStrapLoaded())
+            return;
+        await Base.registerBootstrap(bootstrap_url, icons_url, woff_url);
         for (const item of document.getElementsByTagName("fz-form")) {
-            item.firstUpdated(new Map());
+            item.requestUpdate();
         }
     }
 };

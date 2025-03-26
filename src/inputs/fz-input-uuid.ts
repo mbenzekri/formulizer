@@ -26,9 +26,12 @@ export class FzInputUuid extends FzInputBase {
     }
 
     renderInput() {
-        return html`<div class="input-group ${this.validationMap}" >${this.value}</div>`
+        return html`
+            <div class="input-group">
+                <div class="form-control">${this.value}</div>
+            </div>`
     }
-    
+
     override connectedCallback() {
         super.connectedCallback()
         if (this.value == null) this.value = uuidv1()

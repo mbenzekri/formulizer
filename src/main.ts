@@ -2,6 +2,7 @@ import "./inputs/enum/fz-enum-select";
 import "./inputs/enum/fz-enum-check";
 import "./inputs/enum/fz-enum-typeahead";
 
+import "./inputs/fz-input-color";
 import "./inputs/fz-input-date";
 import "./inputs/fz-input-datetime";
 import "./inputs/fz-input-time";

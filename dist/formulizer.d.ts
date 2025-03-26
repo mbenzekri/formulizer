@@ -191,6 +191,8 @@ declare class Base extends LitElement {
     unlisten(target: EventTarget, event: string, handler: (evt: Event) => void, options?: AddEventListenerOptions | boolean): void;
     connectedCallback(): void;
     disconnectedCallback(): void;
+    static registerBootstrap(bootstrap_url?: CSSStyleSheet | string, icons_url?: CSSStyleSheet | string, woff_url?: FontFace | string): Promise<void>;
+    static isBootStrapLoaded(): boolean;
 }
 
 /**
@@ -236,7 +238,7 @@ declare class FzForm extends Base {
     removeField(schemaPointer: string, dataPointer: string): void;
     getfieldFromSchema(pointer: string): FzField | undefined;
     updateField(pointer: string): void;
-    render(): lit_html.TemplateResult<1> | lit_html.TemplateResult<1>[];
+    render(): "" | lit_html.TemplateResult<1> | lit_html.TemplateResult<1>[];
     private renderForm;
     private renderButtons;
     private renderError;
@@ -253,7 +255,7 @@ declare class FzForm extends Base {
     private cancel;
     private compile;
     debug(pointer: string): void;
-    static registerBootstrap(bootstrap_url?: CSSStyleSheet | string, icons_url?: CSSStyleSheet | string, woff_url?: FontFace | string): Promise<void>;
+    static loadBootstrap(bootstrap_url?: CSSStyleSheet | string, icons_url?: CSSStyleSheet | string, woff_url?: FontFace | string): Promise<void>;
 }
 
 /**
@@ -266,7 +268,7 @@ declare class FzForm extends Base {
 declare abstract class FzField extends Base {
     accessor pointer: string;
     accessor schema: Schema;
-    accessor data: Pojo;
+    accessor data: any;
     accessor name: string | null;
     accessor index: number | null;
     accessor touched: boolean;

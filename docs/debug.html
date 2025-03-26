@@ -26,17 +26,29 @@
         }
         window.onload = async () => {
             await FzForm.registerBootstrap() // bootstrap loaded from CDN 
-            FzLogger.set("DEBUG","validation","tracker","compilation","input","data-update")
+            //FzLogger.set("DEBUG","validation","tracker","compilation","input","data-update")
             const form = document.getElementById("myform")
             const feedback = document.getElementById("mydata")
             const output = () => feedback.innerHTML = `${form.valid ? "valid" :"invalid"} =>${JSON.stringify(form.data)}`
             form.addEventListener("data-valid",output)
             form.addEventListener("data-invalid",output)
+
             form.schema = {
                 type: 'object',
-                properties: { active: { type: 'boolean' } }
+                properties: {
+                    "country": {
+                        "type": "string",
+                        "enum": [
+                            "France", "Germany", "Spain", "Italy", "United Kingdom", "United States",
+                            "Canada", "Brazil", "Argentina", "Mexico", "China", "Japan", "India", "Russia",
+                            "Australia", "South Africa", "Egypt", "Nigeria", "Saudi Arabia", "Turkey",
+                            "South Korea", "Indonesia", "Thailand", "Vietnam", "Colombia"
+                        ]
+                    }
+                }
             }
-            form.data = { active: "dummy" }
+
+            form.data = { country: "Spain" }
             output()
         }
     </script>

@@ -21,7 +21,11 @@ export class FzInputDatetime extends FzInputBase {
     override toField() {
         if (notNull(this.input)) {
             const redate = /\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ?/
-            this.input.valueAsDate = redate.test(this.value) ? new Date(this.value.substring(0, 16))  : null
+            if(this.input.valueAsDate) {
+                this.input.valueAsDate = redate.test(this.value) ? new Date(this.value.substring(0, 16))  : null
+            } else {
+                this.input.value = redate.test(this.value) ? this.value.substring(0, 16) : ''
+            }
         }
     }
 

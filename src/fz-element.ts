@@ -31,6 +31,7 @@ const fiedtypes = [
     "fz-enum-typeahead",
     "fz-time",
     "fz-uuid",
+    "fz-color",
 ]
 const fieldtypeslist = fiedtypes.join(',')
 
@@ -45,7 +46,7 @@ export abstract class FzField extends Base {
 
     @property({ type: String }) accessor pointer = '/'
     @property({ type: Object }) accessor schema = EMPTY_SCHEMA
-    @property({ type: Object }) accessor data: Pojo = {}
+    @property({ type: Object }) accessor data: any = {}
     @property({ type: String }) accessor name: string | null = null
     @property({ type: Number }) accessor index: number | null = null
     @property({ type: Boolean, attribute:false}) accessor touched = false
@@ -384,6 +385,7 @@ export abstract class FzField extends Base {
             case "fz-uuid": return html` <fz-uuid .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-uuid>`
             case "fz-markdown": return html` <fz-markdown .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-markdown>`
             case "fz-enum-typeahead": return html` <fz-enum-typeahead .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-typeahead>`
+            case "fz-color": return html` <fz-color .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-color>`
             case 'fz-error':
             default: return html`<div class="alert alert-warning" role="alert">field name=${name} type ${schema.basetype}/${schema.field} not implemented !</div>`
         }

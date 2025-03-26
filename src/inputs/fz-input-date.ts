@@ -34,14 +34,14 @@ export class FzInputDate extends FzInputBase {
     renderInput() {
         return html`<input
             id="input" 
-            class="form-control ${this.validationMap}" 
             type="date" 
-            ?readonly="${this.readonly}" 
             @input="${this.change}"
+            ?readonly="${this.readonly}" 
+            ?required="${this.required}"
             min="${ifDefined(this.min)}"
             max="${ifDefined(this.max)}"
-            ?required="${this.required}"
             autocomplete=off  spellcheck="false"
+            class="form-control ${this.validationMap}" 
         />`
     }
 

@@ -39,22 +39,18 @@ export class FzInputString extends FzInputBase {
         return html`
             <div class="input-group" >
                 <input
-                    class="form-control ${this.validationMap}" 
-                    type="${this.type}" 
                     id="input"
-                    placeholder="${this.label}"
-                    ?readonly="${this.readonly}"
+                    type="${this.type}" 
                     @input="${this.change}"
+                    ?readonly="${this.readonly}"
+                    ?required="${this.required}"
+                    placeholder="${this.label}"
                     minlength="${ifDefined(this.minlength)}"
                     maxlength="${ifDefined(this.maxlength)}"
                     pattern="${ifDefined(this.pattern)}"
-                    ?required="${this.required}"
                     autocomplete=off  spellcheck="false"
+                    class="form-control ${this.validationMap}" 
                 />
-                ${this.type === 'color' && this.value != null 
-                    ? html`<span class="input-group-text" style="max-width:5em">${this.value}</span>`
-                    : ''
-                }
             </div>`
     }
 

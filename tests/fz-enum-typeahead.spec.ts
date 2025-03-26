@@ -39,12 +39,12 @@ test.describe('fz-enum-typeahead', () => {
     })
 
     test('typeahead: should be in correct initial state', async ({ page }) => {
-        await init(page, SCHEMA)
+        await init(page)
 
         // initial state : Spain
 
         await query_h.evaluate(query => query.focus())
-        expect(await list_h.evaluate(items => items.length)).toBe(1) // list contains only Spain (initial value) 
+        expect(await list_h.evaluate(items => items.length)).toBe(1)
         expect(await list_h.evaluate(items => items[0].innerText)).toBe("Spain")
         const s = await formState(form_l)
         expect(s.valid).toBe(true)

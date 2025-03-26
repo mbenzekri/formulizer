@@ -11,15 +11,15 @@ export class FzInputBoolean extends FzInputBase {
         return html`
             <div class="form-group row">
                 <div class="col-sm-12">
-                    <div class="form-check d-flex">
+                    <div class="form-control">
                         <input 
                             id="input"
                             type="checkbox"
                             ?required="${this.required}"
                             @change="${this.tryChange}"
                             @click="${this.tryChange}"
-                            class="form-check-input align-self-start ${this.validationMap}"
                             autocomplete=off  spellcheck="false"
+                            class="form-check-input align-self-start ${this.validationMap}"
                         />
                         <label class="form-check-label ms-2" for="input">${super.label}</label>
                     </div>
