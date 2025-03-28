@@ -41,7 +41,7 @@ export class FzInputDate extends FzInputBase {
             min="${ifDefined(this.min)}"
             max="${ifDefined(this.max)}"
             autocomplete=off  spellcheck="false"
-            class="form-control ${this.validationMap}" 
+            class="form-control ${this.validation}" 
         />`
     }
 

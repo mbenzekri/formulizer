@@ -54,6 +54,17 @@ export function isPrimitive(value?: string | Schema, ornull?: boolean) {
     return false
 }
 
+export function when<T>(test:any,value: T) {
+    if (!!test) return value
+    return ''
+}
+
+export function isCollection(schema?: Schema): boolean {
+    if (isObject(schema) && ["object","array]"].includes(schema.basetype)) return true  
+    return false
+}
+
+
 export function intersect(sets: Set<string>[]): Set<string> {
     return sets.reduce((acc, set) => new Set([...acc].filter(x => set.has(x))), sets[0]);
 }

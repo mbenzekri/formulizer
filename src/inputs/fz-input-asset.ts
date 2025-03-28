@@ -45,7 +45,7 @@ export class FzInputAsset extends FzInputBase {
                     @input="${this.change}"
                     placeholder="${ifDefined(this.label ?? "")}"
                     readonly
-                    class="form-control ${this.validationMap}"
+                    class="form-control ${this.validation}"
                     autocomplete=off  spellcheck="false"
                 />
                 <button
@@ -56,7 +56,7 @@ export class FzInputAsset extends FzInputBase {
                     <i class="bi bi-globe"></i>
                 </button>
                 <button
-                    ?hidden="${!(this.state == SelectionState.idle && !this.isEmpty)}"
+                    ?hidden="${!(this.state == SelectionState.idle && !this.isempty)}"
                     type="button"
                     class="btn btn-primary btn-sm"
                     @click="${this.clear}">

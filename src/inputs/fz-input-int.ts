@@ -33,7 +33,7 @@ export class FzInputInteger extends FzInputBase {
         return html`
             <div class="input-group">
                 <input 
-                    class="form-control ${this.validationMap}" 
+                    class="form-control ${this.validation}" 
                     type="number"  
                     id="input"
                     ?readonly="${this.readonly}"

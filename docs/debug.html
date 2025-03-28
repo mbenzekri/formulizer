@@ -8,7 +8,8 @@
 
 <body>
 
-    <fz-form id="myform" useajv usemarkdown oninit=oninit onready=onready actions onvalidate=onvalidate ondismiss=ondismiss></fz-form>
+    <fz-form id="myform" useajv usemarkdown bootstrap actions oninit=oninit onready=onready onvalidate=onvalidate
+        ondismiss=ondismiss></fz-form>
     <br>
     <pre id="mydata" lang=""></pre>
     <script>
@@ -25,30 +26,29 @@
             // console.log("Event 'dismiss' trigerred")
         }
         window.onload = async () => {
-            await FzForm.registerBootstrap() // bootstrap loaded from CDN 
-            //FzLogger.set("DEBUG","validation","tracker","compilation","input","data-update")
+            //FzLogger.set("DEBUG", "validation", "tracker", "compilation", "input", "data-update","bootstrap")
+            FzLogger.set("DEBUG","bootstrap")
             const form = document.getElementById("myform")
             const feedback = document.getElementById("mydata")
-            const output = () => feedback.innerHTML = `${form.valid ? "valid" :"invalid"} =>${JSON.stringify(form.data)}`
-            form.addEventListener("data-valid",output)
-            form.addEventListener("data-invalid",output)
+            const output = () => feedback.innerHTML = `${form.valid ? "valid" : "invalid"} =>${JSON.stringify(form.data)}`
+            form.addEventListener("data-valid", output)
+            form.addEventListener("data-invalid", output)
 
             form.schema = {
-                type: 'object',
-                properties: {
-                    "country": {
-                        "type": "string",
-                        "enum": [
-                            "France", "Germany", "Spain", "Italy", "United Kingdom", "United States",
-                            "Canada", "Brazil", "Argentina", "Mexico", "China", "Japan", "India", "Russia",
-                            "Australia", "South Africa", "Egypt", "Nigeria", "Saudi Arabia", "Turkey",
-                            "South Korea", "Indonesia", "Thailand", "Vietnam", "Colombia"
-                        ]
+                "type": "object",
+                "title": "Array",
+                "properties": {
+                    "array": {
+                        "type": "array",
+                        "title": "an array",
+                        "items": {
+                            "type": "string",
+                        }
                     }
                 }
             }
 
-            form.data = { country: "Spain" }
+            form.data = { }
             output()
         }
     </script>

@@ -58,27 +58,27 @@ export interface ValidateFunction {
 
 export class Validator {
 
+    errorMap: Map<string,string[]> = new Map()
     get schemaValid() { return true }
     get schemaErrors():ValidationError[] { return [] }
     get valid() { return true }
     validate(_data: any):void {}
     get errors():ValidationError[] { return [] }
 
-    errorMap() {
-        const errorMap=new Map<string,string[]>()
+    setMap() {
+        this.errorMap=new Map<string,string[]>()
         for (const error of this.errors) {
             let { instancePath, message, params, keyword } = error;
-            instancePath = `/${instancePath}`
             // required applies to object must down the error to child
             if (keyword === "required") {
                 instancePath = `${instancePath === '/' ? '' : ''}/${params.missingProperty}`
                 message = "required"
             }
-            if (!errorMap.has(instancePath)) errorMap.set(instancePath, [])
+            if (!this.errorMap.has(instancePath)) this.errorMap.set(instancePath, [])
             //const detail =Object.entries(params).map(([s,v]) => v == null ? null : `${s}: ${v}`).filter(v => v).join(',')
-            errorMap.get(instancePath)?.push(message ?? "unidentified error")
+            this.errorMap.get(instancePath)?.push(message ?? "unidentified error")
         }
-        return errorMap
+        return this.errorMap
     }
 
     // AJV library loader 
@@ -139,6 +139,7 @@ export class AjvValidator extends Validator {
     override validate(value: any): void {
         this.dataParser(value)
         Ajvi18n(this.dataParser.errors)
+        this.setMap()
     }
     override get errors():ValidationError[] { return this.dataParser.errors ?? [] }
 

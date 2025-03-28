@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property, customElement } from "lit/decorators.js"
-import { html, css, TemplateResult } from "lit"
+import { html, TemplateResult } from "lit"
 import { FZCollection } from "./fz-collection"
 import { FzField } from "../fz-element"
 import { Pojo, FieldOrder } from "../lib/types"
+import { when } from "../lib/tools"
 
 /**
  * @prop schema
@@ -14,21 +15,12 @@ import { Pojo, FieldOrder } from "../lib/types"
 @customElement("fz-object")
 export class FzObject extends FZCollection {
 
-    @property({ attribute: false }) accessor collapsed = false
     @property({ attribute: false }) accessor activegroup: { [tabname: string]: string } = {}
     seen: WeakSet<object> | undefined
 
     static override get styles() {
         return [
             ...super.styles,
-            css`
-                .panel {
-                    padding:5px;
-                    border: solid 1px lightgray;
-                    border-radius:10px; 
-                    user-select: none;
-                }
-                `
         ]
     }
     override toField(): void {
@@ -43,16 +35,22 @@ export class FzObject extends FZCollection {
     //     // this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
     // }
 
-
-    override firstUpdated(changedProperties: any) {
-        super.firstUpdated(changedProperties)
-        this.setCollapsed()
+    /**
+     * render collapsed Object
+     */
+    protected override renderCollapsed(): TemplateResult {
+        return html`
+            <div class="form-group row space-before">
+                ${this.renderLabel()}
+                <div class="col-sm-9">
+                    <div class="input-group ${this.validation}" @click="${this.toggle}" >
+                        <div class="form-control">${this.chevron()} ${this.abstract()}</div>
+                    </div>
+                </div>
+            </div>
+        `
     }
 
-    private setCollapsed() {
-        // si root on collapse jamais
-        this.collapsed = (this.schema.parent == null) ? false : this.evalExpr("collapsed")
-    }
 
     private renderSingle(itemTemplates: TemplateResult[], fields: FieldOrder[], fieldpos: number): number {
         // render single item
@@ -139,20 +137,10 @@ export class FzObject extends FZCollection {
         return fieldpos
     }
 
-    get deletable() {
-        if (this.schema.parent == null || this.isEmpty) return false
-        if (this.schema.nullAllowed && this.nullable) return true;
-        if (!this.schema.nullAllowed && !this.required) return true;
-        return false
-    }
-
-    async delete() {
-        if (this.collapsed !== null) this.collapsed = true
-        this.value = this.empty
-    }
 
     override renderField(): TemplateResult {
         if (!this.schema?.properties) return html``
+        if (this.collapsed) return this.renderCollapsed()
         const itemTemplates: TemplateResult[] = [];
         const fields = this.schema.order as FieldOrder[]
         let fieldpos = 0
@@ -166,24 +154,31 @@ export class FzObject extends FZCollection {
                 fieldpos = this.renderSingle(itemTemplates, fields, fieldpos)
             }
         }
-        return html`${this.isItem
-            ? html`<div>${this.renderLabel}</div>${itemTemplates}`
-            : (this.schema.title ?? '') === "" ?  html`<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`
-            : html`<div class="panel ${this.schema.parent ? '' : 'border-0'}" id="content" >
-                <div class="panel-heading" ?hidden="${!this.schema.parent}" >
-                    <div>
-                        ${this.renderLabel}
-                        ${this.collapsed ? html`${this.abstract()}` : html``}
-                        <button
-                            ?hidden="${!this.deletable}"
-                            @click="${() => this.delete()}" 
-                            type="button" style="float:right" class="btn-close" aria-label="Close">
-                        </button>
+
+        // item case (this field is item of an array)
+        if (this.isItem) {
+            return (this.label=== "")
+                ? html`<div>${this.renderLabel()}</div>${itemTemplates}`
+                : html`<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`
+        }
+
+        // property case (this field is part of object.values())
+        const hidelabel = this.isroot || this.label === ''
+        return html`
+            <div class="space-before">
+                <div class="form-group row ${when(hidelabel,'d-none')}">
+                    ${this.renderLabel()}
+                    <div class="col-sm-1 d-none d-sm-block">
+                        <div class="input-group ${this.validation}" @click="${this.toggle}" >
+                            <div class="form-control border-0">${this.chevron()}</div>
+                        </div>
                     </div>
-                    <hr ?hidden="${this.collapsed}" style="margin: 0 0" >
                 </div>
-                <div ?hidden="${this.collapsed}" > ${itemTemplates} </div>
-                </div>`}`
+                <div ?hidden="${this.collapsed}" class="space-after ${when(!hidelabel ,'line-after line-before')}"> 
+                    ${itemTemplates} 
+                </div>
+            </div>
+        `
     }
 
     isRequiredProperty(name: string) {
@@ -239,9 +234,4 @@ export class FzObject extends FZCollection {
         this.eventStop(evt)
     }
 
-    toggle(evt: Event) {
-        if  (this.collapsed !== null) this.collapsed = !this.collapsed
-        this.eventStop(evt)
-        this.requestUpdate()
-    }
 }

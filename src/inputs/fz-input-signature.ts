@@ -68,7 +68,7 @@ export class FzInputSignature extends FzInputBase {
 
     renderInput() {
         return html`
-            <div id="content" class="form-control ${this.validationMap}">
+            <div id="content" class="form-control ${this.validation}">
                 <button ?hidden="${!this.value || this.required || this.readonly}" @click="${this.del}" type="button" style="float:right" class="btn-close" aria-label="Close"></button>
                 <canvas id="canvas" ?hidden="${this.state === 'read'}" height="300" width="300"></canvas>
                 <img   id="image" draggable=false ?hidden="${this.state === 'edit' || !this.value }" >

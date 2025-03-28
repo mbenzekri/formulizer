@@ -34,7 +34,7 @@ export abstract class FzInputBase extends FzField {
     override renderField(): TemplateResult {
         return html`
             <div class="form-group row">
-                ${this.renderLabel}
+                ${this.renderLabel()}
                 <div class="col-sm">${this.renderInput()}</div>
             </div>`
     }

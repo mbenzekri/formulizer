@@ -24,7 +24,7 @@ export class FzInputConstant extends FzInputBase {
     }
 
     renderInput() {
-        return html`<div class="input-group ${this.validationMap}">${this.value}</div>`;
+        return html`<div class="input-group ${this.validation}">${this.value}</div>`;
     }
 
     override connectedCallback() {

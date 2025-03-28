@@ -118,12 +118,12 @@ export class FzInputDoc extends FzInputBase {
                         <img class="input-group-text img-preview" src="${this.url}" @click="${this.open}"/>
                     </div>` : null
                 }
-                ${ (!this.isEmpty && !(this.url && this.hasPreview))  ?html`
+                ${ (!this.isempty && !(this.url && this.hasPreview))  ?html`
                     <div class="input-group-prepend">
                         <span class="input-group-text"  @click="${this.open}"><i class="bi bi-eye"></i></span>
                     </div>` : null
                 }
-                <input class="form-control ${this.validationMap}"  type="text" spellcheck="false"
+                <input class="form-control ${this.validation}"  type="text" spellcheck="false"
                     placeholder="photo, document, ..."
                     .value="${this.filename ?? ''}"
                     ?readonly="${this.readonly}" 
@@ -134,10 +134,10 @@ export class FzInputDoc extends FzInputBase {
                     ?required="${this.required}"
                     autocomplete=off  spellcheck="false"
                 />
-                ${ (this.isEmpty || this.readonly)  ? html`` : html`
+                ${ (this.isempty || this.readonly)  ? html`` : html`
                     <button  @click="${this.delete}"  type="button" class="close-right btn-close" aria-label="Close"> </button>`
                 }
-                ${ ( !this.isEmpty || this.readonly)  ? html`` : html`
+                ${ ( !this.isempty || this.readonly)  ? html`` : html`
                     <span class="input-group-text btn btn-primary" @click="${()=>this.photoModal?.open()}" ><i class=" bi bi-camera"></i></span>
                     <span class="input-group-text fileUpload btn btn-primary">
                         <input type="file"

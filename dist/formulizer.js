@@ -124,6 +124,16 @@ function isPrimitive(value, ornull) {
         return true;
     return false;
 }
+function when(test, value) {
+    if (!!test)
+        return value;
+    return '';
+}
+function isCollection(schema) {
+    if (isObject(schema) && ["object", "array]"].includes(schema.basetype))
+        return true;
+    return false;
+}
 function intersect(sets) {
     return sets.reduce((acc, set) => new Set([...acc].filter(x => set.has(x))), sets[0]);
 }
@@ -263,24 +273,32 @@ window.nvl = function nvl(templates, ...values) {
     return String.raw(templates, cleaned);
 };
 
-const SCHEMA = Symbol("FZ_FORM_SCHEMA");
-const PARENT = Symbol("FZ_FORM_PARENT");
-const KEY = Symbol("FZ_FORM_PARENT");
-const ROOT = Symbol("FZ_FORM_ROOT");
-const IS_VALID = [];
-const NOT_TOUCHED = [];
-
 const BOOTSTRAP_URL = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css";
 const ICONS_URL = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css";
 const WOFF_URL = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/fonts/bootstrap-icons.woff2?1fa40e8900654d2863d011707b9fb6f2";
 class Base extends r$1 {
     handlers = [];
     static sheets = [];
-    static styles = [];
+    static styles = [
+        i$5 `body {
+                font-family: 'Arial', sans-serif !important;
+            }
+            .space-before {
+                padding-top:10px; 
+            }
+            .space-after {
+                padding-bottom:5px
+            }
+            .line-after {
+                border-bottom: 1px solid gray;
+            }
+            .line-before {
+                border-top: 1px solid gray;
+            }
+    `
+    ];
     firstUpdated(_changedProperties) {
-        Base.sheets
-            .filter(sheet => !this.shadowRoot?.adoptedStyleSheets.includes(sheet))
-            .forEach(sheet => this.shadowRoot?.adoptedStyleSheets.push(sheet));
+        this.adoptBootStrap();
         super.firstUpdated(_changedProperties);
     }
     listen(target, event, handler, options) {
@@ -311,41 +329,63 @@ class Base extends r$1 {
     // user API to load external Bootstrap and Bootstap Icons (mandatory)
     // ------------------------------------------------------------------
     static async registerBootstrap(bootstrap_url = BOOTSTRAP_URL, icons_url = ICONS_URL, woff_url = WOFF_URL) {
+        const logger = FzLogger.get("bootstrap");
+        logger.info("IN:registerBootstrap()");
         let bootstrap_sheet;
         if (isString(bootstrap_url)) {
+            logger.info("Bootstrap CSS to be load from url: %s ", bootstrap_url);
             const bootstrapcss_text = await fetch(bootstrap_url)
                 .then(resp => resp.ok ? resp.text() : (console.error(`unable to load boootstrap css: ${String(resp.statusText)}`), ""))
                 .catch(e => (console.error(`unable to load boootstrap css: ${String(e)}`), ''));
             bootstrap_sheet = new CSSStyleSheet();
             bootstrap_sheet.replaceSync(bootstrapcss_text.replaceAll(':root', ':host, :root'));
+            logger.info("Bootstrap CSS loaded");
         }
         else {
+            logger.info("Bootstrap CSS provided by user");
             bootstrap_sheet = bootstrap_url;
         }
         let icons_sheet;
         if (isString(icons_url)) {
+            logger.info("Bootstrap icons CSS to be load from url: %s ", bootstrap_url);
             const iconscss_text = await fetch(icons_url)
                 .then(resp => resp.ok ? resp.text() : (console.error(`unable to load boootstrap css: ${String(resp.statusText)}`), ""))
                 .catch(e => (console.error(`unable to load icons css: ${String(e)}`), ''));
             icons_sheet = new CSSStyleSheet();
             icons_sheet.replaceSync(iconscss_text.replaceAll(':root', ':host, :root'));
+            logger.info("Bootstrap icons CSS loaded");
         }
         else {
+            logger.info("Bootstrap icons CSS provided by user");
             icons_sheet = icons_url;
         }
         let font_face;
         if (isString(woff_url)) {
+            logger.info("Bootstrap icons fonts to be load from url: %s ", bootstrap_url);
             font_face = new FontFace("bootstrap-icons", `url("${woff_url}")`);
         }
         else {
+            logger.info("Bootstrap icons fonts provided by user");
             font_face = woff_url;
         }
         const loaded = await font_face.load();
         document.fonts.add(loaded);
+        logger.info("Bootstrap fonts loaded");
         Base.sheets = [bootstrap_sheet, icons_sheet];
+        logger.info("OUT:registerBootstrap()");
     }
     static isBootStrapLoaded() {
         return Base.sheets.length > 0;
+    }
+    /**
+     * called in firstUpdated to adopt Bootstrap style
+     * called also in all FzForm element found in document because loading may
+     * arrive later due to async
+     */
+    adoptBootStrap() {
+        Base.sheets
+            .filter(sheet => !this.shadowRoot?.adoptedStyleSheets.includes(sheet))
+            .forEach(sheet => this.shadowRoot?.adoptedStyleSheets.push(sheet));
     }
 }
 
@@ -417,7 +457,7 @@ class JSONSchemaDraft07 {
     visible;
     readonly;
     collapsed;
-    orderBy;
+    rank;
     expression;
     change;
     nullable;
@@ -452,7 +492,7 @@ const FZ_KEYWORDS = [
     "visible",
     "readonly",
     "collapsed",
-    "orderBy",
+    "rank",
     "expression",
     "change",
     "_nullable",
@@ -798,20 +838,36 @@ class FzField extends Base {
     #index_accessor_storage = null;
     get index() { return this.#index_accessor_storage; }
     set index(value) { this.#index_accessor_storage = value; }
-    #touched_accessor_storage = false;
-    get touched() { return this.#touched_accessor_storage; }
-    set touched(value) { this.#touched_accessor_storage = value; }
-    #errors_accessor_storage = NOT_TOUCHED;
+    #dirty_accessor_storage = false;
+    get dirty() { return this.#dirty_accessor_storage; }
+    set dirty(value) { this.#dirty_accessor_storage = value; }
+    #errors_accessor_storage = [];
     get errors() { return this.#errors_accessor_storage; }
     set errors(value) { this.#errors_accessor_storage = value; }
+    #collapsed_accessor_storage = false;
+    get collapsed() { return this.#collapsed_accessor_storage; }
+    set collapsed(value) { this.#collapsed_accessor_storage = value; }
     //private _initdone = false
     _dofocus = false;
     _form;
     get valid() {
-        return (this.errors?.length ?? 0) === 0 && this.errors != NOT_TOUCHED;
+        return (this.errors?.length ?? 0) === 0;
     }
     get invalid() {
         return (this.errors?.length ?? 0) > 0;
+    }
+    /** A field is touched if really modified (dirty) or submission by for done */
+    get touched() {
+        return this.dirty || this.form.submitted;
+    }
+    get validation() {
+        return e$1({
+            "is-valid": this.dirty && this.valid,
+            "is-invalid": this.dirty && this.invalid
+        });
+    }
+    get isroot() {
+        return this.schema.parent == null;
     }
     get value() {
         // Warning side effects is prohibited in this method, never update this.data 
@@ -830,9 +886,8 @@ class FzField extends Base {
         this.errors = [];
         this.form?.check();
     }
-    get validationMap() {
-        return e$1({ "is-valid": this.valid, "is-invalid": this.invalid });
-    }
+    get empty() { return this.schema._empty(); }
+    get isempty() { return isEmptyValue(this.value); }
     /**
      * this method is called for to update this.value (and must be done only here)
      * @param value
@@ -951,7 +1006,14 @@ class FzField extends Base {
      * calculate label for this field
      */
     get label() {
-        return (this.isItem ? String(this.index != null ? this.index + 1 : '-') : this.schema?.title ?? this.name) ?? "";
+        // user may decide to remove label (title == "")
+        if (this.schema?.title === "")
+            return "";
+        // label for array items is an index poistion (one based)
+        if (this.isItem)
+            return String(this.index != null ? this.index + 1 : '-');
+        // label for properties is title or default to property name
+        return this.schema?.title ?? this.name ?? "";
     }
     /**
      * return true if this field is item of array, false otherwise
@@ -991,8 +1053,6 @@ class FzField extends Base {
             return true;
         return (this.data && this.schema.readonly) ? this.evalExpr("readonly") : false;
     }
-    get empty() { return this.schema._empty(); }
-    get isEmpty() { return isEmptyValue(this.value); }
     // get pointer() { return pointerData(this.data,this.key) }
     /**
      * call for focus on next update for field
@@ -1060,11 +1120,13 @@ class FzField extends Base {
         return x `
             <div ?hidden="${!this.visible}">
                 <div style="padding-top: 5px">${this.renderField()}</div>
-                ${this.valid ? x `` : x `<div class="row">${this.renderErrors()}</div>`}
+                ${this.renderErrors()}
             </div>
         `;
     }
     renderErrors() {
+        if (!this.touched || this.valid)
+            return '';
         return x `
             <span id="error" class="error-message error-truncated" @click="${this.toggleError}">
                 ${this.errors.join(', ')}
@@ -1076,18 +1138,48 @@ class FzField extends Base {
     /**
      * render method for label
      */
-    get renderLabel() {
-        if ((this.schema?.title ?? "") === "")
+    renderLabel() {
+        const required = this.required ? '*' : '';
+        const label = `${this.label}${required}`;
+        // user choose not to show label  
+        if (this.label === "")
             return x ``;
-        if (this.isItem)
+        // labels for object/aray properties have collapse chevron
+        if (isCollection(this.schema))
             return x `
             <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
-                <div @click="${this.labelClicked}"><span class="badge bg-primary rounded-pill">${this.label}</span></div>
+                <div>${label}</div>
             </label>`;
+        // label for array items (badge index)
+        if (this.isItem)
+            return x `
+            <label for="input" class="col-sm-1 col-form-label" @click="${this.labelClicked}">
+                <div>${this.badge(label)}</div>
+            </label>`;
+        // labels for object properties
         return x `
             <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
-                <div>${this.label}${this.required ? '*' : ''}</div>
+                <div>${label}</div>
             </label>`;
+    }
+    badge(value) {
+        return x `<span class="badge bg-primary badge-pill">${value}</span>`;
+    }
+    toggle(evt) {
+        if (this.schema.parent == null) {
+            this.collapsed = false;
+        }
+        else if (this.collapsed !== null)
+            this.collapsed = !this.collapsed;
+        this.eventStop(evt);
+        this.requestUpdate();
+    }
+    chevron() {
+        if (this.schema.basetype !== "object" || this.schema.parent == null)
+            return '';
+        if (this.collapsed)
+            return x `<i class="bi bi-chevron-down"></i>`;
+        return x `<i class="bi bi-chevron-up"></i>`;
     }
     /**
      * render an item of this field
@@ -1151,7 +1243,7 @@ class FzField extends Base {
         this.data = undefined;
         this.name = undefined;
         this.index = undefined;
-        this.touched = undefined;
+        this.dirty = undefined;
         this.errors = undefined;
         this._dofocus = undefined;
         this._form = undefined;
@@ -1226,7 +1318,7 @@ class FzField extends Base {
     abstract(key, itemschema) {
         let text;
         if (key === null || key === undefined) {
-            if (this.isEmpty)
+            if (this.isempty)
                 return "~";
             text = this.schema.abstract
                 ? this.evalExpr("abstract")
@@ -1299,10 +1391,13 @@ __decorate([
 ], FzField.prototype, "index", null);
 __decorate([
     n$2({ type: Boolean, attribute: false })
-], FzField.prototype, "touched", null);
+], FzField.prototype, "dirty", null);
 __decorate([
     n$2({ type: Array, attribute: false })
 ], FzField.prototype, "errors", null);
+__decorate([
+    n$2({ attribute: false })
+], FzField.prototype, "collapsed", null);
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const invalidkeys = [
@@ -1328,7 +1423,7 @@ class FzInputBase extends FzField {
     renderField() {
         return x `
             <div class="form-group row">
-                ${this.renderLabel}
+                ${this.renderLabel()}
                 <div class="col-sm">${this.renderInput()}</div>
             </div>`;
     }
@@ -1828,7 +1923,7 @@ let FzInputString$1 = class FzInputString extends FzInputBase {
     // }
     renderInput() {
         return x `
-            <div class="input-group ${this.validationMap}" >
+            <div class="input-group ${this.validation}" >
                 <input
                     id="input"
                     type="color" 
@@ -1903,7 +1998,7 @@ let FzInputDate = class FzInputDate extends FzInputBase {
             min="${o(this.min)}"
             max="${o(this.max)}"
             autocomplete=off  spellcheck="false"
-            class="form-control ${this.validationMap}" 
+            class="form-control ${this.validation}" 
         />`;
     }
     get min() {
@@ -1952,7 +2047,7 @@ let FzInputDatetime = class FzInputDatetime extends FzInputBase {
             max="${o(this.max)}"
             ?readonly="${this.readonly}" 
             ?required="${this.required}"
-            class="form-control ${this.validationMap}"
+            class="form-control ${this.validation}"
             autocomplete=off  spellcheck="false"
         />`;
     }
@@ -1990,7 +2085,7 @@ let FzInputTime = class FzInputTime extends FzInputBase {
     renderInput() {
         return x `
             <input 
-                class="form-control timepicker ${this.validationMap}" 
+                class="form-control timepicker ${this.validation}" 
                 type="time" 
                 id="input" 
                 step="1"
@@ -2026,7 +2121,7 @@ let FzInputTextarea = class FzInputTextarea extends FzInputBase {
     renderInput() {
         return x `
             <textarea  
-                class="form-control ${this.validationMap}" 
+                class="form-control ${this.validation}" 
                 id="input"
                 placeholder="${o(this.label)}"
                 .value="${this.value}" 
@@ -2087,7 +2182,7 @@ let FzInputString = class FzInputString extends FzInputBase {
                     maxlength="${o(this.maxlength)}"
                     pattern="${o(this.pattern)}"
                     autocomplete=off  spellcheck="false"
-                    class="form-control ${this.validationMap}" 
+                    class="form-control ${this.validation}" 
                 />
             </div>`;
     }
@@ -2129,7 +2224,7 @@ let FzInputMask = class FzInputMask extends FzInputBase {
         return x `
             <div class="input-group">
                 <input
-                    class="form-control ${this.validationMap}"
+                    class="form-control ${this.validation}"
                     type="text"
                     id="input"
                     placeholder="${this.mask}"
@@ -2279,7 +2374,7 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
     }
     renderInput() {
         return x `
-            <div id="content" class="form-control ${this.validationMap}">
+            <div id="content" class="form-control ${this.validation}">
                 <button ?hidden="${!this.value || this.required || this.readonly}" @click="${this.del}" type="button" style="float:right" class="btn-close" aria-label="Close"></button>
                 <canvas id="canvas" ?hidden="${this.state === 'read'}" height="300" width="300"></canvas>
                 <img   id="image" draggable=false ?hidden="${this.state === 'edit' || !this.value}" >
@@ -2484,7 +2579,7 @@ let FzInputBoolean = class FzInputBoolean extends FzInputBase {
                             @change="${this.tryChange}"
                             @click="${this.tryChange}"
                             autocomplete=off  spellcheck="false"
-                            class="form-check-input align-self-start ${this.validationMap}"
+                            class="form-check-input align-self-start ${this.validation}"
                         />
                         <label class="form-check-label ms-2" for="input">${super.label}</label>
                     </div>
@@ -2582,7 +2677,7 @@ let FzInputFloat = class FzInputFloat extends FzInputBase {
         return x `
             <div class="input-group">
                 <input 
-                    class="form-control ${this.validationMap}" 
+                    class="form-control ${this.validation}" 
                     type="number" 
                     id="input"
                     ?readonly="${this.readonly}"
@@ -2702,7 +2797,7 @@ let FzRange = class FzRange extends FzInputBase {
                     max="${o(this.max)}"
                     step="1"
                     ?required="${this.required}"
-                    class="form-control ${this.validationMap}"
+                    class="form-control ${this.validation}"
                     autocomplete=off  spellcheck="false"
                 />
                 <div class="input-group-append" style="max-width:5em" >
@@ -2763,7 +2858,7 @@ let FzInputGeolocation = class FzInputGeolocation extends FzInputBase {
     }
     renderInput() {
         return x `
-            <div class="input-group ${this.validationMap}">
+            <div class="input-group ${this.validation}">
                 <input
                     class="form-control"
                     type="text"
@@ -2857,7 +2952,7 @@ let FzInputInteger = class FzInputInteger extends FzInputBase {
         return x `
             <div class="input-group">
                 <input 
-                    class="form-control ${this.validationMap}" 
+                    class="form-control ${this.validation}" 
                     type="number"  
                     id="input"
                     ?readonly="${this.readonly}"
@@ -2911,7 +3006,7 @@ let FzInputConstant = class FzInputConstant extends FzInputBase {
         this.value = this.schema.const;
     }
     renderInput() {
-        return x `<div class="input-group ${this.validationMap}">${this.value}</div>`;
+        return x `<div class="input-group ${this.validation}">${this.value}</div>`;
     }
     connectedCallback() {
         super.connectedCallback();
@@ -3141,11 +3236,11 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
                     <div class="input-group-prepend" >
                         <img class="input-group-text img-preview" src="${this.url}" @click="${this.open}"/>
                     </div>` : null}
-                ${(!this.isEmpty && !(this.url && this.hasPreview)) ? x `
+                ${(!this.isempty && !(this.url && this.hasPreview)) ? x `
                     <div class="input-group-prepend">
                         <span class="input-group-text"  @click="${this.open}"><i class="bi bi-eye"></i></span>
                     </div>` : null}
-                <input class="form-control ${this.validationMap}"  type="text" spellcheck="false"
+                <input class="form-control ${this.validation}"  type="text" spellcheck="false"
                     placeholder="photo, document, ..."
                     .value="${this.filename ?? ''}"
                     ?readonly="${this.readonly}" 
@@ -3156,9 +3251,9 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
                     ?required="${this.required}"
                     autocomplete=off  spellcheck="false"
                 />
-                ${(this.isEmpty || this.readonly) ? x `` : x `
+                ${(this.isempty || this.readonly) ? x `` : x `
                     <button  @click="${this.delete}"  type="button" class="close-right btn-close" aria-label="Close"> </button>`}
-                ${(!this.isEmpty || this.readonly) ? x `` : x `
+                ${(!this.isempty || this.readonly) ? x `` : x `
                     <span class="input-group-text btn btn-primary" @click="${() => this.photoModal?.open()}" ><i class=" bi bi-camera"></i></span>
                     <span class="input-group-text fileUpload btn btn-primary">
                         <input type="file"
@@ -3394,7 +3489,7 @@ let FzInputMarkdown = class FzInputMarkdown extends FzInputBase {
     }
     renderField() {
         return x `
-            <div class="form-group row ${this.validationMap}"><markdown-it .markdown="${this.value ?? ''}"></markdown-it></div>
+            <div class="form-group row ${this.validation}"><markdown-it .markdown="${this.value ?? ''}"></markdown-it></div>
         `;
     }
 };
@@ -3436,6 +3531,24 @@ FzInputUuid = __decorate([
 ], FzInputUuid);
 
 class FZCollection extends FzField {
+    delete() {
+        if (this.collapsed !== null)
+            this.collapsed = true;
+        this.value = this.empty;
+    }
+    get deletable() {
+        if (this.isroot == null || this.isempty)
+            return false;
+        if (this.schema.nullAllowed && this.nullable)
+            return true;
+        if (!this.schema.nullAllowed && !this.required)
+            return true;
+        return false;
+    }
+    firstUpdated(changedProperties) {
+        super.firstUpdated(changedProperties);
+        this.collapsed = this.isroot ? false : this.evalExpr("collapsed");
+    }
 }
 
 /**
@@ -3461,12 +3574,6 @@ let FzArray$1 = class FzArray extends FZCollection {
     static get styles() {
         return [
             ...super.styles,
-            i$5 `.panel {
-                    padding:5px;
-                    border: solid 1px lightgray;
-                    border-radius:10px; 
-                    user-select: none;
-                }`
         ];
     }
     toField() {
@@ -3485,45 +3592,76 @@ let FzArray$1 = class FzArray extends FZCollection {
         this.listen(this, 'toggle-item', evt => (this.close(), this.eventStop(evt)));
     }
     requestUpdate(name, oldvalue) {
-        if (name !== undefined) {
-            this.solveSchemas(true);
-            super.requestUpdate(name, oldvalue);
-        }
+        super.requestUpdate(name, oldvalue);
+        // if (name !== undefined) {
+        //     this.solveSchemas(true)
+        //     super.requestUpdate(name,oldvalue)    
+        // }
     }
-    renderField() {
-        this.solveSchemas();
-        const lines = (!this.data || !this.value) ? [] : this.value.map((_i, i) => x `${(this.current === i) ? this.renderEditable(i) : this.renderStatic(i)}`);
+    /**
+    * render collapsed Object
+    */
+    renderCollapsed() {
         return x `
-            <div @focusout="${this.focusout}">
-                <div class="form-group row">
-                ${(this.schema?.title ?? '') === "" ? x `` : this.renderLabel}
-                    <div class="col-sm">
-                        <ul id="content" class="list-group">
-                            ${lines}
-                            ${this.readonly ? x `` : x `
-                                <li class="list-group-item" @click="${this.close}">
-                                    <button type="button" @click="${this.add}" ?disabled="${this.nomore}" class="btn btn-primary btn-sm "><b>+</b></button>
-                                    ${this.schema.homogeneous ? null : x `
-                                        <div class="btn-group" style="float:right" role="group">
-                                            <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
-                                                @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            ${this.currentSchema?.title || "Ajouter"}
-                                            </button> 
-                                            <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-                                                ${this.schema.items?.oneOf?.map((schema, i) => x `<a class="dropdown-item"
-                                                    @click="${() => this.selectSchema(i)}" >${schema.title || "Type" + i}</a>`)}
-                                            </div>
-                                        </div>`}
-                                </li>
-                            `}
-                        </ul>
+            <div class="form-group row space-before">
+                ${this.renderLabel()}
+                <div class="col-sm-9">
+                    <div class="input-group ${this.validation}" @click="${this.toggle}" >
+                        <div class="form-control">${this.chevron()} ${this.abstract()}</div>
                     </div>
                 </div>
+            </div>
+        `;
+    }
+    renderField() {
+        this.order();
+        this.solveSchemas();
+        const lines = this.value?.map((_i, i) => (this.current === i) ? this.editableItem(i) : this.staticItem(i)) ?? [];
+        // property case (this field is part of object.values())
+        const hidelabel = this.isroot || this.label === '';
+        return x `
+            <div class="space-before">
+                <div class="form-group row ${when(hidelabel, 'd-none')}">
+                    ${this.renderLabel()}
+                    <div class="col-sm-1 d-none d-sm-block">
+                        <div class="input-group ${this.validation}" @click="${this.toggle}" >
+                            <div class="form-control border-0">${this.chevron()}</div>
+                        </div>
+                    </div>
+                </div>
+                <div ?hidden="${this.collapsed || lines.length == 0}" class="space-after ${when(!hidelabel, 'line-after line-before')}"> 
+                    <ul id="content" class="list-group"> ${lines.length > 0 ? lines : '~ Aucun item'}</ul>
+                </div>
+                ${this.actionBtns()}
+            </div>
+        `;
+    }
+    /**
+     * render the array action buttion (add / type select)
+     */
+    actionBtns() {
+        if (this.readonly)
+            return '';
+        return x `
+            <div class="form-group row space-before" @click="${this.close}">
+                <button type="button" @click="${this.add}" ?disabled="${this.nomore}" class="btn btn-primary btn-sm col-sm-1"><b>+</b></button>
+                ${this.schema.homogeneous ? null : x `
+                    <div class="btn-group" style="float:right" role="group">
+                        <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
+                            @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        ${this.currentSchema?.title || "Ajouter"}
+                        </button> 
+                        <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+                            ${this.schema.items?.oneOf?.map((schema, i) => x `<a class="dropdown-item"
+                                @click="${() => this.selectSchema(i)}" >${schema.title || "Type" + i}</a>`)}
+                        </div>
+                    </div>`}
             </div>`;
     }
-    renderStatic(index) {
-        this.solveOrder();
-        this.solveSchemas();
+    /**
+     * render the static flavour of an array item(abstracted)
+     */
+    staticItem(index) {
         return x `
         <li 
                 id="${index}"
@@ -3534,13 +3672,43 @@ let FzArray$1 = class FzArray extends FZCollection {
                 @click="${(evt) => this.open(index, evt)}"              
                 class="list-group-item"
             >
-            ${this.abstract(index, this.schemas[index])}
-            ${this.readonly ? x `` : x `<button ?hidden="${this.noless}" @click="${(evt) => this.del(index, evt)}" type="button" style="float:right" class="btn-close" aria-label="Close"></button>`}
+            ${this.badge(index)}
+            ${this.abstract(index, this.schemas[index])}            
+            ${this.delBtn(index)}
+            <div>${this.renderItemErrors(index)}</div>
         </li>`;
     }
-    renderEditable(index) {
-        const schema = this.schemas[index];
-        return x `<li class="list-group-item"> ${this.renderItem(schema, index)} </li>`;
+    renderItemErrors(index) {
+        const errors = this.form.errors(`${this.pointer}/${index}`);
+        return x `
+            <span id="error" class="error-message error-truncated">
+                ${errors.join(', ')}
+            </span>`;
+    }
+    /**
+     * render the editable flavour of an array item(abstracted)
+     */
+    editableItem(index) {
+        return x `
+            <li class="list-group-item">
+                ${this.renderItem(this.schemas[index], index)} 
+            </li>`;
+    }
+    /**
+     * render the delete button for item
+     */
+    delBtn(index) {
+        if (this.readonly)
+            return '';
+        return x `
+            <button 
+                ?hidden="${this.noless}" 
+                @click="${(evt) => this.del(index, evt)}" 
+                type="button" 
+                style="float:right" 
+                class="btn-close" 
+                aria-label="Close">
+            </button>`;
     }
     focusout() {
         this.change();
@@ -3592,30 +3760,23 @@ let FzArray$1 = class FzArray extends FZCollection {
     del(index, evt) {
         if (this.noless)
             return;
-        this.remItem(index);
+        this.value.splice(index, 1);
+        this.schemas.splice(index, 1);
+        this.current = null;
+        this.change();
         this.eventStop(evt);
     }
     add(evt) {
         if (this.nomore || !this.currentSchema)
             return;
-        this.addItem(this.currentSchema);
-        this.eventStop(evt);
-    }
-    remItem(index) {
-        this.value.splice(index, 1);
-        this.schemas.splice(index, 1);
-        this.current = null;
-        this.change();
-    }
-    addItem(schema, edit = true) {
         if (this.value == null)
             this.value = [];
-        const value = schema._default(this.data);
+        const value = this.currentSchema._default(this.data);
         this.value.push(value);
-        this.schemas.push(schema);
-        if (edit)
-            this.open(this.value.length - 1);
+        this.schemas.push(this.currentSchema);
+        this.open(this.value.length - 1);
         this.change();
+        this.eventStop(evt);
     }
     toggleDropdown() {
         const display = this.shadowRoot?.querySelector(".dropdown-menu")?.style.display;
@@ -3638,6 +3799,9 @@ let FzArray$1 = class FzArray extends FZCollection {
         this.closeDropdown();
         this.requestUpdate();
     }
+    /**
+     * calculate schema for each item
+     */
     solveSchemas(force = false) {
         if (!isObject(this.schema?.items))
             return;
@@ -3649,13 +3813,16 @@ let FzArray$1 = class FzArray extends FZCollection {
             ? this.value.map(() => this.schema.items)
             : this.value.map((value) => getSchema(value) ?? this.schema.items?.oneOf?.find((schema) => isFunction(schema.case) && schema.case(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc, this.form.options.userdata)));
     }
-    solveOrder() {
+    /**
+     * calculate ordering of the items
+     */
+    order() {
         if (this.value == null)
             return;
         const current = this.value;
         const orderedidx = current.map((_x, i) => i).sort((ia, ib) => {
-            const va = this.evalExpr("orderBy", this.schemas[ia], current[ia], this.value, ia);
-            const vb = this.evalExpr("orderBy", this.schemas[ib], current[ib], this.value, ib);
+            const va = this.evalExpr("rank", this.schemas[ia], current[ia], this.value, ia);
+            const vb = this.evalExpr("rank", this.schemas[ib], current[ib], this.value, ib);
             switch (true) {
                 case (va === vb): return 0;
                 case (va == null): return -1;
@@ -3687,9 +3854,6 @@ FzArray$1 = __decorate([
  * @prop index
  */
 let FzObject = class FzObject extends FZCollection {
-    #collapsed_accessor_storage = false;
-    get collapsed() { return this.#collapsed_accessor_storage; }
-    set collapsed(value) { this.#collapsed_accessor_storage = value; }
     #activegroup_accessor_storage = {};
     get activegroup() { return this.#activegroup_accessor_storage; }
     set activegroup(value) { this.#activegroup_accessor_storage = value; }
@@ -3697,14 +3861,6 @@ let FzObject = class FzObject extends FZCollection {
     static get styles() {
         return [
             ...super.styles,
-            i$5 `
-                .panel {
-                    padding:5px;
-                    border: solid 1px lightgray;
-                    border-radius:10px; 
-                    user-select: none;
-                }
-                `
         ];
     }
     toField() {
@@ -3718,13 +3874,20 @@ let FzObject = class FzObject extends FZCollection {
     //     // this.content?.classList.add(this.valid ? 'valid' : 'invalid')
     //     // this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
     // }
-    firstUpdated(changedProperties) {
-        super.firstUpdated(changedProperties);
-        this.setCollapsed();
-    }
-    setCollapsed() {
-        // si root on collapse jamais
-        this.collapsed = (this.schema.parent == null) ? false : this.evalExpr("collapsed");
+    /**
+     * render collapsed Object
+     */
+    renderCollapsed() {
+        return x `
+            <div class="form-group row space-before">
+                ${this.renderLabel()}
+                <div class="col-sm-9">
+                    <div class="input-group ${this.validation}" @click="${this.toggle}" >
+                        <div class="form-control">${this.chevron()} ${this.abstract()}</div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
     renderSingle(itemTemplates, fields, fieldpos) {
         // render single item
@@ -3801,23 +3964,11 @@ let FzObject = class FzObject extends FZCollection {
         itemTemplates.push(x `<div class="tab-content border border-top-0" id="content" style="padding-bottom:5px;margin-bottom:5px">${tab}</div>`);
         return fieldpos;
     }
-    get deletable() {
-        if (this.schema.parent == null || this.isEmpty)
-            return false;
-        if (this.schema.nullAllowed && this.nullable)
-            return true;
-        if (!this.schema.nullAllowed && !this.required)
-            return true;
-        return false;
-    }
-    async delete() {
-        if (this.collapsed !== null)
-            this.collapsed = true;
-        this.value = this.empty;
-    }
     renderField() {
         if (!this.schema?.properties)
             return x ``;
+        if (this.collapsed)
+            return this.renderCollapsed();
         const itemTemplates = [];
         const fields = this.schema.order;
         let fieldpos = 0;
@@ -3833,24 +3984,29 @@ let FzObject = class FzObject extends FZCollection {
                 fieldpos = this.renderSingle(itemTemplates, fields, fieldpos);
             }
         }
-        return x `${this.isItem
-            ? x `<div>${this.renderLabel}</div>${itemTemplates}`
-            : (this.schema.title ?? '') === "" ? x `<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`
-                : x `<div class="panel ${this.schema.parent ? '' : 'border-0'}" id="content" >
-                <div class="panel-heading" ?hidden="${!this.schema.parent}" >
-                    <div>
-                        ${this.renderLabel}
-                        ${this.collapsed ? x `${this.abstract()}` : x ``}
-                        <button
-                            ?hidden="${!this.deletable}"
-                            @click="${() => this.delete()}" 
-                            type="button" style="float:right" class="btn-close" aria-label="Close">
-                        </button>
+        // item case (this field is item of an array)
+        if (this.isItem) {
+            return (this.label === "")
+                ? x `<div>${this.renderLabel()}</div>${itemTemplates}`
+                : x `<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`;
+        }
+        // property case (this field is part of object.values())
+        const hidelabel = this.isroot || this.label === '';
+        return x `
+            <div class="space-before">
+                <div class="form-group row ${when(hidelabel, 'd-none')}">
+                    ${this.renderLabel()}
+                    <div class="col-sm-1 d-none d-sm-block">
+                        <div class="input-group ${this.validation}" @click="${this.toggle}" >
+                            <div class="form-control border-0">${this.chevron()}</div>
+                        </div>
                     </div>
-                    <hr ?hidden="${this.collapsed}" style="margin: 0 0" >
                 </div>
-                <div ?hidden="${this.collapsed}" > ${itemTemplates} </div>
-                </div>`}`;
+                <div ?hidden="${this.collapsed}" class="space-after ${when(!hidelabel, 'line-after line-before')}"> 
+                    ${itemTemplates} 
+                </div>
+            </div>
+        `;
     }
     isRequiredProperty(name) {
         return !!this.schema.required?.includes(name);
@@ -3902,16 +4058,7 @@ let FzObject = class FzObject extends FZCollection {
         }
         this.eventStop(evt);
     }
-    toggle(evt) {
-        if (this.collapsed !== null)
-            this.collapsed = !this.collapsed;
-        this.eventStop(evt);
-        this.requestUpdate();
-    }
 };
-__decorate([
-    n$2({ attribute: false })
-], FzObject.prototype, "collapsed", null);
 __decorate([
     n$2({ attribute: false })
 ], FzObject.prototype, "activegroup", null);
@@ -3945,10 +4092,13 @@ let FzArray = class FzArray extends FZCollection {
     toValue() {
         // items are updated but array reference doesn't change 
     }
+    renderCollapsed() {
+        return this.renderField();
+    }
     renderField() {
         return x `
             <div class="form-group row">
-                ${this.renderLabel}
+                ${this.renderLabel()}
                 <div class="col-sm">
                     <ul id="content" class="list-group"   style="max-height: 300px; overflow-y: scroll">
                             ${c(this.getItems(), (item) => item, (item) => x `
@@ -3959,7 +4109,7 @@ let FzArray = class FzArray extends FZCollection {
                                                 type="checkbox"
                                                 ?disabled="${this.readonly ? true : false}"
                                                 ?checked="${this.value?.includes(item.value)}"
-                                                @click="${() => this.toggle(item.value)}"
+                                                @click="${() => this.toggleItem(item.value)}"
                                                 autocomplete=off  spellcheck="false"/>
                                             <label class="form-check-label">${item.label}</label>
                                         </div>
@@ -3992,7 +4142,7 @@ let FzArray = class FzArray extends FZCollection {
     connectedCallback() {
         super.connectedCallback();
     }
-    toggle(value) {
+    toggleItem(value) {
         if (this.value == null)
             this.value = [];
         if (this.value.includes(value)) {
@@ -4909,27 +5059,27 @@ async function loadValidator(useAjv = false) {
 }
 loadValidator(false);
 class Validator {
+    errorMap = new Map();
     get schemaValid() { return true; }
     get schemaErrors() { return []; }
     get valid() { return true; }
     validate(_data) { }
     get errors() { return []; }
-    errorMap() {
-        const errorMap = new Map();
+    setMap() {
+        this.errorMap = new Map();
         for (const error of this.errors) {
             let { instancePath, message, params, keyword } = error;
-            instancePath = `/${instancePath}`;
             // required applies to object must down the error to child
             if (keyword === "required") {
                 instancePath = `${instancePath === '/' ? '' : ''}/${params.missingProperty}`;
                 message = "required";
             }
-            if (!errorMap.has(instancePath))
-                errorMap.set(instancePath, []);
+            if (!this.errorMap.has(instancePath))
+                this.errorMap.set(instancePath, []);
             //const detail =Object.entries(params).map(([s,v]) => v == null ? null : `${s}: ${v}`).filter(v => v).join(',')
-            errorMap.get(instancePath)?.push(message ?? "unidentified error");
+            this.errorMap.get(instancePath)?.push(message ?? "unidentified error");
         }
-        return errorMap;
+        return this.errorMap;
     }
     // AJV library loader 
     static get loaded() {
@@ -4982,6 +5132,7 @@ class AjvValidator extends Validator {
     validate(value) {
         this.dataParser(value);
         Ajvi18n(this.dataParser.errors);
+        this.setMap();
     }
     get errors() { return this.dataParser.errors ?? []; }
 }
@@ -5161,6 +5312,11 @@ class AjvValidator extends Validator {
 //     }
 // }
 
+const SCHEMA = Symbol("FZ_FORM_SCHEMA");
+const PARENT = Symbol("FZ_FORM_PARENT");
+const KEY = Symbol("FZ_FORM_PARENT");
+const ROOT = Symbol("FZ_FORM_ROOT");
+
 class CSUpgradeNullable extends CompilationStep {
     constructor(root) {
         super(root, "nullable", "upgrade", []);
@@ -5300,7 +5456,7 @@ class SchemaCompiler {
             new CSBool(this.root, 'requiredIf', () => false),
             new CSBool(this.root, 'collapsed', () => false),
             new CSBool(this.root, 'filter', () => true),
-            new CSAny(this.root, 'orderBy', () => true),
+            new CSAny(this.root, 'rank', () => true),
             new CSAny(this.root, 'expression', () => ''),
             new CSAny(this.root, 'change', () => ''),
         ];
@@ -6104,11 +6260,12 @@ class BlobMemory {
     }
 }
 
+var FzForm_1;
 /**
  * @prop schema
  * @prop data
  */
-let FzForm = class FzForm extends Base {
+let FzForm = FzForm_1 = class FzForm extends Base {
     static get styles() {
         return [...super.styles];
     }
@@ -6120,6 +6277,8 @@ let FzForm = class FzForm extends Base {
     asset;
     fieldMap = new Map();
     schemaMap = new Map();
+    submitted = false;
+    bootstrap = false;
     useAjv = false;
     useMarkdown = false;
     #sourceSchema_accessor_storage = DEFAULT_SCHEMA;
@@ -6208,9 +6367,16 @@ let FzForm = class FzForm extends Base {
             const converted = schemaAttrConverter.fromAttribute(newValue);
             this.schema = converted;
         }
+        if (name === 'bootstrap') {
+            FzForm_1.loadBootstrap();
+        }
         if (name === 'useajv') {
             Validator.loadValidator(this.useAjv)
-                .then(() => { this.firstUpdated(new Map()); })
+                .then(() => {
+                // reset the validator to replace by new loaded one
+                this.validator = Validator.getValidator(this.sourceSchema);
+                this.check();
+            })
                 .catch((e) => console.error(`VALIDATION: Validator loading fails due to ${e}`));
         }
         if (name === 'usemarkdown') {
@@ -6238,7 +6404,7 @@ let FzForm = class FzForm extends Base {
     }
     render() {
         if (!Base.isBootStrapLoaded())
-            return '';
+            return 'Bootstrap not loaded...';
         return this.validator?.schemaValid ? this.renderForm() : this.renderError();
     }
     renderForm() {
@@ -6252,8 +6418,7 @@ let FzForm = class FzForm extends Base {
         if (!this.actions)
             return null;
         return x `
-            <hr>
-            <div class="d-grid gap-2 d-sm-block justify-content-md-end">
+            <div class="d-flex justify-content-end gap-2" style="margin-top: 1em">
                 <button class="btn btn-primary" type="button" @click=${this.confirm}>Ok</button>
                 <button class="btn btn-danger" type="button" @click=${this.cancel} >Cancel</button>
             </div>`;
@@ -6267,6 +6432,9 @@ let FzForm = class FzForm extends Base {
             !this.validator?.schemaValid ? x `<pre><ol> Schema errors : ${this.validator?.schemaErrors.map(formatError)} </ol></pre>` : x ``,
             !this.validator?.valid ? x `<pre><ol> Data errors : ${this.validator?.errors.map(formatError)} </ol></pre>` : x ``
         ];
+    }
+    errors(pointer) {
+        return this.validator?.errorMap.get(pointer) ?? [];
     }
     connectedCallback() {
         super.connectedCallback();
@@ -6302,18 +6470,16 @@ let FzForm = class FzForm extends Base {
         super.firstUpdated(changedProperties);
         this.check();
     }
-    check(forced = false) {
+    check() {
         // collect errors and dispatch error on fields (registered in this.fieldMap)
         const validated = this.valid;
-        const errorMap = validated ? this.validator?.errorMap() : undefined;
+        const errorMap = this.validator?.errorMap;
         // dispatch all errors over the fields 
         for (const [pointer, field] of this.fieldMap.entries()) {
             const logger = FzLogger.get("validation", { field, schema: field.schema });
             // if field is not touched (not manually updated) valid/invalid not displayed
-            if (field.errors != NOT_TOUCHED || forced) {
-                field.errors = errorMap?.get(pointer) ?? IS_VALID;
-            }
-            logger.debug('is valid %s (touched=%s)', (field.errors === IS_VALID) ? "✅" : "❌", field.errors != NOT_TOUCHED);
+            field.errors = errorMap?.get(pointer) ?? [];
+            logger.debug(' %s %s', field.valid ? "✅" : "❌", field.touched ? '(dirty)' : '');
         }
         const event = new CustomEvent(validated ? "data-valid" : "data-invalid");
         this.dispatchEvent(event);
@@ -6336,6 +6502,8 @@ let FzForm = class FzForm extends Base {
     confirm(evt) {
         evt.preventDefault();
         evt.stopPropagation();
+        this.submitted = true;
+        this.check();
         const event = new CustomEvent('validate');
         this.dispatchEvent(event);
     }
@@ -6389,11 +6557,16 @@ let FzForm = class FzForm extends Base {
         if (Base.isBootStrapLoaded())
             return;
         await Base.registerBootstrap(bootstrap_url, icons_url, woff_url);
+        // bootstrap loading is async FzForm already inserted in dom must adopt and refresh
         for (const item of document.getElementsByTagName("fz-form")) {
+            item.adoptBootStrap();
             item.requestUpdate();
         }
     }
 };
+__decorate([
+    n$2({ type: Boolean, attribute: "bootstrap" })
+], FzForm.prototype, "bootstrap", void 0);
 __decorate([
     n$2({ type: Boolean, attribute: "useajv" })
 ], FzForm.prototype, "useAjv", void 0);
@@ -6433,7 +6606,7 @@ __decorate([
 __decorate([
     n$2({ type: String, attribute: 'ondismiss', converter: (v) => v })
 ], FzForm.prototype, "ondismiss", void 0);
-FzForm = __decorate([
+FzForm = FzForm_1 = __decorate([
     t$4("fz-form")
 ], FzForm);
 // Optional: expose globally

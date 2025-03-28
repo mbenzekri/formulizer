@@ -214,7 +214,7 @@
             "heroes" : {
                 "type": "array",
                 "items" : {"$ref": "#/definitions/hero"},
-                "orderBy" : "value.team + value.alias "
+                "rank" : "value.team + value.alias "
             }
         }
     },

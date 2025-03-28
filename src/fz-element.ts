@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property } from "lit/decorators.js"
 import { html, css, TemplateResult, PropertyValues } from "lit"
-import { derefPointerData, isEmptyValue, newValue, getSchema, closestAscendantFrom, isFunction, notNull, isArray } from "./lib/tools"
-import { NOT_TOUCHED, Pojo } from "./lib/types"
+import { derefPointerData, isEmptyValue, newValue, getSchema, closestAscendantFrom, isFunction, notNull, isArray, isCollection } from "./lib/tools"
+import { Pojo } from "./lib/types"
 import { FzForm } from "./fz-form"
 import { Base } from "./base"
 import { EMPTY_SCHEMA, Schema } from "./lib/schema"
@@ -49,23 +49,40 @@ export abstract class FzField extends Base {
     @property({ type: Object }) accessor data: any = {}
     @property({ type: String }) accessor name: string | null = null
     @property({ type: Number }) accessor index: number | null = null
-    @property({ type: Boolean, attribute:false}) accessor touched = false
-    @property({ type: Array, attribute:false}) accessor errors: string[] = NOT_TOUCHED
+    @property({ type: Boolean, attribute:false}) accessor dirty = false
+    @property({ type: Array, attribute:false}) accessor errors: string[] = []
+    @property({ attribute: false }) accessor collapsed = false
     
     //private _initdone = false
     private _dofocus = false
     private _form?: FzForm
 
     abstract renderField(): TemplateResult;
+    abstract renderField(): TemplateResult;
     abstract toField(): void;
     abstract toValue(): void;
 
     get valid() {
-        return (this.errors?.length ?? 0) === 0 && this.errors != NOT_TOUCHED
+        return (this.errors?.length ?? 0) === 0
     }
     get invalid() {
         return (this.errors?.length ?? 0) > 0
     }
+    /** A field is touched if really modified (dirty) or submission by for done */
+    get touched() {
+        return this.dirty || this.form.submitted
+    }
+    get validation() {
+        return classMap({ 
+            "is-valid" : this.dirty && this.valid,
+            "is-invalid" : this.dirty && this.invalid
+        })
+    }
+
+    get isroot() {
+        return this.schema.parent == null
+    }
+
 
     get value(): any {
         // Warning side effects is prohibited in this method, never update this.data 
@@ -81,9 +98,9 @@ export abstract class FzField extends Base {
         this.errors = []
         this.form?.check()
     }
-    get validationMap() {
-        return classMap({ "is-valid" : this.valid, "is-invalid" : this.invalid})
-    }
+
+    get empty() { return this.schema._empty() }
+    get isempty() { return isEmptyValue(this.value) }
 
     /**
      * this method is called for to update this.value (and must be done only here)
@@ -199,7 +216,12 @@ export abstract class FzField extends Base {
      * calculate label for this field
      */
     get label() {
-        return (this.isItem ? String(this.index != null ? this.index + 1 : '-') : this.schema?.title ?? this.name) ?? ""
+        // user may decide to remove label (title == "")
+        if (this.schema?.title === "") return ""
+        // label for array items is an index poistion (one based)
+        if (this.isItem) return String(this.index != null ? this.index + 1 : '-')
+        // label for properties is title or default to property name
+        return this.schema?.title ?? this.name ?? ""
     }
     /**
      * return true if this field is item of array, false otherwise
@@ -240,8 +262,6 @@ export abstract class FzField extends Base {
     }
 
 
-    get empty() { return this.schema._empty() }
-    get isEmpty() { return isEmptyValue(this.value) }
     // get pointer() { return pointerData(this.data,this.key) }
 
 
@@ -312,18 +332,18 @@ export abstract class FzField extends Base {
         return html`
             <div ?hidden="${!this.visible}">
                 <div style="padding-top: 5px">${this.renderField()}</div>
-                ${this.valid ? html`` : html`<div class="row">${this.renderErrors()}</div>`}
+                ${this.renderErrors()}
             </div>
         `
     }
 
     renderErrors() {
+        if (!this.touched || this.valid) return ''
         return html`
             <span id="error" class="error-message error-truncated" @click="${this.toggleError}">
                 ${this.errors.join(', ')}
             </span>`
     }
-
     private toggleError() {
         (this.shadowRoot?.getElementById("error") as HTMLElement)?.classList.toggle("error-truncated")
     }
@@ -331,17 +351,49 @@ export abstract class FzField extends Base {
     /**
      * render method for label
      */
-    get renderLabel() {
-        if ((this.schema?.title ?? "") === "") return html``
-        if (this.isItem) return html`
+    renderLabel() {
+        const required = this.required ? '*' : ''
+        const label = `${this.label}${required}`
+
+        // user choose not to show label  
+        if (this.label === "") return html``
+
+        // labels for object/aray properties have collapse chevron
+        if (isCollection(this.schema)) return html`
             <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
-                <div @click="${this.labelClicked}"><span class="badge bg-primary rounded-pill">${this.label}</span></div>
+                <div>${label}</div>
             </label>`
 
+        // label for array items (badge index)
+        if (this.isItem) return html`
+            <label for="input" class="col-sm-1 col-form-label" @click="${this.labelClicked}">
+                <div>${this.badge(label)}</div>
+            </label>`
+
+        // labels for object properties
         return html`
             <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
-                <div>${this.label}${this.required ? '*' : ''}</div>
+                <div>${label}</div>
             </label>`
+
+    }
+    badge(value:number|string) {
+        return html`<span class="badge bg-primary badge-pill">${value}</span>`
+    }
+    
+
+    toggle(evt: Event) {
+        if (this.schema.parent == null) { this.collapsed = false}
+        else if  (this.collapsed !== null) this.collapsed = !this.collapsed
+        this.eventStop(evt)
+        this.requestUpdate()
+    }
+
+
+    chevron() {
+        if (this.schema.basetype !== "object" || this.schema.parent == null) return ''
+        if (this.collapsed) return html`<i class="bi bi-chevron-down"></i>`
+        return html`<i class="bi bi-chevron-up"></i>`
     }
 
     /**
@@ -406,7 +458,7 @@ export abstract class FzField extends Base {
         this.data = undefined as any
         this.name = undefined as any
         this.index = undefined as any
-        this.touched = undefined as any
+        this.dirty = undefined as any
         this.errors = undefined as any
         this._dofocus = undefined as any
         this._form = undefined as any
@@ -490,7 +542,7 @@ export abstract class FzField extends Base {
     abstract(key?: string | number, itemschema?: Schema): string {
         let text
         if (key === null || key === undefined) {
-            if (this.isEmpty) return "~"
+            if (this.isempty) return "~"
             text = this.schema.abstract
                 ? this.evalExpr("abstract")
                 : this.schema._abstract(this.value)

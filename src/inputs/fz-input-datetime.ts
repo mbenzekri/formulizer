@@ -44,7 +44,7 @@ export class FzInputDatetime extends FzInputBase {
             max="${ifDefined(this.max)}"
             ?readonly="${this.readonly}" 
             ?required="${this.required}"
-            class="form-control ${this.validationMap}"
+            class="form-control ${this.validation}"
             autocomplete=off  spellcheck="false"
         />`
     }

@@ -20,11 +20,13 @@ export class FzArray extends FZCollection {
     override toValue(): void {
         // items are updated but array reference doesn't change 
     }
-
+    protected override renderCollapsed(): TemplateResult {
+        return this.renderField()
+    }
     override renderField(): TemplateResult {
         return html`
             <div class="form-group row">
-                ${this.renderLabel}
+                ${this.renderLabel()}
                 <div class="col-sm">
                     <ul id="content" class="list-group"   style="max-height: 300px; overflow-y: scroll">
                             ${repeat(this.getItems(), (item: any) => item, (item: any) =>
@@ -36,7 +38,7 @@ export class FzArray extends FZCollection {
                                                 type="checkbox"
                                                 ?disabled="${this.readonly ? true : false}"
                                                 ?checked="${this.value?.includes(item.value)}"
-                                                @click="${() => this.toggle(item.value)}"
+                                                @click="${() => this.toggleItem(item.value)}"
                                                 autocomplete=off  spellcheck="false"/>
                                             <label class="form-check-label">${item.label}</label>
                                         </div>
@@ -73,7 +75,7 @@ export class FzArray extends FZCollection {
         super.connectedCallback()
     }
 
-    toggle(value: any) {
+    toggleItem(value: any) {
         if (this.value == null) this.value = []
         if (this.value.includes(value)) {
             const pos = this.value.indexOf(value)

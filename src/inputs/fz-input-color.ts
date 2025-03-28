@@ -43,7 +43,7 @@ export class FzInputString extends FzInputBase {
     // }
     renderInput() {
         return html`
-            <div class="input-group ${this.validationMap}" >
+            <div class="input-group ${this.validation}" >
                 <input
                     id="input"
                     type="color" 

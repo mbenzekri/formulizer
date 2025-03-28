@@ -64,7 +64,7 @@ export class SchemaCompiler {
                 new CSBool(this.root, 'requiredIf', () => false),
                 new CSBool(this.root, 'collapsed', () => false),
                 new CSBool(this.root, 'filter', () => true),
-                new CSAny(this.root, 'orderBy', () => true),
+                new CSAny(this.root, 'rank', () => true),
                 new CSAny(this.root, 'expression', () => ''),
                 new CSAny(this.root, 'change', () => ''),
         ]

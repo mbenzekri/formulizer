@@ -93,7 +93,7 @@ class JSONSchemaDraft07 {
     visible?: string | ExprFunc<boolean>;
     readonly?: string | ExprFunc<boolean>;
     collapsed?: boolean | ExprFunc<boolean>;
-    orderBy?: string | ExprFunc<any>;
+    rank?: string | ExprFunc<any>;
     expression?: string | ExprFunc<any>;
     change?: string | ExprFunc<any>;
     nullable!: boolean;
@@ -130,7 +130,7 @@ export const FZ_KEYWORDS = [
     "visible",
     "readonly",
     "collapsed",
-    "orderBy",
+    "rank",
     "expression",
     "change",
     "_nullable",

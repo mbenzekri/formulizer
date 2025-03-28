@@ -49,7 +49,7 @@ export class FzInputString extends FzInputBase {
                     maxlength="${ifDefined(this.maxlength)}"
                     pattern="${ifDefined(this.pattern)}"
                     autocomplete=off  spellcheck="false"
-                    class="form-control ${this.validationMap}" 
+                    class="form-control ${this.validation}" 
                 />
             </div>`
     }

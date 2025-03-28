@@ -2,7 +2,7 @@
 import { html, PropertyValues } from "lit";
 import { Base } from "./base"
 import { property, customElement } from "lit/decorators.js";
-import { IAsset, IOptions, IS_VALID, NOT_TOUCHED, Pojo } from "./lib/types"
+import { IAsset, IOptions, Pojo } from "./lib/types"
 import { FzField } from "./fz-element";
 import { Validator } from "./lib/validation"
 import { SchemaCompiler, DataCompiler } from "./lib/compiler"
@@ -27,7 +27,9 @@ export class FzForm extends Base {
     public asset!: IAsset
     private readonly fieldMap: Map<string, FzField> = new Map()
     private readonly schemaMap: Map<string, FzField> = new Map()
+    public submitted = false
 
+    @property({ type: Boolean, attribute: "bootstrap" }) bootstrap = false
     @property({ type: Boolean, attribute: "useajv" }) useAjv = false
     @property({ type: Boolean, attribute: "usemarkdown" }) useMarkdown = false
     @property({ type: Object, attribute: "schema", converter: schemaAttrConverter }) accessor sourceSchema = DEFAULT_SCHEMA
@@ -111,9 +113,16 @@ export class FzForm extends Base {
             const converted = schemaAttrConverter.fromAttribute(newValue)
             this.schema = converted
         }
+        if (name === 'bootstrap') {
+            FzForm.loadBootstrap()
+        }
         if (name === 'useajv') {
-            Validator.loadValidator(this.useAjv)
-            .then(() => { this.firstUpdated(new Map()) })
+                Validator.loadValidator(this.useAjv)
+            .then(() => { 
+                // reset the validator to replace by new loaded one
+                this.validator = Validator.getValidator(this.sourceSchema)
+                this.check()
+            })
             .catch((e) => console.error(`VALIDATION: Validator loading fails due to ${e}`))    
         }
         if (name === 'usemarkdown') {
@@ -142,7 +151,7 @@ export class FzForm extends Base {
     }
 
     override render() {
-        if (!Base.isBootStrapLoaded()) return ''
+        if (!Base.isBootStrapLoaded()) return 'Bootstrap not loaded...'
         return this.validator?.schemaValid ? this.renderForm() : this.renderError()
     }
 
@@ -158,8 +167,7 @@ export class FzForm extends Base {
     private renderButtons() {
         if (!this.actions) return null
         return html`
-            <hr>
-            <div class="d-grid gap-2 d-sm-block justify-content-md-end">
+            <div class="d-flex justify-content-end gap-2" style="margin-top: 1em">
                 <button class="btn btn-primary" type="button" @click=${this.confirm}>Ok</button>
                 <button class="btn btn-danger" type="button" @click=${this.cancel} >Cancel</button>
             </div>`
@@ -174,6 +182,10 @@ export class FzForm extends Base {
             !this.validator?.schemaValid ? html`<pre><ol> Schema errors : ${this.validator?.schemaErrors.map(formatError)} </ol></pre>` : html``,
             !this.validator?.valid ? html`<pre><ol> Data errors : ${this.validator?.errors.map(formatError)} </ol></pre>` : html``
         ]
+    }
+
+    errors(pointer:string): string[] {
+        return this.validator?.errorMap.get(pointer) ?? []
     }
 
     override connectedCallback() {
@@ -215,18 +227,16 @@ export class FzForm extends Base {
         this.check();
     }
 
-    check(forced = false) {
+    check() {
         // collect errors and dispatch error on fields (registered in this.fieldMap)
         const validated = this.valid 
-        const errorMap =  validated ? this.validator?.errorMap() : undefined
+        const errorMap =  this.validator?.errorMap
         // dispatch all errors over the fields 
         for (const [pointer, field] of this.fieldMap.entries()) {
             const logger = FzLogger.get("validation",{field,schema: field.schema})
             // if field is not touched (not manually updated) valid/invalid not displayed
-            if (field.errors != NOT_TOUCHED || forced) {
-                field.errors = errorMap?.get(pointer) ?? IS_VALID
-            }
-            logger.debug('is valid %s (touched=%s)',(field.errors === IS_VALID) ? "✅" : "❌",field.errors != NOT_TOUCHED)
+            field.errors = errorMap?.get(pointer) ?? []
+            logger.debug(' %s %s', field.valid ? "✅" : "❌",field.touched ? '(dirty)' : '')
         }
         const event =  new CustomEvent(validated ? "data-valid" : "data-invalid")
         this.dispatchEvent(event);
@@ -248,6 +258,8 @@ export class FzForm extends Base {
     private confirm(evt: Event) {
         evt.preventDefault()
         evt.stopPropagation()
+        this.submitted = true
+        this.check()
         const event = new CustomEvent('validate');
         this.dispatchEvent(event);
     }
@@ -308,7 +320,9 @@ export class FzForm extends Base {
     {
         if (Base.isBootStrapLoaded()) return
         await Base.registerBootstrap(bootstrap_url,icons_url,woff_url)
+        // bootstrap loading is async FzForm already inserted in dom must adopt and refresh
         for (const item of document.getElementsByTagName("fz-form") as HTMLCollectionOf<Base>) {
+            item.adoptBootStrap()
             item.requestUpdate()
         }
     }

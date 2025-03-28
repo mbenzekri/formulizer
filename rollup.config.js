@@ -94,53 +94,56 @@ function manualChunks(id) {
     if (id.includes('node_modules/ajv') || id.includes('dist/ajv-dynamic')) return 'ajv'
 }
 
-export default [
+const devonly = process.env.NODE_ENV === 'development';
+
 
     // produce developement bundle
-    {
-        input: './dist/formulizer.js',
-        output: {
-            dir: './dist',
-            entryFileNames: '[name].js',
-            chunkFileNames: "[name]-dynamic.js",
-            format: 'esm',
-            sourcemap: true,
-            manualChunks,
-        },
-        onwarn,
-        plugins: [...commonPlugins, summary()],
+const dev_conf = {
+    input: './dist/formulizer.js',
+    output: {
+        dir: './dist',
+        entryFileNames: '[name].js',
+        chunkFileNames: "[name]-dynamic.js",
+        format: 'esm',
+        sourcemap: true,
+        manualChunks,
     },
+    onwarn,
+    plugins: [...commonPlugins, summary()],
+}
 
-    // produce minified bundle
-    {
-        input: './dist/formulizer.js',
-        output: {
-            dir: './dist',
-            entryFileNames: '[name].min.js',
-            chunkFileNames: "[name]-dynamic.min.js",
-            format: 'esm',
-            sourcemap: false,
-            manualChunks,
-        },
-        onwarn,
-        plugins: [...commonPlugins, ...productionPlugins, summary(),
-        visualizer({ template: 'treemap', filename: "dist/stat/treemap.html", gzipSize: true, brotliSize: true, }),
-        visualizer({ template: 'network', filename: "dist/stat/network.html", gzipSize: true, brotliSize: true, }),
-        visualizer({ template: 'sunburst', filename: "dist/stat/sunburst.html", gzipSize: true, brotliSize: true, }),
-        visualizer({ template: 'flamegraph', filename: "dist/stat/flamegraph.html", gzipSize: true, brotliSize: true, }),
-        visualizer({ template: 'raw-data', filename: "dist/stat/rawdata.html", gzipSize: true, brotliSize: true, }),
-        visualizer({ template: 'list', filename: "dist/stat/list.html", gzipSize: true, brotliSize: true, }),
-        ],
+const prod_conf = {
+    input: './dist/formulizer.js',
+    output: {
+        dir: './dist',
+        entryFileNames: '[name].min.js',
+        chunkFileNames: "[name]-dynamic.min.js",
+        format: 'esm',
+        sourcemap: false,
+        manualChunks,
     },
+    onwarn,
+    plugins: [...commonPlugins, ...productionPlugins, summary(),
+    visualizer({ template: 'treemap', filename: "dist/stat/treemap.html", gzipSize: true, brotliSize: true, }),
+    visualizer({ template: 'network', filename: "dist/stat/network.html", gzipSize: true, brotliSize: true, }),
+    visualizer({ template: 'sunburst', filename: "dist/stat/sunburst.html", gzipSize: true, brotliSize: true, }),
+    visualizer({ template: 'flamegraph', filename: "dist/stat/flamegraph.html", gzipSize: true, brotliSize: true, }),
+    visualizer({ template: 'raw-data', filename: "dist/stat/rawdata.html", gzipSize: true, brotliSize: true, }),
+    visualizer({ template: 'list', filename: "dist/stat/list.html", gzipSize: true, brotliSize: true, }),
+    ]
+}
 
-    // produce type declarations
-    {
-        input: "src/formulizer.ts", // Ensure this is your root file
-        output: {
-            file: "dist/formulizer.d.ts",
-            format: "es",
-        },
-        plugins: [dts()],
+// produce type declarations
+const type_defs = {
+    input: "src/formulizer.ts", // Ensure this is your root file
+    output: {
+        file: "dist/formulizer.d.ts",
+        format: "es",
     },
+    plugins: [dts()],
+}
 
-];
+const config = [ dev_conf ]
+if (!devonly) config.push(prod_conf)
+if (!devonly) config.push(prod_conf)
+export default config
