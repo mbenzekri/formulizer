@@ -3,6 +3,18 @@ import { FzField } from "../fz-element";
 
 export abstract class FZCollection extends FzField {
 
+    override renderLabel(): TemplateResult<1> {
+        const required = this.required ? '*' : ''
+        const label = `${this.label}${required}`
+
+        // labels for object/array properties have collapse chevron
+        return html`
+            <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
+                <div>${label}</div>
+            </label>`
+        
+    }
+
 
     delete() {
         if (this.collapsed !== null) this.collapsed = true

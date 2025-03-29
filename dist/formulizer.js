@@ -140,11 +140,6 @@ function when(test, value) {
         return value;
     return '';
 }
-function isCollection(schema) {
-    if (isObject(schema) && ["object", "array]"].includes(schema.basetype))
-        return true;
-    return false;
-}
 function intersect(sets) {
     return sets.reduce((acc, set) => new Set([...acc].filter(x => set.has(x))), sets[0]);
 }
@@ -1152,12 +1147,11 @@ class FzField extends Base {
         // user choose not to show label  
         if (this.label === "")
             return x ``;
-        // labels for object/aray properties have collapse chevron
-        if (isCollection(this.schema))
+        if (this.schema.basetype === "boolean")
             return x `
-            <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
-                <div>${label}</div>
-            </label>`;
+        <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
+            <div>&nbsp</div>
+        </label>`;
         // label for array items (badge index)
         if (this.isItem)
             return x `
@@ -2575,23 +2569,28 @@ FzInputSignature = __decorate([
 ], FzInputSignature);
 
 let FzInputBoolean = class FzInputBoolean extends FzInputBase {
+    /**
+     * bor check box no leading label
+     */
+    renderLabel() {
+        return x `
+        <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
+            <div>&nbsp</div>
+        </label>`;
+    }
     renderInput() {
         return x `
-            <div class="form-group row">
-                <div class="col-sm-12">
-                    <div class="form-control">
-                        <input 
-                            id="input"
-                            type="checkbox"
-                            ?required="${this.required}"
-                            @change="${this.tryChange}"
-                            @click="${this.tryChange}"
-                            autocomplete=off  spellcheck="false"
-                            class="form-check-input align-self-start ${this.validation}"
-                        />
-                        <label class="form-check-label ms-2" for="input">${super.label}</label>
-                    </div>
-                </div>
+            <div class="form-control">
+                <input 
+                    id="input"
+                    type="checkbox"
+                    ?required="${this.required}"
+                    @change="${this.tryChange}"
+                    @click="${this.tryChange}"
+                    autocomplete=off  spellcheck="false"
+                    class="form-check-input align-self-start ${this.validation}"
+                />
+                <label class="form-check-label ms-2" for="input">${super.label}</label>
             </div>
         `;
     }
@@ -2601,7 +2600,6 @@ let FzInputBoolean = class FzInputBoolean extends FzInputBase {
         else
             this.change();
     }
-    get label() { return ""; }
     toField() {
         if (isNull(this.input))
             return;
@@ -3539,6 +3537,15 @@ FzInputUuid = __decorate([
 ], FzInputUuid);
 
 class FZCollection extends FzField {
+    renderLabel() {
+        const required = this.required ? '*' : '';
+        const label = `${this.label}${required}`;
+        // labels for object/array properties have collapse chevron
+        return x `
+            <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
+                <div>${label}</div>
+            </label>`;
+    }
     delete() {
         if (this.collapsed !== null)
             this.collapsed = true;

@@ -6,24 +6,29 @@ import { FzInputBase } from "./fz-input-base";
 
 @customElement("fz-boolean")
 export class FzInputBoolean extends FzInputBase {
+    /**
+     * bor check box no leading label 
+     */
+    override renderLabel() {
+        return html`
+        <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
+            <div>&nbsp</div>
+        </label>`
+    }
 
     renderInput() {
         return html`
-            <div class="form-group row">
-                <div class="col-sm-12">
-                    <div class="form-control">
-                        <input 
-                            id="input"
-                            type="checkbox"
-                            ?required="${this.required}"
-                            @change="${this.tryChange}"
-                            @click="${this.tryChange}"
-                            autocomplete=off  spellcheck="false"
-                            class="form-check-input align-self-start ${this.validation}"
-                        />
-                        <label class="form-check-label ms-2" for="input">${super.label}</label>
-                    </div>
-                </div>
+            <div class="form-control">
+                <input 
+                    id="input"
+                    type="checkbox"
+                    ?required="${this.required}"
+                    @change="${this.tryChange}"
+                    @click="${this.tryChange}"
+                    autocomplete=off  spellcheck="false"
+                    class="form-check-input align-self-start ${this.validation}"
+                />
+                <label class="form-check-label ms-2" for="input">${super.label}</label>
             </div>
         `;
     }
@@ -31,7 +36,6 @@ export class FzInputBoolean extends FzInputBase {
         if (this.readonly) event.preventDefault()
         else this.change()
     }
-    override get label() { return "" }
 
     override toField() {
         if (isNull(this.input)) return

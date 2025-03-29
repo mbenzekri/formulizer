@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property } from "lit/decorators.js"
 import { html, css, TemplateResult, PropertyValues } from "lit"
-import { derefPointerData, isEmptyValue, newValue, getSchema, closestAscendantFrom, isFunction, notNull, isArray, isCollection } from "./lib/tools"
+import { derefPointerData, isEmptyValue, newValue, getSchema, closestAscendantFrom, isFunction, notNull, isArray } from "./lib/tools"
 import { Pojo } from "./lib/types"
 import { FzForm } from "./fz-form"
 import { Base } from "./base"
@@ -354,12 +354,10 @@ export abstract class FzField extends Base {
 
         // user choose not to show label  
         if (this.label === "") return html``
-
-        // labels for object/aray properties have collapse chevron
-        if (isCollection(this.schema)) return html`
-            <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
-                <div>${label}</div>
-            </label>`
+        if (this.schema.basetype === "boolean") return html`
+        <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
+            <div>&nbsp</div>
+        </label>`
 
         // label for array items (badge index)
         if (this.isItem) return html`

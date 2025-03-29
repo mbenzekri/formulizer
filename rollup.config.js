@@ -80,6 +80,7 @@ const productionPlugins = [
             drop_console: true, // ✅ Remove console.log()
             drop_debugger: true, // ✅ Remove debugger statements
             pure_funcs: ["console.log"], // ✅ Ensure console logs are stripped
+            dead_code: true,
         },
         mangle: {
             properties: {
@@ -145,5 +146,5 @@ const type_defs = {
 
 const config = [ dev_conf ]
 if (!devonly) config.push(prod_conf)
-if (!devonly) config.push(prod_conf)
+if (!devonly) config.push(type_defs)
 export default config
