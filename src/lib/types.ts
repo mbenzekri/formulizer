@@ -51,7 +51,8 @@ export type FromObject = { pointer: string, name: string, target: any[], schema:
 
 export const SCHEMA = Symbol("FZ_FORM_SCHEMA")
 export const PARENT = Symbol("FZ_FORM_PARENT")
-export const KEY = Symbol("FZ_FORM_PARENT")
+export const KEY = Symbol("FZ_FORM_KEY")
+export const POINTER = Symbol("FZ_FORM_POINTER")
 export const ROOT = Symbol("FZ_FORM_ROOT")
 export const EVAL = Symbol("FZ_FORM_EVAL")
 

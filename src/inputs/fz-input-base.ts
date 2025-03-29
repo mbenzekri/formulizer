@@ -36,7 +36,9 @@ export abstract class FzInputBase extends FzField {
             <div class="form-group row">
                 ${this.renderLabel()}
                 <div class="col-sm">${this.renderInput()}</div>
-            </div>`
+            </div>
+            ${this.renderErrors()}
+        `
     }
 
     /**

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement, property } from "lit/decorators.js"
 import { html, TemplateResult } from "lit"
-import { getSchema, isFunction, isObject, when } from "../lib/tools"
+import { getSchema, isArray, isFunction, isObject, when } from "../lib/tools"
 import { FZCollection } from "./fz-collection"
 import { EMPTY_SCHEMA, Schema } from "../lib/schema"
 
@@ -17,21 +17,7 @@ export class FzArray extends FZCollection {
     @property({ attribute: false }) accessor current: number | null = null
     private schemas: Schema[] = []
     private currentSchema?: Schema
-    //private content?: HTMLElement
-    //private validator!: DataValidator
-    get nomore(): boolean {
-        return this.schema.maxItems && this.value && this.value.length >= this.schema.maxItems
-    }
 
-    get noless(): boolean {
-        return this.schema.minItems && this.value && this.value.length <= this.schema.minItems
-    }
-
-    static override get styles() {
-        return [
-            ...super.styles,
-        ]
-    }
 
     override toField(): void {
         // all is done at rendering
@@ -40,22 +26,18 @@ export class FzArray extends FZCollection {
         // items are updated but array reference doesn't change 
     }
 
-    // override check() {
-    //     this.content = this.shadowRoot?.getElementById('content') ?? undefined
-    //     this.content?.classList.add(this.valid ? 'valid' : 'invalid')
-    //     this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
-    // }
-
     override connectedCallback() {
         super.connectedCallback()
         this.listen(this, 'toggle-item', evt => (this.close(), this.eventStop(evt)))
     }
     override requestUpdate(name?: PropertyKey | undefined, oldvalue?: unknown): void {
         super.requestUpdate(name, oldvalue)
-        // if (name !== undefined) {
-        //     this.solveSchemas(true)
-        //     super.requestUpdate(name,oldvalue)    
-        // }
+    }
+    override get collapsed() {
+        return !isArray(this.value,true) || super.collapsed
+    }
+    override set collapsed(value: boolean) {
+        super.collapsed = value
     }
 
     /**
@@ -63,26 +45,33 @@ export class FzArray extends FZCollection {
     */
     protected override renderCollapsed(): TemplateResult {
         return html`
-            <div class="form-group row space-before">
+            <div class="form-group row space-before" @click=${this.labelClicked}>
                 ${this.renderLabel()}
                 <div class="col-sm-9">
                     <div class="input-group ${this.validation}" @click="${this.toggle}" >
-                        <div class="form-control">${this.chevron()} ${this.abstract()}</div>
+                        <div class="form-control">
+                            ${ isArray(this.value,true) ? html`<i class="bi bi-chevron-down"></i> ${this.abstract()}` : this.actionBtns() }
+                        </div>
                     </div>
                 </div>
             </div>
+            ${this.renderErrors()}
         `
+    }
+    override labelClicked(evt: Event) {
+        this.toggle(evt)
     }
 
     override renderField() {
+        // always process order and schemas before rendering
         this.order()
         this.solveSchemas()
 
+        if (this.collapsed) return this.renderCollapsed()
         const lines = this.value?.map((_i: unknown, i: number) => 
             (this.current === i) ? this.editableItem(i) : this.staticItem(i)
         ) ?? []
 
-        // property case (this field is part of object.values())
         const hidelabel = this.isroot || this.label === ''
         return html`
             <div class="space-before">
@@ -90,17 +79,19 @@ export class FzArray extends FZCollection {
                     ${this.renderLabel()}
                     <div class="col-sm-1 d-none d-sm-block">
                         <div class="input-group ${this.validation}" @click="${this.toggle}" >
-                            <div class="form-control border-0">${this.chevron()}</div>
+                            <div class="form-control border-0"><i class="bi bi-chevron-up"></i></div>
                         </div>
                     </div>
                 </div>
-                <div ?hidden="${this.collapsed || lines.length == 0}" class="space-after ${when(!hidelabel, 'line-after line-before')}"> 
-                    <ul id="content" class="list-group"> ${lines.length > 0 ? lines : '~ Aucun item'}</ul>
+                <div class="space-after ${when(!hidelabel, 'line-after line-before')}"> 
+                    <ul id="content" class="list-group">${lines}</ul>
                 </div>
-                ${this.actionBtns()}
+                ${this.renderErrors()}
+                <div class="form-group row space-before " @click="${this.close}">
+                    ${this.actionBtns()}
+                </div>
             </div>
         `
-
     }
 
 
@@ -109,22 +100,36 @@ export class FzArray extends FZCollection {
      */
     private actionBtns() {
         if (this.readonly) return ''
-        return html`
-            <div class="form-group row space-before" @click="${this.close}">
-                <button type="button" @click="${this.add}" ?disabled="${this.nomore}" class="btn btn-primary btn-sm col-sm-1"><b>+</b></button>
-                ${this.schema.homogeneous ? null : html`
-                    <div class="btn-group" style="float:right" role="group">
-                        <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
-                            @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        ${this.currentSchema?.title || "Ajouter"}
-                        </button> 
-                        <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-                            ${this.schema.items?.oneOf?.map((schema: any, i: number) => html`<a class="dropdown-item"
-                                @click="${() => this.selectSchema(i)}" >${schema.title || "Type" + i}</a>`)}
-                        </div>
-                    </div>`
-            }
+
+        const addBtn = html`
+            <button 
+                type="button" 
+                @click="${this.add}" 
+                class="btn btn-primary btn-sm col-sm-1"
+                >
+                <b>+</b>
+            </button>`
+
+        const typeSelect = this.schema.homogeneous ? '' : html`
+            <div class="btn-group" style="float:right" role="group">
+                <button 
+                    id="btnGroupDrop1" 
+                    type="button"
+                    @click="${this.toggleDropdown}" 
+                    data-toggle="dropdown" 
+                    aria-haspopup="true" 
+                    aria-expanded="false"
+                    class="btn btn-primary dropdown-toggle btn-sm"
+                >${this.currentSchema?.title || "Ajouter"}</button> 
+                <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+                    ${this.schema.items?.oneOf?.map((schema: any, i: number) => html`
+                        <a class="dropdown-item" @click="${() => this.selectSchema(i)}" >${schema.title || "Type" + i}</a>
+                    `)}
+                </div>
             </div>`
+        return [addBtn,typeSelect]
+
+
     }
 
     /**
@@ -147,13 +152,6 @@ export class FzArray extends FZCollection {
             <div>${this.renderItemErrors(index)}</div>
         </li>`
     }
-    renderItemErrors(index: number) {
-        const errors= this.form.errors(`${this.pointer}/${index}`)
-        return html`
-            <span id="error" class="error-message error-truncated">
-                ${errors.join(', ')}
-            </span>`
-    }
 
     /**
      * render the editable flavour of an array item(abstracted)
@@ -171,7 +169,6 @@ export class FzArray extends FZCollection {
         if (this.readonly) return ''
         return html`
             <button 
-                ?hidden="${this.noless}" 
                 @click="${(evt: Event) => this.del(index, evt)}" 
                 type="button" 
                 style="float:right" 
@@ -181,7 +178,7 @@ export class FzArray extends FZCollection {
     }
 
     focusout() {
-        this.change()
+        ///this.change()
     }
 
     override focus() {
@@ -230,7 +227,6 @@ export class FzArray extends FZCollection {
     }
 
     del(index: number, evt?: Event) {
-        if (this.noless) return
         this.value.splice(index, 1)
         this.schemas.splice(index, 1)
         this.current = null
@@ -239,8 +235,8 @@ export class FzArray extends FZCollection {
     }
 
     add(evt?: Event) {
-        if (this.nomore || !this.currentSchema) return
-        if (this.value == null) this.value = []
+        if (!this.currentSchema) return
+        if (!isArray(this.value)) this.value = []
         const value = this.currentSchema._default(this.data)
         this.value.push(value)
         this.schemas.push(this.currentSchema)
@@ -289,8 +285,8 @@ export class FzArray extends FZCollection {
      * calculate ordering of the items
      */
     private order() {
-        if (this.value == null) return
-        const current = this.value as any[]
+        if (!isArray(this.value)) return
+        const current = this.value
         const orderedidx = current.map((_x, i: number) => i).sort((ia, ib) => {
             const va = this.evalExpr("rank", this.schemas[ia], current[ia], this.value, ia)
             const vb = this.evalExpr("rank", this.schemas[ib], current[ib], this.value, ib)

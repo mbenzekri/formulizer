@@ -27,28 +27,27 @@
         }
         window.onload = async () => {
             //FzLogger.set("DEBUG", "validation", "tracker", "compilation", "input", "data-update","bootstrap")
-            FzLogger.set("DEBUG","bootstrap")
+            FzLogger.set("DEBUG","trace")
             const form = document.getElementById("myform")
             const feedback = document.getElementById("mydata")
             const output = () => feedback.innerHTML = `${form.valid ? "valid" : "invalid"} =>${JSON.stringify(form.data)}`
             form.addEventListener("data-valid", output)
             form.addEventListener("data-invalid", output)
-
             form.schema = {
                 "type": "object",
                 "title": "Array",
                 "properties": {
                     "array": {
                         "type": "array",
+                        "minItems" : 3,
                         "title": "an array",
                         "items": {
                             "type": "string",
-                        }
+                        },
                     }
                 }
             }
-
-            form.data = { }
+            form.data = { array:[] }
             output()
         }
     </script>

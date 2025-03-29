@@ -9,6 +9,7 @@ import { SchemaCompiler, DataCompiler } from "./lib/compiler"
 import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { Schema, schemaAttrConverter, DEFAULT_SCHEMA } from "./lib/schema";
 import { FzMarkdownIt } from "./components/markdown-it";
+import { isNull, isString } from "./lib/tools";
 /**
  * @prop schema
  * @prop data
@@ -290,22 +291,52 @@ export class FzForm extends Base {
         this.dispatchEvent(new CustomEvent('ready'))
     }
 
-    debug(pointer: string) {
-        const field = this.fieldMap.get(pointer);
-        if (!field) throw new Error(`No field found for pointer: ${pointer}`);
-        if (!field.data || !field.key) throw new Error(`Field at ${pointer} has no parent/key`);
+    // debug(pointer: string) {
+    //     const field = this.fieldMap.get(pointer);
+    //     if (!field) throw new Error(`No field found for pointer: ${pointer}`);
+    //     if (!field.data || !field.key) throw new Error(`Field at ${pointer} has no parent/key`);
 
-        const obj = field.data;
-        const key = field.key;
-        let value = obj[key];
+    //     const obj = field.data;
+    //     const key = field.key;
+    //     let value = obj[key];
 
+    //     Object.defineProperty(obj, key, {
+    //         get() {
+    //             return value;
+    //         },
+    //         set(newValue) {
+    //             console.debug(`Formulizer watchPointer: ${pointer} (${key}) changed from`, value, "to", newValue);
+    //             debugger;
+    //             value = newValue;
+    //         },
+    //         configurable: true,
+    //         enumerable: true
+    //     });
+    // }
+
+    trace(pointer: string) {
+        if (!isString(pointer,true) || !pointer.startsWith("/")) {
+            console.error(`Unable to trace: ${pointer}`,this.root)
+            return
+        }
+        const splitted = pointer.split("/")
+        const key = splitted.pop() ?? "~"
+        splitted.shift()
+        const path = splitted.map(x => /^\d+$/.test(x) ? parseInt(x,10) : x)
+        const obj = path.reduce((current,name) => isNull(current) ? current :current[name] ,this.root)
+
+        if (isNull(obj)) {
+            console.error(`Unable to trace (null ascendant): ${pointer}`,this.root)
+            return
+        }
+        let value = obj[key]
         Object.defineProperty(obj, key, {
             get() {
                 return value;
             },
             set(newValue) {
-                console.debug(`Formulizer watchPointer: ${pointer} (${key}) changed from`, value, "to", newValue);
-                debugger;
+                const logger = FzLogger.get("trace")
+                logger.info('%s : %s --> %s\n    %s',pointer, value, newValue,Error().stack);
                 value = newValue;
             },
             configurable: true,

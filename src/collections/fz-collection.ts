@@ -1,4 +1,4 @@
-import { TemplateResult } from "lit";
+import { html, TemplateResult } from "lit";
 import { FzField } from "../fz-element";
 
 export abstract class FZCollection extends FzField {
@@ -18,7 +18,15 @@ export abstract class FZCollection extends FzField {
 
     override firstUpdated(changedProperties: any) {
         super.firstUpdated(changedProperties)
-        this.collapsed = this.isroot ? false : this.evalExpr("collapsed")
+        this.collapsed = this.isroot ? false : !!this.evalExpr("collapsed")
+    }
+    
+    renderItemErrors(index: number|string) {
+        const errors= this.form.errors(`${this.pointer}/${index}`)
+        return html`
+            <span id="error" class="error-message error-truncated">
+                ${errors.join(', ')}
+            </span>`
     }
 
     /**

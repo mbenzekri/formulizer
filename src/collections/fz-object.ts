@@ -48,6 +48,7 @@ export class FzObject extends FZCollection {
                     </div>
                 </div>
             </div>
+            ${this.renderErrors()}
         `
     }
 
@@ -177,6 +178,7 @@ export class FzObject extends FZCollection {
                 <div ?hidden="${this.collapsed}" class="space-after ${when(!hidelabel ,'line-after line-before')}"> 
                     ${itemTemplates} 
                 </div>
+                ${this.renderErrors()}
             </div>
         `
     }

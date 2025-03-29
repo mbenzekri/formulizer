@@ -11,11 +11,10 @@ export function isNull(value:any): value is null|undefined
     return value == null
 }
 
-
-export function isString(value: any,notempty=false): value is string {
-    const istring = value !== null && typeof value === "string"
-    return (notempty)  ? istring && value !== "" : istring
-
+export function isString(value: any,and_notempty=false): value is string {
+    if (typeof value !== "string") return false
+    if (and_notempty) value.length > 0
+    return true
 }
 
 export function isNumber(value: any): value is number {
@@ -27,15 +26,20 @@ export function isBoolean(value: any): value is boolean {
 }
 
 
-export function isObject(value: unknown): value is Record<string,any> {
-    return value !== null && typeof value === "object" && !isArray(value)
+export function isObject(value: unknown,and_notempty=false): value is Record<string,any> {
+    if (value == null || typeof value !== "object" || Array.isArray(value)) return false
+    if (and_notempty) Object.values(value).some(v => v !== undefined)
+    return true
 }
-export function isArray(value: any): value is Array<any> {
-    return Array.isArray(value)
+
+export function isArray(value: any,and_notempty = false): value is Array<any> {
+    if (!Array.isArray(value)) return false
+    if (and_notempty) return value.length > 0
+    return true
 }
 
 export function isFunction(value: unknown): value is Function {
-    return typeof value === "function" && value !== null
+    return typeof value === "function"
 }
 
 

@@ -97,9 +97,12 @@ function notNull(value) {
 function isNull(value) {
     return value == null;
 }
-function isString(value, notempty = false) {
-    const istring = value !== null && typeof value === "string";
-    return (notempty) ? istring && value !== "" : istring;
+function isString(value, and_notempty = false) {
+    if (typeof value !== "string")
+        return false;
+    if (and_notempty)
+        value.length > 0;
+    return true;
 }
 function isNumber(value) {
     return typeof value === "number" && !isNaN(value);
@@ -107,14 +110,22 @@ function isNumber(value) {
 function isBoolean(value) {
     return typeof value === "boolean";
 }
-function isObject(value) {
-    return value !== null && typeof value === "object" && !isArray(value);
+function isObject(value, and_notempty = false) {
+    if (value == null || typeof value !== "object" || Array.isArray(value))
+        return false;
+    if (and_notempty)
+        Object.values(value).some(v => v !== undefined);
+    return true;
 }
-function isArray(value) {
-    return Array.isArray(value);
+function isArray(value, and_notempty = false) {
+    if (!Array.isArray(value))
+        return false;
+    if (and_notempty)
+        return value.length > 0;
+    return true;
 }
 function isFunction(value) {
-    return typeof value === "function" && value !== null;
+    return typeof value === "function";
 }
 const primitiveornulltypes = new Set(['string', 'integer', 'number', 'boolean', 'null']);
 function isPrimitive(value, ornull) {
@@ -858,7 +869,7 @@ class FzField extends Base {
     }
     /** A field is touched if really modified (dirty) or submission by for done */
     get touched() {
-        return this.dirty || this.form.submitted;
+        return this.dirty || this.form?.submitted;
     }
     get validation() {
         return e$1({
@@ -1118,10 +1129,7 @@ class FzField extends Base {
      */
     render() {
         return x `
-            <div ?hidden="${!this.visible}">
-                <div style="padding-top: 5px">${this.renderField()}</div>
-                ${this.renderErrors()}
-            </div>
+            <div class="space-before">${this.renderField()}</div>
         `;
     }
     renderErrors() {
@@ -1166,7 +1174,7 @@ class FzField extends Base {
         return x `<span class="badge bg-primary badge-pill">${value}</span>`;
     }
     toggle(evt) {
-        if (this.schema.parent == null) {
+        if (this.isroot) {
             this.collapsed = false;
         }
         else if (this.collapsed !== null)
@@ -1175,8 +1183,6 @@ class FzField extends Base {
         this.requestUpdate();
     }
     chevron() {
-        if (this.schema.basetype !== "object" || this.schema.parent == null)
-            return '';
         if (this.collapsed)
             return x `<i class="bi bi-chevron-down"></i>`;
         return x `<i class="bi bi-chevron-up"></i>`;
@@ -1425,7 +1431,9 @@ class FzInputBase extends FzField {
             <div class="form-group row">
                 ${this.renderLabel()}
                 <div class="col-sm">${this.renderInput()}</div>
-            </div>`;
+            </div>
+            ${this.renderErrors()}
+        `;
     }
     /**
      * on first updated set listeners
@@ -3547,7 +3555,14 @@ class FZCollection extends FzField {
     }
     firstUpdated(changedProperties) {
         super.firstUpdated(changedProperties);
-        this.collapsed = this.isroot ? false : this.evalExpr("collapsed");
+        this.collapsed = this.isroot ? false : !!this.evalExpr("collapsed");
+    }
+    renderItemErrors(index) {
+        const errors = this.form.errors(`${this.pointer}/${index}`);
+        return x `
+            <span id="error" class="error-message error-truncated">
+                ${errors.join(', ')}
+            </span>`;
     }
 }
 
@@ -3563,61 +3578,53 @@ let FzArray$1 = class FzArray extends FZCollection {
     set current(value) { this.#current_accessor_storage = value; }
     schemas = [];
     currentSchema;
-    //private content?: HTMLElement
-    //private validator!: DataValidator
-    get nomore() {
-        return this.schema.maxItems && this.value && this.value.length >= this.schema.maxItems;
-    }
-    get noless() {
-        return this.schema.minItems && this.value && this.value.length <= this.schema.minItems;
-    }
-    static get styles() {
-        return [
-            ...super.styles,
-        ];
-    }
     toField() {
         // all is done at rendering
     }
     toValue() {
         // items are updated but array reference doesn't change 
     }
-    // override check() {
-    //     this.content = this.shadowRoot?.getElementById('content') ?? undefined
-    //     this.content?.classList.add(this.valid ? 'valid' : 'invalid')
-    //     this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
-    // }
     connectedCallback() {
         super.connectedCallback();
         this.listen(this, 'toggle-item', evt => (this.close(), this.eventStop(evt)));
     }
     requestUpdate(name, oldvalue) {
         super.requestUpdate(name, oldvalue);
-        // if (name !== undefined) {
-        //     this.solveSchemas(true)
-        //     super.requestUpdate(name,oldvalue)    
-        // }
+    }
+    get collapsed() {
+        return !isArray(this.value, true) || super.collapsed;
+    }
+    set collapsed(value) {
+        super.collapsed = value;
     }
     /**
     * render collapsed Object
     */
     renderCollapsed() {
         return x `
-            <div class="form-group row space-before">
+            <div class="form-group row space-before" @click=${this.labelClicked}>
                 ${this.renderLabel()}
                 <div class="col-sm-9">
                     <div class="input-group ${this.validation}" @click="${this.toggle}" >
-                        <div class="form-control">${this.chevron()} ${this.abstract()}</div>
+                        <div class="form-control">
+                            ${isArray(this.value, true) ? x `<i class="bi bi-chevron-down"></i> ${this.abstract()}` : this.actionBtns()}
+                        </div>
                     </div>
                 </div>
             </div>
+            ${this.renderErrors()}
         `;
     }
+    labelClicked(evt) {
+        this.toggle(evt);
+    }
     renderField() {
+        // always process order and schemas before rendering
         this.order();
         this.solveSchemas();
+        if (this.collapsed)
+            return this.renderCollapsed();
         const lines = this.value?.map((_i, i) => (this.current === i) ? this.editableItem(i) : this.staticItem(i)) ?? [];
-        // property case (this field is part of object.values())
         const hidelabel = this.isroot || this.label === '';
         return x `
             <div class="space-before">
@@ -3625,14 +3632,17 @@ let FzArray$1 = class FzArray extends FZCollection {
                     ${this.renderLabel()}
                     <div class="col-sm-1 d-none d-sm-block">
                         <div class="input-group ${this.validation}" @click="${this.toggle}" >
-                            <div class="form-control border-0">${this.chevron()}</div>
+                            <div class="form-control border-0"><i class="bi bi-chevron-up"></i></div>
                         </div>
                     </div>
                 </div>
-                <div ?hidden="${this.collapsed || lines.length == 0}" class="space-after ${when(!hidelabel, 'line-after line-before')}"> 
-                    <ul id="content" class="list-group"> ${lines.length > 0 ? lines : '~ Aucun item'}</ul>
+                <div class="space-after ${when(!hidelabel, 'line-after line-before')}"> 
+                    <ul id="content" class="list-group">${lines}</ul>
                 </div>
-                ${this.actionBtns()}
+                ${this.renderErrors()}
+                <div class="form-group row space-before " @click="${this.close}">
+                    ${this.actionBtns()}
+                </div>
             </div>
         `;
     }
@@ -3642,21 +3652,32 @@ let FzArray$1 = class FzArray extends FZCollection {
     actionBtns() {
         if (this.readonly)
             return '';
-        return x `
-            <div class="form-group row space-before" @click="${this.close}">
-                <button type="button" @click="${this.add}" ?disabled="${this.nomore}" class="btn btn-primary btn-sm col-sm-1"><b>+</b></button>
-                ${this.schema.homogeneous ? null : x `
-                    <div class="btn-group" style="float:right" role="group">
-                        <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
-                            @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        ${this.currentSchema?.title || "Ajouter"}
-                        </button> 
-                        <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-                            ${this.schema.items?.oneOf?.map((schema, i) => x `<a class="dropdown-item"
-                                @click="${() => this.selectSchema(i)}" >${schema.title || "Type" + i}</a>`)}
-                        </div>
-                    </div>`}
+        const addBtn = x `
+            <button 
+                type="button" 
+                @click="${this.add}" 
+                class="btn btn-primary btn-sm col-sm-1"
+                >
+                <b>+</b>
+            </button>`;
+        const typeSelect = this.schema.homogeneous ? '' : x `
+            <div class="btn-group" style="float:right" role="group">
+                <button 
+                    id="btnGroupDrop1" 
+                    type="button"
+                    @click="${this.toggleDropdown}" 
+                    data-toggle="dropdown" 
+                    aria-haspopup="true" 
+                    aria-expanded="false"
+                    class="btn btn-primary dropdown-toggle btn-sm"
+                >${this.currentSchema?.title || "Ajouter"}</button> 
+                <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+                    ${this.schema.items?.oneOf?.map((schema, i) => x `
+                        <a class="dropdown-item" @click="${() => this.selectSchema(i)}" >${schema.title || "Type" + i}</a>
+                    `)}
+                </div>
             </div>`;
+        return [addBtn, typeSelect];
     }
     /**
      * render the static flavour of an array item(abstracted)
@@ -3678,13 +3699,6 @@ let FzArray$1 = class FzArray extends FZCollection {
             <div>${this.renderItemErrors(index)}</div>
         </li>`;
     }
-    renderItemErrors(index) {
-        const errors = this.form.errors(`${this.pointer}/${index}`);
-        return x `
-            <span id="error" class="error-message error-truncated">
-                ${errors.join(', ')}
-            </span>`;
-    }
     /**
      * render the editable flavour of an array item(abstracted)
      */
@@ -3702,7 +3716,6 @@ let FzArray$1 = class FzArray extends FZCollection {
             return '';
         return x `
             <button 
-                ?hidden="${this.noless}" 
                 @click="${(evt) => this.del(index, evt)}" 
                 type="button" 
                 style="float:right" 
@@ -3711,7 +3724,7 @@ let FzArray$1 = class FzArray extends FZCollection {
             </button>`;
     }
     focusout() {
-        this.change();
+        ///this.change()
     }
     focus() {
         if (this.fields().length > 0) {
@@ -3758,8 +3771,6 @@ let FzArray$1 = class FzArray extends FZCollection {
         ev.preventDefault();
     }
     del(index, evt) {
-        if (this.noless)
-            return;
         this.value.splice(index, 1);
         this.schemas.splice(index, 1);
         this.current = null;
@@ -3767,9 +3778,9 @@ let FzArray$1 = class FzArray extends FZCollection {
         this.eventStop(evt);
     }
     add(evt) {
-        if (this.nomore || !this.currentSchema)
+        if (!this.currentSchema)
             return;
-        if (this.value == null)
+        if (!isArray(this.value))
             this.value = [];
         const value = this.currentSchema._default(this.data);
         this.value.push(value);
@@ -3817,7 +3828,7 @@ let FzArray$1 = class FzArray extends FZCollection {
      * calculate ordering of the items
      */
     order() {
-        if (this.value == null)
+        if (!isArray(this.value))
             return;
         const current = this.value;
         const orderedidx = current.map((_x, i) => i).sort((ia, ib) => {
@@ -3887,6 +3898,7 @@ let FzObject = class FzObject extends FZCollection {
                     </div>
                 </div>
             </div>
+            ${this.renderErrors()}
         `;
     }
     renderSingle(itemTemplates, fields, fieldpos) {
@@ -4005,6 +4017,7 @@ let FzObject = class FzObject extends FZCollection {
                 <div ?hidden="${this.collapsed}" class="space-after ${when(!hidelabel, 'line-after line-before')}"> 
                     ${itemTemplates} 
                 </div>
+                ${this.renderErrors()}
             </div>
         `;
     }
@@ -5314,7 +5327,7 @@ class AjvValidator extends Validator {
 
 const SCHEMA = Symbol("FZ_FORM_SCHEMA");
 const PARENT = Symbol("FZ_FORM_PARENT");
-const KEY = Symbol("FZ_FORM_PARENT");
+const KEY = Symbol("FZ_FORM_KEY");
 const ROOT = Symbol("FZ_FORM_ROOT");
 
 class CSUpgradeNullable extends CompilationStep {
@@ -6531,22 +6544,48 @@ let FzForm = FzForm_1 = class FzForm extends Base {
         }
         this.dispatchEvent(new CustomEvent('ready'));
     }
-    debug(pointer) {
-        const field = this.fieldMap.get(pointer);
-        if (!field)
-            throw new Error(`No field found for pointer: ${pointer}`);
-        if (!field.data || !field.key)
-            throw new Error(`Field at ${pointer} has no parent/key`);
-        const obj = field.data;
-        const key = field.key;
+    // debug(pointer: string) {
+    //     const field = this.fieldMap.get(pointer);
+    //     if (!field) throw new Error(`No field found for pointer: ${pointer}`);
+    //     if (!field.data || !field.key) throw new Error(`Field at ${pointer} has no parent/key`);
+    //     const obj = field.data;
+    //     const key = field.key;
+    //     let value = obj[key];
+    //     Object.defineProperty(obj, key, {
+    //         get() {
+    //             return value;
+    //         },
+    //         set(newValue) {
+    //             console.debug(`Formulizer watchPointer: ${pointer} (${key}) changed from`, value, "to", newValue);
+    //             debugger;
+    //             value = newValue;
+    //         },
+    //         configurable: true,
+    //         enumerable: true
+    //     });
+    // }
+    trace(pointer) {
+        if (!isString(pointer, true) || !pointer.startsWith("/")) {
+            console.error(`Unable to trace: ${pointer}`, this.root);
+            return;
+        }
+        const splitted = pointer.split("/");
+        const key = splitted.pop() ?? "~";
+        splitted.shift();
+        const path = splitted.map(x => /^\d+$/.test(x) ? parseInt(x, 10) : x);
+        const obj = path.reduce((current, name) => isNull(current) ? current : current[name], this.root);
+        if (isNull(obj)) {
+            console.error(`Unable to trace (null ascendant): ${pointer}`, this.root);
+            return;
+        }
         let value = obj[key];
         Object.defineProperty(obj, key, {
             get() {
                 return value;
             },
             set(newValue) {
-                console.debug(`Formulizer watchPointer: ${pointer} (${key}) changed from`, value, "to", newValue);
-                debugger;
+                const logger = FzLogger.get("trace");
+                logger.info('%s : %s --> %s\n    %s', pointer, value, newValue, Error().stack);
                 value = newValue;
             },
             configurable: true,

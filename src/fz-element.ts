@@ -70,7 +70,7 @@ export abstract class FzField extends Base {
     }
     /** A field is touched if really modified (dirty) or submission by for done */
     get touched() {
-        return this.dirty || this.form.submitted
+        return this.dirty || this.form?.submitted
     }
     get validation() {
         return classMap({ 
@@ -330,10 +330,7 @@ export abstract class FzField extends Base {
      */
     override render() {
         return html`
-            <div ?hidden="${!this.visible}">
-                <div style="padding-top: 5px">${this.renderField()}</div>
-                ${this.renderErrors()}
-            </div>
+            <div class="space-before">${this.renderField()}</div>
         `
     }
 
@@ -383,7 +380,7 @@ export abstract class FzField extends Base {
     
 
     toggle(evt: Event) {
-        if (this.schema.parent == null) { this.collapsed = false}
+        if (this.isroot) { this.collapsed = false}
         else if  (this.collapsed !== null) this.collapsed = !this.collapsed
         this.eventStop(evt)
         this.requestUpdate()
@@ -391,7 +388,6 @@ export abstract class FzField extends Base {
 
 
     chevron() {
-        if (this.schema.basetype !== "object" || this.schema.parent == null) return ''
         if (this.collapsed) return html`<i class="bi bi-chevron-down"></i>`
         return html`<i class="bi bi-chevron-up"></i>`
     }
