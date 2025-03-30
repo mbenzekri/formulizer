@@ -795,32 +795,6 @@ const t$1={ATTRIBUTE:1,CHILD:2},e$2=t=>(...e)=>({_$litDirective$:t,values:e});le
  * SPDX-License-Identifier: BSD-3-Clause
  */const e$1=e$2(class extends i$1{constructor(t){if(super(t),t.type!==t$1.ATTRIBUTE||"class"!==t.name||t.strings?.length>2)throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.")}render(t){return " "+Object.keys(t).filter((s=>t[s])).join(" ")+" "}update(s,[i]){if(void 0===this.st){this.st=new Set,void 0!==s.strings&&(this.nt=new Set(s.strings.join(" ").split(/\s/).filter((t=>""!==t))));for(const t in i)i[t]&&!this.nt?.has(t)&&this.st.add(t);return this.render(i)}const r=s.element.classList;for(const t of this.st)t in i||(r.remove(t),this.st.delete(t));for(const t in i){const s=!!i[t];s===this.st.has(t)||this.nt?.has(t)||(s?(r.add(t),this.st.add(t)):(r.remove(t),this.st.delete(t)));}return T}});
 
-const fiedtypes = [
-    "fz-array",
-    "fz-asset",
-    "fz-boolean",
-    "fz-constant",
-    "fz-date",
-    "fz-datetime",
-    "fz-document",
-    'fz-enum-select',
-    'fz-enum-array',
-    "fz-geolocation",
-    "fz-integer",
-    'fz-markdown',
-    'fz-enum-check',
-    "fz-float",
-    "fz-object",
-    "fz-range",
-    "fz-signature",
-    "fz-string",
-    "fz-textarea",
-    "fz-enum-typeahead",
-    "fz-time",
-    "fz-uuid",
-    "fz-color",
-];
-const fieldtypeslist = fiedtypes.join(',');
 /**
  * @prop schema
  * @prop data
@@ -890,6 +864,7 @@ class FzField extends Base {
         if (value === this.value)
             return;
         this.cascadeValue(value);
+        this.dirty = true;
         this.form?.check();
     }
     get empty() { return this.schema._empty(); }
@@ -986,12 +961,12 @@ class FzField extends Base {
             }
             // trigger a requestUpdate for each field
             fields.forEach(f => {
-                f.toField();
+                //f.toField()
                 f.requestUpdate();
             });
         }
         // trigger a requestUpdate for this field
-        this.toField();
+        //this.toField()
         this.requestUpdate();
         return true;
     }
@@ -1074,11 +1049,6 @@ class FzField extends Base {
         event.preventDefault();
         event.stopPropagation();
     }
-    fields() {
-        const fields = [];
-        this.shadowRoot?.querySelectorAll(fieldtypeslist).forEach(elem => fields.push(elem));
-        return fields;
-    }
     get form() {
         if (this._form)
             return this._form;
@@ -1123,6 +1093,7 @@ class FzField extends Base {
      * render method for this field component (calls renderField() abstract rendering method)
      */
     render() {
+        this.toField();
         return x `
             <div class="space-before">${this.renderField()}</div>
         `;
@@ -1215,12 +1186,12 @@ class FzField extends Base {
             case "fz-float": return x `<fz-float .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-float>`;
             case "fz-integer": return x `<fz-integer .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-integer>`;
             case "fz-range": return x `<fz-range .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-range>`;
-            case "fz-geolocation": return x `<fz-geolocation .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-geolocation>`;
+            case "fz-location": return x `<fz-location .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-location>`;
             case "fz-array": return x `<fz-array .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-array>`;
             case "fz-object": return x ` <fz-object .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-object>`;
-            case "fz-constant": return x ` <fz-constant .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-constant>`;
+            case "fz-const": return x ` <fz-const .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-const>`;
             case "fz-enum-array": return x ` <fz-enum-array .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-array>`;
-            case "fz-document": return x ` <fz-document .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-document>`;
+            case "fz-doc": return x ` <fz-doc .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-doc>`;
             case "fz-uuid": return x ` <fz-uuid .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-uuid>`;
             case "fz-markdown": return x ` <fz-markdown .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-markdown>`;
             case "fz-enum-typeahead": return x ` <fz-enum-typeahead .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-typeahead>`;
@@ -1232,10 +1203,12 @@ class FzField extends Base {
     // lit overridings 
     // ---------------
     connectedCallback() {
+        console.log(`${this.pointer} connected`);
         super.connectedCallback();
         this.form?.addField(this.schema.pointer, this.pointer, this);
     }
     disconnectedCallback() {
+        console.log(`${this.pointer} disconnected`);
         super.disconnectedCallback();
         this.form?.removeField(this.schema.pointer, this.pointer);
         this.pointer = undefined;
@@ -1263,7 +1236,7 @@ class FzField extends Base {
     }
     firstUpdated(_changedProperties) {
         super.firstUpdated(_changedProperties);
-        this.toField();
+        //this.toField()
         this.form?.check();
     }
     /**
@@ -2928,7 +2901,7 @@ let FzInputGeolocation = class FzInputGeolocation extends FzInputBase {
     }
 };
 FzInputGeolocation = __decorate([
-    t$4("fz-geolocation")
+    t$4("fz-location")
 ], FzInputGeolocation);
 
 /**
@@ -3020,7 +2993,7 @@ let FzInputConstant = class FzInputConstant extends FzInputBase {
     }
 };
 FzInputConstant = __decorate([
-    t$4("fz-constant")
+    t$4("fz-const")
 ], FzInputConstant);
 
 const byteToHex = [];
@@ -3343,7 +3316,7 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
     }
 };
 FzInputDoc = FzInputDoc_1 = __decorate([
-    t$4("fz-document")
+    t$4("fz-doc")
 ], FzInputDoc);
 
 let MD = null;
@@ -3535,7 +3508,40 @@ FzInputUuid = __decorate([
     t$4("fz-uuid")
 ], FzInputUuid);
 
+const fiedtypes = [
+    "fz-array",
+    'fz-enum-array',
+    "fz-object",
+    'fz-enum-check',
+    'fz-enum-select',
+    "fz-enum-typeahead",
+    "fz-asset",
+    "fz-boolean",
+    "fz-color",
+    "fz-const",
+    "fz-date",
+    "fz-datetime",
+    "fz-doc",
+    "fz-float",
+    "fz-integer",
+    "fz-location",
+    "fz-location",
+    "fz-mask",
+    'fz-markdown',
+    "fz-range",
+    "fz-signature",
+    "fz-string",
+    "fz-textarea",
+    "fz-time",
+    "fz-uuid",
+];
+const fieldtypeslist = fiedtypes.join(',');
 class FZCollection extends FzField {
+    //@queryAll(fieldtypeslist) readonly fields!: FzField[]
+    get fields() {
+        const fields = [...this.shadowRoot?.querySelectorAll(fieldtypeslist) ?? []];
+        return fields;
+    }
     renderLabel() {
         const required = this.required ? '*' : '';
         const label = `${this.label}${required}`;
@@ -3569,6 +3575,15 @@ class FZCollection extends FzField {
             <span id="error" class="error-message error-truncated">
                 ${errors.join(', ')}
             </span>`;
+    }
+    /**
+     * when asked for focus , set focus to first field of the collection
+     */
+    focus() {
+        if (this.fields.length > 0) {
+            const first = this.fields[0];
+            first.dofocus();
+        }
     }
 }
 
@@ -3730,13 +3745,7 @@ let FzArray$1 = class FzArray extends FZCollection {
             </button>`;
     }
     focusout() {
-        ///this.change()
-    }
-    focus() {
-        if (this.fields().length > 0) {
-            const first = this.fields()[0];
-            first.dofocus();
-        }
+        this.close();
     }
     open(index, evt) {
         if (this.current === index) {
@@ -3875,22 +3884,12 @@ let FzObject = class FzObject extends FZCollection {
     get activegroup() { return this.#activegroup_accessor_storage; }
     set activegroup(value) { this.#activegroup_accessor_storage = value; }
     seen;
-    static get styles() {
-        return [
-            ...super.styles,
-        ];
-    }
     toField() {
         // all is done at rendering
     }
     toValue() {
         // properties are updated but object reference doesn't change 
     }
-    // override check() {
-    //     // this.content = this.shadowRoot?.getElementById('content') ?? undefined
-    //     // this.content?.classList.add(this.valid ? 'valid' : 'invalid')
-    //     // this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
-    // }
     /**
      * render collapsed Object
      */
@@ -4029,19 +4028,6 @@ let FzObject = class FzObject extends FZCollection {
     }
     isRequiredProperty(name) {
         return !!this.schema.required?.includes(name);
-    }
-    fields() {
-        const fields = [];
-        const tags = Object.values(this.schema.properties ?? {})
-            .map((property) => property.field).join(', ');
-        const list = this.shadowRoot?.querySelectorAll(tags);
-        list?.forEach((elem) => fields.push(elem));
-        return fields;
-    }
-    focus() {
-        const fields = this.fields();
-        const first = fields[0];
-        first.dofocus();
     }
     labelClicked(evt) {
         if (this.isItem) {
@@ -5956,7 +5942,7 @@ class CSField extends CompilationStep {
     }
     apply(schema) {
         if ("const" in schema)
-            return schema.field = 'fz-constant';
+            return schema.field = 'fz-const';
         if (schema.from && isPrimitive(schema)) {
             if (!schema.filter)
                 schema.filter = () => true;
@@ -6002,8 +5988,8 @@ class CSField extends CompilationStep {
                     case "date": return schema.field = 'fz-date';
                     case "time": return schema.field = 'fz-time';
                     case "date-time": return schema.field = 'fz-datetime';
-                    case "geo": return schema.field = 'fz-geolocation';
-                    case "doc": return schema.field = 'fz-document';
+                    case "geo": return schema.field = 'fz-location';
+                    case "doc": return schema.field = 'fz-doc';
                     case "markdown": return schema.field = 'fz-markdown';
                     case "asset": return schema.field = 'fz-asset';
                 }

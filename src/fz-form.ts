@@ -3,7 +3,7 @@ import { html, PropertyValues } from "lit";
 import { Base } from "./base"
 import { property, customElement } from "lit/decorators.js";
 import { IAsset, IOptions, Pojo } from "./lib/types"
-import { FzField } from "./fz-element";
+import { FzField } from "./fz-field";
 import { DefaultValidator, Validator } from "./lib/validation"
 import { SchemaCompiler, DataCompiler } from "./lib/compiler"
 import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";

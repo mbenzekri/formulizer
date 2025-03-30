@@ -10,7 +10,7 @@ import { notNull } from "../lib/tools";
  * @prop name
  * @prop index
  */
-@customElement("fz-constant")
+@customElement("fz-const")
 export class FzInputConstant extends FzInputBase {
 
 

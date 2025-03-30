@@ -604,7 +604,7 @@ class CSField extends CompilationStep {
     }
 
     override apply(schema: Schema) {
-        if ("const" in schema) return schema.field = 'fz-constant'
+        if ("const" in schema) return schema.field = 'fz-const'
         if (schema.from && isPrimitive(schema, true)) {
             if (!schema.filter) schema.filter = () => true
             return schema.field = 'fz-enum-select'
@@ -646,8 +646,8 @@ class CSField extends CompilationStep {
                     case "date": return schema.field = 'fz-date'
                     case "time": return schema.field = 'fz-time'
                     case "date-time": return schema.field = 'fz-datetime'
-                    case "geo": return schema.field = 'fz-geolocation'
-                    case "doc": return schema.field = 'fz-document'
+                    case "geo": return schema.field = 'fz-location'
+                    case "doc": return schema.field = 'fz-doc'
                     case "markdown": return schema.field = 'fz-markdown'
                     case "asset": return schema.field = 'fz-asset'
                 }

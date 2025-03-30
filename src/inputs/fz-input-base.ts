@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { html, PropertyValues, TemplateResult } from "lit";
-import { FzField } from "../fz-element";
+import { FzField } from "../fz-field";
 import { getCircularReplacer } from "../lib/tools";
 
 const invalidkeys = [

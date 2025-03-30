@@ -8,32 +8,7 @@ import { Base } from "./base"
 import { EMPTY_SCHEMA, Schema } from "./lib/schema"
 import { classMap } from "lit/directives/class-map.js"
 
-const fiedtypes = [
-    "fz-array",
-    "fz-asset",
-    "fz-boolean",
-    "fz-constant",
-    "fz-date",
-    "fz-datetime",
-    "fz-document",
-    'fz-enum-select',
-    'fz-enum-array',
-    "fz-geolocation",
-    "fz-integer",
-    'fz-markdown',
-    'fz-enum-check',
-    "fz-float",
-    "fz-object",
-    "fz-range",
-    "fz-signature",
-    "fz-string",
-    "fz-textarea",
-    "fz-enum-typeahead",
-    "fz-time",
-    "fz-uuid",
-    "fz-color",
-]
-const fieldtypeslist = fiedtypes.join(',')
+
 
 /**
  * @prop schema
@@ -100,6 +75,7 @@ export abstract class FzField extends Base {
     set value(value: any) {
         if (value === this.value) return
         this.cascadeValue(value)
+        this.dirty = true
         this.form?.check()
     }
 
@@ -193,13 +169,13 @@ export abstract class FzField extends Base {
             }
             // trigger a requestUpdate for each field
             fields.forEach(f => {
-                f.toField()
+                //f.toField()
                 f.requestUpdate()
             })
 
         }
         // trigger a requestUpdate for this field
-        this.toField()
+        //this.toField()
         this.requestUpdate()
         return true
     }
@@ -283,11 +259,6 @@ export abstract class FzField extends Base {
         event.stopPropagation()
     }
 
-    fields(): FzField[] {
-        const fields: FzField[] = []
-        this.shadowRoot?.querySelectorAll(fieldtypeslist).forEach(elem => fields.push(elem as FzField))
-        return fields
-    }
 
     get form(): FzForm {
         if (this._form) return this._form
@@ -333,6 +304,7 @@ export abstract class FzField extends Base {
      * render method for this field component (calls renderField() abstract rendering method)
      */
     override render() {
+        this.toField()
         return html`
             <div class="space-before">${this.renderField()}</div>
         `
@@ -426,12 +398,12 @@ export abstract class FzField extends Base {
             case "fz-float": return html`<fz-float .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-float>`
             case "fz-integer": return html`<fz-integer .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-integer>`
             case "fz-range": return html`<fz-range .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-range>`
-            case "fz-geolocation": return html`<fz-geolocation .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-geolocation>`
+            case "fz-location": return html`<fz-location .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-location>`
             case "fz-array": return html`<fz-array .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-array>`
             case "fz-object": return html` <fz-object .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-object>`
-            case "fz-constant": return html` <fz-constant .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-constant>`
+            case "fz-const": return html` <fz-const .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-const>`
             case "fz-enum-array": return html` <fz-enum-array .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-array>`
-            case "fz-document": return html` <fz-document .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-document>`
+            case "fz-doc": return html` <fz-doc .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-doc>`
             case "fz-uuid": return html` <fz-uuid .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-uuid>`
             case "fz-markdown": return html` <fz-markdown .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-markdown>`
             case "fz-enum-typeahead": return html` <fz-enum-typeahead .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-typeahead>`
@@ -444,11 +416,13 @@ export abstract class FzField extends Base {
     // lit overridings 
     // ---------------
     override connectedCallback() {
+        console.log (`${this.pointer} connected`)
         super.connectedCallback()
         this.form?.addField(this.schema.pointer, this.pointer, this)
     }
 
     override disconnectedCallback() {
+        console.log (`${this.pointer} disconnected`)
         super.disconnectedCallback()
         this.form?.removeField(this.schema.pointer, this.pointer)
         this.pointer = undefined as any
@@ -479,7 +453,7 @@ export abstract class FzField extends Base {
 
     protected override firstUpdated(_changedProperties: PropertyValues): void {
         super.firstUpdated(_changedProperties)
-        this.toField()
+        //this.toField()
         this.form?.check()       
     }
 

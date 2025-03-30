@@ -14,7 +14,7 @@ import { FzInputBase } from "./fz-input-base";
  * @prop index
  * @prop options
  */
- @customElement("fz-document")
+ @customElement("fz-doc")
 export class FzInputDoc extends FzInputBase {
 
     override toField(): void {

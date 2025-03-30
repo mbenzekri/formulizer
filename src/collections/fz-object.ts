@@ -2,7 +2,6 @@
 import { property, customElement } from "lit/decorators.js"
 import { html, TemplateResult } from "lit"
 import { FZCollection } from "./fz-collection"
-import { FzField } from "../fz-element"
 import { Pojo, FieldOrder } from "../lib/types"
 import { when } from "../lib/tools"
 
@@ -18,22 +17,12 @@ export class FzObject extends FZCollection {
     @property({ attribute: false }) accessor activegroup: { [tabname: string]: string } = {}
     seen: WeakSet<object> | undefined
 
-    static override get styles() {
-        return [
-            ...super.styles,
-        ]
-    }
     override toField(): void {
         // all is done at rendering
     }
     override toValue(): void {
         // properties are updated but object reference doesn't change 
     }
-    // override check() {
-    //     // this.content = this.shadowRoot?.getElementById('content') ?? undefined
-    //     // this.content?.classList.add(this.valid ? 'valid' : 'invalid')
-    //     // this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
-    // }
 
     /**
      * render collapsed Object
@@ -185,21 +174,6 @@ export class FzObject extends FZCollection {
 
     isRequiredProperty(name: string) {
         return !!this.schema.required?.includes(name)
-    }
-
-    override fields(): FzField[] {
-        const fields: FzField[] = []
-        const tags = Object.values(this.schema.properties ?? {})
-            .map((property) => property.field).join(', ')
-        const list = this.shadowRoot?.querySelectorAll(tags)
-        list?.forEach((elem: Element) => fields.push(elem as FzField))
-        return fields
-    }
-
-    override focus() {
-        const fields = this.fields()
-        const first = fields[0]
-        first.dofocus()
     }
 
     override labelClicked(evt: Event) {

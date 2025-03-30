@@ -10,7 +10,7 @@ import { FzInputBase } from "./fz-input-base";
  * @prop name
  * @prop index
  */
-@customElement("fz-geolocation")
+@customElement("fz-location")
 export class FzInputGeolocation extends FzInputBase {
     private watchId?: number
 

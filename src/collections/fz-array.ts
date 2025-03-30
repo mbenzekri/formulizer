@@ -178,14 +178,7 @@ export class FzArray extends FZCollection {
     }
 
     focusout() {
-        ///this.change()
-    }
-
-    override focus() {
-        if (this.fields().length > 0) {
-            const first = this.fields()[0]
-            first.dofocus()
-        }
+        this.close()
     }
 
     open(index: number, evt?: Event) {
