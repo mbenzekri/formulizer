@@ -31,6 +31,7 @@
             const form = document.getElementById("myform")
             const feedback = document.getElementById("mydata")
             const output = () => feedback.innerHTML = `${form.valid ? "valid" : "invalid"} =>${JSON.stringify(form.data)}`
+            form.addEventListener("update", output)
             form.addEventListener("data-valid", output)
             form.addEventListener("data-invalid", output)
             form.schema = {

@@ -4,7 +4,7 @@ import { Base } from "./base"
 import { property, customElement } from "lit/decorators.js";
 import { IAsset, IOptions, Pojo } from "./lib/types"
 import { FzField } from "./fz-element";
-import { Validator } from "./lib/validation"
+import { DefaultValidator, Validator } from "./lib/validation"
 import { SchemaCompiler, DataCompiler } from "./lib/compiler"
 import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { Schema, schemaAttrConverter, DEFAULT_SCHEMA } from "./lib/schema";
@@ -28,6 +28,7 @@ export class FzForm extends Base {
     public asset!: IAsset
     private readonly fieldMap: Map<string, FzField> = new Map()
     private readonly schemaMap: Map<string, FzField> = new Map()
+    private errorMap: Map<string, string[]> = new Map()
     public submitted = false
 
     @property({ type: Boolean, attribute: "bootstrap" }) bootstrap = false
@@ -46,7 +47,7 @@ export class FzForm extends Base {
     @property({ type: String, attribute: 'ondismiss', converter: (v) => v }) ondismiss: string | null = null;
 
     private compiledSchema = DEFAULT_SCHEMA
-    private validator?: Validator
+    private validator: Validator = new DefaultValidator(DEFAULT_SCHEMA)
     private message = ""
     constructor() {
         super()
@@ -62,8 +63,9 @@ export class FzForm extends Base {
 
     get root(): any { return this.i_root.content }
     get valid() {
-        this.validator?.validate(this.root) 
-        return  this.validator?.valid
+        this.validator.validate(this.root) 
+        this.errorMap =this.validator.map
+        return  this.validator.valid
     }
 
     get schema() { return this.compiledSchema }
@@ -99,9 +101,12 @@ export class FzForm extends Base {
     get data() { return JSON.parse(JSON.stringify(this.root)) }
     set data(value: Pojo) {
         // dont accept data before having a valid Schema
-        if (!this.validator?.schemaValid) return
-        // TBD data must be valid (if checkin option is true)
-        this.validator?.validate(value)
+        if (!this.validator.schemaValid) return
+        const valid = this.valid
+        if (!valid && this.checkIn) {
+            // TBD data must be valid (if checkin option is true)
+            null;
+        }
         this.i_root.content = value
         this.compile()
         this.requestUpdate()
@@ -153,7 +158,7 @@ export class FzForm extends Base {
 
     override render() {
         if (!Base.isBootStrapLoaded()) return 'Bootstrap not loaded...'
-        return this.validator?.schemaValid ? this.renderForm() : this.renderError()
+        return this.validator.schemaValid ? this.renderForm() : this.renderError()
     }
 
     private renderForm() {
@@ -175,18 +180,18 @@ export class FzForm extends Base {
     }
 
     private renderError() {
-        if (this.validator?.schemaValid && this.validator?.valid) return html``
+        if (this.validator.schemaValid && this.validator?.valid) return html``
         const formatError = (e: any) =>
             html`<li>property : ${(e.dataPath == undefined) ? e.instancePath : e.dataPath} : ${e.keyword} ➜ ${e.message}</li>`
         return [
             html`<hr>`,
-            !this.validator?.schemaValid ? html`<pre><ol> Schema errors : ${this.validator?.schemaErrors.map(formatError)} </ol></pre>` : html``,
-            !this.validator?.valid ? html`<pre><ol> Data errors : ${this.validator?.errors.map(formatError)} </ol></pre>` : html``
+            !this.validator.schemaValid ? html`<pre><ol> Schema errors : ${this.validator.schemaErrors.map(formatError)} </ol></pre>` : html``,
+            !this.validator.valid ? html`<pre><ol> Data errors : ${this.validator.errors.map(formatError)} </ol></pre>` : html``
         ]
     }
 
     errors(pointer:string): string[] {
-        return this.validator?.errorMap.get(pointer) ?? []
+        return this.errorMap.get(pointer) ?? []
     }
 
     override connectedCallback() {
@@ -229,16 +234,8 @@ export class FzForm extends Base {
     }
 
     check() {
-        // collect errors and dispatch error on fields (registered in this.fieldMap)
+        // collect errors and trigger valid/invalid event 
         const validated = this.valid 
-        const errorMap =  this.validator?.errorMap
-        // dispatch all errors over the fields 
-        for (const [pointer, field] of this.fieldMap.entries()) {
-            const logger = FzLogger.get("validation",{field,schema: field.schema})
-            // if field is not touched (not manually updated) valid/invalid not displayed
-            field.errors = errorMap?.get(pointer) ?? []
-            logger.debug(' %s %s', field.valid ? "✅" : "❌",field.touched ? '(dirty)' : '')
-        }
         const event =  new CustomEvent(validated ? "data-valid" : "data-invalid")
         this.dispatchEvent(event);
     }
@@ -261,6 +258,9 @@ export class FzForm extends Base {
         evt.stopPropagation()
         this.submitted = true
         this.check()
+        for (const field of this.fieldMap.values()) {
+            field.requestUpdate()
+        }
         const event = new CustomEvent('validate');
         this.dispatchEvent(event);
     }

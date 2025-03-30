@@ -847,20 +847,21 @@ class FzField extends Base {
     #dirty_accessor_storage = false;
     get dirty() { return this.#dirty_accessor_storage; }
     set dirty(value) { this.#dirty_accessor_storage = value; }
-    #errors_accessor_storage = [];
-    get errors() { return this.#errors_accessor_storage; }
-    set errors(value) { this.#errors_accessor_storage = value; }
     #collapsed_accessor_storage = false;
     get collapsed() { return this.#collapsed_accessor_storage; }
     set collapsed(value) { this.#collapsed_accessor_storage = value; }
+    get errors() {
+        return this.localError ? [this.localError, ...this.form?.errors(this.pointer)] : this.form?.errors(this.pointer);
+    }
     //private _initdone = false
     _dofocus = false;
     _form;
+    localError;
     get valid() {
-        return (this.errors?.length ?? 0) === 0;
+        return this.errors.length === 0 && isNull(this.localError);
     }
     get invalid() {
-        return (this.errors?.length ?? 0) > 0;
+        return this.errors.length > 0 || notNull(this.localError);
     }
     /** A field is touched if really modified (dirty) or submission by for done */
     get touched() {
@@ -889,7 +890,6 @@ class FzField extends Base {
         if (value === this.value)
             return;
         this.cascadeValue(value);
-        this.errors = [];
         this.form?.check();
     }
     get empty() { return this.schema._empty(); }
@@ -1244,7 +1244,6 @@ class FzField extends Base {
         this.name = undefined;
         this.index = undefined;
         this.dirty = undefined;
-        this.errors = undefined;
         this._dofocus = undefined;
         this._form = undefined;
     }
@@ -1393,11 +1392,11 @@ __decorate([
     n$2({ type: Boolean, attribute: false })
 ], FzField.prototype, "dirty", null);
 __decorate([
-    n$2({ type: Array, attribute: false })
-], FzField.prototype, "errors", null);
-__decorate([
     n$2({ attribute: false })
 ], FzField.prototype, "collapsed", null);
+__decorate([
+    r$4()
+], FzField.prototype, "errors", null);
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const invalidkeys = [
@@ -1538,7 +1537,7 @@ class FzEnumBase extends FzInputBase {
                 break;
             case notNull(this.schema?.enumFetch):
                 this.fetchEnum()
-                    .then((enums) => (this.enums = enums, this.requestUpdate()), (err) => (this.errors = [String(err)]));
+                    .then((enums) => (this.enums = enums, this.requestUpdate()), (err) => (this.localError = String(err)));
                 break;
             default:
                 this.enums = this.getEnum();
@@ -3289,8 +3288,8 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
                 this.set(this.value, doc.blob, doc.filename);
             }
             else {
-                //this.valid = false
-                this.errors = ["document not found"];
+                this.dirty = true;
+                this.localError = "document not found";
             }
         }
     }
@@ -5079,14 +5078,14 @@ async function loadValidator(useAjv = false) {
 }
 loadValidator(false);
 class Validator {
-    errorMap = new Map();
     get schemaValid() { return true; }
     get schemaErrors() { return []; }
     get valid() { return true; }
     validate(_data) { }
     get errors() { return []; }
-    setMap() {
-        this.errorMap = new Map();
+    get map() {
+        const logger = FzLogger.get("validation");
+        const map = new Map();
         for (const error of this.errors) {
             let { instancePath, message, params, keyword } = error;
             // required applies to object must down the error to child
@@ -5094,12 +5093,13 @@ class Validator {
                 instancePath = `${instancePath === '/' ? '' : ''}/${params.missingProperty}`;
                 message = "required";
             }
-            if (!this.errorMap.has(instancePath))
-                this.errorMap.set(instancePath, []);
+            if (!map.has(instancePath))
+                map.set(instancePath, []);
             //const detail =Object.entries(params).map(([s,v]) => v == null ? null : `${s}: ${v}`).filter(v => v).join(',')
-            this.errorMap.get(instancePath)?.push(message ?? "unidentified error");
+            map.get(instancePath)?.push(message ?? "unidentified error");
+            logger.debug('% -> %s', instancePath, message);
         }
-        return this.errorMap;
+        return map;
     }
     // AJV library loader 
     static get loaded() {
@@ -5152,7 +5152,6 @@ class AjvValidator extends Validator {
     validate(value) {
         this.dataParser(value);
         Ajvi18n(this.dataParser.errors);
-        this.setMap();
     }
     get errors() { return this.dataParser.errors ?? []; }
 }
@@ -6297,6 +6296,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     asset;
     fieldMap = new Map();
     schemaMap = new Map();
+    errorMap = new Map();
     submitted = false;
     bootstrap = false;
     useAjv = false;
@@ -6323,7 +6323,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     onvalidate = null;
     ondismiss = null;
     compiledSchema = DEFAULT_SCHEMA;
-    validator;
+    validator = new DefaultValidator(DEFAULT_SCHEMA);
     message = "";
     constructor() {
         super();
@@ -6338,8 +6338,9 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     }
     get root() { return this.i_root.content; }
     get valid() {
-        this.validator?.validate(this.root);
-        return this.validator?.valid;
+        this.validator.validate(this.root);
+        this.errorMap = this.validator.map;
+        return this.validator.valid;
     }
     get schema() { return this.compiledSchema; }
     set schema(value) {
@@ -6372,10 +6373,10 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     get data() { return JSON.parse(JSON.stringify(this.root)); }
     set data(value) {
         // dont accept data before having a valid Schema
-        if (!this.validator?.schemaValid)
+        if (!this.validator.schemaValid)
             return;
-        // TBD data must be valid (if checkin option is true)
-        this.validator?.validate(value);
+        const valid = this.valid;
+        if (!valid && this.checkIn) ;
         this.i_root.content = value;
         this.compile();
         this.requestUpdate();
@@ -6425,7 +6426,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     render() {
         if (!Base.isBootStrapLoaded())
             return 'Bootstrap not loaded...';
-        return this.validator?.schemaValid ? this.renderForm() : this.renderError();
+        return this.validator.schemaValid ? this.renderForm() : this.renderError();
     }
     renderForm() {
         return x `
@@ -6444,17 +6445,17 @@ let FzForm = FzForm_1 = class FzForm extends Base {
             </div>`;
     }
     renderError() {
-        if (this.validator?.schemaValid && this.validator?.valid)
+        if (this.validator.schemaValid && this.validator?.valid)
             return x ``;
         const formatError = (e) => x `<li>property : ${(e.dataPath == undefined) ? e.instancePath : e.dataPath} : ${e.keyword} ➜ ${e.message}</li>`;
         return [
             x `<hr>`,
-            !this.validator?.schemaValid ? x `<pre><ol> Schema errors : ${this.validator?.schemaErrors.map(formatError)} </ol></pre>` : x ``,
-            !this.validator?.valid ? x `<pre><ol> Data errors : ${this.validator?.errors.map(formatError)} </ol></pre>` : x ``
+            !this.validator.schemaValid ? x `<pre><ol> Schema errors : ${this.validator.schemaErrors.map(formatError)} </ol></pre>` : x ``,
+            !this.validator.valid ? x `<pre><ol> Data errors : ${this.validator.errors.map(formatError)} </ol></pre>` : x ``
         ];
     }
     errors(pointer) {
-        return this.validator?.errorMap.get(pointer) ?? [];
+        return this.errorMap.get(pointer) ?? [];
     }
     connectedCallback() {
         super.connectedCallback();
@@ -6491,16 +6492,8 @@ let FzForm = FzForm_1 = class FzForm extends Base {
         this.check();
     }
     check() {
-        // collect errors and dispatch error on fields (registered in this.fieldMap)
+        // collect errors and trigger valid/invalid event 
         const validated = this.valid;
-        const errorMap = this.validator?.errorMap;
-        // dispatch all errors over the fields 
-        for (const [pointer, field] of this.fieldMap.entries()) {
-            const logger = FzLogger.get("validation", { field, schema: field.schema });
-            // if field is not touched (not manually updated) valid/invalid not displayed
-            field.errors = errorMap?.get(pointer) ?? [];
-            logger.debug(' %s %s', field.valid ? "✅" : "❌", field.touched ? '(dirty)' : '');
-        }
         const event = new CustomEvent(validated ? "data-valid" : "data-invalid");
         this.dispatchEvent(event);
     }
@@ -6524,6 +6517,9 @@ let FzForm = FzForm_1 = class FzForm extends Base {
         evt.stopPropagation();
         this.submitted = true;
         this.check();
+        for (const field of this.fieldMap.values()) {
+            field.requestUpdate();
+        }
         const event = new CustomEvent('validate');
         this.dispatchEvent(event);
     }

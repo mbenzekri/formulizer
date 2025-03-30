@@ -79,7 +79,7 @@ export abstract class FzEnumBase extends FzInputBase {
                 this.fetchEnum()
                 .then(
                     (enums) => (this.enums = enums, this.requestUpdate()),  
-                    (err) => (this.errors=[String(err)])
+                    (err) => (this.localError=String(err))
                 )
                 break
             default: 

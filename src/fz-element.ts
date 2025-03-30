@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { property } from "lit/decorators.js"
+import { property, state } from "lit/decorators.js"
 import { html, css, TemplateResult, PropertyValues } from "lit"
-import { derefPointerData, isEmptyValue, newValue, getSchema, closestAscendantFrom, isFunction, notNull, isArray } from "./lib/tools"
+import { derefPointerData, isEmptyValue, newValue, getSchema, closestAscendantFrom, isFunction, notNull, isArray, isNull } from "./lib/tools"
 import { Pojo } from "./lib/types"
 import { FzForm } from "./fz-form"
 import { Base } from "./base"
@@ -50,12 +50,16 @@ export abstract class FzField extends Base {
     @property({ type: String }) accessor name: string | null = null
     @property({ type: Number }) accessor index: number | null = null
     @property({ type: Boolean, attribute:false}) accessor dirty = false
-    @property({ type: Array, attribute:false}) accessor errors: string[] = []
     @property({ attribute: false }) accessor collapsed = false
-    
+    @state() 
+    get errors(): string[] {
+        return this.localError ? [this.localError,...this.form?.errors(this.pointer)] : this.form?.errors(this.pointer)
+    }
+
     //private _initdone = false
     private _dofocus = false
     private _form?: FzForm
+    protected localError?: string
 
     abstract renderField(): TemplateResult;
     abstract renderField(): TemplateResult;
@@ -63,11 +67,12 @@ export abstract class FzField extends Base {
     abstract toValue(): void;
 
     get valid() {
-        return (this.errors?.length ?? 0) === 0
+        return this.errors.length === 0 && isNull(this.localError)
     }
     get invalid() {
-        return (this.errors?.length ?? 0) > 0
+        return this.errors.length > 0 || notNull(this.localError)
     }
+
     /** A field is touched if really modified (dirty) or submission by for done */
     get touched() {
         return this.dirty || this.form?.submitted
@@ -95,7 +100,6 @@ export abstract class FzField extends Base {
     set value(value: any) {
         if (value === this.value) return
         this.cascadeValue(value)
-        this.errors = []
         this.form?.check()
     }
 
@@ -453,7 +457,6 @@ export abstract class FzField extends Base {
         this.name = undefined as any
         this.index = undefined as any
         this.dirty = undefined as any
-        this.errors = undefined as any
         this._dofocus = undefined as any
         this._form = undefined as any
     }

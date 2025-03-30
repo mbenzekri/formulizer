@@ -58,15 +58,15 @@ export interface ValidateFunction {
 
 export class Validator {
 
-    errorMap: Map<string,string[]> = new Map()
     get schemaValid() { return true }
     get schemaErrors():ValidationError[] { return [] }
     get valid() { return true }
     validate(_data: any):void {}
     get errors():ValidationError[] { return [] }
 
-    setMap() {
-        this.errorMap=new Map<string,string[]>()
+    get map() {
+        const logger = FzLogger.get("validation")
+        const map=new Map<string,string[]>()
         for (const error of this.errors) {
             let { instancePath, message, params, keyword } = error;
             // required applies to object must down the error to child
@@ -74,11 +74,14 @@ export class Validator {
                 instancePath = `${instancePath === '/' ? '' : ''}/${params.missingProperty}`
                 message = "required"
             }
-            if (!this.errorMap.has(instancePath)) this.errorMap.set(instancePath, [])
+            if (!map.has(instancePath)) map.set(instancePath, [])
             //const detail =Object.entries(params).map(([s,v]) => v == null ? null : `${s}: ${v}`).filter(v => v).join(',')
-            this.errorMap.get(instancePath)?.push(message ?? "unidentified error")
+            map.get(instancePath)?.push(message ?? "unidentified error")
+            logger.debug('% -> %s', instancePath, message)
         }
-        return this.errorMap
+
+        
+        return map
     }
 
     // AJV library loader 
@@ -138,8 +141,7 @@ export class AjvValidator extends Validator {
     override get valid() { return (this.dataParser.errors?.length ?? 0) == 0  }
     override validate(value: any): void {
         this.dataParser(value)
-        Ajvi18n(this.dataParser.errors)
-        this.setMap()
+        Ajvi18n(this.dataParser.errors)        
     }
     override get errors():ValidationError[] { return this.dataParser.errors ?? [] }
 

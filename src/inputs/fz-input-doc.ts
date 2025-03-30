@@ -170,8 +170,8 @@ export class FzInputDoc extends FzInputBase {
             if (doc) {
                 this.set(this.value, doc.blob, doc.filename)
             } else {
-                //this.valid = false
-                this.errors = ["document not found"]
+                this.dirty = true
+                this.localError = "document not found"
             }
         }
     }
