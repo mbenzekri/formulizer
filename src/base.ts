@@ -172,4 +172,22 @@ export class Base extends LitElement {
             .filter(sheet => !this.shadowRoot?.adoptedStyleSheets.includes(sheet))
             .forEach(sheet => this.shadowRoot?.adoptedStyleSheets.push(sheet))
     }
+
+    /**
+     * find in the ancestors of an element a webcomponent matching a given selector
+     * @param selector selector to matching the searched element
+     * @param el element from which to start searching  
+     * @returns Element corresponding to selector, null otherwise
+     */
+
+    queryClosest<T>(selector: string,item: Element = this): T | null {
+        if (item instanceof Element) {
+            const elem = item.assignedSlot ?? item
+            const found = elem.closest(selector) as T | null
+            const parent = (elem.getRootNode() as ShadowRoot).host
+            return found ??  this.queryClosest<T>(selector, parent);
+        }
+        return null
+    }
+
 }

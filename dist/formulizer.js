@@ -152,21 +152,6 @@ function union(sets) {
     return sets.reduce((acc, set) => new Set([...acc, ...set]), new Set());
 }
 /**
- * find in the ancestors of an element a webcomponent matching a given selector
- * @param selector selector to matching the searched element
- * @param el element from which to start searching
- * @returns Element corresponding to selector, null otherwise
- */
-function closestAscendantFrom(selector, item) {
-    if (item instanceof Element) {
-        const elem = item.assignedSlot ?? item;
-        const found = elem.closest(selector);
-        const parent = elem.getRootNode().host;
-        return found ?? closestAscendantFrom(selector, parent);
-    }
-    return null;
-}
-/**
  * get the data corresponding to a jsonpointer (absolute or relative)
  * @param root root data for absolute pointer
  * @param parent current data for relative pointer
@@ -428,6 +413,21 @@ class Base extends r$1 {
         Base.sheets
             .filter(sheet => !this.shadowRoot?.adoptedStyleSheets.includes(sheet))
             .forEach(sheet => this.shadowRoot?.adoptedStyleSheets.push(sheet));
+    }
+    /**
+     * find in the ancestors of an element a webcomponent matching a given selector
+     * @param selector selector to matching the searched element
+     * @param el element from which to start searching
+     * @returns Element corresponding to selector, null otherwise
+     */
+    queryClosest(selector, item = this) {
+        if (item instanceof Element) {
+            const elem = item.assignedSlot ?? item;
+            const found = elem.closest(selector);
+            const parent = elem.getRootNode().host;
+            return found ?? this.queryClosest(selector, parent);
+        }
+        return null;
     }
 }
 
@@ -839,10 +839,9 @@ const t$1={ATTRIBUTE:1,CHILD:2},e$2=t=>(...e)=>({_$litDirective$:t,values:e});le
  * @prop required
  */
 class FzField extends Base {
-    //private _initdone = false
-    _dofocus = false;
-    _form;
+    form;
     localError;
+    _dofocus = false;
     #pointer_accessor_storage = '/';
     get pointer() { return this.#pointer_accessor_storage; }
     set pointer(value) { this.#pointer_accessor_storage = value; }
@@ -867,12 +866,11 @@ class FzField extends Base {
     get errors() {
         return this.localError ? [this.localError, ...this.form?.errors(this.pointer)] : this.form?.errors(this.pointer);
     }
-    get form() {
-        if (this._form)
-            return this._form;
-        this._form = closestAscendantFrom("fz-form", this);
-        return this._form;
-    }
+    // get form(): FzForm {
+    //     if (this._form) return this._form
+    //     this._form = closestAscendantFrom("fz-form", this) as FzForm;
+    //     return this._form
+    // }
     get valid() {
         return this.errors.length === 0 && isNull(this.localError);
     }
@@ -1141,62 +1139,14 @@ class FzField extends Base {
             return x `<i class="bi bi-chevron-down"></i>`;
         return x `<i class="bi bi-chevron-up"></i>`;
     }
-    /**
-     * render an item of this field
-     * - item may be property of object (property name found in this.name)
-     * - item may be element of array (array index found in this.index)
-     *
-     * only one of them (this.name or this.index is valued).
-     * this method is used by composed fields (fz-array and fz-object)
-     * @param key
-     */
-    renderItem(schema, key) {
-        let name = null;
-        let index = null;
-        if (!this.schema)
-            return x ``;
-        if (typeof key === 'string')
-            name = key;
-        if (typeof key === 'number')
-            index = key;
-        const data = (this.data == null) ? null : this.data[this.key];
-        switch (schema.field) {
-            case 'fz-enum-select': return x `<fz-enum-select .pointer="${this.pointer}/${key}" .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-select>`;
-            case 'fz-enum-check': return x `<fz-enum-check .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-check>`;
-            case "fz-date": return x `<fz-date .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-date>`;
-            case "fz-time": return x `<fz-time .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-time>`;
-            case "fz-datetime": return x `<fz-datetime .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-datetime>`;
-            case "fz-textarea": return x `<fz-textarea .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-textarea>`;
-            case "fz-string": return x `<fz-string .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-string>`;
-            case "fz-mask": return x `<fz-mask .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-mask>`;
-            case "fz-asset": return x `<fz-asset .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-asset>`;
-            case "fz-signature": return x `<fz-signature .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-signature>`;
-            case "fz-boolean": return x `<fz-boolean .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-boolean>`;
-            case "fz-float": return x `<fz-float .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-float>`;
-            case "fz-integer": return x `<fz-integer .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-integer>`;
-            case "fz-range": return x `<fz-range .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-range>`;
-            case "fz-location": return x `<fz-location .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-location>`;
-            case "fz-array": return x `<fz-array .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-array>`;
-            case "fz-object": return x ` <fz-object .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-object>`;
-            case "fz-const": return x ` <fz-const .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-const>`;
-            case "fz-enum-array": return x ` <fz-enum-array .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-array>`;
-            case "fz-doc": return x ` <fz-doc .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-doc>`;
-            case "fz-uuid": return x ` <fz-uuid .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-uuid>`;
-            case "fz-markdown": return x ` <fz-markdown .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-markdown>`;
-            case "fz-enum-typeahead": return x ` <fz-enum-typeahead .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-typeahead>`;
-            case "fz-color": return x ` <fz-color .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-color>`;
-            case 'fz-error':
-            default: return x `<div class="alert alert-warning" role="alert">field name=${name} type ${schema.basetype}/${schema.field} not implemented !</div>`;
-        }
-    }
     // lit overridings 
     // ---------------
     connectedCallback() {
         super.connectedCallback();
+        this.form = this.queryClosest("fz-form");
         this.form?.addField(this.schema.pointer, this.pointer, this);
     }
     disconnectedCallback() {
-        console.log(`${this.pointer} disconnected`);
         super.disconnectedCallback();
         this.form?.removeField(this.schema.pointer, this.pointer);
         this.pointer = undefined;
@@ -1206,7 +1156,6 @@ class FzField extends Base {
         this.index = undefined;
         this.dirty = undefined;
         this._dofocus = undefined;
-        this._form = undefined;
     }
     /**
      * before each update
@@ -1224,7 +1173,6 @@ class FzField extends Base {
     }
     firstUpdated(_changedProperties) {
         super.firstUpdated(_changedProperties);
-        //this.toField()
         this.form?.check();
     }
     /**
@@ -3536,6 +3484,54 @@ class FZCollection extends FzField {
             <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
                 <div>${label}</div>
             </label>`;
+    }
+    /**
+     * render an item of this field
+     * - item may be property of object (property name found in this.name)
+     * - item may be element of array (array index found in this.index)
+     *
+     * only one of them (this.name or this.index is valued).
+     * this method is used by composed fields (fz-array and fz-object)
+     * @param key
+     */
+    renderItem(schema, key) {
+        let name = null;
+        let index = null;
+        if (!this.schema)
+            return x ``;
+        if (typeof key === 'string')
+            name = key;
+        if (typeof key === 'number')
+            index = key;
+        const data = (this.data == null) ? null : this.data[this.key];
+        switch (schema.field) {
+            case 'fz-enum-select': return x `<fz-enum-select .pointer="${this.pointer}/${key}" .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-select>`;
+            case 'fz-enum-check': return x `<fz-enum-check .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-check>`;
+            case "fz-date": return x `<fz-date .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-date>`;
+            case "fz-time": return x `<fz-time .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-time>`;
+            case "fz-datetime": return x `<fz-datetime .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-datetime>`;
+            case "fz-textarea": return x `<fz-textarea .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-textarea>`;
+            case "fz-string": return x `<fz-string .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-string>`;
+            case "fz-mask": return x `<fz-mask .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-mask>`;
+            case "fz-asset": return x `<fz-asset .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-asset>`;
+            case "fz-signature": return x `<fz-signature .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-signature>`;
+            case "fz-boolean": return x `<fz-boolean .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-boolean>`;
+            case "fz-float": return x `<fz-float .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-float>`;
+            case "fz-integer": return x `<fz-integer .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-integer>`;
+            case "fz-range": return x `<fz-range .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-range>`;
+            case "fz-location": return x `<fz-location .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-location>`;
+            case "fz-array": return x `<fz-array .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-array>`;
+            case "fz-object": return x ` <fz-object .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-object>`;
+            case "fz-const": return x ` <fz-const .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-const>`;
+            case "fz-enum-array": return x ` <fz-enum-array .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-array>`;
+            case "fz-doc": return x ` <fz-doc .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-doc>`;
+            case "fz-uuid": return x ` <fz-uuid .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-uuid>`;
+            case "fz-markdown": return x ` <fz-markdown .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-markdown>`;
+            case "fz-enum-typeahead": return x ` <fz-enum-typeahead .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-typeahead>`;
+            case "fz-color": return x ` <fz-color .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-color>`;
+            case 'fz-error':
+            default: return x `<div class="alert alert-warning" role="alert">field name=${name} type ${schema.basetype}/${schema.field} not implemented !</div>`;
+        }
     }
     delete() {
         if (this.collapsed !== null)
