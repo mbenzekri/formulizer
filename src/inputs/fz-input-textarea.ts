@@ -2,7 +2,7 @@
 import { customElement} from "lit/decorators.js"
 import {  html } from "lit"
 import {ifDefined} from 'lit/directives/if-defined.js';
-import { notNull } from "../lib/tools"
+import { isString, notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base";
 
 /**
@@ -21,29 +21,26 @@ export class FzInputTextarea extends FzInputBase {
     }
     override toValue(): void {
         if (notNull(this.input)) {
-            this.value = notNull(this.input.value) ? this.input.value : undefined
+            this.value = isString(this.input.value,true) ? this.input.value : undefined
         }
     }
 
     renderInput() {
         return html`
             <textarea  
-                class="form-control ${this.validation}" 
                 id="input"
-                placeholder="${ifDefined(this.label)}"
-                .value="${this.value}" 
                 ?readonly="${this.readonly}"
-                @input="${this.change}"
-                @keypress="${this.change}"
+                ?required="${this.required}"
+                placeholder="${ifDefined(this.label)}"
                 minlength="${ifDefined(this.minlength)}"
                 maxlength="${ifDefined(this.maxlength)}"
-                ?required="${this.required}"
+                @input="${this.change}"
+                @keypress="${this.change}"
                 rows="5"
+                class="form-control ${this.validation}" 
             ></textarea>`
     }
     get minlength() { return this.schema?.minLength }
     get maxlength() { return this.schema?.maxLength }
     get pattern() { return this.schema?.pattern }
-    //get password() {return !!this.schema.options?.password }
-
 }

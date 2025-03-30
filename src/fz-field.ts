@@ -304,10 +304,9 @@ export abstract class FzField extends Base {
      * render method for this field component (calls renderField() abstract rendering method)
      */
     override render() {
+        if (!this.visible) return ''
         this.toField()
-        return html`
-            <div class="space-before">${this.renderField()}</div>
-        `
+        return html`<div class="space-before">${this.renderField()}</div>`
     }
 
     renderErrors() {
@@ -416,7 +415,6 @@ export abstract class FzField extends Base {
     // lit overridings 
     // ---------------
     override connectedCallback() {
-        console.log (`${this.pointer} connected`)
         super.connectedCallback()
         this.form?.addField(this.schema.pointer, this.pointer, this)
     }

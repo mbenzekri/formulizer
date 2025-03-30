@@ -27,7 +27,7 @@
         }
         window.onload = async () => {
             //FzLogger.set("DEBUG", "validation", "tracker", "compilation", "input", "data-update","bootstrap")
-            FzLogger.set("DEBUG","trace")
+            FzLogger.set("DEBUG", "tracker")
             const form = document.getElementById("myform")
             const feedback = document.getElementById("mydata")
             const output = () => feedback.innerHTML = `${form.valid ? "valid" : "invalid"} =>${JSON.stringify(form.data)}`
@@ -36,19 +36,38 @@
             form.addEventListener("data-invalid", output)
             form.schema = {
                 "type": "object",
-                "title": "Array",
+                "title": "Oh no! Thinking of leaving?",
+                "abstract": "",
                 "properties": {
-                    "array": {
-                        "type": "array",
-                        "minItems" : 3,
-                        "title": "an array",
-                        "items": {
-                            "type": "string",
-                        },
+                    "reason": {
+                        "type": "string",
+                        "title": "Help us improve",
+                        "enum": ["Doesn’t fit my needs", "Too expensive", "I don’t need it anymore", "other"],
+                        "default": "Doesn’t fit my needs"
+                    },
+                    "comment": {
+                        "type": "string",
+                        "title": "Tell us more",
+                        "maxLength": 500,
+                        "visible": "$`1/reason` === 'other'"
+                    },
+                    "offer": {
+                        "type": "string",
+                        "format": "markdown",
+                        "expression": [
+                            "## 🎁 Offer...",
+                            "**We’d love to keep you! Here’s a special 50% discount just for you.**",
+                            "## $$$..."
+                        ],
+                        "visible": "$`1/reason` === 'Too expensive'",
+                        "transient": true
                     }
                 }
             }
-            form.data = { array:[] }
+
+            form.data = {
+                "reason": "Doesn’t fit my needs"
+            }
             output()
         }
     </script>

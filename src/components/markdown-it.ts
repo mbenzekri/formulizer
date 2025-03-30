@@ -133,10 +133,10 @@ export class FzMarkdownIt extends Base {
     protected override async firstUpdated(_changedProperties: PropertyValues): Promise<void> {
         super.firstUpdated(_changedProperties)
     }
-    override async render() {
+    override render() {
         if (MD) {
             const rendered = MD.render(this.markdown)
-            return unsafeHTML(rendered)
+            return html`${unsafeHTML(rendered)}`
 
         } else {
             return html`<div> Loading ...</div>`

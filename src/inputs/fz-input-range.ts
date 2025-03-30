@@ -80,7 +80,6 @@ export class FzRange extends FzInputBase {
                 <input 
                     id="input" 
                     type="range"  
-                    .value="${this.value}" 
                     ?disabled="${this.readonly}"
                     ?readonly="${this.readonly}"
                     @input="${this.change}"

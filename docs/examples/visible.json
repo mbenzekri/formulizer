@@ -20,9 +20,8 @@
                 "type": "string",
                 "format": "markdown",
                 "expression": [
-                    "## $$$...",
-                    "**We’d love to keep you! Here’s a special 50% discount just for you.**",
-                    "## $$$..."
+                    "## 🎁 Offer...",
+                    "**We’d love to keep you! Here’s a special 50% discount just for you.**"
                 ],
                 "visible": "$`1/reason` === 'Too expensive'",
                 "transient": true

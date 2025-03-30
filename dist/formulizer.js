@@ -1093,10 +1093,10 @@ class FzField extends Base {
      * render method for this field component (calls renderField() abstract rendering method)
      */
     render() {
+        if (!this.visible)
+            return '';
         this.toField();
-        return x `
-            <div class="space-before">${this.renderField()}</div>
-        `;
+        return x `<div class="space-before">${this.renderField()}</div>`;
     }
     renderErrors() {
         if (!this.touched || this.valid)
@@ -1203,7 +1203,6 @@ class FzField extends Base {
     // lit overridings 
     // ---------------
     connectedCallback() {
-        console.log(`${this.pointer} connected`);
         super.connectedCallback();
         this.form?.addField(this.schema.pointer, this.pointer, this);
     }
@@ -2089,23 +2088,22 @@ let FzInputTextarea = class FzInputTextarea extends FzInputBase {
     }
     toValue() {
         if (notNull(this.input)) {
-            this.value = notNull(this.input.value) ? this.input.value : undefined;
+            this.value = isString(this.input.value, true) ? this.input.value : undefined;
         }
     }
     renderInput() {
         return x `
             <textarea  
-                class="form-control ${this.validation}" 
                 id="input"
-                placeholder="${o(this.label)}"
-                .value="${this.value}" 
                 ?readonly="${this.readonly}"
-                @input="${this.change}"
-                @keypress="${this.change}"
+                ?required="${this.required}"
+                placeholder="${o(this.label)}"
                 minlength="${o(this.minlength)}"
                 maxlength="${o(this.maxlength)}"
-                ?required="${this.required}"
+                @input="${this.change}"
+                @keypress="${this.change}"
                 rows="5"
+                class="form-control ${this.validation}" 
             ></textarea>`;
     }
     get minlength() { return this.schema?.minLength; }
@@ -2767,7 +2765,6 @@ let FzRange = class FzRange extends FzInputBase {
                 <input 
                     id="input" 
                     type="range"  
-                    .value="${this.value}" 
                     ?disabled="${this.readonly}"
                     ?readonly="${this.readonly}"
                     @input="${this.change}"
@@ -3431,10 +3428,10 @@ let FzMarkdownIt = class FzMarkdownIt extends Base {
     async firstUpdated(_changedProperties) {
         super.firstUpdated(_changedProperties);
     }
-    async render() {
+    render() {
         if (MD) {
             const rendered = MD.render(this.markdown);
-            return o$2(rendered);
+            return x `${o$2(rendered)}`;
         }
         else {
             return x `<div> Loading ...</div>`;
@@ -6104,7 +6101,7 @@ class CSBool extends CompilationStep {
         this.defaultFunc = defunc;
     }
     appliable(schema) {
-        return this.property in schema;
+        return this.property in schema && !isFunction(schema[this.property]);
     }
     apply(schema, _parent, name) {
         const expression = schema[this.property];

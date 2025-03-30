@@ -767,7 +767,7 @@ class CSBool extends CompilationStep {
         this.defaultFunc = defunc
     }
     override appliable(schema: Schema) {
-        return this.property in schema
+        return this.property in schema && !isFunction(schema[this.property])
     }
     override apply(schema: Schema, _parent: Schema, name: string) {
         const expression = schema[this.property]
