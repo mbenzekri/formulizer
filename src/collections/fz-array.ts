@@ -167,14 +167,12 @@ export class FzArray extends FZCollection {
      */
     private delBtn(index: number) {
         if (this.readonly) return ''
-        return html`
-            <button 
-                @click="${(evt: Event) => this.del(index, evt)}" 
-                type="button" 
-                style="float:right" 
-                class="btn-close" 
-                aria-label="Close">
-            </button>`
+        return html`<div 
+            @click="${(evt: Event) => this.del(index, evt)}" 
+            style="float:right;cursor: pointer;:" 
+            aria-label="Close">
+                <i class="bi bi-trash"></i>
+            </div>`
     }
 
     focusout() {

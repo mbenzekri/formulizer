@@ -3732,14 +3732,12 @@ let FzArray$1 = class FzArray extends FZCollection {
     delBtn(index) {
         if (this.readonly)
             return '';
-        return x `
-            <button 
-                @click="${(evt) => this.del(index, evt)}" 
-                type="button" 
-                style="float:right" 
-                class="btn-close" 
-                aria-label="Close">
-            </button>`;
+        return x `<div 
+            @click="${(evt) => this.del(index, evt)}" 
+            style="float:right;cursor: pointer;:" 
+            aria-label="Close">
+                <i class="bi bi-trash"></i>
+            </div>`;
     }
     focusout() {
         this.close();
