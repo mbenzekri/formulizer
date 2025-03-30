@@ -13,7 +13,7 @@ import "./inputs/fz-input-signature";
 import "./inputs/fz-input-boolean";
 import "./inputs/fz-input-float";
 import "./inputs/fz-input-range";
-import "./inputs/fz-input-location";
+import "./inputs/fz-input-geolocation";
 import "./inputs/fz-input-int";
 import "./inputs/fz-input-const";
 import "./inputs/fz-input-doc";

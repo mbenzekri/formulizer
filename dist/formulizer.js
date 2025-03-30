@@ -301,7 +301,34 @@ class Base extends r$1 {
             .line-before {
                 border-top: 1px solid gray;
             }
-    `
+            .invalid {
+                border: 1px solid rgba(220,53,69) !important;
+            }
+            .invalid:focus, input:out-of-range:focus {
+                box-shadow:0 0 0 .25rem rgba(220,53,69,.25);
+                border: 1px solid red !important;
+            }
+            .valid {
+                border: 1px solid rgba(25,135,84) !important;
+            }
+            .valid:focus {
+                box-shadow:0 0 0 .25rem rgba(25,135,84,.25) !important;
+                border: 1px solid green !important;
+            }
+            .error-message {
+                margin:0;
+                text-align: right;
+                font-size:small;
+                font-style: italic;
+                color: rgba(220,53,69);
+                float: right;
+            }
+            .error-truncated {
+                white-space: nowrap;
+                overflow:hidden !important;
+                text-overflow: ellipsis;
+            } 
+        `
     ];
     firstUpdated(_changedProperties) {
         this.adoptBootStrap();
@@ -330,6 +357,15 @@ class Base extends r$1 {
             item.target.removeEventListener(item.event, item.handler);
         }
         this.handlers = [];
+    }
+    /**
+     * preventDefault and stopPropagation on event (helper)
+     */
+    eventStop(event) {
+        if (!event)
+            return;
+        event.preventDefault();
+        event.stopPropagation();
     }
     // ------------------------------------------------------------------
     // user API to load external Bootstrap and Bootstap Icons (mandatory)
@@ -803,6 +839,10 @@ const t$1={ATTRIBUTE:1,CHILD:2},e$2=t=>(...e)=>({_$litDirective$:t,values:e});le
  * @prop required
  */
 class FzField extends Base {
+    //private _initdone = false
+    _dofocus = false;
+    _form;
+    localError;
     #pointer_accessor_storage = '/';
     get pointer() { return this.#pointer_accessor_storage; }
     set pointer(value) { this.#pointer_accessor_storage = value; }
@@ -827,24 +867,26 @@ class FzField extends Base {
     get errors() {
         return this.localError ? [this.localError, ...this.form?.errors(this.pointer)] : this.form?.errors(this.pointer);
     }
-    //private _initdone = false
-    _dofocus = false;
-    _form;
-    localError;
+    get form() {
+        if (this._form)
+            return this._form;
+        this._form = closestAscendantFrom("fz-form", this);
+        return this._form;
+    }
     get valid() {
         return this.errors.length === 0 && isNull(this.localError);
     }
     get invalid() {
         return this.errors.length > 0 || notNull(this.localError);
     }
-    /** A field is touched if really modified (dirty) or submission by for done */
+    /** A field is touched if really modified (dirty) or submission by user done */
     get touched() {
         return this.dirty || this.form?.submitted;
     }
     get validation() {
         return e$1({
-            "is-valid": this.dirty && this.valid,
-            "is-invalid": this.dirty && this.invalid
+            "is-valid": this.touched && this.valid,
+            "is-invalid": this.touched && this.invalid
         });
     }
     get isroot() {
@@ -869,10 +911,72 @@ class FzField extends Base {
     }
     get empty() { return this.schema._empty(); }
     get isempty() { return isEmptyValue(this.value); }
+    /*
+    * check if field is nullable
+    */
+    get nullable() {
+        if (this.schema.type === "null")
+            return true;
+        if (isArray(this.schema.type) && this.schema.type.includes("null"))
+            return true;
+        return this.schema.nullAllowed;
+    }
+    get key() {
+        return this.name ?? this.index ?? -1;
+    }
+    /**
+     * calculate label for this field
+     */
+    get label() {
+        // user may decide to remove label (title == "")
+        if (this.schema?.title === "")
+            return "";
+        // label for array items is an index poistion (one based)
+        if (this.isItem)
+            return String(this.index != null ? this.index + 1 : '-');
+        // label for properties is title or default to property name
+        return this.schema?.title ?? this.name ?? "";
+    }
+    /**
+     * return true if this field is item of array, false otherwise
+     */
+    get isItem() {
+        return (this.index != null);
+    }
+    /**
+     * return true if this field is property of object, false otherwise
+     */
+    get isProperty() {
+        return (this.name != null);
+    }
+    /**
+     * calculate a visible boolean state for this field
+     */
+    get visible() {
+        return this.data && this.schema.visible ? !!this.evalExpr("visible") : true;
+    }
+    /**
+     * calculate a required boolean state for this field
+     */
+    get required() {
+        let required = false;
+        if (this.isProperty && this.schema.requiredIf) {
+            required = this.evalExpr("requiredIf") ?? false;
+        }
+        return required;
+    }
+    /**
+     * calculate a readonly boolean state for this field
+     */
+    get readonly() {
+        if (!this.form)
+            return true;
+        if (this.form.readonly)
+            return true;
+        return (this.data && this.schema.readonly) ? this.evalExpr("readonly") : false;
+    }
     /**
      * this method is called for to update this.value (and must be done only here)
-     * @param value
-     * @returns
      */
     cascadeValue(value) {
         const schema = this.schema;
@@ -970,125 +1074,10 @@ class FzField extends Base {
         this.requestUpdate();
         return true;
     }
-    /*
-    * check if field is nullable
-    */
-    get nullable() {
-        if (this.schema.type === "null")
-            return true;
-        if (isArray(this.schema.type) && this.schema.type.includes("null"))
-            return true;
-        return this.schema.nullAllowed;
-    }
-    get key() {
-        return this.name ?? this.index ?? -1;
-    }
-    /**
-     * calculate label for this field
-     */
-    get label() {
-        // user may decide to remove label (title == "")
-        if (this.schema?.title === "")
-            return "";
-        // label for array items is an index poistion (one based)
-        if (this.isItem)
-            return String(this.index != null ? this.index + 1 : '-');
-        // label for properties is title or default to property name
-        return this.schema?.title ?? this.name ?? "";
-    }
-    /**
-     * return true if this field is item of array, false otherwise
-     */
-    get isItem() {
-        return (this.index != null);
-    }
-    /**
-     * return true if this field is property of object, false otherwise
-     */
-    get isProperty() {
-        return (this.name != null);
-    }
-    /**
-     * calculate a visible boolean state for this field
-     */
-    get visible() {
-        return this.data && this.schema.visible ? !!this.evalExpr("visible") : true;
-    }
-    /**
-     * calculate a required boolean state for this field
-     */
-    get required() {
-        let required = false;
-        if (this.isProperty && this.schema.requiredIf) {
-            required = this.evalExpr("requiredIf") ?? false;
-        }
-        return required;
-    }
-    /**
-     * calculate a readonly boolean state for this field
-     */
-    get readonly() {
-        if (!this.form)
-            return true;
-        if (this.form.readonly)
-            return true;
-        return (this.data && this.schema.readonly) ? this.evalExpr("readonly") : false;
-    }
-    // get pointer() { return pointerData(this.data,this.key) }
     /**
      * call for focus on next update for field
      */
     dofocus() { this._dofocus = true; }
-    /**
-    * preventDefault and stopPropagation on event (helper)
-    * @param event
-    */
-    eventStop(event) {
-        if (!event)
-            return;
-        event.preventDefault();
-        event.stopPropagation();
-    }
-    get form() {
-        if (this._form)
-            return this._form;
-        this._form = closestAscendantFrom("fz-form", this);
-        return this._form;
-    }
-    static get styles() {
-        return [
-            ...super.styles,
-            i$5 `
-            .invalid {
-                border: 1px solid rgba(220,53,69) !important;
-            }
-            .invalid:focus, input:out-of-range:focus {
-                box-shadow:0 0 0 .25rem rgba(220,53,69,.25);
-                border: 1px solid red !important;
-            }
-            .valid {
-                border: 1px solid rgba(25,135,84) !important;
-            }
-            .valid:focus {
-                box-shadow:0 0 0 .25rem rgba(25,135,84,.25) !important;
-                border: 1px solid green !important;
-            }
-            .error-message {
-                margin:0;
-                text-align: right;
-                font-size:small;
-                font-style: italic;
-                color: rgba(220,53,69);
-                float: right;
-            }
-            .error-truncated {
-                white-space: nowrap;
-                overflow:hidden !important;
-                text-overflow: ellipsis;
-            } 
-        `
-        ];
-    }
     /**
      * render method for this field component (calls renderField() abstract rendering method)
      */
@@ -1361,13 +1350,13 @@ __decorate([
     n$2({ type: Number })
 ], FzField.prototype, "index", null);
 __decorate([
-    n$2({ type: Boolean, attribute: false })
+    n$2({ attribute: false })
 ], FzField.prototype, "dirty", null);
 __decorate([
     n$2({ attribute: false })
 ], FzField.prototype, "collapsed", null);
 __decorate([
-    r$4()
+    n$2({ attribute: false })
 ], FzField.prototype, "errors", null);
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

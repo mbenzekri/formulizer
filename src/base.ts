@@ -29,7 +29,35 @@ export class Base extends LitElement {
             .line-before {
                 border-top: 1px solid gray;
             }
-    `]
+            .invalid {
+                border: 1px solid rgba(220,53,69) !important;
+            }
+            .invalid:focus, input:out-of-range:focus {
+                box-shadow:0 0 0 .25rem rgba(220,53,69,.25);
+                border: 1px solid red !important;
+            }
+            .valid {
+                border: 1px solid rgba(25,135,84) !important;
+            }
+            .valid:focus {
+                box-shadow:0 0 0 .25rem rgba(25,135,84,.25) !important;
+                border: 1px solid green !important;
+            }
+            .error-message {
+                margin:0;
+                text-align: right;
+                font-size:small;
+                font-style: italic;
+                color: rgba(220,53,69);
+                float: right;
+            }
+            .error-truncated {
+                white-space: nowrap;
+                overflow:hidden !important;
+                text-overflow: ellipsis;
+            } 
+        `]
+
 
     protected override firstUpdated(_changedProperties: PropertyValues): void {
         this.adoptBootStrap()
@@ -62,6 +90,16 @@ export class Base extends LitElement {
         }
         this.handlers = []
     }
+
+    /**
+     * preventDefault and stopPropagation on event (helper)
+     */
+    eventStop(event?: Event): void {
+        if (!event) return
+        event.preventDefault()
+        event.stopPropagation()
+    }
+
 
     // ------------------------------------------------------------------
     // user API to load external Bootstrap and Bootstap Icons (mandatory)

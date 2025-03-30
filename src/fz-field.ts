@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { property, state } from "lit/decorators.js"
-import { html, css, TemplateResult, PropertyValues } from "lit"
+import { property } from "lit/decorators.js"
+import { html, TemplateResult, PropertyValues } from "lit"
 import { derefPointerData, isEmptyValue, newValue, getSchema, closestAscendantFrom, isFunction, notNull, isArray, isNull } from "./lib/tools"
 import { Pojo } from "./lib/types"
 import { FzForm } from "./fz-form"
@@ -19,27 +19,32 @@ import { classMap } from "lit/directives/class-map.js"
  */
 export abstract class FzField extends Base {
 
-    @property({ type: String }) accessor pointer = '/'
-    @property({ type: Object }) accessor schema = EMPTY_SCHEMA
-    @property({ type: Object }) accessor data: any = {}
-    @property({ type: String }) accessor name: string | null = null
-    @property({ type: Number }) accessor index: number | null = null
-    @property({ type: Boolean, attribute:false}) accessor dirty = false
-    @property({ attribute: false }) accessor collapsed = false
-    @state() 
-    get errors(): string[] {
-        return this.localError ? [this.localError,...this.form?.errors(this.pointer)] : this.form?.errors(this.pointer)
-    }
+    abstract renderField(): TemplateResult;
+    abstract toField(): void;
+    abstract toValue(): void;
 
     //private _initdone = false
     private _dofocus = false
     private _form?: FzForm
     protected localError?: string
 
-    abstract renderField(): TemplateResult;
-    abstract renderField(): TemplateResult;
-    abstract toField(): void;
-    abstract toValue(): void;
+    @property({ type: String }) accessor pointer = '/'
+    @property({ type: Object }) accessor schema = EMPTY_SCHEMA
+    @property({ type: Object }) accessor data: any = {}
+    @property({ type: String }) accessor name: string | null = null
+    @property({ type: Number }) accessor index: number | null = null
+
+    @property({ attribute:false}) accessor dirty = false
+    @property({ attribute: false }) accessor collapsed = false
+    @property({ attribute: false }) get errors(): string[] {
+        return this.localError ? [this.localError,...this.form?.errors(this.pointer)] : this.form?.errors(this.pointer)
+    }
+
+    get form(): FzForm {
+        if (this._form) return this._form
+        this._form = closestAscendantFrom("fz-form", this) as FzForm;
+        return this._form
+    }
 
     get valid() {
         return this.errors.length === 0 && isNull(this.localError)
@@ -48,14 +53,14 @@ export abstract class FzField extends Base {
         return this.errors.length > 0 || notNull(this.localError)
     }
 
-    /** A field is touched if really modified (dirty) or submission by for done */
+    /** A field is touched if really modified (dirty) or submission by user done */
     get touched() {
         return this.dirty || this.form?.submitted
     }
     get validation() {
         return classMap({ 
-            "is-valid" : this.dirty && this.valid,
-            "is-invalid" : this.dirty && this.invalid
+            "is-valid" : this.touched && this.valid,
+            "is-invalid" : this.touched && this.invalid
         })
     }
 
@@ -82,10 +87,69 @@ export abstract class FzField extends Base {
     get empty() { return this.schema._empty() }
     get isempty() { return isEmptyValue(this.value) }
 
+    /*
+    * check if field is nullable
+    */
+    get nullable() {
+        if (this.schema.type === "null") return true
+        if (isArray(this.schema.type) &&  this.schema.type.includes("null")) return true
+        return this.schema.nullAllowed
+    }
+
+    get key(): string | number {
+        return this.name ?? this.index ?? -1
+    }
+    /**
+     * calculate label for this field
+     */
+    get label() {
+        // user may decide to remove label (title == "")
+        if (this.schema?.title === "") return ""
+        // label for array items is an index poistion (one based)
+        if (this.isItem) return String(this.index != null ? this.index + 1 : '-')
+        // label for properties is title or default to property name
+        return this.schema?.title ?? this.name ?? ""
+    }
+    /**
+     * return true if this field is item of array, false otherwise
+     */
+    get isItem() {
+        return (this.index != null)
+    }
+    /**
+     * return true if this field is property of object, false otherwise
+     */
+    get isProperty(): boolean {
+        return (this.name != null)
+    }
+    /**
+     * calculate a visible boolean state for this field 
+     */
+    get visible() {
+        return this.data && this.schema.visible ? !!this.evalExpr("visible") : true
+    }
+    /**
+     * calculate a required boolean state for this field 
+     */
+    get required() {
+        let required = false
+        if (this.isProperty && this.schema.requiredIf) {
+            required = this.evalExpr("requiredIf") ?? false
+        }
+        return required
+    }
+
+    /**
+     * calculate a readonly boolean state for this field 
+     */
+    get readonly(): boolean {
+        if (!this.form) return true
+        if (this.form.readonly) return true
+        return (this.data && this.schema.readonly) ? this.evalExpr("readonly") : false
+    }
+
     /**
      * this method is called for to update this.value (and must be done only here)
-     * @param value 
-     * @returns 
      */
     private cascadeValue(value: any) {
         const schema = this.schema
@@ -180,125 +244,11 @@ export abstract class FzField extends Base {
         return true
     }
 
-    /*
-    * check if field is nullable
-    */
-    get nullable() {
-        if (this.schema.type === "null") return true
-        if (isArray(this.schema.type) &&  this.schema.type.includes("null")) return true
-        return this.schema.nullAllowed
-    }
-
-    get key(): string | number {
-        return this.name ?? this.index ?? -1
-    }
-    /**
-     * calculate label for this field
-     */
-    get label() {
-        // user may decide to remove label (title == "")
-        if (this.schema?.title === "") return ""
-        // label for array items is an index poistion (one based)
-        if (this.isItem) return String(this.index != null ? this.index + 1 : '-')
-        // label for properties is title or default to property name
-        return this.schema?.title ?? this.name ?? ""
-    }
-    /**
-     * return true if this field is item of array, false otherwise
-     */
-    get isItem() {
-        return (this.index != null)
-    }
-    /**
-     * return true if this field is property of object, false otherwise
-     */
-    get isProperty(): boolean {
-        return (this.name != null)
-    }
-    /**
-     * calculate a visible boolean state for this field 
-     */
-    get visible() {
-        return this.data && this.schema.visible ? !!this.evalExpr("visible") : true
-    }
-    /**
-     * calculate a required boolean state for this field 
-     */
-    get required() {
-        let required = false
-        if (this.isProperty && this.schema.requiredIf) {
-            required = this.evalExpr("requiredIf") ?? false
-        }
-        return required
-    }
-
-    /**
-     * calculate a readonly boolean state for this field 
-     */
-    get readonly(): boolean {
-        if (!this.form) return true
-        if (this.form.readonly) return true
-        return (this.data && this.schema.readonly) ? this.evalExpr("readonly") : false
-    }
-
-
-    // get pointer() { return pointerData(this.data,this.key) }
-
-
     /**
      * call for focus on next update for field
      */
     dofocus() { this._dofocus = true }
-    /**
-    * preventDefault and stopPropagation on event (helper)
-    * @param event 
-    */
-    eventStop(event?: Event): void {
-        if (!event) return
-        event.preventDefault()
-        event.stopPropagation()
-    }
 
-
-    get form(): FzForm {
-        if (this._form) return this._form
-        this._form = closestAscendantFrom("fz-form", this) as FzForm;
-        return this._form
-    }
-
-    static override get styles() {
-        return [
-            ...super.styles,
-            css`
-            .invalid {
-                border: 1px solid rgba(220,53,69) !important;
-            }
-            .invalid:focus, input:out-of-range:focus {
-                box-shadow:0 0 0 .25rem rgba(220,53,69,.25);
-                border: 1px solid red !important;
-            }
-            .valid {
-                border: 1px solid rgba(25,135,84) !important;
-            }
-            .valid:focus {
-                box-shadow:0 0 0 .25rem rgba(25,135,84,.25) !important;
-                border: 1px solid green !important;
-            }
-            .error-message {
-                margin:0;
-                text-align: right;
-                font-size:small;
-                font-style: italic;
-                color: rgba(220,53,69);
-                float: right;
-            }
-            .error-truncated {
-                white-space: nowrap;
-                overflow:hidden !important;
-                text-overflow: ellipsis;
-            } 
-        `]
-    }
 
     /**
      * render method for this field component (calls renderField() abstract rendering method)
