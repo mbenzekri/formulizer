@@ -1,4 +1,4 @@
-import { css, CSSResult, LitElement, PropertyValues } from 'lit';
+import { css, CSSResult, html, LitElement, PropertyValues } from 'lit';
 import { isString } from './lib/tools';
 
 
@@ -10,8 +10,8 @@ const WOFF_URL = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/fonts
 type HandlerItem = { target: EventTarget, event: string, handler: (evt: Event) => void }
 export class Base extends LitElement {
 
-    private handlers: HandlerItem[] = []
-    static sheets: CSSStyleSheet[] = []
+    private static loaded = false
+    private static sheets: CSSStyleSheet[] = []
 
     static override styles: CSSResult[] = [
         css`body {
@@ -58,6 +58,11 @@ export class Base extends LitElement {
             } 
         `]
 
+    private handlers: HandlerItem[] = []
+
+    badge(value:number|string) {
+        return html`<span class="badge bg-primary badge-pill">${value}</span>`
+    }
 
     protected override firstUpdated(_changedProperties: PropertyValues): void {
         this.adoptBootStrap()
@@ -105,20 +110,22 @@ export class Base extends LitElement {
     // user API to load external Bootstrap and Bootstap Icons (mandatory)
     // ------------------------------------------------------------------
 
-    static async registerBootstrap(
+    static async loadBootstrap(
         bootstrap_url: CSSStyleSheet | string = BOOTSTRAP_URL,
         icons_url: CSSStyleSheet | string = ICONS_URL,
         woff_url: FontFace | string = WOFF_URL
     ): Promise<void> {
 
-        const logger = FzLogger.get("bootstrap")
-        logger.info("IN:registerBootstrap()")
+        if (Base.isBootStrapLoaded()) return;
+
+        const logger = FzLogger.get("lazy")
+        logger.info(">>> registerBootstrap()")
 
         let bootstrap_sheet: CSSStyleSheet
         if (isString(bootstrap_url)) {
             logger.info("Bootstrap CSS to be load from url: %s ", bootstrap_url)
             const bootstrapcss_text = await fetch(bootstrap_url)
-                .then(resp => resp.ok ? resp.text() : (console.error(`unable to load boootstrap css: ${String(resp.statusText)}`), ""))
+                .then(resp => resp.ok ? resp.text() : (console.error(`unable to load bootstrap css: ${String(resp.statusText)}`), ""))
                 .catch(e => (console.error(`unable to load boootstrap css: ${String(e)}`), ''))
             bootstrap_sheet = new CSSStyleSheet()
             bootstrap_sheet.replaceSync(bootstrapcss_text.replaceAll(':root', ':host, :root'))
@@ -156,11 +163,22 @@ export class Base extends LitElement {
 
         logger.info("Bootstrap fonts loaded")
         Base.sheets = [bootstrap_sheet, icons_sheet]
-        logger.info("OUT:registerBootstrap()")
+
+
+        //await new Promise((resolve,_) => setTimeout(() => resolve(null),10000))
+        Base.loaded = true
+
+        // bootstrap loading is async FzForm already inserted in dom must adopt and refresh
+        for (const item of document.getElementsByTagName("fz-form") as HTMLCollectionOf<Base>) {
+            logger.info("Adopting bootstrap to fz-form Element")
+            item.adoptBootStrap()
+        }
+        
+        logger.info("<<< registerBootstrap()")
 
     }
     static isBootStrapLoaded() {
-        return Base.sheets.length > 0
+        return Base.loaded
     }
     /**
      * called in firstUpdated to adopt Bootstrap style
@@ -171,10 +189,12 @@ export class Base extends LitElement {
         Base.sheets
             .filter(sheet => !this.shadowRoot?.adoptedStyleSheets.includes(sheet))
             .forEach(sheet => this.shadowRoot?.adoptedStyleSheets.push(sheet))
+        this.requestUpdate()
     }
 
     /**
      * find in the ancestors of an element a webcomponent matching a given selector
+     *  IMPORTANT: traverse Shadow DOM 
      * @param selector selector to matching the searched element
      * @param el element from which to start searching  
      * @returns Element corresponding to selector, null otherwise

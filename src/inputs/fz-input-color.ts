@@ -32,15 +32,6 @@ export class FzInputString extends FzInputBase {
         }
     }
 
-    // static override get styles() {
-    //     return [
-    //         ...super.styles,
-    //         css`
-    //         input[type="color"] {
-    //             height: 38px
-    //         }`
-    //     ]
-    // }
     renderInput() {
         return html`
             <div class="input-group ${this.validation}" >
@@ -72,13 +63,6 @@ export class FzInputString extends FzInputBase {
         };
     
         const hex = `${toHex(r)}${toHex(g)}${toHex(b)}`;
-    
-        // // Optionally handle alpha component
-        // if (a !== undefined) {
-        //     const alpha = Math.round(a * 255).toString(16);
-        //     return `#${hex}${alpha.length === 1 ? '0' + alpha : alpha}`;
-        // }
-    
         return `#${hex}`;
     }
 }

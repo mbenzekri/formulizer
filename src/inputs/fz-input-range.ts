@@ -82,13 +82,13 @@ export class FzRange extends FzInputBase {
                     type="range"  
                     ?disabled="${this.readonly}"
                     ?readonly="${this.readonly}"
+                    ?required="${this.required}"
                     @input="${this.change}"
                     min="${ifDefined(this.min)}"
                     max="${ifDefined(this.max)}"
                     step="1"
-                    ?required="${this.required}"
-                    class="form-control ${this.validation}"
                     autocomplete=off  spellcheck="false"
+                    class="form-control ${this.validation}"
                 />
                 <div class="input-group-append" style="max-width:5em" >
                     <span class="input-group-text" >${this.value}</span>
@@ -105,10 +105,5 @@ export class FzRange extends FzInputBase {
         if (isNumber(this.schema?.exclusiveMinimum)) return this.schema.exclusiveMinimum
         return
     }
-    keypress( ){
-        // if (!/[-0123456789]/.test(event.key)) return event.preventDefault();
-        // if (this.min >= 0 && event.key === '-') return event.preventDefault();
-        return
-   }
 
 }

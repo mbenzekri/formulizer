@@ -92,8 +92,7 @@ const enumHandler = (evt) =>  {
 
 // function to load and render provided name example
 const goto = async (name) => {
-    await FzLogger.set("DEBUG","validation","tracker","compilation","input","data-update")
-    await FzForm.registerBootstrap() // bootstrap loaded from CDN 
+    //await FzLogger.set("DEBUG","validation","tracker","compilation","input","data-update")
     const subject = name ?? "basic"
     if (subject) {
         tutodata = await fetch(`./examples/${subject}.json`).then(r => r.ok ? r.json() : defaultTuto).catch(() => defaultTuto)
@@ -114,5 +113,5 @@ const goto = async (name) => {
     }
 }
 // goto general page example (hello world)
-window.addEventListener('load', () => goto("README"))
+window.addEventListener('load', () => goto("general/whatis"))
 

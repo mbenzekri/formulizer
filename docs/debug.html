@@ -7,8 +7,7 @@
 </head>
 
 <body>
-
-    <fz-form id="myform" useajv usemarkdown bootstrap actions oninit=oninit onready=onready onvalidate=onvalidate
+    <fz-form id="myform" bootstrap  useajv usemarkdown actions oninit=oninit onready=onready onvalidate=onvalidate
         ondismiss=ondismiss></fz-form>
     <br>
     <pre id="mydata" lang=""></pre>
@@ -27,47 +26,19 @@
         }
         window.onload = async () => {
             //FzLogger.set("DEBUG", "validation", "tracker", "compilation", "input", "data-update","bootstrap")
-            FzLogger.set("DEBUG", "tracker")
+            //await FzForm.loadBootstrap()
+            //FzLogger.set("DEBUG", "lazy")
             const form = document.getElementById("myform")
             const feedback = document.getElementById("mydata")
             const output = () => feedback.innerHTML = `${form.valid ? "valid" : "invalid"} =>${JSON.stringify(form.data)}`
             form.addEventListener("update", output)
             form.addEventListener("data-valid", output)
             form.addEventListener("data-invalid", output)
-            form.schema = {
-                "type": "object",
-                "title": "Oh no! Thinking of leaving?",
-                "abstract": "",
-                "properties": {
-                    "reason": {
-                        "type": "string",
-                        "title": "Help us improve",
-                        "enum": ["Doesn’t fit my needs", "Too expensive", "I don’t need it anymore", "other"],
-                        "default": "Doesn’t fit my needs"
-                    },
-                    "comment": {
-                        "type": "string",
-                        "title": "Tell us more",
-                        "maxLength": 500,
-                        "visible": "$`1/reason` === 'other'"
-                    },
-                    "offer": {
-                        "type": "string",
-                        "format": "markdown",
-                        "expression": [
-                            "## 🎁 Offer...",
-                            "**We’d love to keep you! Here’s a special 50% discount just for you.**",
-                            "## $$$..."
-                        ],
-                        "visible": "$`1/reason` === 'Too expensive'",
-                        "transient": true
-                    }
-                }
-            }
-
-            form.data = {
-                "reason": "Doesn’t fit my needs"
-            }
+            const subject = window.location.hash.substring(1);
+            const deftuto = { form: { type: "object", "properties": {const: "failed to load"}},data:{}}
+            const tuto = await fetch(`./examples/${subject}.json`).then(r => r.ok ? r.json() : deftuto).catch(() => deftuto)
+            form.schema = tuto.form
+            form.data = tuto.data
             output()
         }
     </script>

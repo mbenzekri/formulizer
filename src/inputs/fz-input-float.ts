@@ -15,21 +15,6 @@ const DECIMAL_SEPARATOR = (1.1).toLocaleString().substring(1, 2)
 @customElement("fz-float")
 export class FzInputFloat extends FzInputBase {
 
-    override toField(): void {
-        if (notNull(this.input)) {
-            if (isNumber(this.value) ) {
-                this.input.valueAsNumber =  this.value 
-            } else {
-                this.input.value =  "" 
-            }
-        }
-    }
-    override toValue(): void {
-        if (notNull(this.input)) {
-            this.value = isNumber(this.input.valueAsNumber) ? this.input.valueAsNumber : undefined
-        }
-    }
-
     static override get styles() {
         return [
             ...super.styles,
@@ -45,6 +30,21 @@ export class FzInputFloat extends FzInputBase {
                 -moz-appearance: textfield;
             }`
         ]
+    }
+
+    override toField(): void {
+        if (notNull(this.input)) {
+            if (isNumber(this.value) ) {
+                this.input.valueAsNumber =  this.value 
+            } else {
+                this.input.value =  "" 
+            }
+        }
+    }
+    override toValue(): void {
+        if (notNull(this.input)) {
+            this.value = isNumber(this.input.valueAsNumber) ? this.input.valueAsNumber : undefined
+        }
     }
 
     renderInput() {

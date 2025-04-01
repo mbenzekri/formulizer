@@ -1,8 +1,8 @@
 
 
-## formulizer API
+## FzForm API
 
-Formulizer is a W3C-compliant web component:
+FzForm is a W3C-compliant web component:
 
 - load the bundle formulizer.js (dev env) or formulizer.min.js (prod env) 
 - the tag to be used is: `<fz-form ></fz-form>`

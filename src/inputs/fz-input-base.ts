@@ -30,6 +30,12 @@ export abstract class FzInputBase extends FzField {
     get input() {
         return (this.shadowRoot?.getElementById('input') as HTMLInputElement)
     }
+    
+    /**
+     * overide focus for all input based fields
+     */
+    override focus() { this.input?.focus() }
+
 
     override renderField(): TemplateResult {
         return html`
@@ -37,8 +43,8 @@ export abstract class FzInputBase extends FzField {
                 ${this.renderLabel()}
                 <div class="col-sm">${this.renderInput()}</div>
             </div>
-            ${this.renderErrors()}
-        `
+            <div class="row">${this.renderErrors()}</div>
+            `
     }
 
     /**
@@ -54,11 +60,6 @@ export abstract class FzInputBase extends FzField {
         this.input && (this.input.value = "")
         super.disconnectedCallback()
     }
-
-    /**
-     * overide focus for all input based fields
-     */
-    override focus() { this.input?.focus() }
 
     /**
      * trap F9 key down to log debug Field state
@@ -87,28 +88,4 @@ export abstract class FzInputBase extends FzField {
             this.eventStop(evt)
         }
     }
-
-    // override check() {
-        // const input = this.input
-        // if (!input) {
-        //     this.valid = false
-        //     this.message = ''
-        //     return
-        // }
-        // const validity = this.input.validity
-        // let countinvalid = 0
-        // let message = ''
-        // invalidkeys.forEach(key => {
-        //     if (key === 'valid') return
-        //     const keyinvalid = (validity as any)[key]
-        //     countinvalid += keyinvalid ? 1 : 0
-        //     if (keyinvalid) message = formatMsg(key, input)
-        // })
-        // this.valid = (countinvalid === 0)
-        //     || (countinvalid === 1 && validity.badInput && this.value == null && !this.required)
-        // this.message = this.valid ? '' : message
-        // this.input?.classList.add(this.valid ? 'valid' : 'invalid')
-        // this.input?.classList.remove(this.valid ? 'invalid' : 'valid')
-    // }
-
 }

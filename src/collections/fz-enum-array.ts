@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement } from "lit/decorators.js"
-import { html, TemplateResult } from "lit"
+import { css, html, TemplateResult } from "lit"
 import { repeat } from "lit/directives/repeat.js"
 import { FZCollection } from "./fz-collection";
 import { Pojo } from "../lib/types";
@@ -14,13 +14,24 @@ import { Pojo } from "../lib/types";
 @customElement("fz-enum-array")
 export class FzArray extends FZCollection {
 
+    static override get styles() {
+        return [
+            ...super.styles,
+            css`
+                ul {
+                    max-height: 300px; 
+                    overflow-y: scroll
+                }
+            `
+        ]
+    }
     override toField(): void {
         // all is done at rendering
     }
     override toValue(): void {
         // items are updated but array reference doesn't change 
     }
-    protected override renderCollapsed(): TemplateResult {
+    override renderCollapsed(): TemplateResult {
         return this.renderField()
     }
     override renderField(): TemplateResult {
@@ -28,51 +39,26 @@ export class FzArray extends FZCollection {
             <div class="form-group row">
                 ${this.renderLabel()}
                 <div class="col-sm">
-                    <ul id="content" class="list-group"   style="max-height: 300px; overflow-y: scroll">
-                            ${repeat(this.getItems(), (item: any) => item, (item: any) =>
-            html`
-                                    <li class="list-group-item">
-                                        <div>
-                                            <input
-                                                class="form-check-input"
-                                                type="checkbox"
-                                                ?disabled="${this.readonly ? true : false}"
-                                                ?checked="${this.value?.includes(item.value)}"
-                                                @click="${() => this.toggleItem(item.value)}"
-                                                autocomplete=off  spellcheck="false"/>
-                                            <label class="form-check-label">${item.label}</label>
-                                        </div>
-                                    </li>
-                                `)}
+                    <ul id="content" class="list-group" >
+                        ${repeat(this.getItems(), (item: any) => item, (item: any) => 
+                            html`
+                                <li class="list-group-item">
+                                    <div>
+                                        <input
+                                            type="checkbox"
+                                            ?disabled="${this.readonly}"
+                                            ?checked="${this.value?.includes(item.value)}"
+                                            @click="${() => this.toggleItem(item.value)}"
+                                            class="form-check-input"
+                                            autocomplete=off  spellcheck="false"
+                                        />
+                                        <label class="form-check-label">${item.label}</label>
+                                    </div>
+                                </li>`
+                        )}
                     </ul>
                 </div>
             </div>`
-    }
-
-    //override check() {
-        //     if (!this.validator) return
-        //     this.valid = true
-        //     this.message = ''
-        //     switch (true) {
-        //         case (this.required && this.value == undefined):
-        //             this.valid = false
-        //             this.message = formatMsg('valueMissing')
-        //             break
-        //         case !this.required && this.value == undefined:
-        //             break
-        //         default:
-        //             this.valid = this.validator.validate(this.value)
-        //             const errors = this.validator.errors.filter(e => e.instancePath.match(/\//g)?.length === 1)
-        //             if (this.valid == false && errors && errors.length > 0) this.message = this.validator.text
-        //     }
-
-        //     this.content = this.shadowRoot?.getElementById('content') ?? undefined
-        //     this.content?.classList.add(this.valid ? 'valid' : 'invalid')
-        //     this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
-    //}
-
-    override connectedCallback() {
-        super.connectedCallback()
     }
 
     toggleItem(value: any) {

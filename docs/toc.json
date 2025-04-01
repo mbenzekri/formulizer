@@ -2,30 +2,32 @@
     "definitions": {
         "toc": {
             "General": {
-                "README": "What is Formulizer",
-                "api": "Component API",
-                "bootstrap": "register Bootstrap",
-                "definition": "Reusable definitions",
-                "typenull": "typenull"
+                "general/whatis": "What is FzForm",
+                "general/api": "Component API",
+                "general/bootstrap": "Load Bootstrap",
+                "general/schema": "extended JSON Schema",
+                "general/definition": "Reusable definitions",
+                "general/typenull": "typenull"
             },
             "Keywords": {
-                "title": "title",
-                "abstract": "abstract",
-                "visible": "visible",
-                "default": "default",
-                "expression": "expression",
-                "nullable": "nullable",
-                "readonly": "readonly",
-                "required": "required"
+                "keyword/title": "title",
+                "keyword/abstract": "abstract",
+                "keyword/visible": "visible",
+                "keyword/collapsed": "collapsed",
+                "keyword/default": "default",
+                "keyword/expression": "expression",
+                "keyword/nullable": "nullable",
+                "keyword/readonly": "readonly",
+                "keyword/required": "required"
             },
-            "Primitives": {
-                "basic": "basic",
-                "mask": "mask",
-                "format": "format",
-                "boolean": "boolean",
-                "documents": "document",
-                "range": "range",
-                "signature": "signature"
+            "Primitive types": {
+                "primitive/boolean": "boolean",
+                "primitive/integer": "mask",
+                "primitive/number": "number",
+                "primitive/range": "range",
+                "primitive/string": "string",
+                "primitive/format": "format",
+                "primitive/mask": "mask"
             },
             "Enumerations": {
                 "enum/basics": "basics",
@@ -37,20 +39,21 @@
                 "enum/from": "from the data"
             },
             "Array": {
-                "array": "Array field",
-                "arrays/minmax": "min/max items",
-                "enum": "Enum arrays"
+                "array/array": "Array field",
+                "array/minmax": "min/max items",
+                "array/enum": "Enum arrays"
             },
             "Object": {
                 "object": "Object field",
-                "collapsed": "Open / Collapse",
                 "group": "Group your fields",
                 "tab": "Tab for groups",
                 "inline": "Inline fields"
             },
             "Miscellaneous": {
                 "pick": "Pick data from your app",
-                "markdown": "Use markdown"
+                "markdown": "Use markdown",
+                "documents": "document",
+                "signature": "signature"
             }
         }
     },

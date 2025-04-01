@@ -36,9 +36,6 @@ export class FzArray extends FZCollection {
     override get collapsed() {
         return !isArray(this.value,true) || super.collapsed
     }
-    override set collapsed(value: boolean) {
-        super.collapsed = value
-    }
 
     /**
     * render collapsed Object
@@ -50,7 +47,7 @@ export class FzArray extends FZCollection {
                 <div class="col-sm-9">
                     <div class="input-group ${this.validation}" @click="${this.toggle}" >
                         <div class="form-control">
-                            ${ isArray(this.value,true) ? html`<i class="bi bi-chevron-down"></i> ${this.abstract()}` : this.actionBtns() }
+                            ${ isArray(this.value,true) ? html`${this.chevron()} ${this.abstract()}` : this.actionBtns() }
                         </div>
                     </div>
                 </div>
@@ -79,7 +76,7 @@ export class FzArray extends FZCollection {
                     ${this.renderLabel()}
                     <div class="col-sm-1 d-none d-sm-block">
                         <div class="input-group ${this.validation}" @click="${this.toggle}" >
-                            <div class="form-control border-0"><i class="bi bi-chevron-up"></i></div>
+                            <div class="form-control border-0">${this.chevron()}</i></div>
                         </div>
                     </div>
                 </div>

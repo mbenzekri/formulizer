@@ -4,7 +4,7 @@
 > to represent "not set/don't know" values.
 
 ## Basic Boolean Field
-A standard boolean field in Formulizer can be defined as:
+A standard boolean field in FzForm can be defined as:
 
 ```json
 {

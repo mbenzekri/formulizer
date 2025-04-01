@@ -80,7 +80,7 @@ export class FzForm extends Base {
             this.validator = Validator.getValidator(this.sourceSchema)
         }
         this.compile()
-        this.compiledSchema.collapsed = () => false
+        this.compiledSchema.collapsed = "never"
         this.fieldMap.clear()
         this.schemaMap.clear()
         this.requestUpdate()
@@ -305,7 +305,7 @@ export class FzForm extends Base {
     //             return value;
     //         },
     //         set(newValue) {
-    //             console.debug(`Formulizer watchPointer: ${pointer} (${key}) changed from`, value, "to", newValue);
+    //             console.debug(`FzForm watchPointer: ${pointer} (${key}) changed from`, value, "to", newValue);
     //             debugger;
     //             value = newValue;
     //         },
@@ -344,19 +344,6 @@ export class FzForm extends Base {
         });
     }
 
-    static async loadBootstrap(
-        bootstrap_url?: CSSStyleSheet | string, 
-        icons_url?: CSSStyleSheet | string,
-        woff_url?: FontFace | string)
-    {
-        if (Base.isBootStrapLoaded()) return
-        await Base.registerBootstrap(bootstrap_url,icons_url,woff_url)
-        // bootstrap loading is async FzForm already inserted in dom must adopt and refresh
-        for (const item of document.getElementsByTagName("fz-form") as HTMLCollectionOf<Base>) {
-            item.adoptBootStrap()
-            item.requestUpdate()
-        }
-    }
 }
 
 // Optional: expose globally

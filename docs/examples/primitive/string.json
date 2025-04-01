@@ -1,0 +1,16 @@
+{
+    "form": {
+        "type": "object",
+        "title": "",
+        "properties": {
+            "word": {
+                "title": "uppercase[5-8]",
+                "type": "string",
+                "pattern": "^[A-Z]*$",
+                "maxLength": 8,
+                "minLength": 5
+            }
+        }
+    },
+    "data": {}
+}

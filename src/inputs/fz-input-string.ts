@@ -14,6 +14,15 @@ import { FzInputBase } from "./fz-input-base";
 @customElement("fz-string")
 export class FzInputString extends FzInputBase {
 
+    static override get styles() {
+        return [
+            ...super.styles,
+            css`
+            input[type="color"] {
+                height: 38px
+            }`
+        ]
+    }
 
     override toField(): void {
         if (notNull(this.input)) {
@@ -26,15 +35,6 @@ export class FzInputString extends FzInputBase {
         }
     }
 
-    static override get styles() {
-        return [
-            ...super.styles,
-            css`
-            input[type="color"] {
-                height: 38px
-            }`
-        ]
-    }
     renderInput() {
         return html`
             <div class="input-group" >

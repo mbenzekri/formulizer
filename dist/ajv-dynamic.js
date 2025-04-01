@@ -1,18 +1,3 @@
-function _mergeNamespaces(n, m) {
-	m.forEach(function (e) {
-		e && typeof e !== 'string' && !Array.isArray(e) && Object.keys(e).forEach(function (k) {
-			if (k !== 'default' && !(k in n)) {
-				var d = Object.getOwnPropertyDescriptor(e, k);
-				Object.defineProperty(n, k, d.get ? d : {
-					enumerable: true,
-					get: function () { return e[k]; }
-				});
-			}
-		});
-	});
-	return Object.freeze(n);
-}
-
 function getDefaultExportFromCjs (x) {
 	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
 }
@@ -7090,10 +7075,10 @@ function requireAjv () {
 var ajvExports = requireAjv();
 var ajv = /*@__PURE__*/getDefaultExportFromCjs(ajvExports);
 
-var ajv$1 = /*#__PURE__*/_mergeNamespaces({
+var ajv$1 = /*#__PURE__*/Object.freeze({
 	__proto__: null,
 	default: ajv
-}, [ajvExports]);
+});
 
 var en;
 var hasRequiredEn;
@@ -7302,10 +7287,10 @@ function requireEn () {
 var enExports = requireEn();
 var index$2 = /*@__PURE__*/getDefaultExportFromCjs(enExports);
 
-var index$3 = /*#__PURE__*/_mergeNamespaces({
+var index$3 = /*#__PURE__*/Object.freeze({
 	__proto__: null,
 	default: index$2
-}, [enExports]);
+});
 
 var dist = {exports: {}};
 
@@ -7657,10 +7642,10 @@ function requireDist () {
 var distExports = requireDist();
 var index = /*@__PURE__*/getDefaultExportFromCjs(distExports);
 
-var index$1 = /*#__PURE__*/_mergeNamespaces({
+var index$1 = /*#__PURE__*/Object.freeze({
 	__proto__: null,
 	default: index
-}, [distExports]);
+});
 
 export { ajv$1 as a, index$1 as b, index$3 as i };
 //# sourceMappingURL=ajv-dynamic.js.map

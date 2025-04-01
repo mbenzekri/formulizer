@@ -1,22 +1,22 @@
 
 
-## What is Formulizer
+## What is FzForm
 
-Formulizer is a W3C-compliant web component that dynamically renders UI forms. Formz produced by Formulizer are described by 
+FzForm is a W3C-compliant web component that dynamically renders UI forms. Formz produced by FzForm are described by 
 an extended JSON Schema format.
 
->- Formulizer is provided as a [W3C web component](https://www.webcomponents.org/introduction)
+>- FzForm is provided as a [W3C web component](https://www.webcomponents.org/introduction)
 >- The component (tag: `<fz-form>`) expect a form description (in `schema` property) and initial data (in `data` property)
 >- The form description is provided in [JSON Schema ](https://json-schema.org/) format.
->- Formulizer extends JSON Schema with specific keywords (UI and Form specific keywords).
+>- FzForm extends JSON Schema with specific keywords (UI and Form specific keywords).
 >- The generated form UI is designed with bootstrap 5 (see bootstrap integration).
 >- The data is provided and retrieved in JSON (JSON serializable JS objects).  
 >- The bundle is provided as a unique javascript file to be loaded in your page (provide in CDN).
->- Formulizer is developped using typescript and lit3.
+>- FzForm is developped using typescript and lit3.
 
 ## How to read this documentation 
 
-This README page is the root of the formulizer documentation.
+This README page is the root of the FzForm documentation.
 Here is some important pages.
 - `<fz-form>` web component API documentation (go there link)
 - JSON Schema keywords and how that impact the form rendering (go there link)
@@ -64,12 +64,12 @@ Here is some important pages.
 
 ## Example explained
 
-- load formulizer library in the header:
+- load FzForm library in the header:
     ```
         <script type="module" src="./formulizer.js"></script>
     ```
 
-- insert the formulizer tag and set attribute id to pick it later
+- insert the FzForm tag and set attribute id to pick it later
     ```
         <fz-form id="myform" ></fz-form>
     ```

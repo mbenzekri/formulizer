@@ -16,8 +16,8 @@ enum SelectionState {
  * @prop index
  * @prop required
  */
-@customElement("fz-asset")
-export class FzInputAsset extends FzInputBase {
+@customElement("fz-picker")
+export class FzInputPicker extends FzInputBase {
     private state = SelectionState.idle
     private oldValue = ""
 

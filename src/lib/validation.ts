@@ -5,6 +5,7 @@
 
 import JsonSchemaDraft from "../assets/draft-07-schema.json"
 import { FZ_FORMATS, FZ_KEYWORDS, Schema } from "./schema"
+import { isNull } from "./tools"
 
 type AjvInterface = { 
     compile(schema: Schema, _meta?: boolean): ValidateFunction 
@@ -17,23 +18,22 @@ let Ajv: AjvConstructor
 let Ajvi18n: (arg:any) => void
 let addFormats: (arg:any) => void
 
-async function loadValidator(useAjv = false) {
-    if (useAjv) {
-        {
-            const mod = await import("ajv")
-            Ajv = mod.default as unknown as AjvConstructor
-        }
-        {
-            const mod = await import("ajv-i18n/localize/en")
-            Ajvi18n = mod.default as (arg: any) => void
-        }
-        {
-            const mod = await import("ajv-formats")
-            addFormats = mod.default as (arg: any) => void
-        }
+async function loadValidator(useAjv: boolean) {
+    const logger = FzLogger.get("lazy")
+    if (useAjv && isNull(Ajv)) {
+        logger.info('AJV loading')
+        ;[Ajv,Ajvi18n,addFormats] = await Promise.all([
+            (await import("ajv")).default as unknown as AjvConstructor,
+            (await import("ajv-i18n/localize/en")).default as (arg: any) => void,
+            (await import("ajv-formats")).default as (arg: any) => void
+        ])
+        logger.info('AJV loaded')
+    }
+    if (!useAjv) {
+        logger.info(`AJV not required`)
     }
 }
-loadValidator(false)
+
 
 export type ValidationError = {
     keyword: string;

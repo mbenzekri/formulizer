@@ -1,0 +1,54 @@
+{
+    "form": {
+        "definitions" :{
+            "address" : {
+                "type": "object",
+                "properties": {
+                    "courtesy": {
+                        "type": "string",
+                        "title": "Courtesy",
+                        "enum": [
+                            "M.",
+                            "Ms.",
+                            "Dr."
+                        ]
+                    },
+                    "lastname": {
+                        "type": "string",
+                        "title": "Last name"
+                    }
+                }
+            }
+        },
+        "type": "object",
+        "title": "collapsed",
+        "properties": {
+            "adr1": {
+                "$ref": "#/definitions/address",
+                "title": "Expanded(on init)",
+                "collapsed": "false"
+            },
+            "adr2": {
+                "$ref": "#/definitions/address",
+                "title": "Collapsed(on init)",
+                "collapsed": "true"
+            },
+            "adr3": {
+                "$ref": "#/definitions/address",
+                "title": "Never",
+                "collapsed": "never"
+            },
+            "adr4": {
+                "$ref": "#/definitions/address",
+                "title": "Allways",
+                "collapsed": "allways"
+            }
+        }
+    },
+    "data": {
+        "adr1": { "courtesy": "Dr.", "lastname": "Brown" },
+        "adr2": { "courtesy": "Ms.", "lastname": "Marvel" },
+        "adr3": { "courtesy": "M.", "lastname": "Magoo" },
+        "adr4": { "courtesy": "Ms.", "lastname": "Doubtfire" }
+    }
+}

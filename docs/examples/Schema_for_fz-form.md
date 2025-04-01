@@ -1,5 +1,0 @@
-
-
-## formulizer JSON Schema 
-
-

@@ -2,42 +2,49 @@ import { customElement, property } from "lit/decorators.js"
 import { unsafeHTML } from "lit/directives/unsafe-html.js"
 import { css, html, PropertyValues } from "lit"
 import { Base } from "../base"
-type MarkdownIt = { 
-    render(src: string): string 
+import { isNull } from "../lib/tools"
+
+type MarkdownIt = {
+    render(src: string): string
     renderer: any
-} 
+}
 
 let MD: MarkdownIt | null = null
 
-async function ensureMarkdownIt(): Promise<MarkdownIt> {
-  if (!MD) {
-    const mod = await import("markdown-it")
-    MD = new mod.default({
-        html: true,                // Enable HTML tags in source
-        xhtmlOut: false,            // Use '/' to close single tags (<br />). This is only for full CommonMark compatibility.
-        breaks: false,              // Convert '\n' in paragraphs into <br>
-        langPrefix: 'language-',    // CSS language prefix for fenced blocks. Can be useful for external highlighters.
-        linkify: true,              // Autoconvert URL-like text to links
-        // Enable some language-neutral replacement + quotes beautification
-        // For the full list of replacements, see https://github.com/markdown-it/markdown-it/blob/master/lib/rules_core/replacements.js
-        typographer: true,
-    
-        // Double + single quotes replacement pairs, when typographer enabled,
-        // and smartquotes on. Could be either a String or an Array.
-        //
-        // For example, you can use '«»„“' for Russian, '„“‚‘' for German,
-        // and ['«\xA0', '\xA0»', '‹\xA0', '\xA0›'] for French (including nbsp).
-        quotes: '""\'\'',
-    
-        // Highlighter function. Should return escaped HTML,
-        // or '' if the source string is not changed and should be escaped externally.
-        // If result starts with <pre... internal wrapper is skipped.
-        highlight: function (_str, _lang) { return ''; }
-    })
-    patchAttr(MD, "table", "class", "table table-striped table-responsive")
-    patchImg(MD, 100, 100)
-  }
-  return MD
+async function ensureMarkdownIt(usemarkdown: boolean): Promise<void> {
+    const logger = FzLogger.get('lazy')
+    if (isNull(MD) && usemarkdown) {
+        logger.info('MarkdownIt loading')
+        const mod = await import("markdown-it")
+        MD = new mod.default({
+            html: true,                // Enable HTML tags in source
+            xhtmlOut: false,            // Use '/' to close single tags (<br />). This is only for full CommonMark compatibility.
+            breaks: false,              // Convert '\n' in paragraphs into <br>
+            langPrefix: 'language-',    // CSS language prefix for fenced blocks. Can be useful for external highlighters.
+            linkify: true,              // Autoconvert URL-like text to links
+            // Enable some language-neutral replacement + quotes beautification
+            // For the full list of replacements, see https://github.com/markdown-it/markdown-it/blob/master/lib/rules_core/replacements.js
+            typographer: true,
+
+            // Double + single quotes replacement pairs, when typographer enabled,
+            // and smartquotes on. Could be either a String or an Array.
+            //
+            // For example, you can use '«»„“' for Russian, '„“‚‘' for German,
+            // and ['«\xA0', '\xA0»', '‹\xA0', '\xA0›'] for French (including nbsp).
+            quotes: '""\'\'',
+
+            // Highlighter function. Should return escaped HTML,
+            // or '' if the source string is not changed and should be escaped externally.
+            // If result starts with <pre... internal wrapper is skipped.
+            highlight: function (_str, _lang) { return ''; }
+        })
+        patchAttr(MD, "table", "class", "table table-striped table-responsive")
+        patchImg(MD, 100, 100)
+        logger.info('MarkdownIt loaded')
+    }
+    if (!usemarkdown) {
+        logger.info('MarkdownIt not required')
+    }
 }
 
 function patchAttr(md: MarkdownIt, tagname: string, attrname: string, content: string) {
@@ -86,7 +93,7 @@ function patchImg(md: MarkdownIt, width: number, height: number) {
 @customElement("markdown-it")
 export class FzMarkdownIt extends Base {
 
-    @property({ attribute: "markdown", type: String, reflect: true}) markdown: string = ""
+    @property({ attribute: "markdown", type: String, reflect: true }) markdown: string = ""
 
     static override styles = [
         ...super.styles,
@@ -143,9 +150,7 @@ export class FzMarkdownIt extends Base {
 
         }
     }
-    static async loadMarkdownIt(useit: boolean) {
-        if (useit){
-            await ensureMarkdownIt()
-        }
+    static async loadMarkdownIt(usemarkdown: boolean) {
+        await ensureMarkdownIt(usemarkdown)
     }
 }

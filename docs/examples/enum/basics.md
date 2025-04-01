@@ -1,6 +1,6 @@
 ## Basic enumeration
 
->Formulizer adapts how enum fields are displayed based on the number of available options.
+>FzForm adapts how enum fields are displayed based on the number of available options.
 >- Small lists use radio buttons for quick selection.
 >- Medium lists use dropdowns for easy browsing.
 >- Large lists use typeahead search for efficiency.

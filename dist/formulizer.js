@@ -268,7 +268,7 @@ const BOOTSTRAP_URL = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/boo
 const ICONS_URL = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css";
 const WOFF_URL = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/fonts/bootstrap-icons.woff2?1fa40e8900654d2863d011707b9fb6f2";
 class Base extends r$1 {
-    handlers = [];
+    static loaded = false;
     static sheets = [];
     static styles = [
         i$5 `body {
@@ -315,6 +315,10 @@ class Base extends r$1 {
             } 
         `
     ];
+    handlers = [];
+    badge(value) {
+        return x `<span class="badge bg-primary badge-pill">${value}</span>`;
+    }
     firstUpdated(_changedProperties) {
         this.adoptBootStrap();
         super.firstUpdated(_changedProperties);
@@ -355,14 +359,16 @@ class Base extends r$1 {
     // ------------------------------------------------------------------
     // user API to load external Bootstrap and Bootstap Icons (mandatory)
     // ------------------------------------------------------------------
-    static async registerBootstrap(bootstrap_url = BOOTSTRAP_URL, icons_url = ICONS_URL, woff_url = WOFF_URL) {
-        const logger = FzLogger.get("bootstrap");
-        logger.info("IN:registerBootstrap()");
+    static async loadBootstrap(bootstrap_url = BOOTSTRAP_URL, icons_url = ICONS_URL, woff_url = WOFF_URL) {
+        if (Base.isBootStrapLoaded())
+            return;
+        const logger = FzLogger.get("lazy");
+        logger.info(">>> registerBootstrap()");
         let bootstrap_sheet;
         if (isString(bootstrap_url)) {
             logger.info("Bootstrap CSS to be load from url: %s ", bootstrap_url);
             const bootstrapcss_text = await fetch(bootstrap_url)
-                .then(resp => resp.ok ? resp.text() : (console.error(`unable to load boootstrap css: ${String(resp.statusText)}`), ""))
+                .then(resp => resp.ok ? resp.text() : (console.error(`unable to load bootstrap css: ${String(resp.statusText)}`), ""))
                 .catch(e => (console.error(`unable to load boootstrap css: ${String(e)}`), ''));
             bootstrap_sheet = new CSSStyleSheet();
             bootstrap_sheet.replaceSync(bootstrapcss_text.replaceAll(':root', ':host, :root'));
@@ -399,10 +405,17 @@ class Base extends r$1 {
         document.fonts.add(loaded);
         logger.info("Bootstrap fonts loaded");
         Base.sheets = [bootstrap_sheet, icons_sheet];
-        logger.info("OUT:registerBootstrap()");
+        //await new Promise((resolve,_) => setTimeout(() => resolve(null),10000))
+        Base.loaded = true;
+        // bootstrap loading is async FzForm already inserted in dom must adopt and refresh
+        for (const item of document.getElementsByTagName("fz-form")) {
+            logger.info("Adopting bootstrap to fz-form Element");
+            item.adoptBootStrap();
+        }
+        logger.info("<<< registerBootstrap()");
     }
     static isBootStrapLoaded() {
-        return Base.sheets.length > 0;
+        return Base.loaded;
     }
     /**
      * called in firstUpdated to adopt Bootstrap style
@@ -413,9 +426,11 @@ class Base extends r$1 {
         Base.sheets
             .filter(sheet => !this.shadowRoot?.adoptedStyleSheets.includes(sheet))
             .forEach(sheet => this.shadowRoot?.adoptedStyleSheets.push(sheet));
+        this.requestUpdate();
     }
     /**
      * find in the ancestors of an element a webcomponent matching a given selector
+     *  IMPORTANT: traverse Shadow DOM
      * @param selector selector to matching the searched element
      * @param el element from which to start searching
      * @returns Element corresponding to selector, null otherwise
@@ -458,8 +473,8 @@ class JSONSchemaDraft07 {
     minProperties;
     required;
     properties;
-    patternProperties; // IGNORED by formulizer (except for validation)
-    additionalProperties; // IGNORED by formulizer (except for validation)
+    patternProperties; // IGNORED by FzForm (except for validation)
+    additionalProperties; // IGNORED by FzForm (except for validation)
     dependencies;
     propertyNames;
     if;
@@ -860,22 +875,24 @@ class FzField extends Base {
     #dirty_accessor_storage = false;
     get dirty() { return this.#dirty_accessor_storage; }
     set dirty(value) { this.#dirty_accessor_storage = value; }
-    #collapsed_accessor_storage = false;
-    get collapsed() { return this.#collapsed_accessor_storage; }
-    set collapsed(value) { this.#collapsed_accessor_storage = value; }
+    #i_collapsed_accessor_storage = false;
+    get i_collapsed() { return this.#i_collapsed_accessor_storage; }
+    set i_collapsed(value) { this.#i_collapsed_accessor_storage = value; }
     get errors() {
         return this.localError ? [this.localError, ...this.form?.errors(this.pointer)] : this.form?.errors(this.pointer);
     }
-    // get form(): FzForm {
-    //     if (this._form) return this._form
-    //     this._form = closestAscendantFrom("fz-form", this) as FzForm;
-    //     return this._form
-    // }
     get valid() {
         return this.errors.length === 0 && isNull(this.localError);
     }
     get invalid() {
         return this.errors.length > 0 || notNull(this.localError);
+    }
+    get collapsed() {
+        if (this.schema.collapsed == "never")
+            return false;
+        if (this.schema.collapsed == "allways")
+            return true;
+        return this.i_collapsed;
     }
     /** A field is touched if really modified (dirty) or submission by user done */
     get touched() {
@@ -1100,41 +1117,30 @@ class FzField extends Base {
      * render method for label
      */
     renderLabel() {
-        const required = this.required ? '*' : '';
-        const label = `${this.label}${required}`;
-        // user choose not to show label  
+        // the user may choose not to show label  
         if (this.label === "")
             return x ``;
-        if (this.schema.basetype === "boolean")
-            return x `
-        <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
-            <div>&nbsp</div>
-        </label>`;
-        // label for array items (badge index)
-        if (this.isItem)
-            return x `
-            <label for="input" class="col-sm-1 col-form-label" @click="${this.labelClicked}">
-                <div>${this.badge(label)}</div>
-            </label>`;
-        // labels for object properties
+        const label = `${this.label}${this.required ? '*' : ''}`;
+        // for array items => badge index / for object property => label
         return x `
-            <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
-                <div>${label}</div>
+            <label for="input" class="${this.isItem ? 'col-sm-1' : 'col-sm-3'} col-form-label" @click="${this.labelClicked}">
+                <div>${this.isItem ? this.badge(label) : label} </div>
             </label>`;
-    }
-    badge(value) {
-        return x `<span class="badge bg-primary badge-pill">${value}</span>`;
     }
     toggle(evt) {
+        if (["never", "allways"].includes(this.schema.collapsed))
+            return;
         if (this.isroot) {
-            this.collapsed = false;
+            this.i_collapsed = false;
         }
-        else if (this.collapsed !== null)
-            this.collapsed = !this.collapsed;
+        else
+            this.i_collapsed = !this.i_collapsed;
         this.eventStop(evt);
         this.requestUpdate();
     }
     chevron() {
+        if (["allways", "never"].includes(this.schema.collapsed))
+            return '';
         if (this.collapsed)
             return x `<i class="bi bi-chevron-down"></i>`;
         return x `<i class="bi bi-chevron-up"></i>`;
@@ -1173,6 +1179,8 @@ class FzField extends Base {
     }
     firstUpdated(_changedProperties) {
         super.firstUpdated(_changedProperties);
+        this.i_collapsed = ['allways', 'true'].includes(this.schema.collapsed) ? true : false;
+        this.toField();
         this.form?.check();
     }
     /**
@@ -1302,7 +1310,7 @@ __decorate([
 ], FzField.prototype, "dirty", null);
 __decorate([
     n$2({ attribute: false })
-], FzField.prototype, "collapsed", null);
+], FzField.prototype, "i_collapsed", null);
 __decorate([
     n$2({ attribute: false })
 ], FzField.prototype, "errors", null);
@@ -1328,14 +1336,18 @@ class FzInputBase extends FzField {
     get input() {
         return this.shadowRoot?.getElementById('input');
     }
+    /**
+     * overide focus for all input based fields
+     */
+    focus() { this.input?.focus(); }
     renderField() {
         return x `
             <div class="form-group row">
                 ${this.renderLabel()}
                 <div class="col-sm">${this.renderInput()}</div>
             </div>
-            ${this.renderErrors()}
-        `;
+            <div class="row">${this.renderErrors()}</div>
+            `;
     }
     /**
      * on first updated set listeners
@@ -1350,10 +1362,6 @@ class FzInputBase extends FzField {
         this.input && (this.input.value = "");
         super.disconnectedCallback();
     }
-    /**
-     * overide focus for all input based fields
-     */
-    focus() { this.input?.focus(); }
     /**
      * trap F9 key down to log debug Field state
      * @param evt keyboard event to trap key
@@ -1822,15 +1830,6 @@ let FzInputString$1 = class FzInputString extends FzInputBase {
                 this.value = this.input.value;
         }
     }
-    // static override get styles() {
-    //     return [
-    //         ...super.styles,
-    //         css`
-    //         input[type="color"] {
-    //             height: 38px
-    //         }`
-    //     ]
-    // }
     renderInput() {
         return x `
             <div class="input-group ${this.validation}" >
@@ -1859,11 +1858,6 @@ let FzInputString$1 = class FzInputString extends FzInputBase {
             return hex.length === 1 ? '0' + hex : hex;
         };
         const hex = `${toHex(r)}${toHex(g)}${toHex(b)}`;
-        // // Optionally handle alpha component
-        // if (a !== undefined) {
-        //     const alpha = Math.round(a * 255).toString(16);
-        //     return `#${hex}${alpha.length === 1 ? '0' + alpha : alpha}`;
-        // }
         return `#${hex}`;
     }
 };
@@ -2058,6 +2052,15 @@ FzInputTextarea = __decorate([
  * @prop index
  */
 let FzInputString = class FzInputString extends FzInputBase {
+    static get styles() {
+        return [
+            ...super.styles,
+            i$5 `
+            input[type="color"] {
+                height: 38px
+            }`
+        ];
+    }
     toField() {
         if (notNull(this.input)) {
             this.input.value = String(this.value ?? "");
@@ -2067,15 +2070,6 @@ let FzInputString = class FzInputString extends FzInputBase {
         if (notNull(this.input)) {
             this.value = notNull(this.input.value) && this.input.value != "" ? this.input.value : this.empty;
         }
-    }
-    static get styles() {
-        return [
-            ...super.styles,
-            i$5 `
-            input[type="color"] {
-                height: 38px
-            }`
-        ];
     }
     renderInput() {
         return x `
@@ -2502,25 +2496,12 @@ let FzInputBoolean = class FzInputBoolean extends FzInputBase {
         `;
     }
     tryChange(event) {
-        if (this.readonly)
-            event.preventDefault();
-        else
-            this.change();
+        this.readonly ? event.preventDefault() : this.change();
     }
     toField() {
         if (isNull(this.input))
             return;
         switch (true) {
-            case this.value === undefined:
-                // Always treat undefined as "not set" (indeterminate)
-                this.input.indeterminate = true;
-                this.input.checked = false;
-                break;
-            case this.value === null && this.schema.nullAllowed:
-                // Only treat null as indeterminate if null is allowed
-                this.input.indeterminate = true;
-                this.input.checked = false;
-                break;
             case isBoolean(this.value):
                 // Standard true/false 
                 this.input.indeterminate = false;
@@ -2555,21 +2536,6 @@ const DECIMAL_SEPARATOR = (1.1).toLocaleString().substring(1, 2);
  * @prop index
  */
 let FzInputFloat = class FzInputFloat extends FzInputBase {
-    toField() {
-        if (notNull(this.input)) {
-            if (isNumber(this.value)) {
-                this.input.valueAsNumber = this.value;
-            }
-            else {
-                this.input.value = "";
-            }
-        }
-    }
-    toValue() {
-        if (notNull(this.input)) {
-            this.value = isNumber(this.input.valueAsNumber) ? this.input.valueAsNumber : undefined;
-        }
-    }
     static get styles() {
         return [
             ...super.styles,
@@ -2585,6 +2551,21 @@ let FzInputFloat = class FzInputFloat extends FzInputBase {
                 -moz-appearance: textfield;
             }`
         ];
+    }
+    toField() {
+        if (notNull(this.input)) {
+            if (isNumber(this.value)) {
+                this.input.valueAsNumber = this.value;
+            }
+            else {
+                this.input.value = "";
+            }
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = isNumber(this.input.valueAsNumber) ? this.input.valueAsNumber : undefined;
+        }
     }
     renderInput() {
         return x `
@@ -2704,13 +2685,13 @@ let FzRange = class FzRange extends FzInputBase {
                     type="range"  
                     ?disabled="${this.readonly}"
                     ?readonly="${this.readonly}"
+                    ?required="${this.required}"
                     @input="${this.change}"
                     min="${o(this.min)}"
                     max="${o(this.max)}"
                     step="1"
-                    ?required="${this.required}"
-                    class="form-control ${this.validation}"
                     autocomplete=off  spellcheck="false"
+                    class="form-control ${this.validation}"
                 />
                 <div class="input-group-append" style="max-width:5em" >
                     <span class="input-group-text" >${this.value}</span>
@@ -2731,11 +2712,6 @@ let FzRange = class FzRange extends FzInputBase {
             return this.schema.exclusiveMinimum;
         return;
     }
-    keypress() {
-        // if (!/[-0123456789]/.test(event.key)) return event.preventDefault();
-        // if (this.min >= 0 && event.key === '-') return event.preventDefault();
-        return;
-    }
 };
 FzRange = __decorate([
     t$4("fz-range")
@@ -2747,7 +2723,7 @@ FzRange = __decorate([
  * @prop name
  * @prop index
  */
-let FzInputGeolocation = class FzInputGeolocation extends FzInputBase {
+let FzInputLocation = class FzInputLocation extends FzInputBase {
     watchId;
     toField() {
         if (notNull(this.input)) {
@@ -2772,13 +2748,13 @@ let FzInputGeolocation = class FzInputGeolocation extends FzInputBase {
         return x `
             <div class="input-group ${this.validation}">
                 <input
-                    class="form-control"
-                    type="text"
                     id="input"
+                    type="text"
                     readonly
-                    placeholder="${this.label}"
+                    placeholder="POINT(x y)"
                     ?readonly="${this.readonly}" 
                     autocomplete=off  spellcheck="false"
+                    class="form-control"
                 />
                 <div class="btn-group">
                     <button 
@@ -2801,10 +2777,6 @@ let FzInputGeolocation = class FzInputGeolocation extends FzInputBase {
             </div>`;
     }
     geolocate() {
-        // navigator.geolocation.getCurrentPosition((position: any) => {
-        //     this.input.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`
-        //     this.change()
-        // });
         this.watchId = navigator.geolocation.watchPosition(position => {
             if (!this.isConnected)
                 return;
@@ -2834,9 +2806,9 @@ let FzInputGeolocation = class FzInputGeolocation extends FzInputBase {
         }
     }
 };
-FzInputGeolocation = __decorate([
+FzInputLocation = __decorate([
     t$4("fz-location")
-], FzInputGeolocation);
+], FzInputLocation);
 
 /**
  * @prop schema
@@ -3254,8 +3226,10 @@ FzInputDoc = FzInputDoc_1 = __decorate([
 ], FzInputDoc);
 
 let MD = null;
-async function ensureMarkdownIt() {
-    if (!MD) {
+async function ensureMarkdownIt(usemarkdown) {
+    const logger = FzLogger.get('lazy');
+    if (isNull(MD) && usemarkdown) {
+        logger.info('MarkdownIt loading');
         const mod = await import('./markdown-dynamic.js');
         MD = new mod.default({
             html: true, // Enable HTML tags in source
@@ -3279,8 +3253,11 @@ async function ensureMarkdownIt() {
         });
         patchAttr(MD, "table", "class", "table table-striped table-responsive");
         patchImg(MD, 100, 100);
+        logger.info('MarkdownIt loaded');
     }
-    return MD;
+    if (!usemarkdown) {
+        logger.info('MarkdownIt not required');
+    }
 }
 function patchAttr(md, tagname, attrname, content) {
     // Save the original rendering rule for table_open (if any)
@@ -3374,10 +3351,8 @@ let FzMarkdownIt = class FzMarkdownIt extends Base {
             return x `<div> Loading ...</div>`;
         }
     }
-    static async loadMarkdownIt(useit) {
-        if (useit) {
-            await ensureMarkdownIt();
-        }
+    static async loadMarkdownIt(usemarkdown) {
+        await ensureMarkdownIt(usemarkdown);
     }
 };
 __decorate([
@@ -3449,7 +3424,7 @@ const fiedtypes = [
     'fz-enum-check',
     'fz-enum-select',
     "fz-enum-typeahead",
-    "fz-asset",
+    "fz-picker",
     "fz-boolean",
     "fz-color",
     "fz-const",
@@ -3471,7 +3446,6 @@ const fiedtypes = [
 ];
 const fieldtypeslist = fiedtypes.join(',');
 class FZCollection extends FzField {
-    //@queryAll(fieldtypeslist) readonly fields!: FzField[]
     get fields() {
         const fields = [...this.shadowRoot?.querySelectorAll(fieldtypeslist) ?? []];
         return fields;
@@ -3513,7 +3487,7 @@ class FZCollection extends FzField {
             case "fz-textarea": return x `<fz-textarea .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-textarea>`;
             case "fz-string": return x `<fz-string .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-string>`;
             case "fz-mask": return x `<fz-mask .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-mask>`;
-            case "fz-asset": return x `<fz-asset .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-asset>`;
+            case "fz-picker": return x `<fz-picker .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-picker>`;
             case "fz-signature": return x `<fz-signature .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-signature>`;
             case "fz-boolean": return x `<fz-boolean .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-boolean>`;
             case "fz-float": return x `<fz-float .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-float>`;
@@ -3533,24 +3507,6 @@ class FZCollection extends FzField {
             default: return x `<div class="alert alert-warning" role="alert">field name=${name} type ${schema.basetype}/${schema.field} not implemented !</div>`;
         }
     }
-    delete() {
-        if (this.collapsed !== null)
-            this.collapsed = true;
-        this.value = this.empty;
-    }
-    get deletable() {
-        if (this.isroot == null || this.isempty)
-            return false;
-        if (this.schema.nullAllowed && this.nullable)
-            return true;
-        if (!this.schema.nullAllowed && !this.required)
-            return true;
-        return false;
-    }
-    firstUpdated(changedProperties) {
-        super.firstUpdated(changedProperties);
-        this.collapsed = this.isroot ? false : !!this.evalExpr("collapsed");
-    }
     renderItemErrors(index) {
         const errors = this.form.errors(`${this.pointer}/${index}`);
         return x `
@@ -3566,6 +3522,12 @@ class FZCollection extends FzField {
             const first = this.fields[0];
             first.dofocus();
         }
+    }
+    delete() {
+        this.value = this.empty;
+    }
+    firstUpdated(changedProperties) {
+        super.firstUpdated(changedProperties);
     }
 }
 
@@ -3597,9 +3559,6 @@ let FzArray$1 = class FzArray extends FZCollection {
     get collapsed() {
         return !isArray(this.value, true) || super.collapsed;
     }
-    set collapsed(value) {
-        super.collapsed = value;
-    }
     /**
     * render collapsed Object
     */
@@ -3610,7 +3569,7 @@ let FzArray$1 = class FzArray extends FZCollection {
                 <div class="col-sm-9">
                     <div class="input-group ${this.validation}" @click="${this.toggle}" >
                         <div class="form-control">
-                            ${isArray(this.value, true) ? x `<i class="bi bi-chevron-down"></i> ${this.abstract()}` : this.actionBtns()}
+                            ${isArray(this.value, true) ? x `${this.chevron()} ${this.abstract()}` : this.actionBtns()}
                         </div>
                     </div>
                 </div>
@@ -3635,7 +3594,7 @@ let FzArray$1 = class FzArray extends FZCollection {
                     ${this.renderLabel()}
                     <div class="col-sm-1 d-none d-sm-block">
                         <div class="input-group ${this.validation}" @click="${this.toggle}" >
-                            <div class="form-control border-0"><i class="bi bi-chevron-up"></i></div>
+                            <div class="form-control border-0">${this.chevron()}</i></div>
                         </div>
                     </div>
                 </div>
@@ -4071,6 +4030,17 @@ const u=(e,s,t)=>{const r=new Map;for(let l=s;l<=t;l++)r.set(e[l],l);return r},c
  * @prop index
  */
 let FzArray = class FzArray extends FZCollection {
+    static get styles() {
+        return [
+            ...super.styles,
+            i$5 `
+                ul {
+                    max-height: 300px; 
+                    overflow-y: scroll
+                }
+            `
+        ];
+    }
     toField() {
         // all is done at rendering
     }
@@ -4085,47 +4055,24 @@ let FzArray = class FzArray extends FZCollection {
             <div class="form-group row">
                 ${this.renderLabel()}
                 <div class="col-sm">
-                    <ul id="content" class="list-group"   style="max-height: 300px; overflow-y: scroll">
-                            ${c(this.getItems(), (item) => item, (item) => x `
-                                    <li class="list-group-item">
-                                        <div>
-                                            <input
-                                                class="form-check-input"
-                                                type="checkbox"
-                                                ?disabled="${this.readonly ? true : false}"
-                                                ?checked="${this.value?.includes(item.value)}"
-                                                @click="${() => this.toggleItem(item.value)}"
-                                                autocomplete=off  spellcheck="false"/>
-                                            <label class="form-check-label">${item.label}</label>
-                                        </div>
-                                    </li>
-                                `)}
+                    <ul id="content" class="list-group" >
+                        ${c(this.getItems(), (item) => item, (item) => x `
+                                <li class="list-group-item">
+                                    <div>
+                                        <input
+                                            type="checkbox"
+                                            ?disabled="${this.readonly}"
+                                            ?checked="${this.value?.includes(item.value)}"
+                                            @click="${() => this.toggleItem(item.value)}"
+                                            class="form-check-input"
+                                            autocomplete=off  spellcheck="false"
+                                        />
+                                        <label class="form-check-label">${item.label}</label>
+                                    </div>
+                                </li>`)}
                     </ul>
                 </div>
             </div>`;
-    }
-    //override check() {
-    //     if (!this.validator) return
-    //     this.valid = true
-    //     this.message = ''
-    //     switch (true) {
-    //         case (this.required && this.value == undefined):
-    //             this.valid = false
-    //             this.message = formatMsg('valueMissing')
-    //             break
-    //         case !this.required && this.value == undefined:
-    //             break
-    //         default:
-    //             this.valid = this.validator.validate(this.value)
-    //             const errors = this.validator.errors.filter(e => e.instancePath.match(/\//g)?.length === 1)
-    //             if (this.valid == false && errors && errors.length > 0) this.message = this.validator.text
-    //     }
-    //     this.content = this.shadowRoot?.getElementById('content') ?? undefined
-    //     this.content?.classList.add(this.valid ? 'valid' : 'invalid')
-    //     this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
-    //}
-    connectedCallback() {
-        super.connectedCallback();
     }
     toggleItem(value) {
         if (this.value == null)
@@ -5026,23 +4973,21 @@ var JsonSchemaDraft = {
 let Ajv;
 let Ajvi18n;
 let addFormats;
-async function loadValidator(useAjv = false) {
-    if (useAjv) {
-        {
-            const mod = await import('./ajv-dynamic.js').then(function (n) { return n.a; });
-            Ajv = mod.default;
-        }
-        {
-            const mod = await import('./ajv-dynamic.js').then(function (n) { return n.i; });
-            Ajvi18n = mod.default;
-        }
-        {
-            const mod = await import('./ajv-dynamic.js').then(function (n) { return n.b; });
-            addFormats = mod.default;
-        }
+async function loadValidator(useAjv) {
+    const logger = FzLogger.get("lazy");
+    if (useAjv && isNull(Ajv)) {
+        logger.info('AJV loading');
+        [Ajv, Ajvi18n, addFormats] = await Promise.all([
+            (await import('./ajv-dynamic.js').then(function (n) { return n.a; })).default,
+            (await import('./ajv-dynamic.js').then(function (n) { return n.i; })).default,
+            (await import('./ajv-dynamic.js').then(function (n) { return n.b; })).default
+        ]);
+        logger.info('AJV loaded');
+    }
+    if (!useAjv) {
+        logger.info(`AJV not required`);
     }
 }
-loadValidator(false);
 class Validator {
     get schemaValid() { return true; }
     get schemaErrors() { return []; }
@@ -5433,13 +5378,13 @@ class SchemaCompiler {
             new CSRequiredIf(this.root),
             new CSField(this.root),
             new CSOrder(this.root),
+            new CSCollapsed(this.root),
             new CSInsideRef(this.root, data),
             new CSTemplate(this.root, 'abstract', Schema._abstractFunc()),
             new CSBool(this.root, 'case', () => false),
             new CSBool(this.root, 'visible', () => true),
             new CSBool(this.root, 'readonly', () => false),
             new CSBool(this.root, 'requiredIf', () => false),
-            new CSBool(this.root, 'collapsed', () => false),
             new CSBool(this.root, 'filter', () => true),
             new CSAny(this.root, 'rank', () => true),
             new CSAny(this.root, 'expression', () => ''),
@@ -5971,7 +5916,7 @@ class CSField extends CompilationStep {
                     case "geo": return schema.field = 'fz-location';
                     case "doc": return schema.field = 'fz-doc';
                     case "markdown": return schema.field = 'fz-markdown';
-                    case "asset": return schema.field = 'fz-asset';
+                    case "asset": return schema.field = 'fz-picker';
                 }
                 if (!schema.format && schema.maxLength && schema.maxLength > 256)
                     return schema.field = 'fz-textarea';
@@ -6014,6 +5959,25 @@ class CSOrder extends CompilationStep {
             return (diff === 0) ? fa.fieldnum - fb.fieldnum : diff;
         });
         schema.order = fields;
+    }
+}
+class CSCollapsed extends CompilationStep {
+    constructor(root) {
+        super(root, "collapsed", "pre", ["pointer"]);
+    }
+    appliable(_schema) {
+        return true;
+    }
+    apply(schema) {
+        if (isNull(schema.collapsed)) {
+            schema.collapsed = "false";
+        }
+        else {
+            const domain = ["never", "allways", "true", "false"];
+            if (!(domain.includes(schema.collapsed))) {
+                throw this.error(`${schema.pointer} : collapsed must be one of [${domain.join(', ')}]`);
+            }
+        }
     }
 }
 class CSInsideRef extends CompilationStep {
@@ -6321,7 +6285,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
             this.validator = Validator.getValidator(this.sourceSchema);
         }
         this.compile();
-        this.compiledSchema.collapsed = () => false;
+        this.compiledSchema.collapsed = "never";
         this.fieldMap.clear();
         this.schemaMap.clear();
         this.requestUpdate();
@@ -6525,7 +6489,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     //             return value;
     //         },
     //         set(newValue) {
-    //             console.debug(`Formulizer watchPointer: ${pointer} (${key}) changed from`, value, "to", newValue);
+    //             console.debug(`FzForm watchPointer: ${pointer} (${key}) changed from`, value, "to", newValue);
     //             debugger;
     //             value = newValue;
     //         },
@@ -6560,16 +6524,6 @@ let FzForm = FzForm_1 = class FzForm extends Base {
             configurable: true,
             enumerable: true
         });
-    }
-    static async loadBootstrap(bootstrap_url, icons_url, woff_url) {
-        if (Base.isBootStrapLoaded())
-            return;
-        await Base.registerBootstrap(bootstrap_url, icons_url, woff_url);
-        // bootstrap loading is async FzForm already inserted in dom must adopt and refresh
-        for (const item of document.getElementsByTagName("fz-form")) {
-            item.adoptBootStrap();
-            item.requestUpdate();
-        }
     }
 };
 __decorate([

@@ -1,6 +1,6 @@
-# Formulizer + Bootstrap Integration
+# FzForm + Bootstrap Integration
 
-Formulizer uses Bootstrap 5 class conventions (`form-control`, `form-group`, `is-valid`, etc.) to provide familiar styling for forms. However, **it does not include Bootstrap by default**, so the developer must explicitly register the styles.
+FzForm uses Bootstrap 5 class conventions (`form-control`, `form-group`, `is-valid`, etc.) to provide familiar styling for forms. However, **it does not include Bootstrap by default**, so the developer must explicitly register the styles.
 
 This design ensures:
 - Smaller bundle size
@@ -11,7 +11,7 @@ This design ensures:
 
 ## 🔧 Integration Methods
 
-You have **3 supported ways** to register Bootstrap styles into Formulizer:
+You have **3 supported ways** to register Bootstrap styles into FzForm:
 
 ### ✅ 1. Register CSS via JS imports
 
@@ -47,13 +47,13 @@ FzForm.registerBootstrapFromLinks(
 )
 ```
 
-This reuses the already-loaded `CSSStyleSheet` objects and injects them into all Formulizer fields.
+This reuses the already-loaded `CSSStyleSheet` objects and injects them into all FzForm fields.
 
 ---
 
 ### ✅ 3. Load Bootstrap from CDN (fallback)
 
-If no styles are registered, you can let Formulizer load Bootstrap automatically:
+If no styles are registered, you can let FzForm load Bootstrap automatically:
 
 ```ts
 await FzForm.registerBootstrapCDN()
@@ -134,7 +134,7 @@ FzForm.registerBootstrap(bootstrapCss)
 await FzForm.registerBootstrapCDN()
 ```
 
-Done properly, all Formulizer fields (`fz-form`, `fz-string`, `fz-boolean`, etc.) will render with Bootstrap 5 styling, validation feedback, layout, and responsiveness.
+Done properly, all FzForm fields (`fz-form`, `fz-string`, `fz-boolean`, etc.) will render with Bootstrap 5 styling, validation feedback, layout, and responsiveness.
 
 ---
 

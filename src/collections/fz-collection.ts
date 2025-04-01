@@ -11,7 +11,7 @@ const fiedtypes = [
     'fz-enum-select',
     "fz-enum-typeahead",
 
-    "fz-asset",
+    "fz-picker",
     "fz-boolean",
     "fz-color",
     "fz-const",
@@ -35,7 +35,10 @@ const fiedtypes = [
 const fieldtypeslist = fiedtypes.join(',')
 export abstract class FZCollection extends FzField {
 
-    //@queryAll(fieldtypeslist) readonly fields!: FzField[]
+    /**
+     * render collapsed collection  Array or Object
+     */
+    protected abstract renderCollapsed(): TemplateResult 
 
     get fields(): FzField[] {
         const fields = [...this.shadowRoot?.querySelectorAll(fieldtypeslist)  ?? []] as FzField[]
@@ -63,7 +66,7 @@ export abstract class FZCollection extends FzField {
      * this method is used by composed fields (fz-array and fz-object)
      * @param key 
      */
-    renderItem(schema: Schema, key: string | number): TemplateResult {
+    protected renderItem(schema: Schema, key: string | number): TemplateResult {
         let name: string | null = null;;
         let index: number | null = null;
         if (!this.schema) return html``
@@ -80,7 +83,7 @@ export abstract class FZCollection extends FzField {
             case "fz-textarea": return html`<fz-textarea .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-textarea>`
             case "fz-string": return html`<fz-string .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-string>`
             case "fz-mask": return html`<fz-mask .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-mask>`
-            case "fz-asset": return html`<fz-asset .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-asset>`
+            case "fz-picker": return html`<fz-picker .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-picker>`
             case "fz-signature": return html`<fz-signature .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-signature>`
             case "fz-boolean": return html`<fz-boolean .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-boolean>`
             case "fz-float": return html`<fz-float .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-float>`
@@ -101,36 +104,13 @@ export abstract class FZCollection extends FzField {
         }
     }
 
-
-    delete() {
-        if (this.collapsed !== null) this.collapsed = true
-        this.value = this.empty
-    }
-
-    get deletable() {
-        if (this.isroot == null || this.isempty) return false
-        if (this.schema.nullAllowed && this.nullable) return true;
-        if (!this.schema.nullAllowed && !this.required) return true;
-        return false
-    }
-
-    override firstUpdated(changedProperties: any) {
-        super.firstUpdated(changedProperties)
-        this.collapsed = this.isroot ? false : !!this.evalExpr("collapsed")
-    }
-    
-    renderItemErrors(index: number|string) {
+    protected renderItemErrors(index: number|string) {
         const errors= this.form.errors(`${this.pointer}/${index}`)
         return html`
             <span id="error" class="error-message error-truncated">
                 ${errors.join(', ')}
             </span>`
     }
-
-    /**
-     * render collapsed collection  Array or Object
-     */
-    protected abstract renderCollapsed(): TemplateResult 
 
     /**
      * when asked for focus , set focus to first field of the collection
@@ -140,6 +120,14 @@ export abstract class FZCollection extends FzField {
             const first = this.fields[0]
             first.dofocus()
         }
+    }
+
+    delete() {
+        this.value = this.empty
+    }
+
+    override firstUpdated(changedProperties: any) {
+        super.firstUpdated(changedProperties)
     }
 
 }

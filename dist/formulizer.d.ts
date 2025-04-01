@@ -76,7 +76,7 @@ declare class JSONSchemaDraft07 {
     case?: string | ExprFunc<boolean>;
     visible?: string | ExprFunc<boolean>;
     readonly?: string | ExprFunc<boolean>;
-    collapsed?: boolean | ExprFunc<boolean>;
+    collapsed: "never" | "allways" | "true" | "false";
     rank?: string | ExprFunc<any>;
     expression?: string | ExprFunc<any>;
     change?: string | ExprFunc<any>;
@@ -182,9 +182,11 @@ type WithMetadata<T> = T & {
 type Pojo = WithMetadata<JSONValue>;
 
 declare class Base extends LitElement {
-    private handlers;
-    static sheets: CSSStyleSheet[];
+    private static loaded;
+    private static sheets;
     static styles: CSSResult[];
+    private handlers;
+    badge(value: number | string): lit_html.TemplateResult<1>;
     protected firstUpdated(_changedProperties: PropertyValues): void;
     listen(target: EventTarget, event: string, handler: (evt: Event) => void, options?: AddEventListenerOptions | boolean): void;
     unlisten(target: EventTarget, event: string, handler: (evt: Event) => void, options?: AddEventListenerOptions | boolean): void;
@@ -194,7 +196,7 @@ declare class Base extends LitElement {
      * preventDefault and stopPropagation on event (helper)
      */
     eventStop(event?: Event): void;
-    static registerBootstrap(bootstrap_url?: CSSStyleSheet | string, icons_url?: CSSStyleSheet | string, woff_url?: FontFace | string): Promise<void>;
+    static loadBootstrap(bootstrap_url?: CSSStyleSheet | string, icons_url?: CSSStyleSheet | string, woff_url?: FontFace | string): Promise<void>;
     static isBootStrapLoaded(): boolean;
     /**
      * called in firstUpdated to adopt Bootstrap style
@@ -204,6 +206,7 @@ declare class Base extends LitElement {
     adoptBootStrap(): void;
     /**
      * find in the ancestors of an element a webcomponent matching a given selector
+     *  IMPORTANT: traverse Shadow DOM
      * @param selector selector to matching the searched element
      * @param el element from which to start searching
      * @returns Element corresponding to selector, null otherwise
@@ -275,7 +278,6 @@ declare class FzForm extends Base {
     private cancel;
     private compile;
     trace(pointer: string): void;
-    static loadBootstrap(bootstrap_url?: CSSStyleSheet | string, icons_url?: CSSStyleSheet | string, woff_url?: FontFace | string): Promise<void>;
 }
 
 /**
@@ -298,10 +300,11 @@ declare abstract class FzField extends Base {
     accessor name: string | null;
     accessor index: number | null;
     accessor dirty: boolean;
-    accessor collapsed: boolean;
+    accessor i_collapsed: boolean;
     get errors(): string[];
     get valid(): boolean;
     get invalid(): boolean;
+    get collapsed(): boolean;
     /** A field is touched if really modified (dirty) or submission by user done */
     get touched(): boolean;
     get validation(): lit_html_directive.DirectiveResult<typeof lit_html_directives_class_map.ClassMapDirective>;
@@ -354,9 +357,8 @@ declare abstract class FzField extends Base {
      * render method for label
      */
     renderLabel(): TemplateResult<1>;
-    badge(value: number | string): TemplateResult<1>;
     toggle(evt: Event): void;
-    chevron(): TemplateResult<1>;
+    chevron(): "" | TemplateResult<1>;
     connectedCallback(): void;
     disconnectedCallback(): void;
     /**
@@ -406,7 +408,7 @@ declare class FzMarkdownIt extends Base {
     static styles: lit.CSSResult[];
     protected firstUpdated(_changedProperties: PropertyValues): Promise<void>;
     render(): lit_html.TemplateResult<1>;
-    static loadMarkdownIt(useit: boolean): Promise<void>;
+    static loadMarkdownIt(usemarkdown: boolean): Promise<void>;
 }
 
 declare global {

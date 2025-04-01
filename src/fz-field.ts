@@ -34,16 +34,10 @@ export abstract class FzField extends Base {
     @property({ type: Number }) accessor index: number | null = null
 
     @property({ attribute:false}) accessor dirty = false
-    @property({ attribute: false }) accessor collapsed = false
+    @property({ attribute: false }) accessor i_collapsed = false
     @property({ attribute: false }) get errors(): string[] {
         return this.localError ? [this.localError,...this.form?.errors(this.pointer)] : this.form?.errors(this.pointer)
     }
-
-    // get form(): FzForm {
-    //     if (this._form) return this._form
-    //     this._form = closestAscendantFrom("fz-form", this) as FzForm;
-    //     return this._form
-    // }
 
     get valid() {
         return this.errors.length === 0 && isNull(this.localError)
@@ -52,6 +46,11 @@ export abstract class FzField extends Base {
         return this.errors.length > 0 || notNull(this.localError)
     }
 
+    get collapsed(): boolean {
+        if (this.schema.collapsed == "never") return false
+        if (this.schema.collapsed == "allways") return true
+        return this.i_collapsed
+    }
     /** A field is touched if really modified (dirty) or submission by user done */
     get touched() {
         return this.dirty || this.form?.submitted
@@ -273,43 +272,28 @@ export abstract class FzField extends Base {
      * render method for label
      */
     renderLabel() {
-        const required = this.required ? '*' : ''
-        const label = `${this.label}${required}`
 
-        // user choose not to show label  
+        // the user may choose not to show label  
         if (this.label === "") return html``
-        if (this.schema.basetype === "boolean") return html`
-        <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
-            <div>&nbsp</div>
-        </label>`
-
-        // label for array items (badge index)
-        if (this.isItem) return html`
-            <label for="input" class="col-sm-1 col-form-label" @click="${this.labelClicked}">
-                <div>${this.badge(label)}</div>
-            </label>`
-
-        // labels for object properties
+        const label = `${this.label}${this.required ? '*' : ''}`
+        // for array items => badge index / for object property => label
         return html`
-            <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
-                <div>${label}</div>
+            <label for="input" class="${this.isItem ? 'col-sm-1' : 'col-sm-3'} col-form-label" @click="${this.labelClicked}">
+                <div>${ this.isItem ? this.badge(label) : label} </div>
             </label>`
-
     }
-    badge(value:number|string) {
-        return html`<span class="badge bg-primary badge-pill">${value}</span>`
-    }
-    
 
     toggle(evt: Event) {
-        if (this.isroot) { this.collapsed = false}
-        else if  (this.collapsed !== null) this.collapsed = !this.collapsed
+        if (["never","allways"].includes(this.schema.collapsed)) return
+        if (this.isroot) { this.i_collapsed = false}
+        else this.i_collapsed = !this.i_collapsed
         this.eventStop(evt)
         this.requestUpdate()
     }
 
 
     chevron() {
+        if (["allways","never"].includes(this.schema.collapsed)) return ''
         if (this.collapsed) return html`<i class="bi bi-chevron-down"></i>`
         return html`<i class="bi bi-chevron-up"></i>`
     }
@@ -353,6 +337,8 @@ export abstract class FzField extends Base {
 
     protected override firstUpdated(_changedProperties: PropertyValues): void {
         super.firstUpdated(_changedProperties)
+        this.i_collapsed = ['allways','true'].includes(this.schema.collapsed) ? true : false
+        this.toField()
         this.form?.check()       
     }
 

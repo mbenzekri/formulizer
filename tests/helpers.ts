@@ -75,6 +75,9 @@ export async function fieldHandle(formL: Locator, pointer: string) {
     }, pointer)
 
 }
+export async function fieldLocator(page: Page,pointer: string) {
+    return await page.locator(`fz-form >>> [pointer="${pointer}"]`)
+}
 
 export async function elemHandle(formL: Locator, pointer: string, selector: string) {
 

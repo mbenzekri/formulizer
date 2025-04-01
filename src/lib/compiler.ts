@@ -55,6 +55,7 @@ export class SchemaCompiler {
                 new CSRequiredIf(this.root,),
                 new CSField(this.root),
                 new CSOrder(this.root),
+                new CSCollapsed(this.root),
 
                 new CSInsideRef(this.root, data),
                 new CSTemplate(this.root, 'abstract', Schema._abstractFunc()),
@@ -62,7 +63,6 @@ export class SchemaCompiler {
                 new CSBool(this.root, 'visible', () => true),
                 new CSBool(this.root, 'readonly', () => false),
                 new CSBool(this.root, 'requiredIf', () => false),
-                new CSBool(this.root, 'collapsed', () => false),
                 new CSBool(this.root, 'filter', () => true),
                 new CSAny(this.root, 'rank', () => true),
                 new CSAny(this.root, 'expression', () => ''),
@@ -649,7 +649,7 @@ class CSField extends CompilationStep {
                     case "geo": return schema.field = 'fz-location'
                     case "doc": return schema.field = 'fz-doc'
                     case "markdown": return schema.field = 'fz-markdown'
-                    case "asset": return schema.field = 'fz-asset'
+                    case "asset": return schema.field = 'fz-picker'
                 }
                 if (!schema.format && schema.maxLength && schema.maxLength > 256) return schema.field = 'fz-textarea'
                 return schema.field = 'fz-string'
@@ -693,6 +693,27 @@ class CSOrder extends CompilationStep {
             return (diff === 0) ? fa.fieldnum - fb.fieldnum : diff
         })
         schema.order = fields
+    }
+}
+
+class CSCollapsed extends CompilationStep {
+
+    constructor(root: Schema) {
+        super(root, "collapsed","pre",["pointer"])
+    }
+
+    override appliable(_schema: Schema) {
+        return true
+    }
+    override apply(schema: Schema) {
+        if (isNull(schema.collapsed)) {
+            schema.collapsed = "false"
+        } else {
+            const domain = ["never","allways","true","false"]
+            if (!(domain.includes(schema.collapsed))) {
+                throw this.error(`${schema.pointer} : collapsed must be one of [${domain.join(', ')}]`)
+            }    
+        }
     }
 }
 

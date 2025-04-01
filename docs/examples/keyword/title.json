@@ -38,6 +38,7 @@
             "adresse": {
                 "type": "object",
                 "title": "Adresse",
+                "collapsed": "never",
                 "properties": {
                     "no": {
                         "type": "integer",

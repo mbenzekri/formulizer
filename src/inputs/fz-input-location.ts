@@ -11,7 +11,7 @@ import { FzInputBase } from "./fz-input-base";
  * @prop index
  */
 @customElement("fz-location")
-export class FzInputGeolocation extends FzInputBase {
+export class FzInputLocation extends FzInputBase {
     private watchId?: number
 
     override toField(): void {
@@ -39,13 +39,13 @@ export class FzInputGeolocation extends FzInputBase {
         return html`
             <div class="input-group ${this.validation}">
                 <input
-                    class="form-control"
-                    type="text"
                     id="input"
+                    type="text"
                     readonly
-                    placeholder="${this.label}"
+                    placeholder="POINT(x y)"
                     ?readonly="${this.readonly}" 
                     autocomplete=off  spellcheck="false"
+                    class="form-control"
                 />
                 <div class="btn-group">
                     <button 
@@ -68,10 +68,6 @@ export class FzInputGeolocation extends FzInputBase {
             </div>`
     }
     geolocate() { 
-        // navigator.geolocation.getCurrentPosition((position: any) => {
-        //     this.input.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`
-        //     this.change()
-        // });
 
         this.watchId = navigator.geolocation.watchPosition(
             position => {

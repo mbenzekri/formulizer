@@ -48,8 +48,8 @@ class JSONSchemaDraft07 {
     minProperties?: number;
     required?: string[];
     properties?: Record<string, Schema>;
-    patternProperties?: Record<string, Schema>;         // IGNORED by formulizer (except for validation)
-    additionalProperties?: boolean | Schema;            // IGNORED by formulizer (except for validation)
+    patternProperties?: Record<string, Schema>;         // IGNORED by FzForm (except for validation)
+    additionalProperties?: boolean | Schema;            // IGNORED by FzForm (except for validation)
     dependencies?: Record<string, Schema | string[]>;
     propertyNames?: Schema;
 
@@ -92,7 +92,7 @@ class JSONSchemaDraft07 {
     case?: string | ExprFunc<boolean>;
     visible?: string | ExprFunc<boolean>;
     readonly?: string | ExprFunc<boolean>;
-    collapsed?: boolean | ExprFunc<boolean>;
+    collapsed!: "never" | "allways" | "true" | "false" ;
     rank?: string | ExprFunc<any>;
     expression?: string | ExprFunc<any>;
     change?: string | ExprFunc<any>;

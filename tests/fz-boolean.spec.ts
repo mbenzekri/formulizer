@@ -1,5 +1,5 @@
 import { test, expect, Page, JSHandle, ElementHandle, Locator } from '@playwright/test';
-import { formInit, elemHandle, TEST_PAGE, FzField, fieldHandle, setData, patch } from './helpers'
+import { formInit, elemHandle, TEST_PAGE, FzField, fieldHandle, setData, patch, fieldLocator, FzForm } from './helpers'
 
 const SCHEMA = {
     type: 'object',
@@ -9,12 +9,12 @@ const SCHEMA = {
 const DATA = { active: true }
 
 let form_l: Locator
-let field_h: ElementHandle<FzField>
+let field_h: Locator
 let input_h: ElementHandle<HTMLInputElement>
 
 async function init(page, testSchema: any = SCHEMA, testData: any = DATA) {
     form_l = await formInit(page, testSchema ?? SCHEMA, testData ?? DATA)
-    field_h = await fieldHandle(form_l, '/active')
+    field_h = await fieldLocator(page,'/active')
     input_h = await elemHandle(form_l, '/active', 'input') as ElementHandle<HTMLInputElement>
 }
 

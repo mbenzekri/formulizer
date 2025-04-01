@@ -33,23 +33,12 @@ export class FzInputBoolean extends FzInputBase {
         `;
     }
     private tryChange(event: Event) {
-        if (this.readonly) event.preventDefault()
-        else this.change()
+        this.readonly ? event.preventDefault() : this.change()
     }
 
     override toField() {
         if (isNull(this.input)) return
         switch (true) {
-            case this.value === undefined:
-                // Always treat undefined as "not set" (indeterminate)
-                this.input.indeterminate = true
-                this.input.checked = false
-                break
-            case this.value === null && this.schema.nullAllowed:
-                // Only treat null as indeterminate if null is allowed
-                this.input.indeterminate = true
-                this.input.checked = false
-                break
             case isBoolean(this.value):
                 // Standard true/false 
                 this.input.indeterminate = false
