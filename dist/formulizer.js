@@ -5398,7 +5398,7 @@ class SchemaCompiler {
         this.passes.pre = this.topologicalSort(this.passes.pre);
         this.passes.post = this.topologicalSort(this.passes.post);
     }
-    extractDialect(options, schemaUri) {
+    extractDialect(options = { dialect: SchemaCompiler.DIALECT_DRAF_07 }, schemaUri) {
         switch (true) {
             case SchemaCompiler.unimplemented.some(draft => schemaUri?.startsWith(`http://json-schema.org/${draft}/schema`)):
                 return SchemaCompiler.unimplemented.find(draft => schemaUri?.includes(draft)) ?? "draft-06";
@@ -5411,7 +5411,7 @@ class SchemaCompiler {
             case options.dialect && SchemaCompiler.implemented.includes(options.dialect):
                 return options.dialect;
             default:
-                return "2020-12";
+                return "draft-07";
         }
     }
     compile() {
@@ -6219,9 +6219,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
         return [...super.styles];
     }
     i_root = { content: {} };
-    #i_options_accessor_storage = {};
-    get i_options() { return this.#i_options_accessor_storage; }
-    set i_options(value) { this.#i_options_accessor_storage = value; }
+    i_options = { dialect: "draft-07", userdata: undefined };
     store = new BlobMemory();
     asset;
     fieldMap = new Map();
@@ -6292,7 +6290,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     }
     get options() { return this.i_options; }
     set options(value) {
-        this.i_options = value;
+        this.i_options = { dialect: value?.dialect ?? "draft-07", userdata: value?.userdata };
         if (this.i_options?.storage) {
             this.store = new BlobStoreWrapper(this.i_options.storage);
         }

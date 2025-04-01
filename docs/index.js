@@ -93,7 +93,8 @@ const enumHandler = (evt) =>  {
 // function to load and render provided name example
 const goto = async (name) => {
     //await FzLogger.set("DEBUG","validation","tracker","compilation","input","data-update")
-    const subject = name ?? "basic"
+    const hash = window.location.hash == "" ? null : window.location.hash.substring(1) 
+    const subject = name ?? hash ??  "general/whatis" 
     if (subject) {
         tutodata = await fetch(`./examples/${subject}.json`).then(r => r.ok ? r.json() : defaultTuto).catch(() => defaultTuto)
         if (tutodata) {
@@ -113,5 +114,7 @@ const goto = async (name) => {
     }
 }
 // goto general page example (hello world)
-window.addEventListener('load', () => goto("general/whatis"))
+window.addEventListener('load',_ => goto())
+window.addEventListener('hashchange',_ => goto());
+
 

@@ -6,11 +6,11 @@ FzForm is a W3C-compliant web component that dynamically renders UI forms. Formz
 an extended JSON Schema format.
 
 >- FzForm is provided as a [W3C web component](https://www.webcomponents.org/introduction)
->- The component (tag: `<fz-form>`) expect a form description (in `schema` property) and initial data (in `data` property)
+>- The component (tag: `<fz-form>`) expect a form description (`schema` property) and initial data (`data` property)
 >- The form description is provided in [JSON Schema ](https://json-schema.org/) format.
->- FzForm extends JSON Schema with specific keywords (UI and Form specific keywords).
->- The generated form UI is designed with bootstrap 5 (see bootstrap integration).
->- The data is provided and retrieved in JSON (JSON serializable JS objects).  
+>- FzForm extends JSON Schema with UI and Form [specific keywords](#general/schema).
+>- The generated form UI is designed with bootstrap 5 [bootstrap integration](#general/bootstrap).
+>- The data is provided and retrieved in JSON (JSON serializable JS objects).
 >- The bundle is provided as a unique javascript file to be loaded in your page (provide in CDN).
 >- FzForm is developped using typescript and lit3.
 

@@ -23,7 +23,7 @@ export class FzForm extends Base {
     }
 
     private readonly i_root = { content: {} as Pojo }
-    private accessor i_options: IOptions = {}
+    private i_options: IOptions = { dialect: "draft-07", userdata: undefined}
     public store: IBlobStore = new BlobMemory()
     public asset!: IAsset
     private readonly fieldMap: Map<string, FzField> = new Map()
@@ -88,7 +88,7 @@ export class FzForm extends Base {
 
     get options(): IOptions { return this.i_options }
     set options(value: IOptions) {
-        this.i_options = value
+        this.i_options = { dialect: value?.dialect ?? "draft-07", userdata: value?.userdata } 
         if (this.i_options?.storage) {
             this.store = new BlobStoreWrapper(this.i_options.storage)
         }

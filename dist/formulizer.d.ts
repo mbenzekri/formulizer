@@ -221,7 +221,7 @@ declare class Base extends LitElement {
 declare class FzForm extends Base {
     static get styles(): lit.CSSResult[];
     private readonly i_root;
-    private accessor i_options;
+    private i_options;
     store: IBlobStore;
     asset: IAsset;
     private readonly fieldMap;

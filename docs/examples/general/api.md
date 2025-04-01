@@ -12,8 +12,9 @@ FzForm is a W3C-compliant web component:
 ## Attributes 
 | name | M | type | description |
 | ---- | - | ---- | ----------- |
-| schema | x | JSON | an annotated JSON Schema form description the form data structure [see detail here](./Schema_for_fz-form.md) |
+| schema | x | JSON | an annotated JSON Schema form description the form data structure [see detail here](#general/schema) |
 | data | x | JSON | initial data to be updated throught the form. |
+| bootstrap |  | boolean | if present FzForm will load bootstrap from CDN [bootstrap chapter](#general/bootstrap) |
 | actions |  | boolean | if true will show actions buttons to validate or cancel the form (default to false / absent)|
 | readonly |   | boolean | if true form will show a readonly state of the data otherwise will allow form to allow update (default to false / absent) |
 | checkin |   | boolean | if true fzform reject the data not conforming to the JSON Schema (error message / no form) (default to false / absent) |

@@ -77,7 +77,7 @@ export class SchemaCompiler {
         this.passes.post = this.topologicalSort(this.passes.post)
 
     }
-    extractDialect(options: IOptions, schemaUri?: string) {
+    extractDialect(options: IOptions = {dialect: SchemaCompiler.DIALECT_DRAF_07}, schemaUri?: string) {
         switch (true) {
             case SchemaCompiler.unimplemented.some(draft => schemaUri?.startsWith(`http://json-schema.org/${draft}/schema`)):
                 return SchemaCompiler.unimplemented.find(draft => schemaUri?.includes(draft)) ?? "draft-06"
@@ -94,7 +94,7 @@ export class SchemaCompiler {
             case options.dialect && SchemaCompiler.implemented.includes(options.dialect):
                 return options.dialect
             default:
-                return "2020-12"
+                return "draft-07"
         }
     }
     compile() {
