@@ -8,7 +8,7 @@
     </head>
     <body>
 
-        <!--fz-form id="myform" oninit=oninit onready=onready actions onvalidate=onvalidate  ondismiss=ondismiss ></fz-form-->
+        <fz-form id="myform" bootstrap useajv usemarkdown oninit=oninit onready=onready actions onvalidate=onvalidate  ondismiss=ondismiss ></fz-form>
         <br>
         <pre id="mydata" lang=""></pre>
         <script>
@@ -26,8 +26,8 @@
             }
             window.onload = async () => {
                 window.litNonce = 'abc123xyz'
-                await FzForm.registerBootstrap() // bootstrap loaded from CDN 
-                const form = document.createElement('fz-form')
+                //await FzForm.loadBoostrap() // bootstrap loaded from CDN 
+                const form = document.getElementById('myform')
                 document.body.prepend(form)
                 form.schema = {
                     "title": "Say hello to...",

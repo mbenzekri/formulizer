@@ -271,8 +271,8 @@ class Base extends r$1 {
     static loaded = false;
     static sheets = [];
     static styles = [
-        i$5 `body {
-                font-family: 'Arial', sans-serif !important;
+        i$5 `:host {
+                font-family: Arial, sans-serif;
             }
             .space-before {
                 padding-top:10px; 

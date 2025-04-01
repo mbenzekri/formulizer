@@ -14,8 +14,8 @@ export class Base extends LitElement {
     private static sheets: CSSStyleSheet[] = []
 
     static override styles: CSSResult[] = [
-        css`body {
-                font-family: 'Arial', sans-serif !important;
+        css`:host {
+                font-family: Arial, sans-serif;
             }
             .space-before {
                 padding-top:10px; 

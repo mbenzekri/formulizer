@@ -44,16 +44,16 @@
                 "array/enum": "Enum arrays"
             },
             "Object": {
-                "object": "Object field",
-                "group": "Group your fields",
-                "tab": "Tab for groups",
-                "inline": "Inline fields"
+                "object/object": "Object field",
+                "object/group": "Group your fields",
+                "object/tab": "Tab for groups",
+                "object/inline": "Inline fields"
             },
             "Miscellaneous": {
-                "pick": "Pick data from your app",
-                "markdown": "Use markdown",
-                "documents": "document",
-                "signature": "signature"
+                "misc/pick": "Pick data from your app",
+                "misc/markdown": "Use markdown",
+                "misc/documents": "document",
+                "misc/signature": "signature"
             }
         }
     },

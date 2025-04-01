@@ -3,7 +3,7 @@
 >The `visible` keyword controls whether a field is **shown or hidden** in your form.
 
 
-## ✅ **Always Visible (Default)**
+## Always Visible (Default)
 
 ```json
 {
@@ -12,7 +12,7 @@
 }
 ```
 
-## ✅ **Always Hidden**
+## Always Hidden
 
 ```json
 {
@@ -21,7 +21,7 @@
 }
 ```
 
-## ✅ **Conditional Visibility (Using Expressions)**
+## Conditional Visibility (Using Expressions)
 
 - provide a FzForm boolean expression (in string).
 - the field will show or hide depending on the result.
