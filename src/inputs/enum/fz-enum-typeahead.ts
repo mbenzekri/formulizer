@@ -2,7 +2,7 @@
 import { customElement, property, query } from "lit/decorators.js"
 import { unsafeHTML } from "lit/directives/unsafe-html.js"
 import { styleMap } from "lit/directives/style-map.js";
-import { html } from "lit"
+import { html, PropertyValues } from "lit"
 import { FETCHING, FzEnumBase } from "./fz-enum-base";
 import { EnumItem } from "../../lib/types";
 import { isNull } from "../../lib/tools";
@@ -19,6 +19,21 @@ export class FzEnumTypeahead extends FzEnumBase {
     private filtered: EnumItem[] = []
 
     override toField() {
+        // only synced at initialisation (see firstUpdated)
+        // on other moments queryElem must preserve user input for filtering
+    }
+
+    override toValue() {
+        if (this.selected >= 0) {
+            this.value = this.filtered[this.selected].value
+        }
+    }
+    override focusout(evt: Event): void {
+        super.focusout(evt)
+        //this.isopen = false
+    }
+
+    private alignFromValue(): void {
         if (!this.queryElem) {
             this.selected = -1
         } else if (isNull(this.value) || isNull(this.enums))  {
@@ -28,13 +43,12 @@ export class FzEnumTypeahead extends FzEnumBase {
             const item = this.enums.find(item => item.value == this.value) 
             this.queryElem.value = item ? item.title : ""
             this.selected = item ? 0 : -1 
-        }
+        } 
     }
 
-    override toValue() {
-        if (this.selected >= 0) {
-            this.value = this.filtered[this.selected].value
-        }
+    override firstUpdated(changedProperties: PropertyValues): void {
+        super.firstUpdated(changedProperties)
+        this.alignFromValue()
     }
 
     renderEnum() {
@@ -57,6 +71,7 @@ export class FzEnumTypeahead extends FzEnumBase {
                     placeholder=${this.label ?? ""}
                     ?readonly=${this.readonly}
                     ?required=${this.required}
+                    @keydown=${this.tabhandle}
                     @input=${this.filter}
                     @change=${this.filter}
                     @focus=${this.show}
@@ -64,8 +79,8 @@ export class FzEnumTypeahead extends FzEnumBase {
                     autocomplete=off  spellcheck="false"
                 />
                 <div id="list" style="${styleMap(styles)}" class="dropdown-menu w-100">
-                    ${ this.filtered?.length == 0 ? html`<a data-testid="nomatch-item" class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : '' }
-                    ${ this.filtered?.map((item,i) => html`<a data-testid="selected-item" class="dropdown-item" @click="${() => this.select(i)}" >${this.boldPrefix(item.title) }</a>`)}
+                    ${ this.filtered?.length == 0 ? html`<a class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : '' }
+                    ${ this.filtered?.map((item,i) => html`<a class="dropdown-item" @click="${(_e: Event) => this.select(i)}" >${this.boldMatch(item.title) }</a>`)}
                 </div>
             </div>`
     }
@@ -75,12 +90,16 @@ export class FzEnumTypeahead extends FzEnumBase {
     }
 
     // return the given label with query part bolded 
-    private boldPrefix(label: string) {
-        if (this.query == null || this.query.length == 0) return label
-        const parts = label.split(new RegExp(this.query,"i"))
-        const bolded = parts.join(`<b><u>${this.query}</u></b>`) 
-        return unsafeHTML(bolded)
+    private boldMatch(label: string) {
+        if (this.query == null || this.query.length == 0) return label;
+    
+        // Create a case-insensitive regex to find all occurrences of the query
+        const regex = new RegExp(this.query, 'gi');
+        const bolded = label.replace(regex, match => `<b><u>${match}</u></b>`);
+    
+        return unsafeHTML(bolded);
     }
+    
     private show() {
         this.isopen = true
         this.queryElem.select()
@@ -91,6 +110,7 @@ export class FzEnumTypeahead extends FzEnumBase {
         this.selected = index
         this.isopen = false
         this.queryElem.value = this.filtered[this.selected].title
+        this.value = this.filtered[this.selected].value
         this.change()
     }
     // get the enum list to display filter by query string (first 10 items)
@@ -102,6 +122,13 @@ export class FzEnumTypeahead extends FzEnumBase {
         this.filtered.push(...this.enums?.filter(matching).slice(0, 10) ?? [])
         this.selected = -1
         this.requestUpdate()
+    }
+    private tabhandle(evt: KeyboardEvent) {
+        if (evt.key === 'Tab') {
+            this.alignFromValue()
+            this.isopen = false
+            this.queryElem.setSelectionRange(this.queryElem.value.length, this.queryElem.value.length);
+        }
     }
 
 }

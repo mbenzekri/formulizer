@@ -27,7 +27,7 @@ export abstract class FzField extends Base {
     protected localError?: string
     private _dofocus = false
 
-    @property({ type: String }) accessor pointer = '/'
+    @property({ type: String, reflect: true }) accessor pointer = '/'
     @property({ type: Object }) accessor schema = EMPTY_SCHEMA
     @property({ type: Object }) accessor data: any = {}
     @property({ type: String }) accessor name: string | null = null
@@ -247,14 +247,19 @@ export abstract class FzField extends Base {
      */
     dofocus() { this._dofocus = true }
 
-
+    /**
+     * to override if focusout need to be managed by field
+     */
+    focusout(_evt: Event) {
+        // dont forget to call super.focusout(evt)
+    }
     /**
      * render method for this field component (calls renderField() abstract rendering method)
      */
     override render() {
         if (!this.visible) return ''
         this.toField()
-        return html`<div class="space-before">${this.renderField()}</div>`
+        return html`<div class="space-before" @focusout="${this.focusout}" >${this.renderField()}</div>`
     }
 
     renderErrors() {

@@ -1094,13 +1094,19 @@ class FzField extends Base {
      */
     dofocus() { this._dofocus = true; }
     /**
+     * to override if focusout need to be managed by field
+     */
+    focusout(_evt) {
+        // dont forget to call super.focusout(evt)
+    }
+    /**
      * render method for this field component (calls renderField() abstract rendering method)
      */
     render() {
         if (!this.visible)
             return '';
         this.toField();
-        return x `<div class="space-before">${this.renderField()}</div>`;
+        return x `<div class="space-before" @focusout="${this.focusout}" >${this.renderField()}</div>`;
     }
     renderErrors() {
         if (!this.touched || this.valid)
@@ -1291,7 +1297,7 @@ class FzField extends Base {
     }
 }
 __decorate([
-    n$2({ type: String })
+    n$2({ type: String, reflect: true })
 ], FzField.prototype, "pointer", null);
 __decorate([
     n$2({ type: Object })
@@ -1706,6 +1712,19 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
     set selected(value) { this.#selected_accessor_storage = value; }
     filtered = [];
     toField() {
+        // only synced at initialisation (see firstUpdated)
+        // on other moments queryElem must preserve user input for filtering
+    }
+    toValue() {
+        if (this.selected >= 0) {
+            this.value = this.filtered[this.selected].value;
+        }
+    }
+    focusout(evt) {
+        super.focusout(evt);
+        //this.isopen = false
+    }
+    alignFromValue() {
         if (!this.queryElem) {
             this.selected = -1;
         }
@@ -1719,10 +1738,9 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
             this.selected = item ? 0 : -1;
         }
     }
-    toValue() {
-        if (this.selected >= 0) {
-            this.value = this.filtered[this.selected].value;
-        }
+    firstUpdated(changedProperties) {
+        super.firstUpdated(changedProperties);
+        this.alignFromValue();
     }
     renderEnum() {
         if (this.enums == FETCHING) {
@@ -1743,6 +1761,7 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
                     placeholder=${this.label ?? ""}
                     ?readonly=${this.readonly}
                     ?required=${this.required}
+                    @keydown=${this.tabhandle}
                     @input=${this.filter}
                     @change=${this.filter}
                     @focus=${this.show}
@@ -1750,8 +1769,8 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
                     autocomplete=off  spellcheck="false"
                 />
                 <div id="list" style="${o$1(styles)}" class="dropdown-menu w-100">
-                    ${this.filtered?.length == 0 ? x `<a data-testid="nomatch-item" class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : ''}
-                    ${this.filtered?.map((item, i) => x `<a data-testid="selected-item" class="dropdown-item" @click="${() => this.select(i)}" >${this.boldPrefix(item.title)}</a>`)}
+                    ${this.filtered?.length == 0 ? x `<a class="dropdown-item disabled"  style="font-style: italic">No match...</a>` : ''}
+                    ${this.filtered?.map((item, i) => x `<a class="dropdown-item" @click="${(_e) => this.select(i)}" >${this.boldMatch(item.title)}</a>`)}
                 </div>
             </div>`;
     }
@@ -1760,11 +1779,12 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
         return this.queryElem?.value ?? "";
     }
     // return the given label with query part bolded 
-    boldPrefix(label) {
+    boldMatch(label) {
         if (this.query == null || this.query.length == 0)
             return label;
-        const parts = label.split(new RegExp(this.query, "i"));
-        const bolded = parts.join(`<b><u>${this.query}</u></b>`);
+        // Create a case-insensitive regex to find all occurrences of the query
+        const regex = new RegExp(this.query, 'gi');
+        const bolded = label.replace(regex, match => `<b><u>${match}</u></b>`);
         return o$2(bolded);
     }
     show() {
@@ -1776,6 +1796,7 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
         this.selected = index;
         this.isopen = false;
         this.queryElem.value = this.filtered[this.selected].title;
+        this.value = this.filtered[this.selected].value;
         this.change();
     }
     // get the enum list to display filter by query string (first 10 items)
@@ -1787,6 +1808,13 @@ let FzEnumTypeahead = class FzEnumTypeahead extends FzEnumBase {
         this.filtered.push(...this.enums?.filter(matching).slice(0, 10) ?? []);
         this.selected = -1;
         this.requestUpdate();
+    }
+    tabhandle(evt) {
+        if (evt.key === 'Tab') {
+            this.alignFromValue();
+            this.isopen = false;
+            this.queryElem.setSelectionRange(this.queryElem.value.length, this.queryElem.value.length);
+        }
     }
 };
 __decorate([
@@ -3683,7 +3711,8 @@ let FzArray$1 = class FzArray extends FZCollection {
                 <i class="bi bi-trash"></i>
             </div>`;
     }
-    focusout() {
+    focusout(evt) {
+        super.focusout(evt);
         this.close();
     }
     open(index, evt) {

@@ -1,5 +1,5 @@
 import { test, expect, Page, ElementHandle, JSHandle, Locator } from '@playwright/test';
-import { elemAllHandle, elemHandle, fieldHandle, formInit, formState, FzField, TEST_PAGE } from './helpers'
+import { children, child, fieldLocator, formLocator, formState, FzField, TEST_PAGE } from './helpers'
 
 test.describe('fz-enum-select field', () => {
     const SCHEMA = {
@@ -14,15 +14,15 @@ test.describe('fz-enum-select field', () => {
     const DATA = { color: "green" }
 
     let form_l: Locator
-    let field_h: ElementHandle<FzField>
+    let field_h: Locator
     let select_h: ElementHandle<HTMLSelectElement>
     let options_h: JSHandle<HTMLOptionElement[]>
 
     async function init(page: Page, testSchema: any = SCHEMA, testData: any = DATA) {
-        form_l = await formInit(page, testSchema, testData)
-        field_h = await fieldHandle(form_l, '/color')
-        select_h = await elemHandle(form_l, '/color', 'select') as ElementHandle<HTMLSelectElement>
-        options_h = await elemAllHandle(form_l, '/color', 'option') as JSHandle<HTMLOptionElement[]>
+        form_l = await formLocator(page, testSchema, testData)
+        field_h = await fieldLocator(page, '/color')
+        select_h = await child(page, '/color', 'select') as ElementHandle<HTMLSelectElement>
+        options_h = await children(page, '/color', 'option') as JSHandle<HTMLOptionElement[]>
     }
 
     test.beforeEach(async ({ page }) => {
@@ -30,7 +30,7 @@ test.describe('fz-enum-select field', () => {
     })
     test('should be instance of FzEnumSelect', async ({ page }) => {
         await init(page)
-        expect(await field_h.evaluate(node => node.constructor.name === "FzEnumSelect")).toBe(true)
+        expect(await field_h.evaluate(node => node.constructor.name)).toBe("FzEnumSelect")
     })
 
     test('should be in correct initial state ', async ({ page }) => {

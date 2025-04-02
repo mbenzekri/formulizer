@@ -14,7 +14,7 @@ export interface FzField extends HTMLElement {
 export const TEST_PAGE = 'http://127.0.0.1:5500/docs/test.html'
 
 
-export async function formInit(page: Page, schema: any, data: any): Promise<Locator> {
+export async function formLocator(page: Page, schema: any, data: any): Promise<Locator> {
     page.on('console', msg => {
         console.log(`[Browser] ${msg.type()}: ${msg.text()}`);
     });
@@ -64,40 +64,34 @@ export async function setData(formL: Locator, data: any) {
     }, data)
 }
 
-
-
-export async function fieldHandle(formL: Locator, pointer: string) {
-
-    return await formL.evaluateHandle((node, pointer) => {
-        const form = node as FzForm
-        const field = form.getField(pointer)
-        return field as FzField
-    }, pointer)
-
-}
 export async function fieldLocator(page: Page,pointer: string) {
-    return await page.locator(`fz-form >>> [pointer="${pointer}"]`)
+    return await page.locator(`[pointer="${pointer}"]`)
 }
 
-export async function elemHandle(formL: Locator, pointer: string, selector: string) {
 
-    return await formL.evaluateHandle((node, { pointer, selector }) => {
-        const form = node as FzForm
-        const field = form.getField(pointer)
+export async function count(page: Page, pointer: string, selector: string) {
+    const field = await fieldLocator(page, pointer)
+    return await field.evaluate((field, selector ) => {
+        const inputs = [...field?.shadowRoot?.querySelectorAll(selector) ?? []] as HTMLElement[]
+        return inputs.length
+    }, selector)
+} 
+export async function child(page: Page, pointer: string, selector: string) {
+    const field = await fieldLocator(page, pointer)
+    return await field.evaluateHandle((field, selector ) => {
         const input = field?.shadowRoot?.querySelector(selector) as HTMLElement
         return input
-    }, { pointer, selector })
+    }, selector)
+} 
 
-}
-
-export async function elemAllHandle(formL: Locator, pointer: string, selector: string) {
-    return await formL.evaluateHandle((node, { pointer, selector }) => {
-        const form = node as FzForm
-        const field = form.getField(pointer)
+export async function children(page: Page, pointer: string, selector: string) {
+    const field = await fieldLocator(page, pointer)
+    return await field.evaluateHandle((field, selector ) => {
         const inputs = [...field?.shadowRoot?.querySelectorAll(selector) ?? []] as HTMLElement[]
         return inputs
-    }, { pointer, selector })
+    }, selector)
 }
+
 
 function isObject(item) {
     return (item && typeof item === 'object' && !Array.isArray(item));

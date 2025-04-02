@@ -1,5 +1,5 @@
 import { test, expect, Page, Locator, ElementHandle, JSHandle } from '@playwright/test';
-import { fieldHandle, formInit, elemAllHandle, elemHandle, TEST_PAGE, FzField } from './helpers'
+import { fieldLocator as fieldLocator, formLocator as formLocator, children, child, TEST_PAGE, FzField } from './helpers'
 
 let SCHEMA = {
   type: "object",
@@ -13,13 +13,13 @@ let SCHEMA = {
 let DATA = { answer: "yes" }
 
 let form_l: Locator
-let field_h: ElementHandle<FzField>
+let field_h: Locator
 let inputs: JSHandle<HTMLInputElement[]>
 
 async function init(page, testSchema?: any, testData?: any) {
-  form_l = await formInit(page, testSchema ?? SCHEMA, testData ?? DATA)
-  field_h = await fieldHandle(form_l, '/answer')
-  inputs = await elemAllHandle(form_l, '/answer', '.form-check-input') as JSHandle<HTMLInputElement[]>
+  form_l = await formLocator(page, testSchema ?? SCHEMA, testData ?? DATA)
+  field_h = await fieldLocator(page, '/answer')
+  inputs = await children(page, '/answer', '.form-check-input') as JSHandle<HTMLInputElement[]>
 }
 
 test.describe('fz-enum-check field', () => {
@@ -32,7 +32,7 @@ test.describe('fz-enum-check field', () => {
   test('should be in correct state when yes => no', async ({ page }) => {
     await init(page,SCHEMA,DATA)
 
-    expect(await field_h.evaluate(node => node.constructor.name === "FzEnumCheck")).toBe(true);
+    expect(await field_h.evaluate(node => node.constructor.name)).toBe("FzEnumCheck");
     expect(await inputs.evaluate(inputs => inputs.length)).toBe(2)
     // TO BE FIXED: in browser testing Chrome/Firefox it works but fail for all chromium/firefox/webkit under testing
     // TBF : expect(await inputs.evaluate(inputs => inputs.filter(i => i.checked).length)).toBe(1)

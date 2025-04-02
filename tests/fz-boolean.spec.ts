@@ -1,5 +1,5 @@
-import { test, expect, Page, JSHandle, ElementHandle, Locator } from '@playwright/test';
-import { formInit, elemHandle, TEST_PAGE, FzField, fieldHandle, setData, patch, fieldLocator, FzForm } from './helpers'
+import { test, expect, ElementHandle, Locator } from '@playwright/test';
+import { formLocator, TEST_PAGE, patch, fieldLocator, child } from './helpers'
 
 const SCHEMA = {
     type: 'object',
@@ -13,9 +13,9 @@ let field_h: Locator
 let input_h: ElementHandle<HTMLInputElement>
 
 async function init(page, testSchema: any = SCHEMA, testData: any = DATA) {
-    form_l = await formInit(page, testSchema ?? SCHEMA, testData ?? DATA)
+    form_l = await formLocator(page, testSchema ?? SCHEMA, testData ?? DATA)
     field_h = await fieldLocator(page,'/active')
-    input_h = await elemHandle(form_l, '/active', 'input') as ElementHandle<HTMLInputElement>
+    input_h = await child(page, '/active', 'input') as ElementHandle<HTMLInputElement>
 }
 
 test.describe('fz-boolean field', () => {
@@ -26,7 +26,7 @@ test.describe('fz-boolean field', () => {
 
     test('should be instance of FzInputBoolean', async ({ page }) => {
         await init(page)
-        expect(await field_h.evaluate(node => node.constructor.name === "FzInputBoolean")).toBe(true)
+        expect(await field_h.evaluate(node => node.constructor.name)).toBe("FzInputBoolean")
     })
 
 

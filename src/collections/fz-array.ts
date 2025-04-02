@@ -172,7 +172,8 @@ export class FzArray extends FZCollection {
             </div>`
     }
 
-    focusout() {
+    override focusout(evt: Event) {
+        super.focusout(evt)
         this.close()
     }
 
