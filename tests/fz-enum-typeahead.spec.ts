@@ -82,5 +82,20 @@ test.describe('fz-enum-typeahead', () => {
         }
 
     })
+    test('typeahead: Tab should leave closed/align value', async ({ page }) => {
+        await init(page)
+        {   // initial state value=Spain : query=Spain => press "ge" => press "Tab" => closed and query = value
+            await query_h.focus()
+            await query_h.press("g")
+            await query_h.press("e")
+            const list_h = await children(page, '/country', '.dropdown-item')
+            expect(await list_h.evaluate(items => items.map(x => x.innerText))).toStrictEqual(["Germany","Argentina","Nigeria",])
+            await query_h.press("Tab")
+            expect(await query_h.inputValue()).toBe("Spain")
+            const s = await formState(form_l)
+            expect(s.valid).toBe(true)
+            expect(s.data.country).toBe("Spain")
+        }
+    })
 
 })

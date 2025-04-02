@@ -27,6 +27,7 @@
                 form.schema = {
                     "title": "Say hello to...",
                     "type": "object",
+                    "required": ["who"],
                     "properties": {
                         "who": {
                             "type": "string",
@@ -39,10 +40,9 @@
                     }
                 }
                 form.data = { "who" : "world" }
-                // MBZ TBF : due to change issue replaced by setTimer instead of listening "change" event 
-                setInterval(() => {
+                form.addEventListener('update', () => {
                     document.getElementById("mydata").innerHTML = JSON.stringify(form.data,null,4)
-                },200)
+                })
             }
         </script>
     </body>
