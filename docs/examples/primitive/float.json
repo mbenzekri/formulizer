@@ -1,0 +1,22 @@
+{
+    "form": {
+        "type": "object",
+        "properties": {
+            "an_int1": {
+                "title": "int [0.5, 9.5]",
+                "type": "number",
+                "minimum" :0,
+                "maximum" :9.5,
+                "multipleOf": 0.1
+            },
+            "an_int2": {
+                "title": "int ]0.5, 9.5[",
+                "type": "number",
+                "exclusiveMinimum" :0.5,
+                "exclusiveMaximum" :9.5
+            }
+        }
+    },
+    "data": {
+    }
+}

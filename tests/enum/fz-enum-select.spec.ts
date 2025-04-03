@@ -1,5 +1,5 @@
 import { test, expect, Page, ElementHandle, JSHandle, Locator } from '@playwright/test';
-import { children, child, fieldLocator, formLocator, formState, FzField, TEST_PAGE } from './helpers'
+import { children, child, fieldLocator, formLocator, formState, FzField, TEST_PAGE } from '../helpers'
 
 test.describe('fz-enum-select field', () => {
     const SCHEMA = {

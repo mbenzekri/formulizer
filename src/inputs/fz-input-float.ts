@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
-import {  html, css } from "lit"
+import {  css, html } from "lit"
 import { isNumber, notNull } from "../lib/tools"
 import { FzInputBase } from "./fz-input-base"
 import { ifDefined } from "lit/directives/if-defined.js"
 
-const DECIMAL_SEPARATOR = (1.1).toLocaleString().substring(1, 2)
+//const DECIMAL_SEPARATOR = (1.1).toLocaleString().substring(1, 2)
 /**
  * @prop schema
  * @prop data
@@ -35,6 +35,8 @@ export class FzInputFloat extends FzInputBase {
     override toField(): void {
         if (notNull(this.input)) {
             if (isNumber(this.value) ) {
+                // updating same value (but different input.value) breaks input 
+                 if (this.input.valueAsNumber === this.value) return
                 this.input.valueAsNumber =  this.value 
             } else {
                 this.input.value =  "" 
@@ -51,17 +53,16 @@ export class FzInputFloat extends FzInputBase {
         return html`
             <div class="input-group">
                 <input 
-                    class="form-control ${this.validation}" 
-                    type="number" 
                     id="input"
+                    type="number" 
                     ?readonly="${this.readonly}"
-                    @input="${this.change}"
+                    ?required="${this.required}"
                     min="${ifDefined(this.min)}"
                     max="${ifDefined(this.max)}"
-                    step="1e-12"
-                    ?required="${this.required}"
-                    @keypress="${this.keypress}"
+                    step="${ifDefined(this.step)}"
+                    @input="${this.change}"
                     autocomplete=off  spellcheck="false"
+                    class="form-control ${this.validation}" 
                 />
             </div>`
     }
@@ -76,11 +77,15 @@ export class FzInputFloat extends FzInputBase {
         return
     }
 
-    keypress(event: KeyboardEvent ){
-        // browser issue on "input type=number' we reject decimal sep not in current locale
-        if (/[.,]/.test(event.key) && DECIMAL_SEPARATOR !== event.key) {
-            event.preventDefault();
-        }
+    keypress(_event: KeyboardEvent ){
+        // // browser issue on "input type=number' we reject decimal sep not in current locale
+        // if (/[.,]/.test(event.key) && DECIMAL_SEPARATOR !== event.key) {
+        //     event.preventDefault();
+        // }
     }
+    get step() {
+        return isNumber(this.schema.multipleOf) ? this.schema.multipleOf : undefined
+    }
+
 
 }

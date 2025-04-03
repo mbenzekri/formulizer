@@ -41,7 +41,7 @@ export class FzInputInteger extends FzInputBase {
                     @keypress="${this.keypress}"
                     min="${ifDefined(this.min)}"
                     max="${ifDefined(this.max)}"
-                    step="1"
+                    step="${this.step}"
                     ?required="${this.required}"
                     autocomplete=off  spellcheck="false"
                 />
@@ -61,6 +61,9 @@ export class FzInputInteger extends FzInputBase {
         // if (!/[-0123456789]/.test(event.key)) return event.preventDefault();
         // if (this.min >= 0 && event.key === '-') return event.preventDefault();
         return
+   }
+   get step() {
+        return isNumber(this.schema.multipleOf) ? this.schema.multipleOf : 1
    }
 
 

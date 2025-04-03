@@ -1,6 +1,6 @@
 import { Pojo, FieldOrder, ExprFunc, IOptions, FromObject, SCHEMA, ROOT, PARENT, KEY } from "./types"
 import { pointerSchema, derefPointerData, complement, intersect, union, isPrimitive, isArray, isFunction, notNull, getSchema, isObject, isBoolean, isNull, isString } from "./tools";
-import { Schema, CompilationStep, isenumarray, } from "./schema";
+import { Schema, CompilationStep, isenumarray } from "./schema";
 import { CSUpgradeRef, CSUpgradeAdditionalProperties, CSUpgradeDependencies, CSUpgradeId, CSUpgradeItems, CSUpgradeNullable } from "./upgrade";
 
 /**
@@ -282,7 +282,7 @@ class CSTargetType extends CompilationStep {
     }
 
     override apply(schema: Schema, parent?: Schema, name?: string) {
-        schema.target = [...(this.infer(schema) ?? [])]
+        schema.target = [...this.infer(schema)]
         switch (schema.target.length) {
             case 2:
                 if (!schema.target.includes("null")) {
@@ -304,94 +304,112 @@ class CSTargetType extends CompilationStep {
         }
     }
 
-    infer(schema: Schema): Set<string> | null {
-
-        const possibles: (Set<string> | null)[] = []
+    infer(schema: Schema): Set<string> {
+        const kwfuncs: (keyof CSTargetType)[] = ['constKW', 'typeKW', 'enumKW', 'numberKW', 'stringKW', 'arrayKW', 'objectKW', 'notKW', 'allofKW', 'anyofKW', 'oneofKW']
         // we call all the helpers that infer types for each keyword
-        possibles.push(CSTargetType.ALL)
-        possibles.push(this.constKW(schema))
-        possibles.push(this.typeKW(schema))
-        possibles.push(this.enumKW(schema))
-        possibles.push(this.numberKW(schema))
-        possibles.push(this.stringKW(schema))
-        possibles.push(this.arrayKW(schema))
-        possibles.push(this.objectKW(schema))
-        possibles.push(this.notKW(schema))
+        const infered = kwfuncs.map(kw => (this as any)[kw](schema)) as Set<string>[]
+        const filtered = infered.filter(value => value != null)
+        // Specific integer use case as integer and number domains overlaps
+        // number is infered through "number" in type keyword or presence of "number" keyword (minimum,...)
+        // integer is infered through "integer" in type keyword ONLY !!!
+        // then meaning that if you specify integer (by type) and number (by any way) it must be coerced to integer
+        const isinteger = filtered.some((s => s.has("integer")))
+        if (isinteger) {
+            // at least one infered assertion stated integer => coerce all number to integer
+            for (const s of filtered) {
+                if (s.has("number")) {
+                    s.delete("number")
+                    s.add("integer")
+                }
+            }
+        }
+        return intersect([  CSTargetType.ALL , ...filtered])
+    }
+    allofKW (schema: Schema) {
         // Handling "allOf" → intersection of types
         if (schema.allOf) {
             const allOfTypes = schema.allOf.map((s: Schema) => this.infer(s)).filter(x => x != null);
-            possibles.push(intersect(allOfTypes));
+            return intersect(allOfTypes)
         }
-
+        return
+    }
+    anyofKW(schema: Schema) {
         // Handling "anyOf" → union of types
         if (schema.anyOf) {
-            const anyOfTypes = schema.anyOf.map((s: Schema) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x);
-            possibles.push(union(anyOfTypes));
+            const anyOfTypes = schema.anyOf.map((s: Schema) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x)
+            return union(anyOfTypes)
         }
-
+        return
+    }
+    oneofKW(schema: Schema) {
         // Handling "oneOf" → union of types (similar to anyOf)
         if (schema.oneOf) {
             const oneOfTypes = schema.oneOf.map((s: Schema) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x);;
-            possibles.push(union(oneOfTypes));
+            return union(oneOfTypes);
         }
-        const filtered = possibles.filter(value => value != null)
-        return intersect(filtered)
+        return
     }
-
-    private notKW(schema: Schema) {
+    notKW(schema: Schema) {
         //  "not" → Compute the complementary set of types
-        return schema.not ? complement(this.infer(schema.not), CSTargetType.ALL) : null
+        return schema.not ? complement(this.infer(schema.not), CSTargetType.ALL) : undefined
     }
 
-    private enumKW(schema: Schema) {
+    enumKW(schema: Schema) {
         // infering type from "enum" keyword correspond to a set of all enums value types
         if ("enum" in schema && Array.isArray(schema.enum)) {
             const types = schema.enum.map(value => value == null ? "null" : Array.isArray(value) ? "array" : typeof value)
             return new Set(types)
         }
-        return null
+        return
     }
 
-    private typeKW(schema: Schema) {
+    typeKW(schema: Schema) {
         if ("type" in schema) {
             return new Set(Array.isArray(schema.type) ? schema.type : [schema.type]) as Set<string>
         }
-        return null
+        return
     }
 
-    private constKW(schema: Schema) {
+    constKW(schema: Schema) {
         if ("const" in schema) {
-            if (schema.const == null) return new Set(["null"]);
-            if (Array.isArray(schema.const)) return new Set(["array"]);
-            const constType = Number.isInteger(schema.const) ? "integer" : typeof schema.const;
-            return new Set([constType]);
+            if (schema.const == null) return new Set(["null"])
+            if (Array.isArray(schema.const)) return new Set(["array"])
+            const constType = Number.isInteger(schema.const) ? "integer" : typeof schema.const
+            return new Set([constType])
         }
-        return null;
+        return 
     }
 
-    private arrayKW(schema: Schema) {
+    arrayKW(schema: Schema) {
         // if one of this keywords is present then type is contrained to "array"
         return CSTargetType.ARRAYKW.some(kw => kw in schema)
             ? new Set(["array"])
-            : null
+            : undefined
     }
-    private numberKW(schema: Schema) {
+    numberKW(schema: Schema) {
         // if one of this keywords is present then type is contrained to "number"
         return CSTargetType.NUMBERKW.some(kw => kw in schema)
             ? new Set(["number"])
-            : null
+            : undefined
     }
-    private objectKW(schema: Schema) {
+    integerKW(schema: Schema) {
+        // if one of this keywords is present then type is contrained to "number"
+        return schema.type == "integer" || (isArray(schema.type) && schema.type.includes("integer"))
+            ? new Set(["integer"])
+            : undefined
+    }
+
+    objectKW(schema: Schema) {
         // if one of this keywords is present then type is contrained to "object"
         return CSTargetType.OBJECTKW.some(kw => kw in schema)
             ? new Set(["object"])
-            : null
+            : undefined
     }
-    private stringKW(schema: Schema) {
+    stringKW(schema: Schema) {
         // if one of this keywords is present then type is contrained to "string"
         return CSTargetType.STRINGKW.some(kw => kw in schema)
             ? new Set(["string"])
-            : null
+            : undefined
     }
 
 }

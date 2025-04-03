@@ -1,0 +1,22 @@
+{
+    "form": {
+        "type": "object",
+        "properties": {
+            "an_int1": {
+                "title": "int [10, 100]",
+                "type": "integer",
+                "minimum" :10,
+                "maximum" :100,
+                "multipleOf": 10
+            },
+            "an_int2": {
+                "title": "int ]10, 100[",
+                "type": "integer",
+                "exclusiveMinimum" :10,
+                "exclusiveMaximum" :100
+            }
+        }
+    },
+    "data": {
+    }
+}

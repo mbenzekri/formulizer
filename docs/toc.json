@@ -22,7 +22,7 @@
             },
             "Primitive types": {
                 "primitive/boolean": "boolean",
-                "primitive/integer": "mask",
+                "primitive/integer": "integer",
                 "primitive/number": "number",
                 "primitive/range": "range",
                 "primitive/string": "string",

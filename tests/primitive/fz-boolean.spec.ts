@@ -1,5 +1,5 @@
 import { test, expect, ElementHandle, Locator } from '@playwright/test';
-import { formLocator, TEST_PAGE, patch, fieldLocator, child } from './helpers'
+import { formLocator, TEST_PAGE, patch, fieldLocator, child } from '../helpers'
 
 const SCHEMA = {
     type: 'object',
@@ -24,7 +24,7 @@ test.describe('fz-boolean field', () => {
         await page.goto(TEST_PAGE)
     });
 
-    test('should be instance of FzInputBoolean', async ({ page }) => {
+    test('fz-boolean: should be instance of FzInputBoolean', async ({ page }) => {
         await init(page)
         expect(await field_h.evaluate(node => node.constructor.name)).toBe("FzInputBoolean")
     })
@@ -66,7 +66,7 @@ test.describe('fz-boolean field', () => {
     ]
 
     for (const { schema, data, states } of testDataset) {
-        test(`should toggle (${data.active} => ${states[1].active} => ${states[2].active})`, async ({ page }) => {
+        test(`fz-boolean: should toggle (${data.active} => ${states[1].active} => ${states[2].active})`, async ({ page }) => {
             await init(page, schema, data)
         
             for (const i of states) {
@@ -79,7 +79,7 @@ test.describe('fz-boolean field', () => {
         })
     }
 
-    test('should not toggle (readonly)', async ({ page }) => {
+    test('fz-boolean: should not toggle (readonly)', async ({ page }) => {
         await init(page,
             patch(SCHEMA, { properties: { active: { readonly: true } } }),
             { active: true }

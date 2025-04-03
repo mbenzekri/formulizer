@@ -1838,8 +1838,23 @@ const RGBA_RE = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/;
  * @prop index
  */
 let FzInputString$1 = class FzInputString extends FzInputBase {
+    static get styles() {
+        return [
+            ...super.styles,
+            i$5 `
+                .color-empty {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                pointer-events: none;
+                font-size: 14px;
+            }`
+        ];
+    }
     toField() {
-        if (notNull(this.input)) {
+        if (notNull(this.input) && isString(this.value) && /^#[0-9A-F]/i.test(this.value)) {
             if (!isString(this.value))
                 this.input.value = "#000000";
             else if (this.value.match(RGBA_RE))
@@ -1859,19 +1874,22 @@ let FzInputString$1 = class FzInputString extends FzInputBase {
         }
     }
     renderInput() {
+        const useeyedropper = ("EyeDropper" in window);
         return x `
             <div class="input-group ${this.validation}" >
                 <input
                     id="input"
                     type="color" 
-                    placeholder="${this.label}"
-                    ?readonly="${this.readonly}"
-                    @input="${this.change}"
                     ?required="${this.required}"
+                    ?readonly="${this.readonly}"
+                    placeholder="${this.label}"
+                    @input="${this.change}"
                     autocomplete=off  spellcheck="false"
                     class="form-control form-control-color" 
                 />
-                <span class="input-group-text" style="max-width:5em">${isNull(this.value) ? '~' : this.value}</span>
+                ${this.isempty ? x `<span class="color-empty">Choose a color</span>` : ''}
+                <span class="input-group-text" >${isNull(this.value) ? '~' : this.value}</span>
+                ${useeyedropper ? x `<span class="input-group-text btn btn-primary" @click="${this.eyedropper}" ><i class="bi bi-eyedropper"></i></span>` : ''}
             </div>`;
     }
     rgbaToHex(rgba) {
@@ -1887,6 +1905,20 @@ let FzInputString$1 = class FzInputString extends FzInputBase {
         };
         const hex = `${toHex(r)}${toHex(g)}${toHex(b)}`;
         return `#${hex}`;
+    }
+    async eyedropper() {
+        // ... eyedropper code
+        this.eventStop();
+        try {
+            const eyeDropper = new window.EyeDropper();
+            const result = await eyeDropper.open();
+            const color = this.rgbaToHex(result.sRGBHex);
+            console.log("Color collected", color);
+            this.value = color;
+        }
+        catch (e) {
+            console.error("Failed to open/collect color with EyeDropper", String(e));
+        }
     }
 };
 FzInputString$1 = __decorate([
@@ -2556,7 +2588,7 @@ FzInputBoolean = __decorate([
     t$4("fz-boolean")
 ], FzInputBoolean);
 
-const DECIMAL_SEPARATOR = (1.1).toLocaleString().substring(1, 2);
+//const DECIMAL_SEPARATOR = (1.1).toLocaleString().substring(1, 2)
 /**
  * @prop schema
  * @prop data
@@ -2583,6 +2615,9 @@ let FzInputFloat = class FzInputFloat extends FzInputBase {
     toField() {
         if (notNull(this.input)) {
             if (isNumber(this.value)) {
+                // updating same value (but different input.value) breaks input 
+                if (this.input.valueAsNumber === this.value)
+                    return;
                 this.input.valueAsNumber = this.value;
             }
             else {
@@ -2599,17 +2634,16 @@ let FzInputFloat = class FzInputFloat extends FzInputBase {
         return x `
             <div class="input-group">
                 <input 
-                    class="form-control ${this.validation}" 
-                    type="number" 
                     id="input"
+                    type="number" 
                     ?readonly="${this.readonly}"
-                    @input="${this.change}"
+                    ?required="${this.required}"
                     min="${o(this.min)}"
                     max="${o(this.max)}"
-                    step="1e-12"
-                    ?required="${this.required}"
-                    @keypress="${this.keypress}"
+                    step="${o(this.step)}"
+                    @input="${this.change}"
                     autocomplete=off  spellcheck="false"
+                    class="form-control ${this.validation}" 
                 />
             </div>`;
     }
@@ -2627,11 +2661,14 @@ let FzInputFloat = class FzInputFloat extends FzInputBase {
             return this.schema.exclusiveMinimum;
         return;
     }
-    keypress(event) {
-        // browser issue on "input type=number' we reject decimal sep not in current locale
-        if (/[.,]/.test(event.key) && DECIMAL_SEPARATOR !== event.key) {
-            event.preventDefault();
-        }
+    keypress(_event) {
+        // // browser issue on "input type=number' we reject decimal sep not in current locale
+        // if (/[.,]/.test(event.key) && DECIMAL_SEPARATOR !== event.key) {
+        //     event.preventDefault();
+        // }
+    }
+    get step() {
+        return isNumber(this.schema.multipleOf) ? this.schema.multipleOf : undefined;
     }
 };
 FzInputFloat = __decorate([
@@ -2872,7 +2909,7 @@ let FzInputInteger = class FzInputInteger extends FzInputBase {
                     @keypress="${this.keypress}"
                     min="${o(this.min)}"
                     max="${o(this.max)}"
-                    step="1"
+                    step="${this.step}"
                     ?required="${this.required}"
                     autocomplete=off  spellcheck="false"
                 />
@@ -2896,6 +2933,9 @@ let FzInputInteger = class FzInputInteger extends FzInputBase {
         // if (!/[-0123456789]/.test(event.key)) return event.preventDefault();
         // if (this.min >= 0 && event.key === '-') return event.preventDefault();
         return;
+    }
+    get step() {
+        return isNumber(this.schema.multipleOf) ? this.schema.multipleOf : 1;
     }
 };
 FzInputInteger = __decorate([
@@ -5054,7 +5094,8 @@ class Validator {
             allowUnionTypes: true,
             strictSchema: true,
             strictNumbers: false,
-            coerceTypes: false
+            coerceTypes: false,
+            multipleOfPrecision: 15
         });
         addFormats(ajv);
         // register FzForm added formats 
@@ -5614,7 +5655,7 @@ class CSTargetType extends CompilationStep {
         return !(this.property in schema);
     }
     apply(schema, parent, name) {
-        schema.target = [...(this.infer(schema) ?? [])];
+        schema.target = [...this.infer(schema)];
         switch (schema.target.length) {
             case 2:
                 if (!schema.target.includes("null")) {
@@ -5636,38 +5677,53 @@ class CSTargetType extends CompilationStep {
         }
     }
     infer(schema) {
-        const possibles = [];
+        const kwfuncs = ['constKW', 'typeKW', 'enumKW', 'numberKW', 'stringKW', 'arrayKW', 'objectKW', 'notKW', 'allofKW', 'anyofKW', 'oneofKW'];
         // we call all the helpers that infer types for each keyword
-        possibles.push(CSTargetType.ALL);
-        possibles.push(this.constKW(schema));
-        possibles.push(this.typeKW(schema));
-        possibles.push(this.enumKW(schema));
-        possibles.push(this.numberKW(schema));
-        possibles.push(this.stringKW(schema));
-        possibles.push(this.arrayKW(schema));
-        possibles.push(this.objectKW(schema));
-        possibles.push(this.notKW(schema));
+        const infered = kwfuncs.map(kw => this[kw](schema));
+        const filtered = infered.filter(value => value != null);
+        // Specific integer use case as integer and number domains overlaps
+        // number is infered through "number" in type keyword or presence of "number" keyword (minimum,...)
+        // integer is infered through "integer" in type keyword ONLY !!!
+        // then meaning that if you specify integer (by type) and number (by any way) it must be coerced to integer
+        const isinteger = filtered.some((s => s.has("integer")));
+        if (isinteger) {
+            // at least one infered assertion stated integer => coerce all number to integer
+            for (const s of filtered) {
+                if (s.has("number")) {
+                    s.delete("number");
+                    s.add("integer");
+                }
+            }
+        }
+        return intersect([CSTargetType.ALL, ...filtered]);
+    }
+    allofKW(schema) {
         // Handling "allOf" → intersection of types
         if (schema.allOf) {
             const allOfTypes = schema.allOf.map((s) => this.infer(s)).filter(x => x != null);
-            possibles.push(intersect(allOfTypes));
+            return intersect(allOfTypes);
         }
+        return;
+    }
+    anyofKW(schema) {
         // Handling "anyOf" → union of types
         if (schema.anyOf) {
             const anyOfTypes = schema.anyOf.map((s) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x);
-            possibles.push(union(anyOfTypes));
+            return union(anyOfTypes);
         }
+        return;
+    }
+    oneofKW(schema) {
         // Handling "oneOf" → union of types (similar to anyOf)
         if (schema.oneOf) {
             const oneOfTypes = schema.oneOf.map((s) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x);
-            possibles.push(union(oneOfTypes));
+            return union(oneOfTypes);
         }
-        const filtered = possibles.filter(value => value != null);
-        return intersect(filtered);
+        return;
     }
     notKW(schema) {
         //  "not" → Compute the complementary set of types
-        return schema.not ? complement(this.infer(schema.not), CSTargetType.ALL) : null;
+        return schema.not ? complement(this.infer(schema.not), CSTargetType.ALL) : undefined;
     }
     enumKW(schema) {
         // infering type from "enum" keyword correspond to a set of all enums value types
@@ -5675,13 +5731,13 @@ class CSTargetType extends CompilationStep {
             const types = schema.enum.map(value => value == null ? "null" : Array.isArray(value) ? "array" : typeof value);
             return new Set(types);
         }
-        return null;
+        return;
     }
     typeKW(schema) {
         if ("type" in schema) {
             return new Set(Array.isArray(schema.type) ? schema.type : [schema.type]);
         }
-        return null;
+        return;
     }
     constKW(schema) {
         if ("const" in schema) {
@@ -5692,31 +5748,37 @@ class CSTargetType extends CompilationStep {
             const constType = Number.isInteger(schema.const) ? "integer" : typeof schema.const;
             return new Set([constType]);
         }
-        return null;
+        return;
     }
     arrayKW(schema) {
         // if one of this keywords is present then type is contrained to "array"
         return CSTargetType.ARRAYKW.some(kw => kw in schema)
             ? new Set(["array"])
-            : null;
+            : undefined;
     }
     numberKW(schema) {
         // if one of this keywords is present then type is contrained to "number"
         return CSTargetType.NUMBERKW.some(kw => kw in schema)
             ? new Set(["number"])
-            : null;
+            : undefined;
+    }
+    integerKW(schema) {
+        // if one of this keywords is present then type is contrained to "number"
+        return schema.type == "integer" || (isArray(schema.type) && schema.type.includes("integer"))
+            ? new Set(["integer"])
+            : undefined;
     }
     objectKW(schema) {
         // if one of this keywords is present then type is contrained to "object"
         return CSTargetType.OBJECTKW.some(kw => kw in schema)
             ? new Set(["object"])
-            : null;
+            : undefined;
     }
     stringKW(schema) {
         // if one of this keywords is present then type is contrained to "string"
         return CSTargetType.STRINGKW.some(kw => kw in schema)
             ? new Set(["string"])
-            : null;
+            : undefined;
     }
 }
 class CSEmpty extends CompilationStep {

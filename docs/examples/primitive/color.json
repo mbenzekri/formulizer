@@ -1,0 +1,14 @@
+{
+    "form": {
+        "type": "object",
+        "properties": {
+            "a_color": {
+                "title": "choose",
+                "type": "string",
+                "format" :"color"
+            }
+        }
+    },
+    "data": {
+    }
+}

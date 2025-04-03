@@ -96,7 +96,8 @@ export class Validator {
                 allowUnionTypes: true,
                 strictSchema: true,
                 strictNumbers: false,
-                coerceTypes: false
+                coerceTypes: false,
+                multipleOfPrecision: 15
             })
             addFormats(ajv)
             // register FzForm added formats 

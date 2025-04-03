@@ -8,6 +8,14 @@ export interface FzForm extends HTMLElement {
 }
 
 export interface FzField extends HTMLElement {
+    pointer: string;
+    schema: any;
+    data: any;
+    valid: boolean;
+    errors: string[]
+}
+
+export interface FzField extends HTMLElement {
 
 }
 
@@ -68,6 +76,9 @@ export async function fieldLocator(page: Page,pointer: string) {
     return await page.locator(`[pointer="${pointer}"]`)
 }
 
+export async function childLocator(page: Page, pointer: string, selector: string) {
+    return await page.locator(`[pointer="${pointer}"] ${selector}`)
+}
 
 export async function count(page: Page, pointer: string, selector: string) {
     const field = await fieldLocator(page, pointer)
@@ -75,7 +86,7 @@ export async function count(page: Page, pointer: string, selector: string) {
         const inputs = [...field?.shadowRoot?.querySelectorAll(selector) ?? []] as HTMLElement[]
         return inputs.length
     }, selector)
-} 
+}
 export async function child(page: Page, pointer: string, selector: string) {
     const field = await fieldLocator(page, pointer)
     return await field.evaluateHandle((field, selector ) => {
@@ -97,12 +108,13 @@ function isObject(item) {
     return (item && typeof item === 'object' && !Array.isArray(item));
 }
 
+
 /**
  * Deep merge two objects.
  * @param target
  * @param ...sources
  */
-export function patch(target, ...sources) {
+export function merge(target, ...sources) {
     if (!sources.length) return target;
     const source = sources.shift();
 
@@ -110,12 +122,17 @@ export function patch(target, ...sources) {
         for (const key in source) {
             if (isObject(source[key])) {
                 if (!target[key]) Object.assign(target, { [key]: {} });
-                patch(target[key], source[key]);
+                merge(target[key], source[key]);
             } else {
                 Object.assign(target, { [key]: source[key] });
             }
         }
     }
 
-    return patch(target, ...sources);
+    return merge(target, ...sources);
+}
+
+export function patch(target, ...sources) {
+    const copy = JSON.parse(JSON.stringify(target))
+    return merge(copy,...sources)
 }
