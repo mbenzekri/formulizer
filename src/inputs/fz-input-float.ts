@@ -84,7 +84,7 @@ export class FzInputFloat extends FzInputBase {
         // }
     }
     get step() {
-        return isNumber(this.schema.multipleOf) ? this.schema.multipleOf : undefined
+        return isNumber(this.schema?.multipleOf) ? this.schema.multipleOf : undefined
     }
 
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement, property } from "lit/decorators.js"
 import { html, TemplateResult } from "lit"
-import { getSchema, isArray, isFunction, isObject, when } from "../lib/tools"
+import { getSchema, isArray, isFunction, isNull, isObject, when } from "../lib/tools"
 import { FZCollection } from "./fz-collection"
 import { EMPTY_SCHEMA, Schema } from "../lib/schema"
 
@@ -96,7 +96,7 @@ export class FzArray extends FZCollection {
      * render the array action buttion (add / type select)
      */
     private actionBtns() {
-        if (this.readonly) return ''
+        if (this.readonly || isNull(this.schema)) return ''
 
         const addBtn = html`
             <button 

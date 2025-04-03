@@ -2668,7 +2668,7 @@ let FzInputFloat = class FzInputFloat extends FzInputBase {
         // }
     }
     get step() {
-        return isNumber(this.schema.multipleOf) ? this.schema.multipleOf : undefined;
+        return isNumber(this.schema?.multipleOf) ? this.schema.multipleOf : undefined;
     }
 };
 FzInputFloat = __decorate([
@@ -2935,7 +2935,7 @@ let FzInputInteger = class FzInputInteger extends FzInputBase {
         return;
     }
     get step() {
-        return isNumber(this.schema.multipleOf) ? this.schema.multipleOf : 1;
+        return isNumber(this.schema?.multipleOf) ? this.schema.multipleOf : 1;
     }
 };
 FzInputInteger = __decorate([
@@ -3134,7 +3134,7 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
         return !!this.schema.preview;
     }
     get mimetype() {
-        return (this.schema.mimetype) ? this.schema.mimetype : FzInputDoc_1.docTypes.join(', ');
+        return this.schema?.mimetype ? this.schema.mimetype : FzInputDoc_1.docTypes.join(', ');
     }
     get store() {
         return this.form.store;
@@ -3680,7 +3680,7 @@ let FzArray$1 = class FzArray extends FZCollection {
      * render the array action buttion (add / type select)
      */
     actionBtns() {
-        if (this.readonly)
+        if (this.readonly || isNull(this.schema))
             return '';
         const addBtn = x `
             <button 
@@ -3934,9 +3934,11 @@ let FzObject = class FzObject extends FZCollection {
         }
         // render group
         itemTemplates.push(x `
-                <div class="card shadow" style="margin-bottom:5px">
-                    <div class="card-header d-flex justify-content-between align-items-center">${groupname}</div>
-                    <div class="card-body">${group}</div>
+                <div class=space-before>
+                    <div class="card shadow">
+                        <div class="card-header d-flex justify-content-between align-items-center">${groupname}</div>
+                        <div class="card-body">${group}</div>
+                    </div>
                 </div>`);
         return fieldpos;
     }

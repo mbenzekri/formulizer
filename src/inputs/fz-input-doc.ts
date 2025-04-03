@@ -60,7 +60,7 @@ export class FzInputDoc extends FzInputBase {
     }
 
     get mimetype(): string {
-        return (this.schema.mimetype) ? this.schema.mimetype : FzInputDoc.docTypes.join(', ')
+        return this.schema?.mimetype ? this.schema.mimetype : FzInputDoc.docTypes.join(', ')
     }
 
     get store(): IBlobStore {

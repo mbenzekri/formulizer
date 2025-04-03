@@ -63,9 +63,11 @@ export class FzObject extends FZCollection {
         }
         // render group
         itemTemplates.push(html`
-                <div class="card shadow" style="margin-bottom:5px">
-                    <div class="card-header d-flex justify-content-between align-items-center">${groupname}</div>
-                    <div class="card-body">${group}</div>
+                <div class=space-before>
+                    <div class="card shadow">
+                        <div class="card-header d-flex justify-content-between align-items-center">${groupname}</div>
+                        <div class="card-body">${group}</div>
+                    </div>
                 </div>`)
         return fieldpos
     }

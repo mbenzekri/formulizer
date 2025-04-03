@@ -63,7 +63,7 @@ export class FzInputInteger extends FzInputBase {
         return
    }
    get step() {
-        return isNumber(this.schema.multipleOf) ? this.schema.multipleOf : 1
+        return isNumber(this.schema?.multipleOf) ? this.schema.multipleOf : 1
    }
 
 
