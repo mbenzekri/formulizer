@@ -29,7 +29,7 @@ test.describe('fz-enum-check field', () => {
   });
 
 
-  test('should be in correct state when yes => no', async ({ page }) => {
+  test('fz-enum-check: should be in correct state when yes => no', async ({ page }) => {
     await init(page,SCHEMA,DATA)
 
     expect(await field_h.evaluate(node => node.constructor.name)).toBe("FzEnumCheck");
@@ -38,7 +38,7 @@ test.describe('fz-enum-check field', () => {
     // TBF : expect(await inputs.evaluate(inputs => inputs.filter(i => i.checked).length)).toBe(1)
   })
 
-  test('should radios be in correct state when undefined => yes => no', async ({ page }) => {
+  test('fz-enum-check: should radios be in correct state when undefined => yes => no', async ({ page }) => {
     await init(page,SCHEMA,{})
     
     expect(await radios.evaluate(inputs => inputs.length)).toBe(2)
@@ -54,7 +54,7 @@ test.describe('fz-enum-check field', () => {
 
   })
 
-  test('should radios be in correct state when null => yes => no', async ({ page }) => {
+  test('fz-enum-check: should radios be in correct state when null => yes => no', async ({ page }) => {
     await init(page,SCHEMA,{ "answer": null })
 
     expect(await radios.evaluate(inputs => inputs.length)).toBe(2)
@@ -73,7 +73,7 @@ test.describe('fz-enum-check field', () => {
 
   })
 
-  test('should radios be in correct state when dummy => yes => no', async ({ page }) => {
+  test('fz-enum-check: should radios be in correct state when dummy => yes => no', async ({ page }) => {
     await init(page,SCHEMA,{ "answer": "dummy" })
 
     expect(await radios.evaluate(inputs => inputs.length)).toBe(2)
@@ -92,7 +92,7 @@ test.describe('fz-enum-check field', () => {
 
   })
 
-    test('boolean type and oneOf must generate checks', async ({ page }) => {
+    test('fz-enum-check: boolean type and oneOf must generate checks', async ({ page }) => {
         await init(page, {
             "type": "object",
             "properties": {

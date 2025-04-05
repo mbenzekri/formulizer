@@ -1830,7 +1830,242 @@ FzEnumTypeahead = __decorate([
     t$4("fz-enum-typeahead")
 ], FzEnumTypeahead);
 
-const RGBA_RE = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/;
+/**
+ * @prop schema
+ * @prop data
+ * @prop name
+ * @prop index
+ */
+let FzInputConstant = class FzInputConstant extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            this.input.value = String(this.schema.const ?? "");
+        }
+    }
+    toValue() {
+        this.value = this.schema.const;
+    }
+    renderInput() {
+        return x `<div class="input-group ${this.validation}">${this.value}</div>`;
+    }
+    connectedCallback() {
+        super.connectedCallback();
+        if (this.value !== this.schema.const)
+            this.value = this.schema.const;
+    }
+};
+FzInputConstant = __decorate([
+    t$4("fz-const")
+], FzInputConstant);
+
+let FzInputBoolean = class FzInputBoolean extends FzInputBase {
+    /**
+     * bor check box no leading label
+     */
+    renderLabel() {
+        return x `
+        <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
+            <div>&nbsp</div>
+        </label>`;
+    }
+    renderInput() {
+        return x `
+            <div class="form-control">
+                <input 
+                    id="input"
+                    type="checkbox"
+                    ?required="${this.required}"
+                    @change="${this.tryChange}"
+                    @click="${this.tryChange}"
+                    autocomplete=off  spellcheck="false"
+                    class="form-check-input align-self-start ${this.validation}"
+                />
+                <label class="form-check-label ms-2" for="input">${super.label}</label>
+            </div>
+        `;
+    }
+    tryChange(event) {
+        this.readonly ? event.preventDefault() : this.change();
+    }
+    toField() {
+        if (isNull(this.input))
+            return;
+        switch (true) {
+            case isBoolean(this.value):
+                // Standard true/false 
+                this.input.indeterminate = false;
+                this.input.checked = this.value;
+                break;
+            default:
+                // other not boolean/not nullish
+                this.input.indeterminate = true;
+                this.input.checked = false;
+        }
+    }
+    toValue() {
+        if (isNull(this.input))
+            return;
+        if (this.input.indeterminate) {
+            this.value = this.schema.nullAllowed ? null : undefined;
+        }
+        else {
+            this.value = !!this.input.checked;
+        }
+    }
+};
+FzInputBoolean = __decorate([
+    t$4("fz-boolean")
+], FzInputBoolean);
+
+/**
+ * @license
+ * Copyright 2018 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */const o=o=>o??E;
+
+class FzInputNumber extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            if (isNumber(this.value)) {
+                // updating same value (but different input.value) breaks input 
+                if (this.input.valueAsNumber === this.value)
+                    return;
+                this.input.valueAsNumber = this.schema.basetype == "number" ? this.value : Math.floor(this.value);
+            }
+            else {
+                this.input.value = "";
+            }
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = isNumber(this.input.valueAsNumber) ? this.input.valueAsNumber : undefined;
+        }
+    }
+    renderInput() {
+        return x `
+            <div class="input-group">
+                <input 
+                    id="input" 
+                    type="${this.type}"
+                    ?disabled="${this.readonly}"
+                    ?readonly="${this.readonly}"
+                    ?required="${this.required}"
+                    @input="${this.change}"
+                    min="${o(this.min)}"
+                    max="${o(this.max)}"
+                    step="${o(this.step)}"
+                    autocomplete=off  spellcheck="false"
+                    class="form-control ${this.validation} "
+                />
+                <div class="input-group-append" style="max-width:5em" >
+                    <span class="input-group-text" >${this.value ?? '~'}</span>
+                </div>
+            </div>`;
+    }
+    get max() {
+        if (isNumber(this.schema?.maximum))
+            return this.schema.maximum;
+        if (isNumber(this.schema?.exclusiveMaximum))
+            return this.schema.exclusiveMaximum;
+        return;
+    }
+    get min() {
+        if (isNumber(this.schema?.minimum))
+            return this.schema.minimum;
+        if (isNumber(this.schema?.exclusiveMinimum))
+            return this.schema.exclusiveMinimum;
+        return;
+    }
+    get step() {
+        return isNumber(this.schema.multipleOf) ? this.schema.multipleOf : undefined;
+    }
+    get type() {
+        return this.schema.field == "fz-range" ? "range" : "number";
+    }
+}
+let FzInputInteger = class FzInputInteger extends FzInputNumber {
+};
+FzInputInteger = __decorate([
+    t$4("fz-integer")
+], FzInputInteger);
+let FzInputRange = class FzInputRange extends FzInputNumber {
+    static get styles() {
+        return [
+            ...super.styles,
+            i$5 `
+                input[type=range]::-webkit-slider-runnable-track {
+                    background: lightgray;
+                    border: 0.2px solid rgba(1, 1, 1, 0.3);
+                    border-radius: 25px;
+                    width: 100%;
+                    height: 8px;
+                    cursor: pointer;
+                }
+                input[type=range]::-webkit-slider-thumb {
+                    margin-top: -6px;
+                    width: 20px;
+                    height: 20px;
+                    background: rgb(13, 110, 253);
+                    border: 0.2px solid rgba(1, 1, 1, 0.3);
+                    border-radius: 10px;
+                    cursor: pointer;
+                    -webkit-appearance: none;
+                }
+                input[type=range]::-moz-range-track {
+                    background: rgb(13, 110, 253);
+                    border: 0.2px solid rgba(1, 1, 1, 0.3);
+                    border-radius: 25px;
+                    width: 100%;
+                    height: 15.6px;
+                    cursor: pointer;
+                }
+                input[type=range]::-moz-range-thumb {
+                    width: 16px;
+                    height: 36px;
+                    background: #00ffff;
+                    border: 1px solid #000000;
+                    border-radius: 3px;
+                    cursor: pointer;
+                }
+                input[type=range]::-ms-track {
+                    background: transparent;
+                    border-color: transparent;
+                    border-width: 11.2px 0;
+                    color: transparent;
+                    width: 100%;
+                    height: 15.6px;
+                    cursor: pointer;
+                }
+        `
+        ];
+    }
+};
+FzInputRange = __decorate([
+    t$4("fz-range")
+], FzInputRange);
+let FzInputFloat = class FzInputFloat extends FzInputNumber {
+    static get styles() {
+        return [
+            ...super.styles,
+            i$5 `
+            /* Chrome, Safari, Edge, Opera */
+            input::-webkit-outer-spin-button,
+            input::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+            /* Firefox */
+            input[type=number] {
+                -moz-appearance: textfield;
+            }`
+        ];
+    }
+};
+FzInputFloat = __decorate([
+    t$4("fz-float")
+], FzInputFloat);
+
 /**
  * @prop schema
  * @prop data
@@ -1838,6 +2073,68 @@ const RGBA_RE = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/;
  * @prop index
  */
 let FzInputString$1 = class FzInputString extends FzInputBase {
+    static get styles() {
+        return [
+            ...super.styles,
+            i$5 `
+            input[type="color"] {
+                height: 38px
+            }`
+        ];
+    }
+    toField() {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "");
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.value) && this.input.value != "" ? this.input.value : this.empty;
+        }
+    }
+    renderInput() {
+        return x `
+            <div class="input-group" >
+                <input
+                    id="input"
+                    type="${this.type}" 
+                    @input="${this.change}"
+                    ?readonly="${this.readonly}"
+                    ?required="${this.required}"
+                    placeholder="${this.label}"
+                    minlength="${o(this.minlength)}"
+                    maxlength="${o(this.maxlength)}"
+                    pattern="${o(this.pattern)}"
+                    autocomplete=off  spellcheck="false"
+                    class="form-control ${this.validation}" 
+                />
+            </div>`;
+    }
+    get minlength() { return this.schema?.minLength; }
+    get maxlength() { return this.schema?.maxLength; }
+    get pattern() { return this.schema?.pattern; }
+    get type() {
+        switch (this.schema?.format) {
+            case 'color': return 'color';
+            case 'email': return 'email';
+            case 'password': return 'password';
+            case 'uri': return 'url';
+            default: return 'text';
+        }
+    }
+};
+FzInputString$1 = __decorate([
+    t$4("fz-string")
+], FzInputString$1);
+
+const RGBA_RE = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/;
+/**
+ * @prop schema
+ * @prop data
+ * @prop name
+ * @prop index
+ */
+let FzInputString = class FzInputString extends FzInputBase {
     static get styles() {
         return [
             ...super.styles,
@@ -1921,15 +2218,9 @@ let FzInputString$1 = class FzInputString extends FzInputBase {
         }
     }
 };
-FzInputString$1 = __decorate([
+FzInputString = __decorate([
     t$4("fz-color")
-], FzInputString$1);
-
-/**
- * @license
- * Copyright 2018 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */const o=o=>o??E;
+], FzInputString);
 
 function iso$2(date = new Date()) {
     return date.toISOString().substring(0, 10);
@@ -2066,107 +2357,6 @@ FzInputTime = __decorate([
 ], FzInputTime);
 
 /**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
-let FzInputTextarea = class FzInputTextarea extends FzInputBase {
-    toField() {
-        if (notNull(this.input)) {
-            this.input.value = String(this.value ?? "");
-        }
-    }
-    toValue() {
-        if (notNull(this.input)) {
-            this.value = isString(this.input.value, true) ? this.input.value : undefined;
-        }
-    }
-    renderInput() {
-        return x `
-            <textarea  
-                id="input"
-                ?readonly="${this.readonly}"
-                ?required="${this.required}"
-                placeholder="${o(this.label)}"
-                minlength="${o(this.minlength)}"
-                maxlength="${o(this.maxlength)}"
-                @input="${this.change}"
-                @keypress="${this.change}"
-                rows="5"
-                class="form-control ${this.validation}" 
-            ></textarea>`;
-    }
-    get minlength() { return this.schema?.minLength; }
-    get maxlength() { return this.schema?.maxLength; }
-    get pattern() { return this.schema?.pattern; }
-};
-FzInputTextarea = __decorate([
-    t$4("fz-textarea")
-], FzInputTextarea);
-
-/**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
-let FzInputString = class FzInputString extends FzInputBase {
-    static get styles() {
-        return [
-            ...super.styles,
-            i$5 `
-            input[type="color"] {
-                height: 38px
-            }`
-        ];
-    }
-    toField() {
-        if (notNull(this.input)) {
-            this.input.value = String(this.value ?? "");
-        }
-    }
-    toValue() {
-        if (notNull(this.input)) {
-            this.value = notNull(this.input.value) && this.input.value != "" ? this.input.value : this.empty;
-        }
-    }
-    renderInput() {
-        return x `
-            <div class="input-group" >
-                <input
-                    id="input"
-                    type="${this.type}" 
-                    @input="${this.change}"
-                    ?readonly="${this.readonly}"
-                    ?required="${this.required}"
-                    placeholder="${this.label}"
-                    minlength="${o(this.minlength)}"
-                    maxlength="${o(this.maxlength)}"
-                    pattern="${o(this.pattern)}"
-                    autocomplete=off  spellcheck="false"
-                    class="form-control ${this.validation}" 
-                />
-            </div>`;
-    }
-    get minlength() { return this.schema?.minLength; }
-    get maxlength() { return this.schema?.maxLength; }
-    get pattern() { return this.schema?.pattern; }
-    get type() {
-        switch (this.schema?.format) {
-            case 'color': return 'color';
-            case 'email': return 'email';
-            case 'password': return 'password';
-            case 'uri': return 'url';
-            default: return 'text';
-        }
-    }
-};
-FzInputString = __decorate([
-    t$4("fz-string")
-], FzInputString);
-
-/**
  * FzInputMask: Input field with masked formatting
  * - Stored value is **exactly what is displayed**
  * - Auto-inserts static characters (e.g., dashes, spaces, parentheses)
@@ -2283,6 +2473,46 @@ let FzInputMask = class FzInputMask extends FzInputBase {
 FzInputMask = __decorate([
     t$4("fz-mask")
 ], FzInputMask);
+
+/**
+ * @prop schema
+ * @prop data
+ * @prop name
+ * @prop index
+ */
+let FzInputTextarea = class FzInputTextarea extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "");
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = isString(this.input.value, true) ? this.input.value : undefined;
+        }
+    }
+    renderInput() {
+        return x `
+            <textarea  
+                id="input"
+                ?readonly="${this.readonly}"
+                ?required="${this.required}"
+                placeholder="${o(this.label)}"
+                minlength="${o(this.minlength)}"
+                maxlength="${o(this.maxlength)}"
+                @input="${this.change}"
+                @keypress="${this.change}"
+                rows="5"
+                class="form-control ${this.validation}" 
+            ></textarea>`;
+    }
+    get minlength() { return this.schema?.minLength; }
+    get maxlength() { return this.schema?.maxLength; }
+    get pattern() { return this.schema?.pattern; }
+};
+FzInputTextarea = __decorate([
+    t$4("fz-textarea")
+], FzInputTextarea);
 
 /**
  * @prop schema
@@ -2529,447 +2759,6 @@ FzInputSignature = __decorate([
     t$4("fz-signature")
 ], FzInputSignature);
 
-let FzInputBoolean = class FzInputBoolean extends FzInputBase {
-    /**
-     * bor check box no leading label
-     */
-    renderLabel() {
-        return x `
-        <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
-            <div>&nbsp</div>
-        </label>`;
-    }
-    renderInput() {
-        return x `
-            <div class="form-control">
-                <input 
-                    id="input"
-                    type="checkbox"
-                    ?required="${this.required}"
-                    @change="${this.tryChange}"
-                    @click="${this.tryChange}"
-                    autocomplete=off  spellcheck="false"
-                    class="form-check-input align-self-start ${this.validation}"
-                />
-                <label class="form-check-label ms-2" for="input">${super.label}</label>
-            </div>
-        `;
-    }
-    tryChange(event) {
-        this.readonly ? event.preventDefault() : this.change();
-    }
-    toField() {
-        if (isNull(this.input))
-            return;
-        switch (true) {
-            case isBoolean(this.value):
-                // Standard true/false 
-                this.input.indeterminate = false;
-                this.input.checked = this.value;
-                break;
-            default:
-                // other not boolean/not nullish
-                this.input.indeterminate = true;
-                this.input.checked = false;
-        }
-    }
-    toValue() {
-        if (isNull(this.input))
-            return;
-        if (this.input.indeterminate) {
-            this.value = this.schema.nullAllowed ? null : undefined;
-        }
-        else {
-            this.value = !!this.input.checked;
-        }
-    }
-};
-FzInputBoolean = __decorate([
-    t$4("fz-boolean")
-], FzInputBoolean);
-
-//const DECIMAL_SEPARATOR = (1.1).toLocaleString().substring(1, 2)
-/**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
-let FzInputFloat = class FzInputFloat extends FzInputBase {
-    static get styles() {
-        return [
-            ...super.styles,
-            i$5 `
-            /* Chrome, Safari, Edge, Opera */
-            input::-webkit-outer-spin-button,
-            input::-webkit-inner-spin-button {
-                -webkit-appearance: none;
-                margin: 0;
-            }
-            /* Firefox */
-            input[type=number] {
-                -moz-appearance: textfield;
-            }`
-        ];
-    }
-    toField() {
-        if (notNull(this.input)) {
-            if (isNumber(this.value)) {
-                // updating same value (but different input.value) breaks input 
-                if (this.input.valueAsNumber === this.value)
-                    return;
-                this.input.valueAsNumber = this.value;
-            }
-            else {
-                this.input.value = "";
-            }
-        }
-    }
-    toValue() {
-        if (notNull(this.input)) {
-            this.value = isNumber(this.input.valueAsNumber) ? this.input.valueAsNumber : undefined;
-        }
-    }
-    renderInput() {
-        return x `
-            <div class="input-group">
-                <input 
-                    id="input"
-                    type="number" 
-                    ?readonly="${this.readonly}"
-                    ?required="${this.required}"
-                    min="${o(this.min)}"
-                    max="${o(this.max)}"
-                    step="${o(this.step)}"
-                    @input="${this.change}"
-                    autocomplete=off  spellcheck="false"
-                    class="form-control ${this.validation}" 
-                />
-            </div>`;
-    }
-    get max() {
-        if (isNumber(this.schema?.maximum))
-            return this.schema.maximum;
-        if (isNumber(this.schema?.exclusiveMaximum))
-            return this.schema.exclusiveMaximum;
-        return;
-    }
-    get min() {
-        if (isNumber(this.schema?.minimum))
-            return this.schema.minimum;
-        if (isNumber(this.schema?.exclusiveMinimum))
-            return this.schema.exclusiveMinimum;
-        return;
-    }
-    keypress(_event) {
-        // // browser issue on "input type=number' we reject decimal sep not in current locale
-        // if (/[.,]/.test(event.key) && DECIMAL_SEPARATOR !== event.key) {
-        //     event.preventDefault();
-        // }
-    }
-    get step() {
-        return isNumber(this.schema?.multipleOf) ? this.schema.multipleOf : undefined;
-    }
-};
-FzInputFloat = __decorate([
-    t$4("fz-float")
-], FzInputFloat);
-
-/**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
-let FzRange = class FzRange extends FzInputBase {
-    toField() {
-        if (notNull(this.input)) {
-            this.input.valueAsNumber = isNumber(this.value) ? Math.floor(this.value) : NaN;
-        }
-    }
-    toValue() {
-        if (notNull(this.input)) {
-            this.value = isNumber(this.input.valueAsNumber) ? this.input.valueAsNumber : undefined;
-        }
-    }
-    static get styles() {
-        return [
-            ...super.styles,
-            i$5 `
-          input[type=range]::-webkit-slider-runnable-track {
-            background: lightgray;
-            border: 0.2px solid rgba(1, 1, 1, 0.3);
-            border-radius: 25px;
-            width: 100%;
-            height: 8px;
-            cursor: pointer;
-          }
-          input[type=range]::-webkit-slider-thumb {
-            margin-top: -6px;
-            width: 20px;
-            height: 20px;
-            background: rgb(13, 110, 253);
-            border: 0.2px solid rgba(1, 1, 1, 0.3);
-            border-radius: 10px;
-            cursor: pointer;
-            -webkit-appearance: none;
-          }
-          input[type=range]::-moz-range-track {
-            background: rgb(13, 110, 253);
-            border: 0.2px solid rgba(1, 1, 1, 0.3);
-            border-radius: 25px;
-            width: 100%;
-            height: 15.6px;
-            cursor: pointer;
-          }
-          input[type=range]::-moz-range-thumb {
-            width: 16px;
-            height: 36px;
-            background: #00ffff;
-            border: 1px solid #000000;
-            border-radius: 3px;
-            cursor: pointer;
-          }
-          input[type=range]::-ms-track {
-            background: transparent;
-            border-color: transparent;
-            border-width: 11.2px 0;
-            color: transparent;
-            width: 100%;
-            height: 15.6px;
-            cursor: pointer;
-          }
-          `
-        ];
-    }
-    renderInput() {
-        return x `
-            <div class="input-group">
-                <input 
-                    id="input" 
-                    type="range"  
-                    ?disabled="${this.readonly}"
-                    ?readonly="${this.readonly}"
-                    ?required="${this.required}"
-                    @input="${this.change}"
-                    min="${o(this.min)}"
-                    max="${o(this.max)}"
-                    step="1"
-                    autocomplete=off  spellcheck="false"
-                    class="form-control ${this.validation}"
-                />
-                <div class="input-group-append" style="max-width:5em" >
-                    <span class="input-group-text" >${this.value}</span>
-                </div>
-            </div>`;
-    }
-    get max() {
-        if (isNumber(this.schema?.maximum))
-            return this.schema.maximum;
-        if (isNumber(this.schema?.exclusiveMaximum))
-            return this.schema.exclusiveMaximum;
-        return;
-    }
-    get min() {
-        if (isNumber(this.schema?.minimum))
-            return this.schema.minimum;
-        if (isNumber(this.schema?.exclusiveMinimum))
-            return this.schema.exclusiveMinimum;
-        return;
-    }
-};
-FzRange = __decorate([
-    t$4("fz-range")
-], FzRange);
-
-/**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
-let FzInputLocation = class FzInputLocation extends FzInputBase {
-    watchId;
-    toField() {
-        if (notNull(this.input)) {
-            this.input.value = String(this.value ?? "");
-        }
-    }
-    toValue() {
-        if (notNull(this.input)) {
-            this.value = notNull(this.input.value) ? this.input.value : undefined;
-        }
-    }
-    static get styles() {
-        return [
-            ...super.styles,
-            i$5 `
-            input[type="color"] {
-                height: 38px
-            }`
-        ];
-    }
-    renderInput() {
-        return x `
-            <div class="input-group ${this.validation}">
-                <input
-                    id="input"
-                    type="text"
-                    readonly
-                    placeholder="POINT(x y)"
-                    ?readonly="${this.readonly}" 
-                    autocomplete=off  spellcheck="false"
-                    class="form-control"
-                />
-                <div class="btn-group">
-                    <button 
-                        type="button"
-                        class="btn btn-danger btn-sm"
-                        @click="${this.remove}"
-                        aria-label="delete">
-                            <i class="bi bi-x"></i>
-                    </button>
-                    <button 
-                        type="button"
-                        ?disabled=${!navigator.geolocation}
-                        @click="${this.geolocate}"
-                        aria-label="Geolocate"
-                        class="btn btn-primary btn-sm"
-                    >
-                            <i class="bi bi-geo-alt"></i>
-                    </button>
-                </div>
-            </div>`;
-    }
-    geolocate() {
-        this.watchId = navigator.geolocation.watchPosition(position => {
-            if (!this.isConnected)
-                return;
-            if (this.watchId !== undefined)
-                navigator.geolocation.clearWatch(this.watchId);
-            this.value = this.input.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`;
-            this.change();
-        }, err => {
-            if (this.watchId !== undefined)
-                navigator.geolocation.clearWatch(this.watchId);
-            console.warn("Geolocation error:", err);
-        }, {
-            enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 0
-        });
-    }
-    remove() {
-        this.input.value = "";
-        this.change();
-    }
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        if (this.watchId !== undefined) {
-            navigator.geolocation.clearWatch(this.watchId);
-            this.watchId = undefined;
-        }
-    }
-};
-FzInputLocation = __decorate([
-    t$4("fz-location")
-], FzInputLocation);
-
-/**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
-let FzInputInteger = class FzInputInteger extends FzInputBase {
-    toField() {
-        if (notNull(this.input)) {
-            if (isNumber(this.value)) {
-                this.input.valueAsNumber = this.value;
-            }
-            else {
-                this.input.value = "";
-            }
-        }
-    }
-    toValue() {
-        if (notNull(this.input)) {
-            this.value = isNumber(this.input.valueAsNumber) ? Math.floor(this.input.valueAsNumber) : undefined;
-        }
-    }
-    renderInput() {
-        return x `
-            <div class="input-group">
-                <input 
-                    class="form-control ${this.validation}" 
-                    type="number"  
-                    id="input"
-                    ?readonly="${this.readonly}"
-                    @input="${this.change}"
-                    @keypress="${this.keypress}"
-                    min="${o(this.min)}"
-                    max="${o(this.max)}"
-                    step="${this.step}"
-                    ?required="${this.required}"
-                    autocomplete=off  spellcheck="false"
-                />
-            </div>`;
-    }
-    get max() {
-        if (isNumber(this.schema?.maximum))
-            return this.schema.maximum;
-        if (isNumber(this.schema?.exclusiveMaximum))
-            return this.schema.exclusiveMaximum;
-        return;
-    }
-    get min() {
-        if (isNumber(this.schema?.minimum))
-            return this.schema.minimum;
-        if (isNumber(this.schema?.exclusiveMinimum))
-            return this.schema.exclusiveMinimum;
-        return;
-    }
-    keypress(_event) {
-        // if (!/[-0123456789]/.test(event.key)) return event.preventDefault();
-        // if (this.min >= 0 && event.key === '-') return event.preventDefault();
-        return;
-    }
-    get step() {
-        return isNumber(this.schema?.multipleOf) ? this.schema.multipleOf : 1;
-    }
-};
-FzInputInteger = __decorate([
-    t$4("fz-integer")
-], FzInputInteger);
-
-/**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
-let FzInputConstant = class FzInputConstant extends FzInputBase {
-    toField() {
-        if (notNull(this.input)) {
-            this.input.value = String(this.schema.const ?? "");
-        }
-    }
-    toValue() {
-        this.value = this.schema.const;
-    }
-    renderInput() {
-        return x `<div class="input-group ${this.validation}">${this.value}</div>`;
-    }
-    connectedCallback() {
-        super.connectedCallback();
-        if (this.value !== this.schema.const)
-            this.value = this.schema.const;
-    }
-};
-FzInputConstant = __decorate([
-    t$4("fz-const")
-], FzInputConstant);
-
 const byteToHex = [];
 for (let i = 0; i < 256; ++i) {
     byteToHex.push((i + 0x100).toString(16).slice(1));
@@ -3079,6 +2868,132 @@ function v1Bytes(rnds, msecs, nsecs, clockseq, node, buf, offset = 0) {
     }
     return buf;
 }
+
+/**
+ * @prop schema
+ * @prop data
+ * @prop name
+ * @prop index
+ */
+let FzInputUuid = class FzInputUuid extends FzInputBase {
+    toField() {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "");
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.value) ? this.input.value : this.empty;
+        }
+    }
+    renderInput() {
+        return x `
+            <div class="input-group">
+                <div class="form-control">${this.value}</div>
+            </div>`;
+    }
+    connectedCallback() {
+        super.connectedCallback();
+        if (this.value == null)
+            this.value = v1();
+    }
+};
+FzInputUuid = __decorate([
+    t$4("fz-uuid")
+], FzInputUuid);
+
+/**
+ * @prop schema
+ * @prop data
+ * @prop name
+ * @prop index
+ */
+let FzInputLocation = class FzInputLocation extends FzInputBase {
+    watchId;
+    toField() {
+        if (notNull(this.input)) {
+            this.input.value = String(this.value ?? "");
+        }
+    }
+    toValue() {
+        if (notNull(this.input)) {
+            this.value = notNull(this.input.value) ? this.input.value : undefined;
+        }
+    }
+    static get styles() {
+        return [
+            ...super.styles,
+            i$5 `
+            input[type="color"] {
+                height: 38px
+            }`
+        ];
+    }
+    renderInput() {
+        return x `
+            <div class="input-group ${this.validation}">
+                <input
+                    id="input"
+                    type="text"
+                    readonly
+                    placeholder="POINT(x y)"
+                    ?readonly="${this.readonly}" 
+                    autocomplete=off  spellcheck="false"
+                    class="form-control"
+                />
+                <div class="btn-group">
+                    <button 
+                        type="button"
+                        class="btn btn-danger btn-sm"
+                        @click="${this.remove}"
+                        aria-label="delete">
+                            <i class="bi bi-x"></i>
+                    </button>
+                    <button 
+                        type="button"
+                        ?disabled=${!navigator.geolocation}
+                        @click="${this.geolocate}"
+                        aria-label="Geolocate"
+                        class="btn btn-primary btn-sm"
+                    >
+                            <i class="bi bi-geo-alt"></i>
+                    </button>
+                </div>
+            </div>`;
+    }
+    geolocate() {
+        this.watchId = navigator.geolocation.watchPosition(position => {
+            if (!this.isConnected)
+                return;
+            if (this.watchId !== undefined)
+                navigator.geolocation.clearWatch(this.watchId);
+            this.value = this.input.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`;
+            this.change();
+        }, err => {
+            if (this.watchId !== undefined)
+                navigator.geolocation.clearWatch(this.watchId);
+            console.warn("Geolocation error:", err);
+        }, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+        });
+    }
+    remove() {
+        this.input.value = "";
+        this.change();
+    }
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        if (this.watchId !== undefined) {
+            navigator.geolocation.clearWatch(this.watchId);
+            this.watchId = undefined;
+        }
+    }
+};
+FzInputLocation = __decorate([
+    t$4("fz-location")
+], FzInputLocation);
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 var FzInputDoc_1;
@@ -3451,39 +3366,6 @@ let FzInputMarkdown = class FzInputMarkdown extends FzInputBase {
 FzInputMarkdown = __decorate([
     t$4("fz-markdown")
 ], FzInputMarkdown);
-
-/**
- * @prop schema
- * @prop data
- * @prop name
- * @prop index
- */
-let FzInputUuid = class FzInputUuid extends FzInputBase {
-    toField() {
-        if (notNull(this.input)) {
-            this.input.value = String(this.value ?? "");
-        }
-    }
-    toValue() {
-        if (notNull(this.input)) {
-            this.value = notNull(this.input.value) ? this.input.value : this.empty;
-        }
-    }
-    renderInput() {
-        return x `
-            <div class="input-group">
-                <div class="form-control">${this.value}</div>
-            </div>`;
-    }
-    connectedCallback() {
-        super.connectedCallback();
-        if (this.value == null)
-            this.value = v1();
-    }
-};
-FzInputUuid = __decorate([
-    t$4("fz-uuid")
-], FzInputUuid);
 
 const fiedtypes = [
     "fz-array",
@@ -5990,8 +5872,14 @@ class CSField extends CompilationStep {
                 return schema.field = 'fz-array';
             }
             case 'integer':
-                return (schema.minimum && schema.maximum && (schema.maximum - schema.minimum) <= 10)
-                    ? schema.field = 'fz-range'
+                const min = isNumber(schema.minimum) ? isNumber(schema.exclusiveMinimum)
+                    ? Math.min(schema.minimum, schema.exclusiveMinimum) : schema.minimum
+                    : isNumber(schema.exclusiveMinimum) ? schema.exclusiveMinimum : undefined;
+                const max = isNumber(schema.maximum) ? isNumber(schema.exclusiveMaximum)
+                    ? Math.min(schema.maximum, schema.exclusiveMaximum) : schema.maximum
+                    : isNumber(schema.exclusiveMaximum) ? schema.exclusiveMaximum : undefined;
+                const isrange = notNull(min) && notNull(max) && (max - min) / (schema.multipleOf ?? 1) <= 10;
+                return isrange ? schema.field = 'fz-range'
                     : schema.field = 'fz-integer';
             case 'number': return schema.field = 'fz-float';
             case 'boolean': return schema.field = 'fz-boolean';
@@ -6000,7 +5888,6 @@ class CSField extends CompilationStep {
                     return schema.field = "fz-mask";
                 switch (schema.format) {
                     case "color": return schema.field = 'fz-color';
-                    case "uuid": return schema.field = 'fz-uuid';
                     case "uuid": return schema.field = 'fz-uuid';
                     case "signature": return schema.field = 'fz-signature';
                     case "date": return schema.field = 'fz-date';

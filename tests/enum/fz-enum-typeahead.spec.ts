@@ -33,12 +33,12 @@ test.describe('fz-enum-typeahead', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto(TEST_PAGE)
     })
-    test('typeahead: should be instance of FzEnumSelect', async ({ page }) => {
+    test('fz-enum-typeahead: should be instance of FzEnumSelect', async ({ page }) => {
         await init(page)
         expect(await field_h.evaluate(node => node.constructor.name)).toBe("FzEnumTypeahead")
     })
 
-    test('typeahead: should be in correct initial state', async ({ page }) => {
+    test('fz-enum-typeahead: should be in correct initial state', async ({ page }) => {
         await init(page)
 
         { // initial state value=Spain : check filter / check value
@@ -51,7 +51,7 @@ test.describe('fz-enum-typeahead', () => {
             expect(s.data.country).toBe("Spain")
         }
     })
-    test('typeahead: should filter when keys pressed', async ({ page }) => {
+    test('fz-enum-typeahead: should filter when keys pressed', async ({ page }) => {
         await init(page)
 
         {   // initial state value=Spain : query=Spain => press "g" => check filter (value unchanged)
@@ -82,7 +82,7 @@ test.describe('fz-enum-typeahead', () => {
         }
 
     })
-    test('typeahead: Tab should leave closed/align value', async ({ page }) => {
+    test('fz-enum-typeahead: Tab should leave closed/align value', async ({ page }) => {
         await init(page)
         {   // initial state value=Spain : query=Spain => press "ge" => press "Tab" => closed and query = value
             await query_h.focus()

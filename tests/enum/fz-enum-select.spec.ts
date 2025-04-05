@@ -28,12 +28,12 @@ test.describe('fz-enum-select field', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto(TEST_PAGE)
     })
-    test('should be instance of FzEnumSelect', async ({ page }) => {
+    test('fz-enum-select: should be instance of FzEnumSelect', async ({ page }) => {
         await init(page)
         expect(await field_h.evaluate(node => node.constructor.name)).toBe("FzEnumSelect")
     })
 
-    test('should be in correct initial state ', async ({ page }) => {
+    test('fz-enum-select: should be in correct initial state ', async ({ page }) => {
         await init(page, SCHEMA, { color: "green" })
 
         // initial state : green
@@ -45,7 +45,7 @@ test.describe('fz-enum-select field', () => {
 
     })
 
-    test('options should align on update (undefined => red => blue)', async ({ page }) => {
+    test('fz-enum-select: options should align on update (undefined => red => blue)', async ({ page }) => {
         await init(page, SCHEMA, {})
         await select_h.focus()
         {
@@ -69,7 +69,7 @@ test.describe('fz-enum-select field', () => {
 
         }
     })
-    test('options should align on update (null => red => green)', async ({ page }) => {
+    test('fz-enum-select: options should align on update (null => red => green)', async ({ page }) => {
         await init(page, SCHEMA, { "color": null })
         {
             // initial state : null
@@ -96,7 +96,7 @@ test.describe('fz-enum-select field', () => {
 
     })
 
-    test('radios should align on update (dummy => red => green)', async ({ page }) => {
+    test('fz-enum-select: radios should align on update (dummy => red => green)', async ({ page }) => {
         await init(page, SCHEMA, { "color": "dummy" })
         {
             // initial state : dummy

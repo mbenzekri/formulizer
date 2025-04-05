@@ -27,7 +27,7 @@ async function init(page, testSchema: any = SCHEMA, testData: any = DATA) {
 
 test.describe('fz-float field', () => {
 
-    test('fz-float: should be instance of FzInputNumber', async ({ page }) => {
+    test('fz-float: should be instance of FzInputFloat', async ({ page }) => {
         await init(page)
         expect(await field.evaluate(node => node.constructor.name)).toBe("FzInputFloat")
         expect(await input.inputValue()).toBe("123.45")

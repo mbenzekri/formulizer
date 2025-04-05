@@ -1,5 +1,5 @@
 import { Pojo, FieldOrder, ExprFunc, IOptions, FromObject, SCHEMA, ROOT, PARENT, KEY } from "./types"
-import { pointerSchema, derefPointerData, complement, intersect, union, isPrimitive, isArray, isFunction, notNull, getSchema, isObject, isBoolean, isNull, isString } from "./tools";
+import { pointerSchema, derefPointerData, complement, intersect, union, isPrimitive, isArray, isFunction, notNull, getSchema, isObject, isBoolean, isNull, isString, isNumber } from "./tools";
 import { Schema, CompilationStep, isenumarray } from "./schema";
 import { CSUpgradeRef, CSUpgradeAdditionalProperties, CSUpgradeDependencies, CSUpgradeId, CSUpgradeItems, CSUpgradeNullable } from "./upgrade";
 
@@ -649,8 +649,14 @@ class CSField extends CompilationStep {
                 return schema.field = 'fz-array'
             }
             case 'integer':
-                return (schema.minimum && schema.maximum && (schema.maximum - schema.minimum) <= 10)
-                    ? schema.field = 'fz-range'
+                const min = isNumber(schema.minimum) ? isNumber(schema.exclusiveMinimum) 
+                    ? Math.min(schema.minimum,schema.exclusiveMinimum) : schema.minimum
+                    : isNumber(schema.exclusiveMinimum) ? schema.exclusiveMinimum : undefined
+                const max = isNumber(schema.maximum) ? isNumber(schema.exclusiveMaximum) 
+                    ? Math.min(schema.maximum,schema.exclusiveMaximum) : schema.maximum
+                    : isNumber(schema.exclusiveMaximum) ? schema.exclusiveMaximum : undefined
+                const isrange =  notNull(min) && notNull(max) && (max - min)/(schema.multipleOf ?? 1) <= 10
+                return isrange ? schema.field = 'fz-range'
                     : schema.field = 'fz-integer'
             case 'number': return schema.field = 'fz-float'
             case 'boolean': return schema.field = 'fz-boolean'
@@ -658,7 +664,6 @@ class CSField extends CompilationStep {
                 if (schema.mask) return schema.field = "fz-mask"
                 switch (schema.format) {
                     case "color": return schema.field = 'fz-color'
-                    case "uuid": return schema.field = 'fz-uuid'
                     case "uuid": return schema.field = 'fz-uuid'
                     case "signature": return schema.field = 'fz-signature'
                     case "date": return schema.field = 'fz-date'
