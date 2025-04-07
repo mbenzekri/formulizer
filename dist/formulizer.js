@@ -894,6 +894,24 @@ class FzField extends Base {
             return true;
         return this.i_collapsed;
     }
+    set collapsed(value) {
+        if (this.schema.collapsed == "never")
+            return;
+        if (this.schema.collapsed == "allways")
+            return;
+        this.i_collapsed = value;
+    }
+    toggle(evt) {
+        if (["never", "allways"].includes(this.schema.collapsed))
+            return;
+        if (this.isroot) {
+            this.i_collapsed = false;
+        }
+        else
+            this.i_collapsed = !this.i_collapsed;
+        this.eventStop(evt);
+        this.requestUpdate();
+    }
     /** A field is touched if really modified (dirty) or submission by user done */
     get touched() {
         return this.dirty || this.form?.submitted;
@@ -1132,17 +1150,6 @@ class FzField extends Base {
             <label for="input" class="${this.isItem ? 'col-sm-1' : 'col-sm-3'} col-form-label" @click="${this.labelClicked}">
                 <div>${this.isItem ? this.badge(label) : label} </div>
             </label>`;
-    }
-    toggle(evt) {
-        if (["never", "allways"].includes(this.schema.collapsed))
-            return;
-        if (this.isroot) {
-            this.i_collapsed = false;
-        }
-        else
-            this.i_collapsed = !this.i_collapsed;
-        this.eventStop(evt);
-        this.requestUpdate();
     }
     chevron() {
         if (["allways", "never"].includes(this.schema.collapsed))
@@ -1964,24 +1971,44 @@ class FzInputNumber extends FzInputBase {
             </div>`;
     }
     get max() {
-        if (isNumber(this.schema?.maximum))
-            return this.schema.maximum;
+        if (isNumber(this.schema?.exclusiveMaximum) && isNumber(this.schema?.maximum)) {
+            // Conflict Resolution: When both minimum and exclusiveMinimum are present in a schema, 
+            // the effective constraint is determined by their values.
+            // If exclusiveMinimum is greater than minimum, the value must be strictly greater than exclusiveMinimum.
+            // If minimum is greater than exclusiveMinimum, the value must be greater than or equal to minimum.
+            if (this.schema.exclusiveMaximum < this.schema.maximum)
+                return this.schema.exclusiveMaximum;
+            if (this.schema.maximum < this.schema?.exclusiveMaximum)
+                return this.schema.maximum;
+        }
         if (isNumber(this.schema?.exclusiveMaximum))
             return this.schema.exclusiveMaximum;
+        if (isNumber(this.schema?.maximum))
+            return this.schema.maximum;
         return;
     }
     get min() {
-        if (isNumber(this.schema?.minimum))
-            return this.schema.minimum;
+        if (isNumber(this.schema?.exclusiveMinimum) && isNumber(this.schema?.minimum)) {
+            // Conflict Resolution: When both minimum and exclusiveMinimum are present in a schema, 
+            // the effective constraint is determined by their values.
+            // If exclusiveMinimum is greater than minimum, the value must be strictly greater than exclusiveMinimum.
+            // If minimum is greater than exclusiveMinimum, the value must be greater than or equal to minimum.
+            if (this.schema.exclusiveMinimum > this.schema.minimum)
+                return this.schema.exclusiveMinimum;
+            if (this.schema.minimum > this.schema?.exclusiveMinimum)
+                return this.schema.minimum;
+        }
         if (isNumber(this.schema?.exclusiveMinimum))
             return this.schema.exclusiveMinimum;
+        if (isNumber(this.schema?.minimum))
+            return this.schema.minimum;
         return;
     }
     get step() {
         return isNumber(this.schema.multipleOf) ? this.schema.multipleOf : undefined;
     }
     get type() {
-        return this.schema.field == "fz-range" ? "range" : "number";
+        return this.schema?.field == "fz-range" ? "range" : "number";
     }
 }
 let FzInputInteger = class FzInputInteger extends FzInputNumber {
@@ -3507,6 +3534,7 @@ let FzArray$1 = class FzArray extends FZCollection {
         super.requestUpdate(name, oldvalue);
     }
     get collapsed() {
+        // empty arrays are collapsed
         return !isArray(this.value, true) || super.collapsed;
     }
     /**
@@ -4976,7 +5004,7 @@ class Validator {
             allErrors: true,
             //strict: true,
             allowUnionTypes: true,
-            strictSchema: true,
+            //strictSchema: true,
             strictNumbers: false,
             coerceTypes: false,
             multipleOfPrecision: 15

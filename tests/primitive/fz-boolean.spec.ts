@@ -1,5 +1,5 @@
 import { test, expect, ElementHandle, Locator } from '@playwright/test';
-import { formLocator, TEST_PAGE, patch, fieldLocator, child } from '../helpers'
+import { formLocator, TEST_PAGE, patch, fieldLocator, child, formAssert } from '../helpers'
 
 const SCHEMA = {
     type: 'object',
@@ -8,14 +8,14 @@ const SCHEMA = {
 
 const DATA = { active: true }
 
-let form_l: Locator
-let field_h: Locator
-let input_h: ElementHandle<HTMLInputElement>
+let form: Locator
+let field: Locator
+let input: ElementHandle<HTMLInputElement>
 
 async function init(page, testSchema: any = SCHEMA, testData: any = DATA) {
-    form_l = await formLocator(page, testSchema ?? SCHEMA, testData ?? DATA)
-    field_h = await fieldLocator(page,'/active')
-    input_h = await child(page, '/active', 'input') as ElementHandle<HTMLInputElement>
+    form = await formLocator(page, testSchema ?? SCHEMA, testData ?? DATA)
+    field = await fieldLocator(page,'/active')
+    input = await child(page, '/active', 'input') as ElementHandle<HTMLInputElement>
 }
 
 test.describe('fz-boolean field', () => {
@@ -26,7 +26,8 @@ test.describe('fz-boolean field', () => {
 
     test('fz-boolean: should be instance of FzInputBoolean', async ({ page }) => {
         await init(page)
-        expect(await field_h.evaluate(node => node.constructor.name)).toBe("FzInputBoolean")
+        expect(await field.evaluate(node => node.constructor.name)).toBe("FzInputBoolean")
+        await formAssert(form,field,"active",true,true)
     })
 
 
@@ -70,11 +71,10 @@ test.describe('fz-boolean field', () => {
             await init(page, schema, data)
         
             for (const i of states) {
-                if (i.doclick) await input_h.click()
-                expect(await input_h.isChecked()).toBe(i.checked)
-                expect(await input_h.evaluate(node => node.indeterminate)).toBe(i.indeterminate)
-                expect(await form_l.evaluate((node: any) => node.data.active)).toBe(i.active)
-                expect(await form_l.evaluate((node: any) => node.valid)).toBe(i.valid)
+                if (i.doclick) await input.click()
+                expect(await input.isChecked()).toBe(i.checked)
+                expect(await input.evaluate(node => node.indeterminate)).toBe(i.indeterminate)
+                await formAssert(form,field,"active",i.active,i.valid)
             }
         })
     }
@@ -87,11 +87,10 @@ test.describe('fz-boolean field', () => {
         {
             // on click no change
             // !!! for readonly checkbox DONT USE input_h.click() Playwright FAILS because CSS "event-pointers" set to "none"
-            await input_h.evaluate(node => node.click());
-            expect(await input_h.isChecked()).toBe(true);
-            expect(await input_h.evaluate(node => node.indeterminate)).toBe(false);
-            expect(await form_l.evaluate((node: any) => node.data.active)).toBe(true);
-            expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
+            await input.evaluate(node => node.click());
+            expect(await input.isChecked()).toBe(true);
+            expect(await input.evaluate(node => node.indeterminate)).toBe(false);
+            await formAssert(form,field,"active",true,true)
         }
     })
 

@@ -1,4 +1,4 @@
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator, expect } from '@playwright/test';
 
 export interface FzForm extends HTMLElement {
     getField(pointer: string): HTMLElement | null;
@@ -56,6 +56,23 @@ export async function formState(formL: Locator) {
         return { valid, schema, data, actions, readonly, checkIn, checkOut }
     })
 
+}
+export async function formAssert(form: Locator,field: Locator, property: string, value: any, valid: boolean, error?:string) {
+    const s = await formState(form)
+
+    expect(s.valid).toBe(valid)
+    expect(s.data[property]).toBe(value)
+
+    valid
+        ? expect(await field.evaluate((f: FzField) => f.errors.length)).toBe(0)
+        : expect(await field.evaluate((f: FzField) => f.errors.length)).toBeGreaterThan(0);
+
+    if (error)expect(await field.evaluate((f: FzField) => f.errors.join(" "))).toContain(error);
+    
+    // error styling is depending on field touched or not 
+    // valid 
+    //     ? expect(await field.evaluate(f => f.shadowRoot?.querySelectorAll('.is-valid').length)).toBeGreaterThan(0)
+    //     : expect(await field.evaluate(f => f.shadowRoot?.querySelectorAll('.is-invalid').length)).toBeGreaterThan(0)
 }
 
 export async function setSchema(formL: Locator, schema: any) {

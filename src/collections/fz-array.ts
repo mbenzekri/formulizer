@@ -34,6 +34,7 @@ export class FzArray extends FZCollection {
         super.requestUpdate(name, oldvalue)
     }
     override get collapsed() {
+        // empty arrays are collapsed
         return !isArray(this.value,true) || super.collapsed
     }
 

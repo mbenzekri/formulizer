@@ -1,0 +1,13 @@
+{
+    "form": {
+        "type": "object",
+        "title": "Boolean",
+        "properties": {
+            "a_color": {
+              "type": "string",
+              "format": "color"
+            }
+          }
+    },
+    "data": { "a_color": "#FFFFFF" }
+}

@@ -51,6 +51,21 @@ export abstract class FzField extends Base {
         if (this.schema.collapsed == "allways") return true
         return this.i_collapsed
     }
+    set collapsed(value: boolean) {
+        if (this.schema.collapsed == "never") return
+        if (this.schema.collapsed == "allways") return
+        this.i_collapsed = value
+    }
+
+    toggle(evt: Event) {
+        if (["never","allways"].includes(this.schema.collapsed)) return
+        if (this.isroot) { this.i_collapsed = false}
+        else this.i_collapsed = !this.i_collapsed
+        this.eventStop(evt)
+        this.requestUpdate()
+    }
+
+
     /** A field is touched if really modified (dirty) or submission by user done */
     get touched() {
         return this.dirty || this.form?.submitted
@@ -288,15 +303,6 @@ export abstract class FzField extends Base {
             </label>`
     }
 
-    toggle(evt: Event) {
-        if (["never","allways"].includes(this.schema.collapsed)) return
-        if (this.isroot) { this.i_collapsed = false}
-        else this.i_collapsed = !this.i_collapsed
-        this.eventStop(evt)
-        this.requestUpdate()
-    }
-
-
     chevron() {
         if (["allways","never"].includes(this.schema.collapsed)) return ''
         if (this.collapsed) return html`<i class="bi bi-chevron-down"></i>`
@@ -346,7 +352,6 @@ export abstract class FzField extends Base {
         this.toField()
         this.form?.check()       
     }
-
 
     /**
      * 'click' handler when click occurs on field label element

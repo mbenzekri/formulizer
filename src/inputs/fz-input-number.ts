@@ -47,20 +47,38 @@ abstract class FzInputNumber extends FzInputBase {
             </div>`
     }
     get max(): number | undefined {
-        if (isNumber(this.schema?.maximum)) return this.schema.maximum
+        if (isNumber(this.schema?.exclusiveMaximum) && isNumber(this.schema?.maximum)) {
+            // Conflict Resolution: When both minimum and exclusiveMinimum are present in a schema, 
+            // the effective constraint is determined by their values.
+            // If exclusiveMinimum is greater than minimum, the value must be strictly greater than exclusiveMinimum.
+            // If minimum is greater than exclusiveMinimum, the value must be greater than or equal to minimum.
+            if (this.schema.exclusiveMaximum < this.schema.maximum) return this.schema.exclusiveMaximum 
+            if (this.schema.maximum < this.schema?.exclusiveMaximum) return this.schema.maximum 
+
+        }
         if (isNumber(this.schema?.exclusiveMaximum)) return this.schema.exclusiveMaximum
+        if (isNumber(this.schema?.maximum)) return this.schema.maximum
         return
     }
     get min() {
-        if (isNumber(this.schema?.minimum)) return this.schema.minimum
+        if (isNumber(this.schema?.exclusiveMinimum) && isNumber(this.schema?.minimum)) {
+            // Conflict Resolution: When both minimum and exclusiveMinimum are present in a schema, 
+            // the effective constraint is determined by their values.
+            // If exclusiveMinimum is greater than minimum, the value must be strictly greater than exclusiveMinimum.
+            // If minimum is greater than exclusiveMinimum, the value must be greater than or equal to minimum.
+            if (this.schema.exclusiveMinimum > this.schema.minimum) return this.schema.exclusiveMinimum 
+            if (this.schema.minimum > this.schema?.exclusiveMinimum) return this.schema.minimum 
+
+        }
         if (isNumber(this.schema?.exclusiveMinimum)) return this.schema.exclusiveMinimum
+        if (isNumber(this.schema?.minimum)) return this.schema.minimum
         return
     }
     get step() {
         return isNumber(this.schema.multipleOf) ? this.schema.multipleOf : undefined
     }
     get type() {
-        return this.schema.field == "fz-range" ? "range" : "number"
+        return this.schema?.field == "fz-range" ? "range" : "number"
     }
 
 
