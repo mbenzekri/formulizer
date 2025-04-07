@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement } from "lit/decorators.js"
 import { html } from "lit"
-import { isBoolean, isNull } from "../lib/tools"
-import { FzInputBase } from "./fz-input-base";
+import { isBoolean, isNull } from "../../lib/tools"
+import { FzInputBase } from "../fz-input-base";
 
 @customElement("fz-boolean")
 export class FzInputBoolean extends FzInputBase {

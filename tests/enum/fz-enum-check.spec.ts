@@ -1,99 +1,99 @@
-import { test, expect, Page, Locator, ElementHandle, JSHandle } from '@playwright/test';
-import { fieldLocator as fieldLocator, formLocator as formLocator, children, child, TEST_PAGE, FzField, formState } from '../helpers'
+import { test, expect, JSHandle } from '@playwright/test';
+import { TestContext } from '../context';
+import { children } from '../helpers';
 
-let SCHEMA = {
-  type: "object",
-  properties: {
-    "answer": {
-      "type": "string",
-      "enum": ["yes", "no"]
+TestContext.SCHEMA = {
+    type: "object",
+    properties: {
+        "answer": {
+            "type": "string",
+            "enum": ["yes", "no"]
+        }
     }
-  }
 }
-let DATA = { answer: "yes" }
 
-let form_l: Locator
-let field_h: Locator
-let radios: JSHandle<HTMLInputElement[]>
+TestContext.DATA = { answer: "yes" }
 
-async function init(page, testSchema?: any, testData?: any) {
-  form_l = await formLocator(page, testSchema ?? SCHEMA, testData ?? DATA)
-  field_h = await fieldLocator(page, '/answer')
-  radios = await children(page, '/answer', '.form-check-input') as JSHandle<HTMLInputElement[]>
+class TestCheckContext extends TestContext {
+    radios: JSHandle<HTMLInputElement[]>
+    constructor(pointer: string, public radiosSelector: string) {
+        super(pointer, "")
+    }
+    override async init(page: any, schema?: any, data?: any): Promise<void> {
+        await super.init(page, schema, data)
+        this.radios = await children(page, '/answer', '.form-check-input') as JSHandle<HTMLInputElement[]>
+    }
 }
+
+const C = new TestCheckContext('/answer', '.form-check-input')
+
 
 test.describe('fz-enum-check field', () => {
+    test('fz-enum-check: should be in correct state when yes => no', async ({ page }) => {
+        await C.init(page)
 
-  test.beforeEach(async ({ page }) => {
-    await page.goto(TEST_PAGE)
-  });
+        expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzEnumCheck");
+        expect(await C.radios.evaluate(inputs => inputs.length)).toBe(2)
+        // TO BE FIXED: in browser testing Chrome/Firefox it works but fail for all chromium/firefox/webkit under testing
+        // TBF : expect(await C.inputs.evaluate(inputs => inputs.filter(i => i.checked).length)).toBe(1)
+    })
 
+    test('fz-enum-check: should radios be in correct state when undefined => yes => no', async ({ page }) => {
+        await C.init(page, undefined, {})
 
-  test('fz-enum-check: should be in correct state when yes => no', async ({ page }) => {
-    await init(page,SCHEMA,DATA)
+        expect(await C.radios.evaluate(inputs => inputs.length)).toBe(2)
+        //expect(await C.inputs.evaluate(inputs =>  inputs.every(i => !i.checked))).toBe(true)
 
-    expect(await field_h.evaluate(node => node.constructor.name)).toBe("FzEnumCheck");
-    expect(await radios.evaluate(inputs => inputs.length)).toBe(2)
-    // TO BE FIXED: in browser testing Chrome/Firefox it works but fail for all chromium/firefox/webkit under testing
-    // TBF : expect(await inputs.evaluate(inputs => inputs.filter(i => i.checked).length)).toBe(1)
-  })
+        await C.radios.evaluate(node => node[0].click())
+        expect(await C.radios.evaluate(inputs => inputs.filter(i => i.checked && i.value === "yes").length)).toBe(1)
+        expect(await C.form.evaluate((node: any) => node.data.answer)).toBe("yes");
 
-  test('fz-enum-check: should radios be in correct state when undefined => yes => no', async ({ page }) => {
-    await init(page,SCHEMA,{})
-    
-    expect(await radios.evaluate(inputs => inputs.length)).toBe(2)
-    //expect(await inputs.evaluate(inputs =>  inputs.every(i => !i.checked))).toBe(true)
+        await C.radios.evaluate(node => node[1].click())
+        expect(await C.radios.evaluate(inputs => inputs.filter(i => i.checked && i.value === "no").length)).toBe(1)
+        expect(await C.form.evaluate((node: any) => node.data.answer)).toBe("no");
 
-    await radios.evaluate(node => node[0].click())
-    expect(await radios.evaluate(inputs => inputs.filter(i => i.checked && i.value === "yes").length)).toBe(1)
-    expect(await form_l.evaluate((node: any) => node.data.answer)).toBe("yes");
+    })
 
-    await radios.evaluate(node => node[1].click())
-    expect(await radios.evaluate(inputs => inputs.filter(i => i.checked && i.value === "no").length)).toBe(1)
-    expect(await form_l.evaluate((node: any) => node.data.answer)).toBe("no");
+    test('fz-enum-check: should radios be in correct state when null => yes => no', async ({ page }) => {
+        await C.init(page, undefined, { "answer": null })
 
-  })
+        expect(await C.radios.evaluate(inputs => inputs.length)).toBe(2)
+        //expect(await C.inputs.evaluate(inputs => inputs.every(i => !i.checked))).toBe(true)
+        expect(await C.form.evaluate((node: any) => node.valid)).toBe(false);
 
-  test('fz-enum-check: should radios be in correct state when null => yes => no', async ({ page }) => {
-    await init(page,SCHEMA,{ "answer": null })
+        await C.radios.evaluate(node => node[0].click())
+        expect(await C.radios.evaluate(inputs => inputs.filter(i => i.checked && i.value === "yes").length)).toBe(1)
+        expect(await C.form.evaluate((node: any) => node.data.answer)).toBe("yes");
+        expect(await C.form.evaluate((node: any) => node.valid)).toBe(true);
 
-    expect(await radios.evaluate(inputs => inputs.length)).toBe(2)
-    //expect(await inputs.evaluate(inputs => inputs.every(i => !i.checked))).toBe(true)
-    expect(await form_l.evaluate((node: any) => node.valid)).toBe(false);
+        await C.radios.evaluate(node => node[1].click())
+        expect(await C.radios.evaluate(inputs => inputs.filter(i => i.checked && i.value === "no").length)).toBe(1)
+        expect(await C.form.evaluate((node: any) => node.data.answer)).toBe("no");
+        expect(await C.form.evaluate((node: any) => node.valid)).toBe(true);
 
-    await radios.evaluate(node => node[0].click())
-    expect(await radios.evaluate(inputs => inputs.filter(i => i.checked && i.value === "yes").length)).toBe(1)
-    expect(await form_l.evaluate((node: any) => node.data.answer)).toBe("yes");
-    expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
+    })
 
-    await radios.evaluate(node => node[1].click())
-    expect(await radios.evaluate(inputs => inputs.filter(i => i.checked && i.value === "no").length)).toBe(1)
-    expect(await form_l.evaluate((node: any) => node.data.answer)).toBe("no");
-    expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
+    test('fz-enum-check: should radios be in correct state when dummy => yes => no', async ({ page }) => {
+        await C.init(page, undefined, { "answer": "dummy" })
 
-  })
+        expect(await C.radios.evaluate(inputs => inputs.length)).toBe(2)
+        //expect(await C.inputs.evaluate(inputs => inputs.every(i => !i.checked))).toBe(true)
+        expect(await C.form.evaluate((node: any) => node.valid)).toBe(false);
 
-  test('fz-enum-check: should radios be in correct state when dummy => yes => no', async ({ page }) => {
-    await init(page,SCHEMA,{ "answer": "dummy" })
+        await C.radios.evaluate(node => node[0].click())
+        expect(await C.radios.evaluate(inputs => inputs.filter(i => i.checked && i.value === "yes").length)).toBe(1)
+        expect(await C.form.evaluate((node: any) => node.data.answer)).toBe("yes");
+        expect(await C.form.evaluate((node: any) => node.valid)).toBe(true);
 
-    expect(await radios.evaluate(inputs => inputs.length)).toBe(2)
-    //expect(await inputs.evaluate(inputs => inputs.every(i => !i.checked))).toBe(true)
-    expect(await form_l.evaluate((node: any) => node.valid)).toBe(false);
+        await C.radios.evaluate(node => node[1].click())
+        expect(await C.radios.evaluate(inputs => inputs.filter(i => i.checked && i.value === "no").length)).toBe(1)
+        expect(await C.form.evaluate((node: any) => node.data.answer)).toBe("no");
+        expect(await C.form.evaluate((node: any) => node.valid)).toBe(true);
 
-    await radios.evaluate(node => node[0].click())
-    expect(await radios.evaluate(inputs => inputs.filter(i => i.checked && i.value === "yes").length)).toBe(1)
-    expect(await form_l.evaluate((node: any) => node.data.answer)).toBe("yes");
-    expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
-
-    await radios.evaluate(node => node[1].click())
-    expect(await radios.evaluate(inputs => inputs.filter(i => i.checked && i.value === "no").length)).toBe(1)
-    expect(await form_l.evaluate((node: any) => node.data.answer)).toBe("no");
-    expect(await form_l.evaluate((node: any) => node.valid)).toBe(true);
-
-  })
+    })
 
     test('fz-enum-check: boolean type and oneOf must generate checks', async ({ page }) => {
-        await init(page, {
+        await C.init(page, {
             "type": "object",
             "properties": {
                 "answer": {
@@ -106,21 +106,19 @@ test.describe('fz-enum-check field', () => {
                     ]
                 }
             }
-        }, { "answer": true})
-        expect(await field_h.evaluate(node => node.constructor.name)).toBe("FzEnumCheck")
-        expect(await radios.evaluate(inputs => inputs.map(i => i.checked))).toStrictEqual([true, false,false])
-        expect(await radios.evaluate(inputs => inputs.map(i => i.value))).toStrictEqual(["true", "false",""])
-        let s = await formState(form_l)
-        expect(s.data.answer).toBe(true)
-        expect(s.valid).toBe(true)
-        expect(await radios.evaluate(inputs => inputs[1].click()))
-        s = await formState(form_l)
-        expect(s.data.answer).toBe(false)
-        expect(s.valid).toBe(true)
-        expect(await radios.evaluate(inputs => inputs[2].click()))
-        s = await formState(form_l)
-        expect(s.data.answer).toBe(null)
-        expect(s.valid).toBe(true)
+        }, { "answer": true })
+
+        expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzEnumCheck")
+        expect(await C.radios.evaluate(inputs => inputs.map(i => i.checked))).toStrictEqual([true, false, false])
+        expect(await C.radios.evaluate(inputs => inputs.map(i => i.value))).toStrictEqual(["true", "false", ""])
+        await C.assert(true, true)
+
+        await C.radios.evaluate(inputs => inputs[1].click())
+        await C.assert(false, true)
+
+        await C.radios.evaluate(inputs => inputs[2].click())
+        await C.assert(null, true)
+
     })
 
 })

@@ -3,11 +3,10 @@
         "type": "object",
         "title": "Boolean",
         "properties": {
-            "a_color": {
+            "a_time": {
               "type": "string",
-              "format": "color"
-            }
+              "format": "time"            }
           }
     },
-    "data": { "a_color": "#FFFFFF" }
+    "data": { "a_time": "10:30:20" }
 }

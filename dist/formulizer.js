@@ -522,6 +522,7 @@ class JSONSchemaDraft07 {
     preview;
     mimetype;
     mask;
+    precision;
     tab;
     group;
 }
@@ -2249,7 +2250,7 @@ FzInputString = __decorate([
     t$4("fz-color")
 ], FzInputString);
 
-function iso$2(date = new Date()) {
+function iso$1(date = new Date()) {
     return date.toISOString().substring(0, 10);
 }
 /**
@@ -2267,7 +2268,7 @@ let FzInputDate = class FzInputDate extends FzInputBase {
     }
     toValue() {
         if (notNull(this.input)) {
-            this.value = notNull(this.input.valueAsDate) ? iso$2(this.input.valueAsDate) : undefined;
+            this.value = notNull(this.input.valueAsDate) ? iso$1(this.input.valueAsDate) : undefined;
         }
     }
     renderInput() {
@@ -2294,7 +2295,7 @@ FzInputDate = __decorate([
     t$4("fz-date")
 ], FzInputDate);
 
-function iso$1(date = new Date()) {
+function iso(date = new Date()) {
     return date.toISOString().slice(0, -5) + "Z";
 }
 /**
@@ -2317,7 +2318,7 @@ let FzInputDatetime = class FzInputDatetime extends FzInputBase {
     }
     toValue() {
         if (notNull(this.input)) {
-            this.value = notNull(this.input.valueAsDate) ? iso$1(this.input.valueAsDate) : undefined;
+            this.value = notNull(this.input.valueAsDate) ? iso(this.input.valueAsDate) : undefined;
         }
     }
     renderInput() {
@@ -2344,9 +2345,6 @@ FzInputDatetime = __decorate([
     t$4("fz-datetime")
 ], FzInputDatetime);
 
-function iso(date = new Date()) {
-    return date.toISOString().substring(11, 19);
-}
 /**
  * @prop schema
  * @prop data
@@ -2355,13 +2353,18 @@ function iso(date = new Date()) {
  */
 let FzInputTime = class FzInputTime extends FzInputBase {
     toField() {
-        if (notNull(this.input)) {
-            this.input.valueAsDate = new Date(this.value);
+        if (isNull(this.input))
+            return;
+        if (/^(\d\d(:\d\d(:\d\d(\.d+)?)?)?)$/.test(String(this.value))) {
+            this.input.value = this.value;
+        }
+        else {
+            this.input.value = "";
         }
     }
     toValue() {
         if (notNull(this.input)) {
-            this.value = notNull(this.input.valueAsDate) ? iso(this.input.valueAsDate) : undefined;
+            this.value = notNull(this.input.value) ? this.input.value : undefined;
         }
     }
     renderInput() {
@@ -2371,12 +2374,14 @@ let FzInputTime = class FzInputTime extends FzInputBase {
                 type="time" 
                 id="input" 
                 step="1"
-                .value="${this.value}"
                 ?readonly="${this.readonly}"
                 @input="${this.change}"
                 ?required="${this.required}"
                 autocomplete=off  spellcheck="false"
             />`;
+    }
+    get step() {
+        return isNumber(this.schema?.precision) ? this.schema?.precision : 60;
     }
 };
 FzInputTime = __decorate([

@@ -2,8 +2,8 @@
 import { customElement} from "lit/decorators.js"
 import {  html } from "lit"
 import {ifDefined} from 'lit/directives/if-defined.js';
-import { isString, notNull } from "../lib/tools"
-import { FzInputBase } from "./fz-input-base";
+import { isString, notNull } from "../../lib/tools"
+import { FzInputBase } from "../fz-input-base";
 
 /**
  * @prop schema

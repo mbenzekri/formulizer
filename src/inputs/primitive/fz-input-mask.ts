@@ -1,6 +1,6 @@
 import { customElement } from "lit/decorators.js";
 import { html, TemplateResult } from "lit";
-import { FzInputBase } from "./fz-input-base";
+import { FzInputBase } from "../fz-input-base";
 
 /**
  * FzInputMask: Input field with masked formatting

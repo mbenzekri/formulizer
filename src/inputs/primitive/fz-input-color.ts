@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
 import {  css, html } from "lit"
-import { isNull, isString, notNull } from "../lib/tools"
-import { FzInputBase } from "./fz-input-base";
+import { isNull, isString, notNull } from "../../lib/tools"
+import { FzInputBase } from "../fz-input-base";
 
 
 const RGBA_RE = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/;

@@ -2,8 +2,8 @@
 import { customElement} from "lit/decorators.js"
 import { html } from "lit"
 import { v1 as uuidv1 } from "uuid"
-import { notNull } from "../lib/tools"
-import { FzInputBase } from "./fz-input-base";
+import { notNull } from "../../lib/tools"
+import { FzInputBase } from "../fz-input-base";
 
 /**
  * @prop schema

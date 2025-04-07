@@ -1,122 +1,104 @@
-import { test, expect, Page, ElementHandle, JSHandle, Locator } from '@playwright/test';
-import { children, child, fieldLocator, formLocator, formState, FzField, TEST_PAGE } from '../helpers'
+import { test, expect, JSHandle } from '@playwright/test';
+import { children } from '../helpers'
+import { TestContext } from '../context'
 
-test.describe('fz-enum-select field', () => {
-    const SCHEMA = {
-        type: "object",
-        properties: {
-            "color": {
-                "type": "string",
-                "enum": ["red", "green", "blue", "yellow", "purple"]
-            }
+TestContext.SCHEMA = {
+    type: "object",
+    properties: {
+        "color": {
+            "type": "string",
+            "enum": ["red", "green", "blue", "yellow", "purple"]
         }
     }
-    const DATA = { color: "green" }
+}
 
-    let form_l: Locator
-    let field_h: Locator
-    let select_h: ElementHandle<HTMLSelectElement>
-    let options_h: JSHandle<HTMLOptionElement[]>
+TestContext.DATA = { color: "green" }
+class TestSelectContext extends TestContext {
+    options: JSHandle<HTMLOptionElement[]>
 
-    async function init(page: Page, testSchema: any = SCHEMA, testData: any = DATA) {
-        form_l = await formLocator(page, testSchema, testData)
-        field_h = await fieldLocator(page, '/color')
-        select_h = await child(page, '/color', 'select') as ElementHandle<HTMLSelectElement>
-        options_h = await children(page, '/color', 'option') as JSHandle<HTMLOptionElement[]>
+    constructor(pointer: string, inputSelector: string, public optionsSelector:string) {
+        super(pointer,inputSelector)
     }
+    override async init(page: any, schema?: any, data?: any): Promise<void> {
+        await super.init(page, schema, data)
+        this.options = await children(page, this.pointer, this.optionsSelector) as JSHandle<HTMLOptionElement[]>
+    }
+}
 
-    test.beforeEach(async ({ page }) => {
-        await page.goto(TEST_PAGE)
-    })
+const C = new TestSelectContext('/color', 'select','option')
+
+
+
+test.describe('fz-enum-select field', () => {
+
     test('fz-enum-select: should be instance of FzEnumSelect', async ({ page }) => {
-        await init(page)
-        expect(await field_h.evaluate(node => node.constructor.name)).toBe("FzEnumSelect")
+
+        await C.init(page)
+        expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzEnumSelect")
     })
 
     test('fz-enum-select: should be in correct initial state ', async ({ page }) => {
-        await init(page, SCHEMA, { color: "green" })
 
+        await C.init(page, undefined, { color: "green" })
         // initial state : green
-        expect(await options_h.evaluate(inputs => inputs.length)).toBe(5)
-        expect(await options_h.evaluate(inputs => inputs.filter(i => i.selected && i.value === "green").length)).toBe(1)
-        const s = await formState(form_l)
-        expect(s.valid).toBe(true)
-        expect(DATA.color).toBe("green")
+        expect(await C.options.evaluate(inputs => inputs.length)).toBe(5)
+        expect(await C.options.evaluate(inputs => inputs.filter(i => i.selected && i.value === "green").length)).toBe(1)
+            await C.assert("green",true)
 
     })
 
     test('fz-enum-select: options should align on update (undefined => red => blue)', async ({ page }) => {
-        await init(page, SCHEMA, {})
-        await select_h.focus()
-        {
-            // initial state : undefined
-            expect(await options_h.evaluate(inputs => inputs.length)).toBe(5)
-            const s = await formState(form_l)
-            expect(s.valid).toBe(true)
-            expect(s.data.color).toBe(undefined)
-        } {
-            // from undefined to red
-            await select_h.selectOption("red")
-            const s = await formState(form_l)
-            expect(s.valid).toBe(true)
-            expect(s.data.color).toBe("red")
-        } {
-            // from red to blue
-            await select_h.selectOption("blue")
-            const s = await formState(form_l)
-            expect(s.valid).toBe(true)
-            expect(s.data.color).toBe("blue")
+        await C.init(page, undefined, {})
 
-        }
+            // initial state : undefined
+            await C.input.focus()
+            expect(await C.options.evaluate(inputs => inputs.length)).toBe(5)
+            await C.assert(undefined,true)
+
+            // from undefined to red
+            await C.input.selectOption("red")
+            await C.assert("red",true)
+
+            // from red to blue
+            await C.input.selectOption("blue")
+            await C.assert("blue",true)
+
     })
     test('fz-enum-select: options should align on update (null => red => green)', async ({ page }) => {
-        await init(page, SCHEMA, { "color": null })
-        {
-            // initial state : null
-            expect(await options_h.evaluate(inputs => inputs.length)).toBe(5)
-            const s = await formState(form_l)
-            expect(s.valid).toBe(false)
-            expect(s.data.color).toBe(null)
-        } {
-            // from null to red
-            await select_h.focus()
-            await select_h.selectOption("red")
-            const s = await formState(form_l)
-            expect(s.valid).toBe(true)
-            expect(s.data.color).toBe("red")
-        }
-        {
-            // from red to green
-            await select_h.focus()
-            await select_h.selectOption("green")
-            const s = await formState(form_l)
-            expect(s.valid).toBe(true)
-            expect(s.data.color).toBe("green")
-        }
+        await C.init(page, undefined, { "color": null })
+
+        // initial state : null
+        expect(await C.options.evaluate(inputs => inputs.length)).toBe(5)
+            await C.assert(null,false)
+
+        // from null to red
+        await C.input.focus()
+        await C.input.selectOption("red")
+            await C.assert("red",true)
+
+        // from red to green
+        await C.input.focus()
+        await C.input.selectOption("green")
+            await C.assert("green",true)
 
     })
 
     test('fz-enum-select: radios should align on update (dummy => red => green)', async ({ page }) => {
-        await init(page, SCHEMA, { "color": "dummy" })
-        {
-            // initial state : dummy
-            expect(await options_h.evaluate(inputs => inputs.length)).toBe(5)
-            const s = await formState(form_l)
-            expect(s.data.color).toBe("dummy")
-            expect(s.valid).toBe(false)
-        } {
-            await select_h.focus()
-            await select_h.selectOption("red")
-            const s = await formState(form_l)
-            expect(s.valid).toBe(true)
-            expect(s.data.color).toBe("red")
-        } {
-            await select_h.focus()
-            await select_h.selectOption("green")
-            const s = await formState(form_l)
-            expect(s.valid).toBe(true)
-            expect(s.data.color).toBe("green")
-        }
+
+        await C.init(page, undefined, { "color": "dummy" })
+
+        // initial state : dummy
+        expect(await C.options.evaluate(inputs => inputs.length)).toBe(5)
+            await C.assert("dummy",false)
+
+        await C.input.focus()
+        await C.input.selectOption("red")
+            await C.assert("red",true)
+
+        await C.input.focus()
+        await C.input.selectOption("green")
+            await C.assert("green",true)
+
     })
 
 })

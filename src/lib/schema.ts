@@ -101,6 +101,7 @@ class JSONSchemaDraft07 {
     preview?: boolean;
     mimetype?: string;
     mask?: string;
+    precision?: number;
 
     tab?: string;
     group?: string;

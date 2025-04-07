@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
 import {  html } from "lit"
-import { FzInputBase } from "./fz-input-base";
-import { notNull } from "../lib/tools";
+import { FzInputBase } from "../fz-input-base";
+import { notNull } from "../../lib/tools";
 
 /**
  * @prop schema

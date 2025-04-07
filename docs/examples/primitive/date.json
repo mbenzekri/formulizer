@@ -1,0 +1,14 @@
+{
+    "form": {
+        "type": "object",
+        "properties": {
+            "a_date": {
+                "title": "date",
+                "type": "string",
+                "format" :"date"
+            }
+        }
+    },
+    "data": {
+    }
+}

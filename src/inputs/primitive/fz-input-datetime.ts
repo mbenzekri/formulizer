@@ -2,8 +2,8 @@
 import { customElement} from "lit/decorators.js"
 import {  html } from "lit"
 import {ifDefined} from 'lit/directives/if-defined.js';
-import { notNull } from "../lib/tools"
-import { FzInputBase } from "./fz-input-base";
+import { notNull } from "../../lib/tools"
+import { FzInputBase } from "../fz-input-base";
 
 function iso(date = new Date()) {
     return date.toISOString().slice(0, -5) + "Z";

@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement } from "lit/decorators.js"
 import { html, css } from "lit"
-import { isNumber, notNull } from "../lib/tools"
-import { FzInputBase } from "./fz-input-base";
+import { isNumber, notNull } from "../../lib/tools"
+import { FzInputBase } from "../fz-input-base";
 import { ifDefined } from "lit/directives/if-defined.js";
 
 abstract class FzInputNumber extends FzInputBase {

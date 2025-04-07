@@ -1,7 +1,7 @@
-import { test, expect, Locator } from '@playwright/test'
-import { formLocator, TEST_PAGE, patch, fieldLocator, childLocator, formState, FzField, formAssert } from '../helpers'
+import { test, expect } from '@playwright/test'
+import { TestContext } from '../context'
 
-const SCHEMA = {
+TestContext.SCHEMA = {
     "type": "object",
     "title": "String Field",
     "required": ["a_string"],
@@ -11,67 +11,60 @@ const SCHEMA = {
     }
 }
 
-const DATA = { a_string: "example" }
+TestContext.DATA = { a_string: "example" }
 
-let form: Locator
-let field: Locator
-let input: Locator
+const C = new TestContext('/a_string', "input")
 
-async function init(page, testSchema: any = SCHEMA, testData: any = DATA) {
-    await page.goto(TEST_PAGE)
-    form = await formLocator(page, testSchema ?? SCHEMA, testData ?? DATA)
-    field = await fieldLocator(page, '/a_string')
-    input = await childLocator(page, '/a_string', "input")
-}
 
 test.describe('fz-string field', () => {
 
     test('fz-string: should be instance of FzInputString', async ({ page }) => {
-        const schema = patch(SCHEMA, { properties: { a_string: { type: "string" } } })
-        await init(page, schema, DATA)
-        expect(await field.evaluate(node => node.constructor.name)).toBe("FzInputString")
-        expect(await input.inputValue()).toBe("example")
-        await formAssert(form,field,"a_string","example",true)
+
+        await C.init(page, C.patchSchema({ properties: { a_string: { type: "string" } } }))
+        expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputString")
+        expect(await C.input.inputValue()).toBe("example")
+        await C.assert("example",true)
 
     })
 
     test('fz-string: should update on keypress', async ({ page }) => {
-        const schema = patch(SCHEMA, { properties: { a_string: { type: "string" } } })
-        await init(page, schema, {})
-        expect(await field.evaluate(node => node.constructor.name)).toBe("FzInputString")
-        await input.press("a")
-        await formAssert(form,field,"a_string","a",true)
-        await input.press("b")
-        await formAssert(form,field,"a_string","ab",true)
-        await input.press("c")
-        await formAssert(form,field,"a_string","abc",true)
+
+        await C.init(page, C.patchSchema({ properties: { a_string: { type: "string" } } }), {})
+        expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputString")
+        await C.input.press("a")
+        await C.assert("a",true)
+        await C.input.press("b")
+        await C.assert("ab",true)
+        await C.input.press("c")
+        await C.assert("abc",true)
+
     })
 
     test('fz-string: should respect minLength constraint', async ({ page }) => {
-        const schema = patch(SCHEMA, { properties: { a_string: { type: "string", minLength: 5 } } })
-        await init(page, schema, DATA)
-        expect(await field.evaluate(node => node.constructor.name)).toBe("FzInputString")
-        await input.fill("test")
-        await formAssert(form,field,"a_string","test",false,"must NOT be shorter than 5 characters")
+
+        await C.init(page, C.patchSchema({ properties: { a_string: { type: "string", minLength: 5 } } }))
+        expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputString")
+        await C.input.fill("test")
+        await C.assert("test",false,"must NOT be shorter than 5 characters")
+
     })
 
     test('fz-string: should respect maxLength constraint', async ({ page }) => {
-        const schema = patch(SCHEMA, { properties: { a_string: { maxLength: 7 } } })
-        await init(page, schema, {})
-        expect(await field.evaluate(node => node.constructor.name)).toBe("FzInputString")
-        await input.fill("this is a long string")
-        await formAssert(form,field,"a_string","this is",true)
+
+        await C.init(page, C.patchSchema({ properties: { a_string: { maxLength: 7 } } }), {})
+        expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputString")
+        await C.input.fill("this is a long string")
+        await C.assert("this is",true)
+
     })
 
     test('fz-string: should respect pattern constraint', async ({ page }) => {
-        const schema = patch(SCHEMA, { properties: { a_string: { pattern: "^[A-Z]+$" } } })
-        await init(page, schema, {})
 
-        await input.fill("lowercase")
-        await formAssert(form,field,"a_string","lowercase",false,"pattern")
-
-        await input.fill("UPPERCASE")
-        await formAssert(form,field,"a_string","UPPERCASE",true)
+        await C.init(page, C.patchSchema({ properties: { a_string: { pattern: "^[A-Z]+$" } } }), {})
+        await C.input.fill("lowercase")
+        await C.assert("lowercase",false,"pattern")
+        await C.input.fill("UPPERCASE")
+        await C.assert("UPPERCASE",true)
 
     })
 
@@ -97,10 +90,9 @@ test.describe('fz-string field', () => {
     ]
     for (const {format, classname, type} of formats) {
         test(`z-string: should infer FzInputString for ${format} format `, async ({ page }) => {
-            const schema = patch(SCHEMA, { properties: { a_string: { format } } })
-            await init(page, schema, {})
-            expect(await field.evaluate(node => node.constructor.name)).toBe(classname)
-            if (type) expect(await input.evaluate((i: HTMLInputElement) => i.type)).toBe(type)
+            await C.init(page, C.patchSchema({ properties: { a_string: { format } } }), {})
+            expect(await C.field.evaluate(node => node.constructor.name)).toBe(classname)
+            if (type) expect(await C.input.evaluate((i: HTMLInputElement) => i.type)).toBe(type)
         })
     }
 

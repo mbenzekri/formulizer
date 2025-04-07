@@ -1,39 +1,28 @@
-import { test, expect, ElementHandle, Locator } from '@playwright/test';
-import { formLocator, TEST_PAGE, patch, fieldLocator, child, formAssert } from '../helpers'
+import { test, expect } from '@playwright/test';
+import { TestContext } from '../context';
 
-const SCHEMA = {
+TestContext.SCHEMA = {
     type: 'object',
     properties: { active: { type: 'boolean' } }
 }
 
-const DATA = { active: true }
+TestContext.DATA = { active: true }
 
-let form: Locator
-let field: Locator
-let input: ElementHandle<HTMLInputElement>
-
-async function init(page, testSchema: any = SCHEMA, testData: any = DATA) {
-    form = await formLocator(page, testSchema ?? SCHEMA, testData ?? DATA)
-    field = await fieldLocator(page,'/active')
-    input = await child(page, '/active', 'input') as ElementHandle<HTMLInputElement>
-}
+const C = new TestContext("/active","input")
 
 test.describe('fz-boolean field', () => {
 
-    test.beforeEach(async ({ page }) => {
-        await page.goto(TEST_PAGE)
-    });
-
     test('fz-boolean: should be instance of FzInputBoolean', async ({ page }) => {
-        await init(page)
-        expect(await field.evaluate(node => node.constructor.name)).toBe("FzInputBoolean")
-        await formAssert(form,field,"active",true,true)
+        await C.init(page)
+        expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputBoolean")
+        await C.assert(true,true)
     })
 
 
     const testDataset = [
         {
-            schema: SCHEMA, data: DATA,
+            patch: {}, 
+            data: undefined,
             states: [
                 { doclick: false, checked: true, indeterminate: false, active: true, valid: true },
                 { doclick: true, checked: false, indeterminate: false, active: false, valid: true },
@@ -41,7 +30,8 @@ test.describe('fz-boolean field', () => {
             ]
         },
         {
-            schema: patch(SCHEMA, { properties: { active: {type: ['boolean', 'null'] }} }), data: { active: null },
+            patch: { properties: { active: {type: ['boolean', 'null'] }}}, 
+            data: { active: null },
             states: [
                 { doclick: false, checked: false, indeterminate: true, active: null, valid: true },
                 { doclick: true, checked: true, indeterminate: false, active: true, valid: true },
@@ -49,7 +39,8 @@ test.describe('fz-boolean field', () => {
             ]
         },
         {
-            schema: SCHEMA, data: { active: undefined },
+            patch: undefined, 
+            data: { active: undefined },
             states: [
                 { doclick: false, checked: false, indeterminate: true, active: undefined, valid: true },
                 { doclick: true, checked: true, indeterminate: false, active: true, valid: true },
@@ -57,7 +48,8 @@ test.describe('fz-boolean field', () => {
             ]
         },
         {
-            schema: SCHEMA, data: { active: "dummy" },
+            patch: undefined, 
+            data: { active: "dummy" },
             states: [
                 { doclick: false, checked: false, indeterminate: true, active: "dummy", valid: false },
                 { doclick: true, checked: true, indeterminate: false, active: true, valid: true },
@@ -66,32 +58,27 @@ test.describe('fz-boolean field', () => {
         }
     ]
 
-    for (const { schema, data, states } of testDataset) {
-        test(`fz-boolean: should toggle (${data.active} => ${states[1].active} => ${states[2].active})`, async ({ page }) => {
-            await init(page, schema, data)
-        
+    for (const { patch, data, states } of testDataset) {
+        test(`fz-boolean: should toggle (${data?.active} => ${states[1].active} => ${states[2].active})`, async ({ page }) => {
+            await C.init(page, C.patchSchema(patch), data)
             for (const i of states) {
-                if (i.doclick) await input.click()
-                expect(await input.isChecked()).toBe(i.checked)
-                expect(await input.evaluate(node => node.indeterminate)).toBe(i.indeterminate)
-                await formAssert(form,field,"active",i.active,i.valid)
+                if (i.doclick) await C.input.click()
+                expect(await C.input.isChecked()).toBe(i.checked)
+                expect(await C.input.evaluate((node:HTMLInputElement) => node.indeterminate)).toBe(i.indeterminate)
+                await C.assert(i.active,i.valid)
             }
         })
     }
 
     test('fz-boolean: should not toggle (readonly)', async ({ page }) => {
-        await init(page,
-            patch(SCHEMA, { properties: { active: { readonly: true } } }),
-            { active: true }
-        )
-        {
-            // on click no change
-            // !!! for readonly checkbox DONT USE input_h.click() Playwright FAILS because CSS "event-pointers" set to "none"
-            await input.evaluate(node => node.click());
-            expect(await input.isChecked()).toBe(true);
-            expect(await input.evaluate(node => node.indeterminate)).toBe(false);
-            await formAssert(form,field,"active",true,true)
-        }
+        await C.init(page,C.patchSchema({ properties: { active: { readonly: true } } }), { active: true })
+
+        // on click no change
+        // !!! for readonly checkbox DONT USE input_h.click() Playwright FAILS because CSS "event-pointers" set to "none"
+        await C.input.evaluate((node:HTMLInputElement) => node.click());
+        expect(await C.input.isChecked()).toBe(true);
+        expect(await C.input.evaluate((node:HTMLInputElement) => node.indeterminate)).toBe(false);
+        await C.assert(true,true)
     })
 
 })

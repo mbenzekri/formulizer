@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property, customElement } from "lit/decorators.js"
 import { html, css } from "lit"
-import { notNull } from "../lib/tools"
-import { FzInputBase } from "./fz-input-base";
+import { notNull } from "../../lib/tools"
+import { FzInputBase } from "../fz-input-base";
 
 declare class ResizeObserver {
     constructor(cb: (entries: any) => void)
