@@ -85,7 +85,7 @@ declare class JSONSchemaDraft07 {
     preview?: boolean;
     mimetype?: string;
     mask?: string;
-    precision?: number;
+    precision?: "ms" | "sec" | "min";
     tab?: string;
     group?: string;
 }

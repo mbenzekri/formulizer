@@ -101,8 +101,7 @@ class JSONSchemaDraft07 {
     preview?: boolean;
     mimetype?: string;
     mask?: string;
-    precision?: number;
-
+    precision?: "ms" | "sec" | "min";
     tab?: string;
     group?: string;
 }
@@ -141,6 +140,7 @@ export const FZ_KEYWORDS = [
     "mask",
     "tab",
     "group",
+    "precision",
 ]
 
 export function isSchema(value: unknown): value is Schema {

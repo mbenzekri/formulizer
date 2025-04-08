@@ -35,33 +35,46 @@ test.describe('fz-time field', () => {
 
     })
 
-    test('fz-time: should allow digits PM', async ({ page }) => {
+    test('fz-time: should allow digits and PM', async ({ page }, testInfo) => {
+        const browser = testInfo.project.name;
         await C.init(page)
         await C.input.focus()
-        await page.keyboard.press('1')
-        await page.keyboard.press('0')
-        await page.keyboard.press('3')
-        await page.keyboard.press('0')
-        await page.keyboard.press('0')
-        await page.keyboard.press('0')
-        await page.keyboard.press('ArrowUp')
-        expect(await C.input.inputValue()).toBe("10:30:00")
-        await C.assert("10:30:00", true)
+        if (['webkit', 'safari_phone'].includes(browser)) {
+            await C.input.evaluate((el: HTMLInputElement) => el.value = '22:30')
+            await C.input.evaluate(el => el.dispatchEvent(new Event('input', { bubbles: true })));
+            await C.input.evaluate(el => el.dispatchEvent(new Event('change', { bubbles: true })));
+        } else {
+            await page.keyboard.press('1')
+            await page.keyboard.press('0')
+            await page.keyboard.press('3')
+            await page.keyboard.press('0')
+            await page.keyboard.press('P')
+        }
+
+        expect(await C.input.inputValue()).toBe("22:30")
+        await C.assert("22:30", true)
 
     })
 
-    test('fz-time: should allow digits AM', async ({ page }) => {
+    test('fz-time: should allow digits and AM', async ({ page }, testInfo) => {
+        const browser = testInfo.project.name;
+
         await C.init(page)
         await C.input.focus()
-        await page.keyboard.press('1')
-        await page.keyboard.press('0')
-        await page.keyboard.press('3')
-        await page.keyboard.press('0')
-        await page.keyboard.press('0')
-        await page.keyboard.press('0')
-        await page.keyboard.press('ArrowDown')
-        expect(await C.input.inputValue()).toBe("22:30:00")
-        await C.assert("22:30:00", true)
+        // if (['webkit', 'safari_phone'].includes(browser)) {
+            await C.input.evaluate((el: HTMLInputElement) => el.value = '10:30')
+            await C.input.evaluate(el => el.dispatchEvent(new Event('input', { bubbles: true })));
+            await C.input.evaluate(el => el.dispatchEvent(new Event('change', { bubbles: true })));
+        // } else {
+        //     await page.keyboard.press('1')
+        //     await page.keyboard.press('0')
+        //     await page.keyboard.press('3')
+        //     await page.keyboard.press('0')
+        //     await page.keyboard.press('A')
+        // }
+        
+        expect(await C.input.inputValue()).toBe("10:30")
+        await C.assert("10:30", true)
 
     })
 

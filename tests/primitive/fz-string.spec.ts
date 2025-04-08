@@ -89,7 +89,7 @@ test.describe('fz-string field', () => {
         { format: "regex", classname: "FzInputString", type: "text" },
     ]
     for (const {format, classname, type} of formats) {
-        test(`z-string: should infer FzInputString for ${format} format `, async ({ page }) => {
+        test(`fz-string: should infer FzInputString for ${format} format `, async ({ page }) => {
             await C.init(page, C.patchSchema({ properties: { a_string: { format } } }), {})
             expect(await C.field.evaluate(node => node.constructor.name)).toBe(classname)
             if (type) expect(await C.input.evaluate((i: HTMLInputElement) => i.type)).toBe(type)

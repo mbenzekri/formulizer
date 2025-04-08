@@ -1,8 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { customElement} from "lit/decorators.js"
+import { customElement } from "lit/decorators.js"
 import { html } from "lit"
-import { isNull, isNumber, notNull } from "../../lib/tools"
+import { isNull, notNull } from "../../lib/tools"
 import { FzInputBase } from "../fz-input-base";
+import { ifDefined } from "lit/directives/if-defined.js";
+
+const TIME_RE = /^(\d{1,2})(?::(\d{2}))?(?::(\d{2})(?:\.(\d{1,3}))?)?$/;
 
 /**
  * @prop schema
@@ -14,8 +17,8 @@ import { FzInputBase } from "../fz-input-base";
 export class FzInputTime extends FzInputBase {
     override toField() {
         if (isNull(this.input)) return
-        if (/^(\d\d(:\d\d(:\d\d(\.d+)?)?)?)$/.test(String(this.value))) {
-            this.input.value =  this.value
+        if (TIME_RE.test(String(this.value))) {
+            this.input.value = this.parseValue(this.value) ?? ""
         } else {
             this.input.value = ""
         }
@@ -31,7 +34,7 @@ export class FzInputTime extends FzInputBase {
                 class="form-control timepicker ${this.validation}" 
                 type="time" 
                 id="input" 
-                step="1"
+                step="${ifDefined(this.step)}"
                 ?readonly="${this.readonly}"
                 @input="${this.change}"
                 ?required="${this.required}"
@@ -39,8 +42,20 @@ export class FzInputTime extends FzInputBase {
             />`
     }
     get step() {
-        return isNumber(this.schema?.precision) ? this.schema?.precision : 60
+        const precision = String(this.schema.precision ?? "min")
+        if (precision === "sec") return 1
+        if (precision === "ms") return 0.001
+        return 60
     }
 
+    private parseValue(value: string) {
+        const match = value.match(TIME_RE);
+        if (!match) return 
+        const [_, h, m = '00', s = '00', ms = '000'] = match;
+        const precision = this.schema?.precision ?? "min"
+        if (precision == "ms") return `${h}:${m}:${s}.${ms}`
+        if (precision == "sec") return `${h}:${m}:${s}`
+        return `${h}:${m}`
+    }
 
 }

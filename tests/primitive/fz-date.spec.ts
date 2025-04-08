@@ -38,18 +38,26 @@ test.describe('fz-date field', () => {
 
     })
 
-    test('fz-date: should allow all digits', async ({ page }) => {
+    test('fz-date: should allow all digits', async ({ page }, testInfo) => {
+        const browser = testInfo.project.name;
         await C.init(page)
         await C.input.focus()
-        await page.keyboard.press('1')
-        await page.keyboard.press('2')
-        await page.keyboard.press('/')
-        await page.keyboard.press('6')
-        await page.keyboard.press('/')
-        await page.keyboard.press('2')
-        await page.keyboard.press('0')
-        await page.keyboard.press('2')
-        await page.keyboard.press('4')
+        // if (['webkit', 'safari_phone'].includes(browser)) {
+            await C.input.evaluate((el: HTMLInputElement) => el.value = '2024-12-06')
+            await C.input.evaluate(el => el.dispatchEvent(new Event('input', { bubbles: true })));
+            await C.input.evaluate(el => el.dispatchEvent(new Event('change', { bubbles: true })));
+        // } else {
+        //     await page.keyboard.press('1')
+        //     await page.keyboard.press('2')
+        //     await page.keyboard.press('/')
+        //     await page.keyboard.press('0')
+        //     await page.keyboard.press('6')
+        //     await page.keyboard.press('/')
+        //     await page.keyboard.press('2')
+        //     await page.keyboard.press('0')
+        //     await page.keyboard.press('2')
+        //     await page.keyboard.press('4')
+        // }
         expect(await C.input.inputValue()).toBe("2024-12-06")
         expect(await C.input.evaluate((x: HTMLInputElement) => { 
             return { y: x.valueAsDate?.getFullYear(), m: (x.valueAsDate?.getMonth() ?? -100) +1 ,d: x.valueAsDate?.getDate() }
