@@ -2,13 +2,15 @@
     "form": {
         "type": "object",
         "title": "Boolean",
-        "required": [ "a_text" ],
+        "required": [
+            "a_uuid"
+        ],
         "properties": {
-            "a_text": {
+            "a_uuid": {
                 "type": "string",
-                "maxLength": 300
+                "format": "uuid"
             }
         }
     },
-    "data": {}
+    "data": {"a_uuid": "6dfdf620-14bd-11f0-98f4-0368326f7e9a" }
 }

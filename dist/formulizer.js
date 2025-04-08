@@ -2977,7 +2977,7 @@ let FzInputUuid = class FzInputUuid extends FzInputBase {
     renderInput() {
         return x `
             <div class="input-group">
-                <div class="form-control">${this.value}</div>
+                <div id="input" class="form-control">${this.value}</div>
             </div>`;
     }
     connectedCallback() {

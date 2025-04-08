@@ -28,7 +28,7 @@ export class FzInputUuid extends FzInputBase {
     renderInput() {
         return html`
             <div class="input-group">
-                <div class="form-control">${this.value}</div>
+                <div id="input" class="form-control">${this.value}</div>
             </div>`
     }
 
