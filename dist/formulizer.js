@@ -1855,7 +1855,7 @@ let FzInputConstant = class FzInputConstant extends FzInputBase {
         this.value = this.schema.const;
     }
     renderInput() {
-        return x `<div class="input-group ${this.validation}">${this.value}</div>`;
+        return x `<div id=input class="input-group ${this.validation}">${this.value}</div>`;
     }
     connectedCallback() {
         super.connectedCallback();
