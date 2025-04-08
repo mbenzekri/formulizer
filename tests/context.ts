@@ -42,7 +42,7 @@ export class TestContext {
         })
 
         // get the form, set schema and data , get field and input
-        this.form = page.locator('fz-form');
+        this.form = await page.locator('fz-form');
         await this.form.evaluate((form: any, { schema, data }) => {
             form.schema = schema;
             form.data = data;

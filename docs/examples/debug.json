@@ -2,13 +2,13 @@
     "form": {
         "type": "object",
         "title": "Boolean",
+        "required": ["a_timestamp"],
         "properties": {
-            "a_time": {
-              "type": "string",
-              "format": "time",
-              "precision": "min"
+            "a_timestamp": {
+                "type": "string",
+                "format": "date-time"
             }
-          }
+        }
     },
-    "data": { "a_time": "10:30:12" }
+    "data": {  }
 }

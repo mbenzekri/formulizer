@@ -31,14 +31,14 @@ export class FzInputTime extends FzInputBase {
     renderInput() {
         return html`
             <input 
-                class="form-control timepicker ${this.validation}" 
-                type="time" 
                 id="input" 
-                step="${ifDefined(this.step)}"
+                type="time" 
                 ?readonly="${this.readonly}"
-                @input="${this.change}"
                 ?required="${this.required}"
+                step="${ifDefined(this.step)}"
+                @input="${this.change}"
                 autocomplete=off  spellcheck="false"
+                class="form-control timepicker ${this.validation}" 
             />`
     }
     get step() {
