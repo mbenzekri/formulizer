@@ -27,7 +27,7 @@ test.describe('fz-uuid field', () => {
     test('fz-uuid: should instanciate uuid if undefined', async ({ page }) => {
         await C.init(page)
         const uuid = await C.input.textContent()
-        //expect(await C.field.evaluate((node: HTMLElement) => node.innerText)).toBe("zzz")
+        expect(uuid).toMatch(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/)
         await C.assert(uuid,true)
     })
     test('fz-uuid: should not update if uuid present', async ({ page }) => {
