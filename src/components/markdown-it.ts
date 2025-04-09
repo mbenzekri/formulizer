@@ -93,7 +93,7 @@ function patchImg(md: MarkdownIt, width: number, height: number) {
 @customElement("markdown-it")
 export class FzMarkdownIt extends Base {
 
-    @property({ attribute: "markdown", type: String, reflect: true }) markdown: string = ""
+    @property({ attribute: "markdown", type: String, reflect: true }) markdown = ""
 
     static override styles = [
         ...super.styles,

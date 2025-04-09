@@ -68,7 +68,7 @@ export class Validator {
         const logger = FzLogger.get("validation")
         const map=new Map<string,string[]>()
         for (const error of this.errors) {
-            let { instancePath, message, params, keyword } = error;
+            let { instancePath, message, params, keyword } = error
             // required applies to object must down the error to child
             if (keyword === "required") {
                 instancePath = `${instancePath === '/' ? '' : ''}/${params.missingProperty}`

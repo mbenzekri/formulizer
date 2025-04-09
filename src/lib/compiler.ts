@@ -344,8 +344,8 @@ class CSTargetType extends CompilationStep {
     oneofKW(schema: Schema) {
         // Handling "oneOf" → union of types (similar to anyOf)
         if (schema.oneOf) {
-            const oneOfTypes = schema.oneOf.map((s: Schema) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x);;
-            return union(oneOfTypes);
+            const oneOfTypes = schema.oneOf.map((s: Schema) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x)
+            return union(oneOfTypes)
         }
         return
     }
@@ -648,7 +648,7 @@ class CSField extends CompilationStep {
                 }
                 return schema.field = 'fz-array'
             }
-            case 'integer':
+            case 'integer': {
                 const min = isNumber(schema.minimum) ? isNumber(schema.exclusiveMinimum) 
                     ? Math.min(schema.minimum,schema.exclusiveMinimum) : schema.minimum
                     : isNumber(schema.exclusiveMinimum) ? schema.exclusiveMinimum : undefined
@@ -658,6 +658,7 @@ class CSField extends CompilationStep {
                 const isrange =  notNull(min) && notNull(max) && (max - min)/(schema.multipleOf ?? 1) <= 10
                 return isrange ? schema.field = 'fz-range'
                     : schema.field = 'fz-integer'
+            }
             case 'number': return schema.field = 'fz-float'
             case 'boolean': return schema.field = 'fz-boolean'
             case 'string':

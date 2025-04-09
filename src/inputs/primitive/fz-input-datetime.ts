@@ -16,7 +16,7 @@ function normalizeIsoInput(dtstr: string): string | null {
     const match = dtstr.match(DATETIME_ISO_RE)
     if (!match) return null;
 
-    let [_, date, , hh = "00", , mm = "00", , ss = "00", , ms = "", tz = ""] = match
+    const [_, date, , hh = "00", , mm = "00", , ss = "00", , ms = "", tz = ""] = match
     const time = `${hh}:${mm}:${ss}${ms ? '.' + ms.padEnd(3, '0') : ''}`
     return `${date}T${time}${tz}`
 }

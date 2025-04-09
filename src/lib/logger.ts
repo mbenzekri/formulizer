@@ -99,7 +99,7 @@ export { _FzLogger as FzLogger }
 
 // Tell TypeScript it's globally available
 declare global {
-    var FzLogger: typeof _FzLogger
+    const FzLogger: typeof _FzLogger
 }
 
 export { }

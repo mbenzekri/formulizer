@@ -59,7 +59,7 @@ export function isPrimitive(value?: string | Schema, ornull?: boolean) {
 }
 
 export function when<T>(test:any,value: T) {
-    if (!!test) return value
+    if (test) return value
     return ''
 }
 

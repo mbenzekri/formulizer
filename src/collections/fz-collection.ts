@@ -67,8 +67,8 @@ export abstract class FZCollection extends FzField {
      * @param key 
      */
     protected renderItem(schema: Schema, key: string | number): TemplateResult {
-        let name: string | null = null;;
-        let index: number | null = null;
+        let name: string | null = null
+        let index: number | null = null
         if (!this.schema) return html``
         if (typeof key === 'string') name = key
         if (typeof key === 'number') index = key

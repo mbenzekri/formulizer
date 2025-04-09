@@ -451,7 +451,7 @@ declare class _FzLogger {
 }
 
 declare global {
-    var FzLogger: typeof _FzLogger;
+    const FzLogger: typeof _FzLogger;
 }
 
 export { FzForm, FzMarkdownIt };

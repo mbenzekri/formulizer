@@ -1,11 +1,11 @@
 
 const POINTER_RE = /^(?:\d+|\/(?:[^/~]*(?:~[01])?)*)$/;
-class Pointer {
+export class Pointer {
     private readonly root: any
     private readonly path: (string | number)[]
     private readonly key?: string | number
 
-    constructor(root: any, pointer: string = "/") {
+    constructor(root: any, pointer = "/") {
         if (!pointer.startsWith("/")) throw new Error(`Pointer.constructor: ${pointer}" must start with '/'`)
         this.root = root
         const parts = this.parse(pointer)

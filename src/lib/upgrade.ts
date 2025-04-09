@@ -50,7 +50,7 @@ export class CSUpgradeDependencies extends CompilationStep {
     }
 
     override apply(schema: Schema): void {
-        ;(schema as any).dependentRequired = { ...(schema[this.property] as object) }
+        (schema as any).dependentRequired = { ...(schema[this.property] as object) }
         schema.dependencies = undefined;
     }
 }
@@ -65,7 +65,7 @@ export class CSUpgradeItems extends CompilationStep {
     }
 
     override apply(schema: Schema): void {
-        ;(schema as any).prefixItems = schema[this.property] as any[];
+        (schema as any).prefixItems = schema[this.property] as any[];
         schema.items = undefined;
     }
 }
@@ -80,7 +80,7 @@ export class CSUpgradeAdditionalProperties extends CompilationStep {
     }
 
     override apply(schema: Schema): void {
-        ;(schema as any).unevaluatedProperties = false;
+        (schema as any).unevaluatedProperties = false;
         schema.additionalProperties = undefined;
     }
 }
@@ -95,7 +95,7 @@ export class CSUpgradeRef extends CompilationStep {
     }
 
     override apply(schema: Schema): void {
-        ;(schema as any).$dynamicRef = schema[this.property] as string;
+        (schema as any).$dynamicRef = schema[this.property] as string;
         schema.$ref = undefined;
     }
 }

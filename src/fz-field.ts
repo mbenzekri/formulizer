@@ -36,7 +36,8 @@ export abstract class FzField extends Base {
     @property({ attribute:false}) accessor dirty = false
     @property({ attribute: false }) accessor i_collapsed = false
     @property({ attribute: false }) get errors(): string[] {
-        return this.localError ? [this.localError,...this.form?.errors(this.pointer)] : this.form?.errors(this.pointer)
+        if (!this.form) return []
+        return this.localError ? [this.localError,...this.form.errors(this.pointer)] : this.form.errors(this.pointer)
     }
 
     get valid() {
@@ -206,7 +207,7 @@ export abstract class FzField extends Base {
 
             // we calculate a newValue for each missing property/index  in path in descending order until this target 
             const fields: FzField[] = []
-            let ipointer: string = ''
+            let ipointer = ''
             let parent = form.root
             for (let i = 0; i < keys.length && parent; i++) {
                 const key = keys[i]

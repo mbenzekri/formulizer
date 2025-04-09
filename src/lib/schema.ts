@@ -256,7 +256,7 @@ export class Schema extends JSONSchemaDraft07 {
      */
     _track(expr: string): void {
         const logger = FzLogger.get("tracker")
-        const POINTER_RE = /\$\`([^`]+)`/g
+        const POINTER_RE = /\$`([^`]+)`/g
         let matches
         while ((matches = POINTER_RE.exec(expr)) != null) {
             const pointer = matches[1]

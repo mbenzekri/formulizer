@@ -136,7 +136,7 @@ function isPrimitive(value, ornull) {
     return false;
 }
 function when(test, value) {
-    if (!!test)
+    if (test)
         return value;
     return '';
 }
@@ -676,7 +676,7 @@ class Schema extends JSONSchemaDraft07 {
      */
     _track(expr) {
         const logger = FzLogger.get("tracker");
-        const POINTER_RE = /\$\`([^`]+)`/g;
+        const POINTER_RE = /\$`([^`]+)`/g;
         let matches;
         while ((matches = POINTER_RE.exec(expr)) != null) {
             const pointer = matches[1];
@@ -881,7 +881,9 @@ class FzField extends Base {
     get i_collapsed() { return this.#i_collapsed_accessor_storage; }
     set i_collapsed(value) { this.#i_collapsed_accessor_storage = value; }
     get errors() {
-        return this.localError ? [this.localError, ...this.form?.errors(this.pointer)] : this.form?.errors(this.pointer);
+        if (!this.form)
+            return [];
+        return this.localError ? [this.localError, ...this.form.errors(this.pointer)] : this.form.errors(this.pointer);
     }
     get valid() {
         return this.errors.length === 0 && isNull(this.localError);
@@ -2312,7 +2314,7 @@ function normalizeIsoInput(dtstr) {
     const match = dtstr.match(DATETIME_ISO_RE);
     if (!match)
         return null;
-    let [_, date, , hh = "00", , mm = "00", , ss = "00", , ms = "", tz = ""] = match;
+    const [_, date, , hh = "00", , mm = "00", , ss = "00", , ms = "", tz = ""] = match;
     const time = `${hh}:${mm}:${ss}${ms ? '.' + ms.padEnd(3, '0') : ''}`;
     return `${date}T${time}${tz}`;
 }
@@ -5960,7 +5962,7 @@ class CSField extends CompilationStep {
                 }
                 return schema.field = 'fz-array';
             }
-            case 'integer':
+            case 'integer': {
                 const min = isNumber(schema.minimum) ? isNumber(schema.exclusiveMinimum)
                     ? Math.min(schema.minimum, schema.exclusiveMinimum) : schema.minimum
                     : isNumber(schema.exclusiveMinimum) ? schema.exclusiveMinimum : undefined;
@@ -5970,6 +5972,7 @@ class CSField extends CompilationStep {
                 const isrange = notNull(min) && notNull(max) && (max - min) / (schema.multipleOf ?? 1) <= 10;
                 return isrange ? schema.field = 'fz-range'
                     : schema.field = 'fz-integer';
+            }
             case 'number': return schema.field = 'fz-float';
             case 'boolean': return schema.field = 'fz-boolean';
             case 'string':
