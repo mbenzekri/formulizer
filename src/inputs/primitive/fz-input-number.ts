@@ -34,14 +34,14 @@ abstract class FzInputNumber extends FzInputBase {
                     ?disabled="${this.readonly}"
                     ?readonly="${this.readonly}"
                     ?required="${this.required}"
-                    @input="${this.change}"
                     min="${ifDefined(this.min)}"
                     max="${ifDefined(this.max)}"
                     step="${ifDefined(this.step)}"
+                    @input="${this.change}"
                     autocomplete=off  spellcheck="false"
                     class="form-control ${this.validation} "
                 />
-                <div class="input-group-append" style="max-width:5em" >
+                <div ?hidden="${this.type !== "range"}" class="input-group-append" style="max-width:5em" >
                     <span class="input-group-text" >${this.value ?? '~'}</span>
                 </div>
             </div>`

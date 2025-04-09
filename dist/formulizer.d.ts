@@ -69,6 +69,7 @@ declare class JSONSchemaDraft07 {
     field: string;
     from?: {
         pointer: string;
+        "id": string;
         extend: boolean;
     } | ExprFunc<any>;
     order?: FieldOrder[];

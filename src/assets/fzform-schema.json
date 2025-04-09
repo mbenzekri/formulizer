@@ -1,27 +1,3 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "$id": "https://yourdomain.com/schemas/fzform-schema.json",
-    "title": "FzForm Schema",
-    "type": "object",
-    "properties": {
-      "type": { "enum": ["object", "string", "boolean", "number", "array", "null"] },
-      "enumFetch": {
-        "type": "string",
-        "description": "Name of enum to fetch dynamically from app context."
-      },
-      "requiredIf": {
-        "type": "string",
-        "description": "Conditional required expression using FzForm expression syntax."
-      },
-      "filter": {
-        "type": "string",
-        "description": "Filter expression to limit enum values."
-      },
-      "empty": {
-        "description": "Empty value used when field is cleared.",
-        "type": ["string", "null", "boolean", "number", "array", "object"]
-      }
-    },
-    "additionalProperties": true
-  }
-  
+    "$ref" : "http://json-schema.org/draft-07/schema#"
+}

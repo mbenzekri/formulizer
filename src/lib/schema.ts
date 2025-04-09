@@ -86,7 +86,7 @@ class JSONSchemaDraft07 {
     homogeneous!: boolean;
     requiredIf!: string | Function;
     field!: string;
-    from?: { pointer: string, extend: boolean } | ExprFunc<any>;
+    from?: { pointer: string, "id": string, extend: boolean } | ExprFunc<any>;
     order?: FieldOrder[];
     abstract?: string | ExprFunc<string>;
     case?: string | ExprFunc<boolean>;

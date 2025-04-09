@@ -1,9 +1,9 @@
 {
-    "title": "FzForm Document",
+    "title": "FzForm Schema",
     "type": "object",
     "properties": {
         "form": {
-            "$ref": "http://json-schema.org/draft-07/schema#",
+            "$ref": "./draft-07-schema.json",
             "description": "The JSON Schema defining the form structure."
         },
         "data": true

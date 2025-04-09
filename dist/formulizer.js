@@ -1962,14 +1962,14 @@ class FzInputNumber extends FzInputBase {
                     ?disabled="${this.readonly}"
                     ?readonly="${this.readonly}"
                     ?required="${this.required}"
-                    @input="${this.change}"
                     min="${o(this.min)}"
                     max="${o(this.max)}"
                     step="${o(this.step)}"
+                    @input="${this.change}"
                     autocomplete=off  spellcheck="false"
                     class="form-control ${this.validation} "
                 />
-                <div class="input-group-append" style="max-width:5em" >
+                <div ?hidden="${this.type !== "range"}" class="input-group-append" style="max-width:5em" >
                     <span class="input-group-text" >${this.value ?? '~'}</span>
                 </div>
             </div>`;
@@ -4998,6 +4998,118 @@ var properties = {
 	},
 	not: {
 		$ref: "#"
+	},
+	visible: {
+		type: [
+			"boolean",
+			"string"
+		],
+		description: "fz-keyword: true: allways visible, false: allways hidden, or string expression for dynamic setting."
+	},
+	empty: {
+		description: "fz-keyword: any value to set for empty value (delete field)"
+	},
+	transient: {
+		type: "boolean",
+		description: "fz-keyword: if true will set remove this field from final result (internal field)"
+	},
+	enumFetch: {
+		type: "string",
+		description: "fz-keyword: name(id) to be provided to user app to collect enum list (see fz-form event 'enum')"
+	},
+	requiredIf: {
+		type: "string",
+		description: "fz-keyword: expression to set required keyword dynamically"
+	},
+	from: {
+		type: "object",
+		properties: {
+			pointer: {
+				type: "string",
+				description: "pointer to an array inside the edited data"
+			},
+			id: {
+				type: "string",
+				description: "name of the property in pointed array items"
+			},
+			extend: {
+				type: "boolean",
+				description: " true authorize in place item adding"
+			}
+		},
+		description: "fz-keyword: data to reference an array representing th enumeration list "
+	},
+	filter: {
+		type: "string",
+		description: "fz-keyword: expression for dynamic enum filtering filter (boolean expr)"
+	},
+	rank: {
+		type: "string",
+		description: "fz-keyword: expression for dynamic enum ordering (enum is ordered by this values)"
+	},
+	abstract: {
+		type: "string",
+		description: "fz-keyword: expression to provide abstract for this field"
+	},
+	"case": {
+		type: "string",
+		description: "fz-keyword: if expression is true associate the field to this value"
+	},
+	readonly: {
+		type: "string",
+		description: "fz-keyword: "
+	},
+	collapsed: {
+		"enum": [
+			"never",
+			"allways",
+			"true",
+			"false"
+		],
+		description: "fz-keyword: "
+	},
+	expression: {
+		type: "string",
+		description: "fz-keyword: "
+	},
+	change: {
+		type: "string",
+		description: "fz-keyword: "
+	},
+	pick: {
+		description: "fz-keyword: data provided to picker event to resolve input"
+	},
+	preview: {
+		type: "boolean",
+		description: "fz-keyword: true if data preview rendering is to be done false otherwise (true is default)"
+	},
+	mimetype: {
+		type: "string",
+		description: "fz-keyword: mitype of the document to collect"
+	},
+	mask: {
+		type: "string",
+		description: "fz-keyword: mask pattern for the value to input"
+	},
+	precision: {
+		"enum": [
+			"ms",
+			"sec",
+			"min"
+		],
+		description: "fz-keyword: precision expected for time value"
+	},
+	tab: {
+		type: "string",
+		description: "fz-keyword: tab name. all the field with same tab name are stacked in same tab)"
+	},
+	group: {
+		type: "string",
+		description: "fz-keyword: group name. all the field with same group name are stacked in same group box)"
+	},
+	inline: {
+		type: "string",
+		description: "fz-keyword: inline name. all the field with same inline name are inlined into same row)"
 	}
 };
 var JsonSchemaDraft = {
