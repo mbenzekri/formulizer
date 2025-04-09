@@ -50,7 +50,7 @@ Use the `collapsed` keyword within the schema definition of an object or array f
    "adr4": {
      "$ref": "#/definitions/address",
      "title": "Always Collapsed",
-     "collapsed": "always"
+     "collapsed": "allways"
    }
    ```
 
