@@ -23,7 +23,7 @@ test.describe('fz-string field', () => {
         await C.init(page, C.patchSchema({ properties: { a_string: { type: "string" } } }))
         expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputString")
         expect(await C.input.inputValue()).toBe("example")
-        await C.assert("example",true)
+        await C.assert("example", true)
 
     })
 
@@ -32,11 +32,11 @@ test.describe('fz-string field', () => {
         await C.init(page, C.patchSchema({ properties: { a_string: { type: "string" } } }), {})
         expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputString")
         await C.input.press("a")
-        await C.assert("a",true)
+        await C.assert("a", true)
         await C.input.press("b")
-        await C.assert("ab",true)
+        await C.assert("ab", true)
         await C.input.press("c")
-        await C.assert("abc",true)
+        await C.assert("abc", true)
 
     })
 
@@ -45,7 +45,7 @@ test.describe('fz-string field', () => {
         await C.init(page, C.patchSchema({ properties: { a_string: { type: "string", minLength: 5 } } }))
         expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputString")
         await C.input.fill("test")
-        await C.assert("test",false,"must NOT be shorter than 5 characters")
+        await C.assert("test", false, "must NOT be shorter than 5 characters")
 
     })
 
@@ -54,7 +54,7 @@ test.describe('fz-string field', () => {
         await C.init(page, C.patchSchema({ properties: { a_string: { maxLength: 7 } } }), {})
         expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputString")
         await C.input.fill("this is a long string")
-        await C.assert("this is",true)
+        await C.assert("this is", true)
 
     })
 
@@ -62,9 +62,9 @@ test.describe('fz-string field', () => {
 
         await C.init(page, C.patchSchema({ properties: { a_string: { pattern: "^[A-Z]+$" } } }), {})
         await C.input.fill("lowercase")
-        await C.assert("lowercase",false,"pattern")
+        await C.assert("lowercase", false, "pattern")
         await C.input.fill("UPPERCASE")
-        await C.assert("UPPERCASE",true)
+        await C.assert("UPPERCASE", true)
 
     })
 
@@ -88,7 +88,7 @@ test.describe('fz-string field', () => {
         { format: "relative-json-pointer", classname: "FzInputString", type: "text" },
         { format: "regex", classname: "FzInputString", type: "text" },
     ]
-    for (const {format, classname, type} of formats) {
+    for (const { format, classname, type } of formats) {
         test(`fz-string: should infer FzInputString for ${format} format `, async ({ page }) => {
             await C.init(page, C.patchSchema({ properties: { a_string: { format } } }), {})
             expect(await C.field.evaluate(node => node.constructor.name)).toBe(classname)

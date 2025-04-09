@@ -25,15 +25,15 @@ test.describe('fz-date field', () => {
         expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputDate")
         expect(await C.input.inputValue()).toBe("")
         expect(await C.input.evaluate((x: HTMLInputElement) => x.valueAsDate)).toBe(null)
-        await C.assert(undefined, false,"required")
+        await C.assert(undefined, false, "required")
     })
 
     test('fz-date: should init correct state', async ({ page }) => {
         await C.init(page, undefined, { a_date: "2025-12-06" })
         expect(await C.input.inputValue()).toBe("2025-12-06")
-        expect(await C.input.evaluate((x: HTMLInputElement) => { 
-            return { y: x.valueAsDate?.getFullYear(), m: (x.valueAsDate?.getMonth() ?? -100) +1 ,d: x.valueAsDate?.getDate() }
-        })).toStrictEqual({y: 2025, m:12, d: 6})
+        expect(await C.input.evaluate((x: HTMLInputElement) => {
+            return { y: x.valueAsDate?.getFullYear(), m: (x.valueAsDate?.getMonth() ?? -100) + 1, d: x.valueAsDate?.getDate() }
+        })).toStrictEqual({ y: 2025, m: 12, d: 6 })
         await C.assert("2025-12-06", true)
 
     })
@@ -42,26 +42,13 @@ test.describe('fz-date field', () => {
         const browser = testInfo.project.name;
         await C.init(page)
         await C.input.focus()
-        // if (['webkit', 'safari_phone'].includes(browser)) {
-            await C.input.evaluate((el: HTMLInputElement) => el.value = '2024-12-06')
-            await C.input.evaluate(el => el.dispatchEvent(new Event('input', { bubbles: true })));
-            await C.input.evaluate(el => el.dispatchEvent(new Event('change', { bubbles: true })));
-        // } else {
-        //     await page.keyboard.press('1')
-        //     await page.keyboard.press('2')
-        //     await page.keyboard.press('/')
-        //     await page.keyboard.press('0')
-        //     await page.keyboard.press('6')
-        //     await page.keyboard.press('/')
-        //     await page.keyboard.press('2')
-        //     await page.keyboard.press('0')
-        //     await page.keyboard.press('2')
-        //     await page.keyboard.press('4')
-        // }
+        await C.input.evaluate((el: HTMLInputElement) => el.value = '2024-12-06')
+        await C.input.evaluate(el => el.dispatchEvent(new Event('input', { bubbles: true })));
+        await C.input.evaluate(el => el.dispatchEvent(new Event('change', { bubbles: true })));
         expect(await C.input.inputValue()).toBe("2024-12-06")
-        expect(await C.input.evaluate((x: HTMLInputElement) => { 
-            return { y: x.valueAsDate?.getFullYear(), m: (x.valueAsDate?.getMonth() ?? -100) +1 ,d: x.valueAsDate?.getDate() }
-        })).toStrictEqual({y: 2024, m:12, d: 6})
+        expect(await C.input.evaluate((x: HTMLInputElement) => {
+            return { y: x.valueAsDate?.getFullYear(), m: (x.valueAsDate?.getMonth() ?? -100) + 1, d: x.valueAsDate?.getDate() }
+        })).toStrictEqual({ y: 2024, m: 12, d: 6 })
         await C.assert("2024-12-06", true)
 
     })

@@ -25,7 +25,7 @@ test.describe('fz-datetime field', () => {
         expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputDatetime")
         expect(await C.input.inputValue()).toBe("")
         expect(await C.input.evaluate((x: HTMLInputElement) => x.valueAsDate)).toBe(null)
-        await C.assert(undefined, false,"required")
+        await C.assert(undefined, false, "required")
     })
 
     test('fz-datetime: should init correct state', async ({ page }) => {
@@ -42,12 +42,12 @@ test.describe('fz-datetime field', () => {
         await C.init(page)
 
         // strange behavior of Datetime ... (have to do all in one browser context)
-        expect (await C.input.evaluate((el: HTMLInputElement) => {
+        expect(await C.input.evaluate((el: HTMLInputElement) => {
             el.value = "2024-06-12T10:30";
             el.dispatchEvent(new Event("input", { bubbles: true }));
             el.dispatchEvent(new Event("change", { bubbles: true }));
             return el.value
-          })).toBe("2024-06-12T10:30")
+        })).toBe("2024-06-12T10:30")
 
         await C.assert("2024-06-12T10:30:00", true)
 

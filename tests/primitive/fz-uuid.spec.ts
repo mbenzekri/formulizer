@@ -15,7 +15,7 @@ TestContext.SCHEMA = {
 
 TestContext.DATA = { "a_uuid": undefined }
 
-const C = new TestContext("/a_uuid",".form-control")
+const C = new TestContext("/a_uuid", ".form-control")
 
 test.describe('fz-uuid field', () => {
 
@@ -28,13 +28,11 @@ test.describe('fz-uuid field', () => {
         await C.init(page)
         const uuid = await C.input.textContent()
         expect(uuid).toMatch(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/)
-        await C.assert(uuid,true)
+        await C.assert(uuid, true)
     })
     test('fz-uuid: should not update if uuid present', async ({ page }) => {
-        await C.init(page,undefined,{a_uuid: "6dfdf620-14bd-11f0-98f4-0368326f7e9a"})
-        await C.assert("6dfdf620-14bd-11f0-98f4-0368326f7e9a",true)
+        await C.init(page, undefined, { a_uuid: "6dfdf620-14bd-11f0-98f4-0368326f7e9a" })
+        await C.assert("6dfdf620-14bd-11f0-98f4-0368326f7e9a", true)
     })
 
-
-    
 })
