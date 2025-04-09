@@ -12,11 +12,23 @@
       "editor.insertSpaces": true
     },
     "diffEditor.ignoreTrimWhitespace": true,
-    "CodeGPT.apiKey": "OpenAI",
     "[html]": {
         "editor.defaultFormatter": "vscode.html-language-features"
     },
     "[json]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "json.schemas": [
+        {
+            "fileMatch": ["*.fz.json"],
+            "url": "./src/assets/fzform-schema.json"
+        },
+        {
+            "fileMatch": ["**/*.doc.json"],
+            "url": "./src/assets/fzform-doc.json"
+        }
+    ],
+    "[jsonc]": {
         "editor.defaultFormatter": "vscode.json-language-features"
     }
 }

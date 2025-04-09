@@ -34,7 +34,7 @@
             form.addEventListener("data-invalid", output)
             const subject = window.location.hash.substring(1);
             const deftuto = { form: { type: "object", "properties": {"a_const": { "const": "Provide example path"}}},data:{}}
-            const tuto = await fetch(`./examples/${subject}.json`).then(r => r.ok ? r.json() : deftuto).catch(() => deftuto)
+            const tuto = await fetch(`./examples/${subject}.doc.json`).then(r => r.ok ? r.json() : deftuto).catch(() => deftuto)
             form.schema = tuto.form
             form.data = tuto.data
             output()

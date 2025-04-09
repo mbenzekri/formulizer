@@ -96,7 +96,7 @@ const goto = async (name) => {
     const hash = window.location.hash == "" ? null : window.location.hash.substring(1) 
     const subject = name ?? hash ??  "general/whatis" 
     if (subject) {
-        tutodata = await fetch(`./examples/${subject}.json`).then(r => r.ok ? r.json() : defaultTuto).catch(() => defaultTuto)
+        tutodata = await fetch(`./examples/${subject}.doc.json`).then(r => r.ok ? r.json() : defaultTuto).catch(() => defaultTuto)
         if (tutodata) {
             await init_toc(toc)
             renderToc()
