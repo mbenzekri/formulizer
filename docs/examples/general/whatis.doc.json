@@ -9,8 +9,7 @@
             "hello": {
                 "type": "string",
                 "expression": " `Hello, ${ $`/who` } !` ",
-                "readonly": true,
-                "visible": ""
+                "readonly": "true"
             }
         }
     },
