@@ -1,0 +1,12 @@
+{
+    "form": {
+        "type": "object",
+        "properties": { 
+            "active": { 
+                "type": "boolean",
+                "readonly": "true"
+            }
+        }
+    },
+    "data": { "active": true }
+}

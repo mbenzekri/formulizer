@@ -71,7 +71,7 @@ test.describe('fz-boolean field', () => {
     }
 
     test('fz-boolean: should not toggle (readonly)', async ({ page }) => {
-        await C.init(page,C.patchSchema({ properties: { active: { readonly: true } } }), { active: true })
+        await C.init(page,C.patchSchema({ properties: { active: { readonly: "true" } } }), { active: true })
 
         // on click no change
         // !!! for readonly checkbox DONT USE input_h.click() Playwright FAILS because CSS "event-pointers" set to "none"
