@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement, property } from "lit/decorators.js"
 import { html, TemplateResult } from "lit"
-import { getSchema, isArray, isFunction, isNull, isObject, when } from "../lib/tools"
+import { getSchema, isArray, isFunction, isNull, isObject, newSandbox, when } from "../lib/tools"
 import { FZCollection } from "./fz-collection"
 import { EMPTY_SCHEMA, Schema } from "../lib/schema"
 
@@ -265,10 +265,22 @@ export class FzArray extends FZCollection {
     private solveSchemas(force = false) {
         if (!isObject(this.schema?.items)) return
         if (!force && this.currentSchema && this.schemas) return
-        if (!this.currentSchema) this.currentSchema = this.schema.homogeneous ? this.schema.items : (this.schema.items.oneOf?.[0] ?? EMPTY_SCHEMA)
-        this.schemas = this.value == null ? [] : this.schema.homogeneous
-            ? this.value.map(() => this.schema.items)
-            : this.value.map((value: any) => getSchema(value) ?? this.schema.items?.oneOf?.find((schema) => isFunction(schema.case) && schema.case(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc, this.form.options.userdata)))
+        if (!this.currentSchema) 
+            this.currentSchema = this.schema.homogeneous ? this.schema.items : (this.schema.items.oneOf?.[0] ?? EMPTY_SCHEMA)
+        this.schemas = [] 
+        for (const value of this.value) {
+            if (this.schema.homogeneous)
+                this.schemas.push(this.schema.items)
+            else {
+                // evaluate the case keyword expression 
+                const evalCase = (schema:Schema) => {
+                    if (!isFunction(schema.case)) return false
+                    const sandbox = newSandbox(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc, this.form.options.userdata)
+                    return schema.case(sandbox) ?? false
+                }
+                this.schemas.push(getSchema(value) ?? this.schema.items?.oneOf?.find(evalCase))
+            }
+        }
     }
 
     /**

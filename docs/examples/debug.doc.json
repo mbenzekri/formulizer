@@ -1,12 +1,15 @@
 {
     "form": {
         "type": "object",
-        "properties": { 
-            "active": { 
-                "type": "boolean",
-                "readonly": "true"
+        "properties": {
+            "active": {
+                "type": "string",
+                "readonly": "true",
+                "expression": "String(window)"
             }
         }
     },
-    "data": { "active": true }
+    "data": {
+        "active": true
+    }
 }

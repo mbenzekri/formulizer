@@ -19,8 +19,8 @@ interface JSONArray extends Array<JSONValue> { }
 export { JSONValue, JSONObject, JSONArray }
 
 export type EnumItem = { title: string; value: any }
-
-export type ExprFunc<T> = (schema: Schema, value: any, parent: Pojo, property: string | number, $: Function, userdata: object) => T | null
+export type Sandbox = { schema: Schema, value: any, parent: Pojo, key: string | number| undefined, appdata: object }
+export type ExprFunc<T> = (sandbox: Sandbox) => T | null
 export type EvalFunc<T> = (attribute: keyof Schema, schema: Schema, value: any, parent: Pojo, property: string | number, userdata: object) => T | null
 
 export type FieldOrder = {
@@ -57,7 +57,6 @@ export const ROOT = Symbol("FZ_FORM_ROOT")
 export const EVAL = Symbol("FZ_FORM_EVAL")
 
 export type WithMetadata<T> = T & {
-    [SCHEMA]?: Schema;
     [SCHEMA]?: Schema;
     [ROOT]?: T;
     [PARENT]?: T;

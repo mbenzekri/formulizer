@@ -1,12 +1,23 @@
 # FzForm
 
 JSON Schema driven WebComponent to display dynamic form (Bootstrap UI 5)    
-- developement env: typescript, lit3, bootstrap, rollup, JSON Schema draft07, ajv 
+- developement technologies: typescript, lit3 (Web component), bootstrap, rollup, JSON Schema draft07, ajv 
 - test: Playwright
-- doc: hand made 
+- doc: hand made : TOC + Markdown page + example
 - debug: devtools / Live Server
 
 ## development
+
+```
+./
+│
+├─ .vscode      : VSCODE config
+├─ dist         : distribution bundles (dev bundle, minified, lazy modules)
+├─ docs         : documentation (toc `dist/index.html`)
+├─ src          : FzForm source code (typescript)
+└─ tests        : Playwright E2E test suites
+```
+
 
 ### checkout the project 
 >```
@@ -40,10 +51,10 @@ JSON Schema driven WebComponent to display dynamic form (Bootstrap UI 5)
 - update `./docs/debug.json` file with the initial schema/data to debug
 - Ensure Live Sserver running and open [debug link](http://127.0.0.1:5500/docs/debug.html#debug) 
 
-
+## Directory structure
 # TODO LIST
 
-- reference to data example not working
+- from to data example not working
 - ISSUE: in the documentation click chapter "'format' keyword" then "Basic fields"
     the field geolocation from previous form stay displayed in second form
 

@@ -192,7 +192,7 @@ export class Schema extends JSONSchemaDraft07 {
         return String(value)
     }
     static _abstractFunc() {
-        return (schema: Schema, value: any) => schema._abstract(value)
+        return (sandbox: any) => sandbox.schema?._abstract(sandbox.value) 
     }
     _default(parent: any): any {
         switch (true) {
@@ -366,13 +366,13 @@ export abstract class CompilationStep {
     }
     set(schema: Schema, value: any, expr?: string | any[]) {
         (schema as any)[this.property] = value
-        if (expr) schema[this.property].expresion = expr
+        if (expr) schema[this.property].expression = expr
     }
     compileExpr(schema: Schema, expression: string | any[], body: string) {
         const arrexpr = isString(expression) ? [expression] : expression
         try {
             arrexpr.forEach(expr => schema._track(expr))
-            this.set(schema, new Function("schema", "value", "parent", "property", "$", "userdata", body), expression)
+            this.set(schema, new Function("sandbox", body), expression)
         } catch (e) {
             throw Error(`compilation for keyword ${this.property} failed schema:${schema.pointer}\n    - ${String(e)}`)
         }

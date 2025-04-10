@@ -757,8 +757,8 @@ class CSInsideRef extends CompilationStep {
         const pointer = from.pointer.replace(/\/[^/]+$/, '')
         const name = from.pointer.substr(pointer.length + 1)
         schema._track(`$\`${pointer}\``)
-        schema.from = (_schema: Schema, _value: any, parent: Pojo, property: string | number, _userdata: object) => {
-            const target = derefPointerData(this.data, parent, property, pointer)
+        schema.from = (sandbox: any)  => {
+            const target = derefPointerData(this.data, sandbox.parent, sandbox.property, pointer)
             if (!target) return null
             if (!isArray(target)) {
                 console.error(`reference list must be an array ${pointer}`)
@@ -787,14 +787,16 @@ class CSTemplate extends CompilationStep {
         if (isString(expression)) {
             const body = `
                 ${this.sourceURL(schema,name)}
-                try { 
-                    return nvl\`${expression}\`
-                } catch(e) {  
-                    console.error(
-                        \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
-                        \`    => \${String(e)}\`) 
+                with (sandbox) {
+                    try { 
+                        return nvl\`${expression}\`
+                    } catch(e) {  
+                        console.error(
+                            \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
+                            \`    => \${String(e)}\`) 
+                    }
+                    return ''
                 }
-                return ''
             `
             this.compileExpr(schema,expression,body)
         }
@@ -821,15 +823,17 @@ class CSBool extends CompilationStep {
         if (!isString(expression)) return  this.set(schema,() => !!(expression))
         const body = `
             ${this.sourceURL(schema,name)}
-            try {  
-                const result = (${expression}) 
-                return result === null ? result : !!result
-            } catch(e) {  
-                console.error(
-                    \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
-                    \`    => \${String(e)}\`) 
+            with (sandbox) {
+                try {  
+                    const result = (${expression}) 
+                    return result === null ? result : !!result
+                } catch(e) {  
+                    console.error(
+                        \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
+                        \`    => \${String(e)}\`) 
+                }
+                return true
             }
-            return true
         `
         this.compileExpr(schema,expression,body)
     }
@@ -844,7 +848,6 @@ class CSAny extends CompilationStep {
     }
     override appliable(schema: Schema) {
         return this.property in schema && typeof schema[this.property] !== "function"
-
     }
     override apply(schema: Schema, _parent: Schema, name: string) {
         const expression = schema[this.property]
@@ -854,13 +857,15 @@ class CSAny extends CompilationStep {
         code =  isString(expression) ? `return ${expression}`: this.buildCode(expression)
         const body = `
             ${this.sourceURL(schema,name)}
-            try {
-                ${code} 
-            } catch(e) {  
-                console.error(
-                    \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
-                    \`    => \${String(e)}\`) }
-            return null
+            with (sandbox) {
+                try {
+                    ${code} 
+                } catch(e) {  
+                    console.error(
+                        \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
+                        \`    => \${String(e)}\`) }
+                return null
+            }
         `
         this.compileExpr(schema,expression,body)
 

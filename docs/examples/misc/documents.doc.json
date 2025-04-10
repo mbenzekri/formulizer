@@ -7,7 +7,7 @@
                 "type": "string",
                 "format": "doc",
                 "preview": true,
-                "readonly": true
+                "readonly": "true"
             },
             "documentb": {
                 "type": "string",

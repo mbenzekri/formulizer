@@ -1,4 +1,4 @@
-import { Pojo } from "../lib/types"
+import { Pojo, Sandbox } from "../lib/types"
 import { Schema } from "../lib/schema"
 
 export function notNull<A>(value:A): value is Exclude<A,null|undefined>
@@ -100,6 +100,19 @@ export const jsonAttributeConverter = {
         }
     }
 };
+
+export function newSandbox(schema:Schema, value: any, parent: any, key: string|number|undefined, $: Function, appdata:any): Sandbox & Record<string,any> {
+    return {
+        // Whitelist of provided global objects
+        document: null, window:null,
+        undefined, Infinity,NaN,
+        // Core constructors and types (without Function)
+        Object, Array, Number, Boolean, String, Error,
+        // Utility objects & functions
+        Math, JSON, parseInt, parseFloat, isNaN, isFinite,
+        schema, value, parent, key, $, appdata
+    }
+}
 
 
 /**

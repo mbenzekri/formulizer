@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property } from "lit/decorators.js"
 import { html, TemplateResult, PropertyValues } from "lit"
-import { derefPointerData, isEmptyValue, newValue, getSchema, isFunction, notNull, isArray, isNull } from "./lib/tools"
+import { derefPointerData, isEmptyValue, newValue, getSchema, isFunction, notNull, isArray, isNull, newSandbox } from "./lib/tools"
 import { Pojo } from "./lib/types"
 import { FzForm } from "./fz-form"
 import { Base } from "./base"
@@ -414,28 +414,33 @@ export abstract class FzField extends Base {
                 ? this.evalExpr("abstract")
                 : this.schema._abstract(this.value)
         } else if (notNull(itemschema) && isFunction(itemschema.from)) {
-            const refto = itemschema.from?.(itemschema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata)
+            const sandbox = newSandbox(itemschema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata)
+            const refto = itemschema.from?.(sandbox)
             const index = refto.refarray.findIndex((x: any) => x[refto.refname] === this.value[key])
             const value = refto.refarray[index]
             const schema = getSchema(value)
-            text = isFunction(schema.abstract)
-                ? schema.abstract(schema, value, refto.refarray, index, this.derefFunc, this.form.options.userdata)
-                : schema._abstract(this.value[key])
+            const abstract_sandbox = newSandbox(schema, value, refto.refarray, index, this.derefFunc, this.form.options.userdata)
+            text = isFunction(schema.abstract) ? schema.abstract(abstract_sandbox) : schema._abstract(this.value[key])
         } else {
             const schema = (typeof key === 'string') ? this.schema.properties?.[key] : itemschema
-            text = isFunction(schema?.abstract)
-                ? schema.abstract(schema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata)
-                : schema?._abstract(this.value[key])
-        }
-        return text.length > 200 ? text.substring(0, 200) + '...' : text
-    }
+            if (schema) {
+                const abstract_sandbox = newSandbox(schema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata)
+                text = isFunction(schema?.abstract) ? schema.abstract(abstract_sandbox) : schema?._abstract(this.value[key])
+            } else {
+                text = ""
+            }
 
+        }
+        return text && text.length > 200 ? text.substring(0, 200) + '...' : (text ?? "")
+    }
     evalExpr(attribute: keyof Schema, schema?: Schema, value?: Pojo, parent?: Pojo, key?: string | number) {
         const exprFunc = this.schema?.[attribute]
-        if (!isFunction(exprFunc)) return null
-        return schema != null
-            ? exprFunc(schema, value, parent, key, this.derefFunc, this.form?.options.userdata)
-            : exprFunc(this.schema, this.value, this.data, this.key, this.derefFunc, this.form?.options.userdata)
+        if (isFunction(exprFunc)) {
+            const sandbox = (schema != null)
+                ? newSandbox(schema, value, parent, key, this.derefFunc, this.form?.options.userdata)
+                : newSandbox(this.schema, this.value, this.data, this.key, this.derefFunc, this.form?.options.userdata)
+            return exprFunc.call({},sandbox)
+        }
     }
 
     /**

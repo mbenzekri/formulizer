@@ -96,7 +96,7 @@ declare class Schema extends JSONSchemaDraft07 {
      * default abstract calculation
      */
     _abstract(value: any): string;
-    static _abstractFunc(): (schema: Schema, value: any) => string;
+    static _abstractFunc(): (sandbox: any) => any;
     _default(parent: any): any;
     /**
      * get the schema corresponding to a jsonpointer (absolute or relative)
@@ -140,7 +140,14 @@ type EnumItem = {
     title: string;
     value: any;
 };
-type ExprFunc<T> = (schema: Schema, value: any, parent: Pojo, property: string | number, $: Function, userdata: object) => T | null;
+type Sandbox = {
+    schema: Schema;
+    value: any;
+    parent: Pojo;
+    key: string | number | undefined;
+    appdata: object;
+};
+type ExprFunc<T> = (sandbox: Sandbox) => T | null;
 type EvalFunc<T> = (attribute: keyof Schema, schema: Schema, value: any, parent: Pojo, property: string | number, userdata: object) => T | null;
 type FieldOrder = {
     tabnum: number;
@@ -172,7 +179,6 @@ declare const KEY: unique symbol;
 declare const ROOT: unique symbol;
 declare const EVAL: unique symbol;
 type WithMetadata<T> = T & {
-    [SCHEMA]?: Schema;
     [SCHEMA]?: Schema;
     [ROOT]?: T;
     [PARENT]?: T;

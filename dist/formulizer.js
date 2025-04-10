@@ -151,6 +151,18 @@ function complement(set, full) {
 function union(sets) {
     return sets.reduce((acc, set) => new Set([...acc, ...set]), new Set());
 }
+function newSandbox(schema, value, parent, key, $, appdata) {
+    return {
+        // Whitelist of provided global objects
+        document: null, window: null,
+        undefined, Infinity, NaN,
+        // Core constructors and types (without Function)
+        Object, Array, Number, Boolean, String, Error,
+        // Utility objects & functions
+        Math, JSON, parseInt, parseFloat, isNaN, isFinite,
+        schema, value, parent, key, $, appdata
+    };
+}
 /**
  * get the data corresponding to a jsonpointer (absolute or relative)
  * @param root root data for absolute pointer
@@ -611,7 +623,7 @@ class Schema extends JSONSchemaDraft07 {
         return String(value);
     }
     static _abstractFunc() {
-        return (schema, value) => schema._abstract(value);
+        return (sandbox) => sandbox.schema?._abstract(sandbox.value);
     }
     _default(parent) {
         switch (true) {
@@ -782,13 +794,13 @@ class CompilationStep {
     set(schema, value, expr) {
         schema[this.property] = value;
         if (expr)
-            schema[this.property].expresion = expr;
+            schema[this.property].expression = expr;
     }
     compileExpr(schema, expression, body) {
         const arrexpr = isString(expression) ? [expression] : expression;
         try {
             arrexpr.forEach(expr => schema._track(expr));
-            this.set(schema, new Function("schema", "value", "parent", "property", "$", "userdata", body), expression);
+            this.set(schema, new Function("sandbox", body), expression);
         }
         catch (e) {
             throw Error(`compilation for keyword ${this.property} failed schema:${schema.pointer}\n    - ${String(e)}`);
@@ -1258,29 +1270,34 @@ class FzField extends Base {
                 : this.schema._abstract(this.value);
         }
         else if (notNull(itemschema) && isFunction(itemschema.from)) {
-            const refto = itemschema.from?.(itemschema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata);
+            const sandbox = newSandbox(itemschema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata);
+            const refto = itemschema.from?.(sandbox);
             const index = refto.refarray.findIndex((x) => x[refto.refname] === this.value[key]);
             const value = refto.refarray[index];
             const schema = getSchema(value);
-            text = isFunction(schema.abstract)
-                ? schema.abstract(schema, value, refto.refarray, index, this.derefFunc, this.form.options.userdata)
-                : schema._abstract(this.value[key]);
+            const abstract_sandbox = newSandbox(schema, value, refto.refarray, index, this.derefFunc, this.form.options.userdata);
+            text = isFunction(schema.abstract) ? schema.abstract(abstract_sandbox) : schema._abstract(this.value[key]);
         }
         else {
             const schema = (typeof key === 'string') ? this.schema.properties?.[key] : itemschema;
-            text = isFunction(schema?.abstract)
-                ? schema.abstract(schema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata)
-                : schema?._abstract(this.value[key]);
+            if (schema) {
+                const abstract_sandbox = newSandbox(schema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata);
+                text = isFunction(schema?.abstract) ? schema.abstract(abstract_sandbox) : schema?._abstract(this.value[key]);
+            }
+            else {
+                text = "";
+            }
         }
-        return text.length > 200 ? text.substring(0, 200) + '...' : text;
+        return text && text.length > 200 ? text.substring(0, 200) + '...' : (text ?? "");
     }
     evalExpr(attribute, schema, value, parent, key) {
         const exprFunc = this.schema?.[attribute];
-        if (!isFunction(exprFunc))
-            return null;
-        return schema != null
-            ? exprFunc(schema, value, parent, key, this.derefFunc, this.form?.options.userdata)
-            : exprFunc(this.schema, this.value, this.data, this.key, this.derefFunc, this.form?.options.userdata);
+        if (isFunction(exprFunc)) {
+            const sandbox = (schema != null)
+                ? newSandbox(schema, value, parent, key, this.derefFunc, this.form?.options.userdata)
+                : newSandbox(this.schema, this.value, this.data, this.key, this.derefFunc, this.form?.options.userdata);
+            return exprFunc.call({}, sandbox);
+        }
     }
     /**
      * return tagged template '$' for pointer derefencing in expression or code used in schema
@@ -1538,7 +1555,8 @@ class FzEnumBase extends FzInputBase {
                 const ok = this.evalExpr('filter', schema, item, target, index);
                 if (ok) {
                     const value = item[name];
-                    const title = isFunction(schema?.abstract) ? schema.abstract(schema, item, target, index, this.derefFunc, this.form.options.userdata) : value;
+                    const sandbox = newSandbox(schema, item, target, index, this.derefFunc, this.form.options.userdata);
+                    const title = isFunction(schema?.abstract) ? schema.abstract(sandbox) : value;
                     list.push({ title, value });
                 }
                 return list;
@@ -3816,9 +3834,21 @@ let FzArray$1 = class FzArray extends FZCollection {
             return;
         if (!this.currentSchema)
             this.currentSchema = this.schema.homogeneous ? this.schema.items : (this.schema.items.oneOf?.[0] ?? EMPTY_SCHEMA);
-        this.schemas = this.value == null ? [] : this.schema.homogeneous
-            ? this.value.map(() => this.schema.items)
-            : this.value.map((value) => getSchema(value) ?? this.schema.items?.oneOf?.find((schema) => isFunction(schema.case) && schema.case(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc, this.form.options.userdata)));
+        this.schemas = [];
+        for (const value of this.value) {
+            if (this.schema.homogeneous)
+                this.schemas.push(this.schema.items);
+            else {
+                // evaluate the case keyword expression 
+                const evalCase = (schema) => {
+                    if (!isFunction(schema.case))
+                        return false;
+                    const sandbox = newSandbox(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc, this.form.options.userdata);
+                    return schema.case(sandbox) ?? false;
+                };
+                this.schemas.push(getSchema(value) ?? this.schema.items?.oneOf?.find(evalCase));
+            }
+        }
     }
     /**
      * calculate ordering of the items
@@ -6067,8 +6097,8 @@ class CSInsideRef extends CompilationStep {
         const pointer = from.pointer.replace(/\/[^/]+$/, '');
         const name = from.pointer.substr(pointer.length + 1);
         schema._track(`$\`${pointer}\``);
-        schema.from = (_schema, _value, parent, property, _userdata) => {
-            const target = derefPointerData(this.data, parent, property, pointer);
+        schema.from = (sandbox) => {
+            const target = derefPointerData(this.data, sandbox.parent, sandbox.property, pointer);
             if (!target)
                 return null;
             if (!isArray(target)) {
@@ -6097,14 +6127,16 @@ class CSTemplate extends CompilationStep {
         if (isString(expression)) {
             const body = `
                 ${this.sourceURL(schema, name)}
-                try { 
-                    return nvl\`${expression}\`
-                } catch(e) {  
-                    console.error(
-                        \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
-                        \`    => \${String(e)}\`) 
+                with (sandbox) {
+                    try { 
+                        return nvl\`${expression}\`
+                    } catch(e) {  
+                        console.error(
+                            \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
+                            \`    => \${String(e)}\`) 
+                    }
+                    return ''
                 }
-                return ''
             `;
             this.compileExpr(schema, expression, body);
         }
@@ -6131,15 +6163,17 @@ class CSBool extends CompilationStep {
             return this.set(schema, () => !!(expression));
         const body = `
             ${this.sourceURL(schema, name)}
-            try {  
-                const result = (${expression}) 
-                return result === null ? result : !!result
-            } catch(e) {  
-                console.error(
-                    \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
-                    \`    => \${String(e)}\`) 
+            with (sandbox) {
+                try {  
+                    const result = (${expression}) 
+                    return result === null ? result : !!result
+                } catch(e) {  
+                    console.error(
+                        \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
+                        \`    => \${String(e)}\`) 
+                }
+                return true
             }
-            return true
         `;
         this.compileExpr(schema, expression, body);
     }
@@ -6162,13 +6196,15 @@ class CSAny extends CompilationStep {
         code = isString(expression) ? `return ${expression}` : this.buildCode(expression);
         const body = `
             ${this.sourceURL(schema, name)}
-            try {
-                ${code} 
-            } catch(e) {  
-                console.error(
-                    \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
-                    \`    => \${String(e)}\`) }
-            return null
+            with (sandbox) {
+                try {
+                    ${code} 
+                } catch(e) {  
+                    console.error(
+                        \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
+                        \`    => \${String(e)}\`) }
+                return null
+            }
         `;
         this.compileExpr(schema, expression, body);
     }
