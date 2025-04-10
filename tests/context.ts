@@ -33,6 +33,7 @@ export class TestContext {
         // init FzForm test page (wait for fz-form readiness)
         await page.goto(TEST_PAGE)
         page.on('console', msg => {
+            if (msg.type() == "warning" && msg.text().startsWith("strict mode: missing type")) return
             console.log(`[Browser] ${msg.type()}: ${msg.text()}`);
         });
         await page.waitForSelector('fz-form', { state: 'attached' })
