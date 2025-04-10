@@ -152,16 +152,258 @@ function union(sets) {
     return sets.reduce((acc, set) => new Set([...acc, ...set]), new Set());
 }
 function newSandbox(schema, value, parent, key, $, appdata) {
-    return {
+    const globals = [
+        "window",
+        "self",
+        "document",
+        "name",
+        "location",
+        "customElements",
+        "history",
+        "navigation",
+        "locationbar",
+        "menubar",
+        "personalbar",
+        "scrollbars",
+        "statusbar",
+        "toolbar",
+        "status",
+        "closed",
+        "frames",
+        "length",
+        "top",
+        "opener",
+        "parent",
+        "frameElement",
+        "navigator",
+        "origin",
+        "external",
+        "screen",
+        "innerWidth",
+        "innerHeight",
+        "scrollX",
+        "pageXOffset",
+        "scrollY",
+        "pageYOffset",
+        "visualViewport",
+        "screenX",
+        "screenY",
+        "outerWidth",
+        "outerHeight",
+        "devicePixelRatio",
+        "event",
+        "clientInformation",
+        "screenLeft",
+        "screenTop",
+        "styleMedia",
+        "onsearch",
+        "trustedTypes",
+        "performance",
+        "onappinstalled",
+        "onbeforeinstallprompt",
+        "crypto",
+        "indexedDB",
+        "sessionStorage",
+        "localStorage",
+        "onbeforexrselect",
+        "onabort",
+        "onbeforeinput",
+        "onbeforematch",
+        "onbeforetoggle",
+        "onblur",
+        "oncancel",
+        "oncanplay",
+        "oncanplaythrough",
+        "onchange",
+        "onclick",
+        "onclose",
+        "oncontentvisibilityautostatechange",
+        "oncontextlost",
+        "oncontextmenu",
+        "oncontextrestored",
+        "oncuechange",
+        "ondblclick",
+        "ondrag",
+        "ondragend",
+        "ondragenter",
+        "ondragleave",
+        "ondragover",
+        "ondragstart",
+        "ondrop",
+        "ondurationchange",
+        "onemptied",
+        "onended",
+        "onerror",
+        "onfocus",
+        "onformdata",
+        "oninput",
+        "oninvalid",
+        "onkeydown",
+        "onkeypress",
+        "onkeyup",
+        "onload",
+        "onloadeddata",
+        "onloadedmetadata",
+        "onloadstart",
+        "onmousedown",
+        "onmouseenter",
+        "onmouseleave",
+        "onmousemove",
+        "onmouseout",
+        "onmouseover",
+        "onmouseup",
+        "onmousewheel",
+        "onpause",
+        "onplay",
+        "onplaying",
+        "onprogress",
+        "onratechange",
+        "onreset",
+        "onresize",
+        "onscroll",
+        "onsecuritypolicyviolation",
+        "onseeked",
+        "onseeking",
+        "onselect",
+        "onslotchange",
+        "onstalled",
+        "onsubmit",
+        "onsuspend",
+        "ontimeupdate",
+        "ontoggle",
+        "onvolumechange",
+        "onwaiting",
+        "onwebkitanimationend",
+        "onwebkitanimationiteration",
+        "onwebkitanimationstart",
+        "onwebkittransitionend",
+        "onwheel",
+        "onauxclick",
+        "ongotpointercapture",
+        "onlostpointercapture",
+        "onpointerdown",
+        "onpointermove",
+        "onpointerrawupdate",
+        "onpointerup",
+        "onpointercancel",
+        "onpointerover",
+        "onpointerout",
+        "onpointerenter",
+        "onpointerleave",
+        "onselectstart",
+        "onselectionchange",
+        "onanimationend",
+        "onanimationiteration",
+        "onanimationstart",
+        "ontransitionrun",
+        "ontransitionstart",
+        "ontransitionend",
+        "ontransitioncancel",
+        "onafterprint",
+        "onbeforeprint",
+        "onbeforeunload",
+        "onhashchange",
+        "onlanguagechange",
+        "onmessage",
+        "onmessageerror",
+        "onoffline",
+        "ononline",
+        "onpagehide",
+        "onpageshow",
+        "onpopstate",
+        "onrejectionhandled",
+        "onstorage",
+        "onunhandledrejection",
+        "onunload",
+        "isSecureContext",
+        "crossOriginIsolated",
+        "scheduler",
+        "blur",
+        "cancelAnimationFrame",
+        "cancelIdleCallback",
+        "captureEvents",
+        "clearInterval",
+        "clearTimeout",
+        "close",
+        "confirm",
+        "createImageBitmap",
+        "fetch",
+        "find",
+        "focus",
+        "getComputedStyle",
+        "getSelection",
+        "matchMedia",
+        "moveBy",
+        "moveTo",
+        "open",
+        "postMessage",
+        "print",
+        "prompt",
+        "queueMicrotask",
+        "releaseEvents",
+        "reportError",
+        "requestAnimationFrame",
+        "requestIdleCallback",
+        "resizeBy",
+        "resizeTo",
+        "scroll",
+        "scrollBy",
+        "scrollTo",
+        "setInterval",
+        "setTimeout",
+        "stop",
+        "structuredClone",
+        "webkitCancelAnimationFrame",
+        "webkitRequestAnimationFrame",
+        "chrome",
+        "caches",
+        "cookieStore",
+        "ondevicemotion",
+        "ondeviceorientation",
+        "ondeviceorientationabsolute",
+        "launchQueue",
+        "sharedStorage",
+        "documentPictureInPicture",
+        "fetchLater",
+        "getScreenDetails",
+        "queryLocalFonts",
+        "showDirectoryPicker",
+        "showOpenFilePicker",
+        "showSaveFilePicker",
+        "originAgentCluster",
+        "onpageswap",
+        "onpagereveal",
+        "credentialless",
+        "fence",
+        "speechSynthesis",
+        "oncommand",
+        "onscrollend",
+        "onscrollsnapchange",
+        "onscrollsnapchanging",
+        "webkitRequestFileSystem",
+        "webkitResolveLocalFileSystemURL",
+        "oninit",
+        "onready",
+        "onvalidate",
+        "ondismiss",
+        "litPropertyMetadata",
+        "reactiveElementVersions",
+        "litHtmlVersions",
+        "litElementVersions",
+        "FzLogger",
+        "FzForm"
+    ];
+    const sandbox = globals.reduce((s, property) => (s[property] = null, s), {});
+    return Object.assign(sandbox, {
+        Function: null,
         // Whitelist of provided global objects
-        document: null, window: null,
         undefined, Infinity, NaN,
         // Core constructors and types (without Function)
         Object, Array, Number, Boolean, String, Error,
         // Utility objects & functions
         Math, JSON, parseInt, parseFloat, isNaN, isFinite,
         schema, value, parent, key, $, appdata
-    };
+    });
 }
 /**
  * get the data corresponding to a jsonpointer (absolute or relative)
@@ -624,6 +866,13 @@ class Schema extends JSONSchemaDraft07 {
     }
     static _abstractFunc() {
         return (sandbox) => sandbox.schema?._abstract(sandbox.value);
+    }
+    _evalExpr(attribute, schema, value, parent, key, $, appdata) {
+        const exprFunc = this[attribute];
+        if (isFunction(exprFunc)) {
+            const sandbox = newSandbox(schema, value, parent, key, $, appdata);
+            return exprFunc.call({}, sandbox);
+        }
     }
     _default(parent) {
         switch (true) {
@@ -1270,13 +1519,15 @@ class FzField extends Base {
                 : this.schema._abstract(this.value);
         }
         else if (notNull(itemschema) && isFunction(itemschema.from)) {
-            const sandbox = newSandbox(itemschema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata);
-            const refto = itemschema.from?.(sandbox);
+            const refto = isFunction(itemschema.from)
+                ? itemschema._evalExpr('from', itemschema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata)
+                : undefined;
             const index = refto.refarray.findIndex((x) => x[refto.refname] === this.value[key]);
             const value = refto.refarray[index];
             const schema = getSchema(value);
-            const abstract_sandbox = newSandbox(schema, value, refto.refarray, index, this.derefFunc, this.form.options.userdata);
-            text = isFunction(schema.abstract) ? schema.abstract(abstract_sandbox) : schema._abstract(this.value[key]);
+            text = isFunction(schema.abstract)
+                ? schema._evalExpr('abstract', schema, value, refto.refarray, index, this.derefFunc, this.form.options.userdata)
+                : schema._abstract(this.value[key]);
         }
         else {
             const schema = (typeof key === 'string') ? this.schema.properties?.[key] : itemschema;
@@ -1291,13 +1542,7 @@ class FzField extends Base {
         return text && text.length > 200 ? text.substring(0, 200) + '...' : (text ?? "");
     }
     evalExpr(attribute, schema, value, parent, key) {
-        const exprFunc = this.schema?.[attribute];
-        if (isFunction(exprFunc)) {
-            const sandbox = (schema != null)
-                ? newSandbox(schema, value, parent, key, this.derefFunc, this.form?.options.userdata)
-                : newSandbox(this.schema, this.value, this.data, this.key, this.derefFunc, this.form?.options.userdata);
-            return exprFunc.call({}, sandbox);
-        }
+        return this.schema._evalExpr(attribute, schema ? schema : this.schema, schema ? value : this.value, schema ? parent : this.data, schema ? key ?? "" : this.key, this.derefFunc, this.form?.options.userdata);
     }
     /**
      * return tagged template '$' for pointer derefencing in expression or code used in schema
@@ -1552,11 +1797,10 @@ class FzEnumBase extends FzInputBase {
             const target = this.refenum.target;
             return target.reduce((list, item, index) => {
                 const schema = getSchema(item);
-                const ok = this.evalExpr('filter', schema, item, target, index);
+                const ok = schema._evalExpr('filter', schema, item, target, index, this.derefFunc, this.form.options.userdata);
                 if (ok) {
                     const value = item[name];
-                    const sandbox = newSandbox(schema, item, target, index, this.derefFunc, this.form.options.userdata);
-                    const title = isFunction(schema?.abstract) ? schema.abstract(sandbox) : value;
+                    const title = schema._evalExpr('abstract', schema, item, target, index, this.derefFunc, this.form.options.userdata);
                     list.push({ title, value });
                 }
                 return list;
@@ -3835,6 +4079,8 @@ let FzArray$1 = class FzArray extends FZCollection {
         if (!this.currentSchema)
             this.currentSchema = this.schema.homogeneous ? this.schema.items : (this.schema.items.oneOf?.[0] ?? EMPTY_SCHEMA);
         this.schemas = [];
+        if (!isArray(this.value))
+            return;
         for (const value of this.value) {
             if (this.schema.homogeneous)
                 this.schemas.push(this.schema.items);
@@ -6130,10 +6376,13 @@ class CSTemplate extends CompilationStep {
                 with (sandbox) {
                     try { 
                         return nvl\`${expression}\`
-                    } catch(e) {  
-                        console.error(
-                            \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
-                            \`    => \${String(e)}\`) 
+                    } catch(e) {
+                        console.error(" eval for keyword '%s' failed field:%s -> %s \\n    => %s",
+                            "${this.property}",
+                            parent?.pointer?? "",
+                            key ?? "",
+                            String(e)
+                        )
                     }
                     return ''
                 }
@@ -6168,9 +6417,12 @@ class CSBool extends CompilationStep {
                     const result = (${expression}) 
                     return result === null ? result : !!result
                 } catch(e) {  
-                    console.error(
-                        \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
-                        \`    => \${String(e)}\`) 
+                    console.error(" eval for keyword '%s' failed field:%s -> %s \\n    => %s",
+                        "${this.property}",
+                        parent?.pointer?? "",
+                        key ?? "",
+                        String(e)
+                    )
                 }
                 return true
             }
@@ -6200,9 +6452,13 @@ class CSAny extends CompilationStep {
                 try {
                     ${code} 
                 } catch(e) {  
-                    console.error(
-                        \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
-                        \`    => \${String(e)}\`) }
+                    console.error(" eval for keyword '%s' failed field:%s -> %s \\n    => %s",
+                        "${this.property}",
+                        parent?.pointer?? "",
+                        key ?? "",
+                        String(e)
+                    )
+                }
                 return null
             }
         `;

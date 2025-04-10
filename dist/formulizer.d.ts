@@ -97,6 +97,7 @@ declare class Schema extends JSONSchemaDraft07 {
      */
     _abstract(value: any): string;
     static _abstractFunc(): (sandbox: any) => any;
+    _evalExpr(attribute: keyof Schema, schema: Schema, value: Pojo, parent: Pojo, key: string | number, $: Function, appdata: object): any;
     _default(parent: any): any;
     /**
      * get the schema corresponding to a jsonpointer (absolute or relative)
@@ -148,7 +149,7 @@ type Sandbox = {
     appdata: object;
 };
 type ExprFunc<T> = (sandbox: Sandbox) => T | null;
-type EvalFunc<T> = (attribute: keyof Schema, schema: Schema, value: any, parent: Pojo, property: string | number, userdata: object) => T | null;
+type EvalFunc<T> = (attribute: keyof Schema, schema: Schema, value: any, parent: Pojo, property: string | number, appdata: object) => T | null;
 type FieldOrder = {
     tabnum: number;
     groupnum: number;

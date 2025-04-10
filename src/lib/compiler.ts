@@ -790,10 +790,13 @@ class CSTemplate extends CompilationStep {
                 with (sandbox) {
                     try { 
                         return nvl\`${expression}\`
-                    } catch(e) {  
-                        console.error(
-                            \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
-                            \`    => \${String(e)}\`) 
+                    } catch(e) {
+                        console.error(" eval for keyword '%s' failed field:%s -> %s \\n    => %s",
+                            "${this.property}",
+                            parent?.pointer?? "",
+                            key ?? "",
+                            String(e)
+                        )
                     }
                     return ''
                 }
@@ -828,9 +831,12 @@ class CSBool extends CompilationStep {
                     const result = (${expression}) 
                     return result === null ? result : !!result
                 } catch(e) {  
-                    console.error(
-                        \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
-                        \`    => \${String(e)}\`) 
+                    console.error(" eval for keyword '%s' failed field:%s -> %s \\n    => %s",
+                        "${this.property}",
+                        parent?.pointer?? "",
+                        key ?? "",
+                        String(e)
+                    )
                 }
                 return true
             }
@@ -861,9 +867,13 @@ class CSAny extends CompilationStep {
                 try {
                     ${code} 
                 } catch(e) {  
-                    console.error(
-                        \` eval for keyword "${this.property}" failed field:\${parent?.pointer ?? ""} -> \${property ?? ""}\n\`,
-                        \`    => \${String(e)}\`) }
+                    console.error(" eval for keyword '%s' failed field:%s -> %s \\n    => %s",
+                        "${this.property}",
+                        parent?.pointer?? "",
+                        key ?? "",
+                        String(e)
+                    )
+                }
                 return null
             }
         `

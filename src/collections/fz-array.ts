@@ -267,7 +267,8 @@ export class FzArray extends FZCollection {
         if (!force && this.currentSchema && this.schemas) return
         if (!this.currentSchema) 
             this.currentSchema = this.schema.homogeneous ? this.schema.items : (this.schema.items.oneOf?.[0] ?? EMPTY_SCHEMA)
-        this.schemas = [] 
+        this.schemas = []
+        if (!isArray(this.value)) return 
         for (const value of this.value) {
             if (this.schema.homogeneous)
                 this.schemas.push(this.schema.items)

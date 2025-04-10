@@ -1,5 +1,5 @@
-import { isArray, isEmptyValue, isObject, isPrimitive, isString, newValue, notNull } from "./tools";
-import { EnumItem, ExprFunc, FieldOrder, FromObject } from "./types";
+import { isArray, isEmptyValue, isFunction, isObject, isPrimitive, isString, newSandbox, newValue, notNull } from "./tools";
+import { EnumItem, ExprFunc, FieldOrder, FromObject, Pojo } from "./types";
 
 
 // // Define the method structure as a Type
@@ -191,9 +191,19 @@ export class Schema extends JSONSchemaDraft07 {
 
         return String(value)
     }
+    
     static _abstractFunc() {
         return (sandbox: any) => sandbox.schema?._abstract(sandbox.value) 
     }
+
+    _evalExpr(attribute: keyof Schema, schema: Schema, value: Pojo, parent: Pojo, key: string | number,$:Function, appdata: object ) {
+        const exprFunc = this[attribute]
+        if (isFunction(exprFunc)) {
+            const sandbox = newSandbox(schema, value, parent, key, $, appdata)
+            return exprFunc.call({},sandbox)
+        }
+    }
+
     _default(parent: any): any {
         switch (true) {
             case ("const" in this):

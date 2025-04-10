@@ -414,13 +414,15 @@ export abstract class FzField extends Base {
                 ? this.evalExpr("abstract")
                 : this.schema._abstract(this.value)
         } else if (notNull(itemschema) && isFunction(itemschema.from)) {
-            const sandbox = newSandbox(itemschema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata)
-            const refto = itemschema.from?.(sandbox)
+            const refto = isFunction(itemschema.from) 
+                ? itemschema._evalExpr('from',itemschema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata)
+                : undefined
             const index = refto.refarray.findIndex((x: any) => x[refto.refname] === this.value[key])
             const value = refto.refarray[index]
             const schema = getSchema(value)
-            const abstract_sandbox = newSandbox(schema, value, refto.refarray, index, this.derefFunc, this.form.options.userdata)
-            text = isFunction(schema.abstract) ? schema.abstract(abstract_sandbox) : schema._abstract(this.value[key])
+            text = isFunction(schema.abstract) 
+                ? schema._evalExpr('abstract',schema, value, refto.refarray, index, this.derefFunc, this.form.options.userdata) 
+                : schema._abstract(this.value[key])
         } else {
             const schema = (typeof key === 'string') ? this.schema.properties?.[key] : itemschema
             if (schema) {
@@ -433,14 +435,16 @@ export abstract class FzField extends Base {
         }
         return text && text.length > 200 ? text.substring(0, 200) + '...' : (text ?? "")
     }
+
     evalExpr(attribute: keyof Schema, schema?: Schema, value?: Pojo, parent?: Pojo, key?: string | number) {
-        const exprFunc = this.schema?.[attribute]
-        if (isFunction(exprFunc)) {
-            const sandbox = (schema != null)
-                ? newSandbox(schema, value, parent, key, this.derefFunc, this.form?.options.userdata)
-                : newSandbox(this.schema, this.value, this.data, this.key, this.derefFunc, this.form?.options.userdata)
-            return exprFunc.call({},sandbox)
-        }
+        return this.schema._evalExpr(
+            attribute, 
+            schema ? schema : this.schema,
+            schema ? value : this.value, 
+            schema ? parent : this.data, 
+            schema ? key ?? "": this.key,
+            this.derefFunc,
+            this.form?.options.userdata)
     }
 
     /**

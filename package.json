@@ -24,7 +24,9 @@
     "test:all": "npx playwright test",
     "test:debug": "npx playwright test --debug --project=chrome -g",
     "test:one": "npx playwright test  --project=chrome -g ",
-    "test:safari_phone": "npx playwright test --project=safari_phone"
+    "test:webkit": "npx playwright test --project=webkit",
+    "test:safari_phone": "npx playwright test --project=safari_phone",
+    "test:android_phone": "npx playwright test --project=android_phone"
   },
   "keywords": [
     "web-component",

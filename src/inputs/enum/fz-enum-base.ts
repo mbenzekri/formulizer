@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { html, TemplateResult } from "lit"
 import { FzItemDlg } from "../../components/fz-item-dlg";
-import { getSchema, isFunction, isNull, newSandbox, notNull } from "../../lib/tools"
+import { getSchema, isFunction, isNull, notNull } from "../../lib/tools"
 import { FzInputBase } from "../fz-input-base";
 import { isFrom, Schema } from "../../lib/schema";
 import { EnumItem, FromObject, Pojo } from "../../lib/types";
@@ -139,11 +139,10 @@ export abstract class FzEnumBase extends FzInputBase {
             const target = this.refenum.target
             return target.reduce((list: EnumItem[], item: any, index: number) => {
                 const schema = getSchema(item)
-                const ok = this.evalExpr('filter', schema, item, target as Pojo, index)
+                const ok = schema._evalExpr('filter', schema, item, target as Pojo, index,this.derefFunc,this.form.options.userdata)
                 if (ok) {
                     const value = item[name]
-                    const sandbox = newSandbox(schema, item, target, index, this.derefFunc, this.form.options.userdata)
-                    const title = isFunction(schema?.abstract) ? schema.abstract(sandbox) : value
+                    const title = schema._evalExpr('abstract',schema, item, target as Pojo, index, this.derefFunc, this.form.options.userdata)
                     list.push({ title, value })
                 }
                 return list
