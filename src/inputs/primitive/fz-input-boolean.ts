@@ -18,7 +18,7 @@ export class FzInputBoolean extends FzInputBase {
 
     renderInput() {
         return html`
-            <div class="form-control">
+            <div class="form-control ${this.validation}">
                 <input 
                     id="input"
                     type="checkbox"
@@ -26,7 +26,7 @@ export class FzInputBoolean extends FzInputBase {
                     @change="${this.tryChange}"
                     @click="${this.tryChange}"
                     autocomplete=off  spellcheck="false"
-                    class="form-check-input align-self-start ${this.validation}"
+                    class="form-check-input align-self-start"
                 />
                 <label class="form-check-label ms-2" for="input">${super.label}</label>
             </div>

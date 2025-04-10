@@ -21,7 +21,7 @@
     "json.schemas": [
         {
             "fileMatch": ["*.fz.json"],
-            "url": "./src/assets/fzform-schema.json"
+            "url": "./src/assets/draft-07-fzform.json"
         },
         {
             "fileMatch": ["**/*.doc.json"],

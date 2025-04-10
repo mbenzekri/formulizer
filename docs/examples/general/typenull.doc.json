@@ -3,24 +3,24 @@
         "type": "object",
         "title" : "type array null",
         "properties": {
-            "string_field": {
+            "a string": {
                 "type": ["string", "null"]
             },
-            "boolean_field": {
+            "a boolean": {
                 "type": ["null", "boolean"]
             },
-            "integer_field": {
+            "an integer": {
                 "type": ["integer", "null"]
             },
-            "number_field": {
+            "a number": {
                 "type": ["null", "number"]
             }
         }
     },
     "data" : {
-        "string_field": null,
-        "boolean_field": null,
-        "integer_field": 35,
-        "number_field": null
+        "a string": "hello",
+        "a boolean": true,
+        "an integer": 35,
+        "a number": 1.23
     }
 }
