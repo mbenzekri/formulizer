@@ -1,37 +1,29 @@
 {
-    "form": {
+    "form":{
         "type": "object",
-        "title": "ax²+bx+c = 0",
+        "title": "Catapult Calculator",
         "properties": {
-            "a": {
-                "type": "number"
-            },
-            "b": {
-                "type": "number"
-            },
-            "c": {
-                "type": "number"
-            },
-            "delta": {
-                "type": "number",
-                "title": "b²-ac",
-                "expression": " $`/b`**2-4*$`/a`*$`/c` "
-            },
-            "solution 1": {
-                "type": ["number","null"],
-                "title": "solution 1",
-                "expression": "$`/delta` < 0 ? null: $`/delta` === 0 ? -$`/b`/(2*$`/a`) : (-$`/b`+Math.sqrt($`/delta`))/(2*$`/a`)"
-            },
-            "solution 2": {
-                "type": ["number","null"],
-                "title": "solution 2",
-                "expression": "$`/delta` <= 0 ? null : $`/delta` === 0 ? null : ((-$`/b`-Math.sqrt($`/delta`))/(2*$`/a`))"
-            }
+          "weight": {
+            "type": "integer",
+            "title": "Weight (kg)",
+            "minimum": 20,
+            "maximum": 200,
+            "multipleOf": 20
+          },
+          "angle": {
+            "type": "integer",
+            "title": "Angle (°)",
+            "minimum": 10,
+            "maximum": 90,
+            "multipleOf": 5
+          },
+          "distance": {
+            "type": "number",
+            "title": "Distance (m)",
+            "readonly": "true",
+            "expression": " $`/weight` * Math.sin(2 * $`/angle` * Math.PI / 180)"
+          }
         }
-    },
-    "data": {
-        "a": 2,
-        "b": -4,
-        "c": -6
-    }
+      },
+    "data": { "weight": 100,"angle": 45}
 }
