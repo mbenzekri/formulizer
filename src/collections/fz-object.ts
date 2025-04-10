@@ -166,7 +166,7 @@ export class FzObject extends FZCollection {
                         </div>
                     </div>
                 </div>
-                <div ?hidden="${this.collapsed}" class="space-after ${when(!hidelabel ,'line-after line-before')}"> 
+                <div ?hidden="${this.collapsed}" class="space-after"> 
                     ${itemTemplates} 
                 </div>
                 ${this.renderErrors()}

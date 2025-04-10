@@ -1,6 +1,7 @@
 import { html, TemplateResult } from "lit";
 import { FzField } from "../fz-field";
 import { Schema } from "../lib/schema";
+import { when } from "../lib/tools";
 
 const fiedtypes = [
     "fz-array",
@@ -52,7 +53,7 @@ export abstract class FZCollection extends FzField {
         // labels for object/array properties have collapse chevron
         return html`
             <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
-                <div>${label}</div>
+                <div class="${when(!this.collapsed,'line-after')}" >${label}</div>
             </label>`
         
     }

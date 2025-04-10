@@ -3758,7 +3758,7 @@ class FZCollection extends FzField {
         // labels for object/array properties have collapse chevron
         return x `
             <label for="input" class="col-sm-3 col-form-label" @click="${this.labelClicked}">
-                <div>${label}</div>
+                <div class="${when(!this.collapsed, 'line-after')}" >${label}</div>
             </label>`;
     }
     /**
@@ -3901,7 +3901,7 @@ let FzArray$1 = class FzArray extends FZCollection {
                         </div>
                     </div>
                 </div>
-                <div class="space-after ${when(!hidelabel, 'line-after line-before')}"> 
+                <div class="space-after"> 
                     <ul id="content" class="list-group">${lines}</ul>
                 </div>
                 ${this.renderErrors()}
@@ -4278,7 +4278,7 @@ let FzObject = class FzObject extends FZCollection {
                         </div>
                     </div>
                 </div>
-                <div ?hidden="${this.collapsed}" class="space-after ${when(!hidelabel, 'line-after line-before')}"> 
+                <div ?hidden="${this.collapsed}" class="space-after"> 
                     ${itemTemplates} 
                 </div>
                 ${this.renderErrors()}

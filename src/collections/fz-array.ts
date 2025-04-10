@@ -81,7 +81,7 @@ export class FzArray extends FZCollection {
                         </div>
                     </div>
                 </div>
-                <div class="space-after ${when(!hidelabel, 'line-after line-before')}"> 
+                <div class="space-after"> 
                     <ul id="content" class="list-group">${lines}</ul>
                 </div>
                 ${this.renderErrors()}
