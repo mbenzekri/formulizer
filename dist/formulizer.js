@@ -6605,29 +6605,9 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     #checkIn_accessor_storage = false;
     get checkIn() { return this.#checkIn_accessor_storage; }
     set checkIn(value) { this.#checkIn_accessor_storage = value; }
-    #checkOut_accessor_storage = false;
-    get checkOut() { return this.#checkOut_accessor_storage; }
-    set checkOut(value) { this.#checkOut_accessor_storage = value; }
-    oninit = null;
-    onready = null;
-    onvaliddata = null;
-    oninvaliddata = null;
-    onvalidate = null;
-    ondismiss = null;
     compiledSchema = DEFAULT_SCHEMA;
     validator = new DefaultValidator(DEFAULT_SCHEMA);
     message = "";
-    constructor() {
-        super();
-        // this is a workaround to convert string with global function name into a handler
-        // into corresponding event handler (quite deprecated)
-        // ex: HTML: oninit="myFunc" became: this.addEventListener(myFunc)
-        // because this cant be used in @property(...) declaration
-        // ;["oninit", "onready", "onvaliddata", "oninvaliddata", "onvalidate", "ondismiss"].forEach(event => {
-        //     (this.constructor as any).elementProperties.get(event).converter =
-        //         (value: string) => { setGlobalHandler(this, event.substring(2), value); return value }
-        // })
-    }
     get root() { return this.i_root.content; }
     get valid() {
         this.validator.validate(this.root);
@@ -6768,13 +6748,6 @@ let FzForm = FzForm_1 = class FzForm extends Base {
         this.actions = undefined;
         this.readonly = undefined;
         this.checkIn = undefined;
-        this.checkOut = undefined;
-        this.oninit = undefined;
-        this.onready = undefined;
-        this.onvaliddata = undefined;
-        this.oninvaliddata = undefined;
-        this.onvalidate = undefined;
-        this.ondismiss = undefined;
         this.compiledSchema = undefined;
         this.validator = undefined;
         this.message = undefined;
@@ -6839,26 +6812,6 @@ let FzForm = FzForm_1 = class FzForm extends Base {
         }
         this.dispatchEvent(new CustomEvent('ready'));
     }
-    // debug(pointer: string) {
-    //     const field = this.fieldMap.get(pointer);
-    //     if (!field) throw new Error(`No field found for pointer: ${pointer}`);
-    //     if (!field.data || !field.key) throw new Error(`Field at ${pointer} has no parent/key`);
-    //     const obj = field.data;
-    //     const key = field.key;
-    //     let value = obj[key];
-    //     Object.defineProperty(obj, key, {
-    //         get() {
-    //             return value;
-    //         },
-    //         set(newValue) {
-    //             console.debug(`FzForm watchPointer: ${pointer} (${key}) changed from`, value, "to", newValue);
-    //             debugger;
-    //             value = newValue;
-    //         },
-    //         configurable: true,
-    //         enumerable: true
-    //     });
-    // }
     trace(pointer) {
         if (!isString(pointer, true) || !pointer.startsWith("/")) {
             console.error(`Unable to trace: ${pointer}`, this.root);
@@ -6909,27 +6862,6 @@ __decorate([
 __decorate([
     n$2({ type: Boolean, attribute: "checkin" })
 ], FzForm.prototype, "checkIn", null);
-__decorate([
-    n$2({ type: Boolean, attribute: "checkout" })
-], FzForm.prototype, "checkOut", null);
-__decorate([
-    n$2({ type: String, attribute: 'oninit', converter: (v) => v })
-], FzForm.prototype, "oninit", void 0);
-__decorate([
-    n$2({ type: String, attribute: 'onready', converter: (v) => v })
-], FzForm.prototype, "onready", void 0);
-__decorate([
-    n$2({ type: String, attribute: 'onvaliddata', converter: (v) => v })
-], FzForm.prototype, "onvaliddata", void 0);
-__decorate([
-    n$2({ type: String, attribute: 'oninvaliddata', converter: (v) => v })
-], FzForm.prototype, "oninvaliddata", void 0);
-__decorate([
-    n$2({ type: String, attribute: 'onvalidate', converter: (v) => v })
-], FzForm.prototype, "onvalidate", void 0);
-__decorate([
-    n$2({ type: String, attribute: 'ondismiss', converter: (v) => v })
-], FzForm.prototype, "ondismiss", void 0);
 FzForm = FzForm_1 = __decorate([
     t$4("fz-form")
 ], FzForm);

@@ -244,17 +244,9 @@ declare class FzForm extends Base {
     accessor actions: boolean;
     accessor readonly: boolean;
     accessor checkIn: boolean;
-    accessor checkOut: boolean;
-    oninit: string | null;
-    onready: string | null;
-    onvaliddata: string | null;
-    oninvaliddata: string | null;
-    onvalidate: string | null;
-    ondismiss: string | null;
     private compiledSchema;
     private validator;
     private message;
-    constructor();
     get root(): any;
     get valid(): boolean;
     get schema(): Schema;

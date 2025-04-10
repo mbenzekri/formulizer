@@ -15,6 +15,8 @@ FzForm is a W3C-compliant web component:
 | schema | x | JSON | an annotated JSON Schema form description the form data structure [see detail here](#general/schema) |
 | data | x | JSON | initial data to be updated throught the form. |
 | bootstrap |  | boolean | if present FzForm will load bootstrap from CDN [bootstrap chapter](#general/bootstrap) |
+| useajv |  | boolean | if present FzForm will load Ajv validator (lazy loading module) |
+| usemarkdown |  | boolean | if present FzForm will load Markdown field type  (lazy loading module) |
 | actions |  | boolean | if true will show actions buttons to validate or cancel the form (default to false / absent)|
 | readonly |   | boolean | if true form will show a readonly state of the data otherwise will allow form to allow update (default to false / absent) |
 | checkin |   | boolean | if true fzform reject the data not conforming to the JSON Schema (error message / no form) (default to false / absent) |
@@ -23,6 +25,16 @@ __note__ :
     type JSON here means a JSON serialisable object or a JSON string (correctly formated).
     As components attributes are passed as strings serialization will occur. 
     Meaning that objects you provide are never updated (copied)
+
+## members
+
+| name | type | description |
+| ---- | ---- | ----------- |
+| valid | boolean | return true if this.data conform to schema |
+| schema | Object | return the schema describing the form |
+| data | Object | return the actual edited data |
+| options | Object | option to configure FzForm |
+
 
 ## Events 
 

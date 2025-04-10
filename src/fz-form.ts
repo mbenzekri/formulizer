@@ -38,28 +38,10 @@ export class FzForm extends Base {
     @property({ type: Boolean, attribute: "actions" }) accessor actions = false
     @property({ type: Boolean, attribute: "readonly" }) accessor readonly = false
     @property({ type: Boolean, attribute: "checkin" }) accessor checkIn = false
-    @property({ type: Boolean, attribute: "checkout" }) accessor checkOut = false
-    @property({ type: String, attribute: 'oninit', converter: (v) => v }) oninit: string | null = null;
-    @property({ type: String, attribute: 'onready', converter: (v) => v }) onready: string | null = null;
-    @property({ type: String, attribute: 'onvaliddata', converter: (v) => v }) onvaliddata: string | null = null;
-    @property({ type: String, attribute: 'oninvaliddata', converter: (v) => v }) oninvaliddata: string | null = null;
-    @property({ type: String, attribute: 'onvalidate', converter: (v) => v }) onvalidate: string | null = null;
-    @property({ type: String, attribute: 'ondismiss', converter: (v) => v }) ondismiss: string | null = null;
 
     private compiledSchema = DEFAULT_SCHEMA
     private validator: Validator = new DefaultValidator(DEFAULT_SCHEMA)
     private message = ""
-    constructor() {
-        super()
-            // this is a workaround to convert string with global function name into a handler
-            // into corresponding event handler (quite deprecated)
-            // ex: HTML: oninit="myFunc" became: this.addEventListener(myFunc)
-            // because this cant be used in @property(...) declaration
-            // ;["oninit", "onready", "onvaliddata", "oninvaliddata", "onvalidate", "ondismiss"].forEach(event => {
-            //     (this.constructor as any).elementProperties.get(event).converter =
-            //         (value: string) => { setGlobalHandler(this, event.substring(2), value); return value }
-            // })
-    }
 
     get root(): any { return this.i_root.content }
     get valid() {
@@ -215,13 +197,6 @@ export class FzForm extends Base {
         this.actions = undefined as any
         this.readonly = undefined as any
         this.checkIn = undefined as any
-        this.checkOut = undefined as any
-        this.oninit = undefined as any
-        this.onready  = undefined as any
-        this.onvaliddata = undefined as any
-        this.oninvaliddata = undefined as any
-        this.onvalidate = undefined as any
-        this.ondismiss = undefined as any
     
         this.compiledSchema = undefined as any
         this.validator = undefined as any
@@ -290,29 +265,6 @@ export class FzForm extends Base {
         }
         this.dispatchEvent(new CustomEvent('ready'))
     }
-
-    // debug(pointer: string) {
-    //     const field = this.fieldMap.get(pointer);
-    //     if (!field) throw new Error(`No field found for pointer: ${pointer}`);
-    //     if (!field.data || !field.key) throw new Error(`Field at ${pointer} has no parent/key`);
-
-    //     const obj = field.data;
-    //     const key = field.key;
-    //     let value = obj[key];
-
-    //     Object.defineProperty(obj, key, {
-    //         get() {
-    //             return value;
-    //         },
-    //         set(newValue) {
-    //             console.debug(`FzForm watchPointer: ${pointer} (${key}) changed from`, value, "to", newValue);
-    //             debugger;
-    //             value = newValue;
-    //         },
-    //         configurable: true,
-    //         enumerable: true
-    //     });
-    // }
 
     trace(pointer: string) {
         if (!isString(pointer,true) || !pointer.startsWith("/")) {
