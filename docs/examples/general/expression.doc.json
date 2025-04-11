@@ -10,7 +10,7 @@
             },
             "result": {
                 "type": "number",
-                "dynamic": "$`/base` * $`/multiplier`",
+                "dynamic": "$`/base` * $`1/multiplier`",
                 "readonly": true
             }
         },
