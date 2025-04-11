@@ -5,7 +5,7 @@ const defaultTuto = {
         "type": "object",
         "title": "",
         "properties": {
-            "field": {"const": "No demo for this chapter", title:""}
+            "field": { "const": "No demo for this chapter", title: "" }
         }
     },
     "data": {}
@@ -75,13 +75,13 @@ async function options(form) {
 }
 
 // handler to update event
-const updateHandler = () =>  {
+const updateHandler = () => {
     //console.log("handling event `update`")
     data.innerHTML = JSON.stringify(form.data, undefined, 4)?.replace(/\n/g, '<br>')
 }
 
 // handler to enum event
-const enumHandler = (evt) =>  {
+const enumHandler = (evt) => {
     console.log("handling event `enum`")
     switch (evt.detail.name) {
         case "PRIMES": return evt.detail.success(PRIMES);
@@ -93,28 +93,61 @@ const enumHandler = (evt) =>  {
 // function to load and render provided name example
 const goto = async (name) => {
     //await FzLogger.set("DEBUG","validation","tracker","compilation","input","data-update")
-    const hash = window.location.hash == "" ? null : window.location.hash.substring(1) 
-    const subject = name ?? hash ??  "general/whatis" 
+    const hash = window.location.hash == "" ? null : window.location.hash.substring(1)
+    const subject = name ?? hash ?? "general/whatis"
     if (subject) {
         tutodata = await fetch(`./examples/${subject}.doc.json`).then(r => r.ok ? r.json() : defaultTuto).catch(() => defaultTuto)
         if (tutodata) {
             await init_toc(toc)
             renderToc()
-            form.options =  options(form)
+            form.options = options(form)
             form.schema = tutodata.form
             form.data = tutodata.data
             if (timer) clearInterval(timer)
             schema.innerHTML = JSON.stringify(tutodata.form, ignoreProperties, 4).replace(/\n/g, '<br>')
             data.innerHTML = JSON.stringify(form.data, undefined, 4)?.replace(/\n/g, '<br>')
-            form.addEventListener('update', updateHandler )
-            form.addEventListener('enum', enumHandler )
+            form.addEventListener('update', updateHandler)
+            form.addEventListener('enum', enumHandler)
             updateHandler()
         }
         markdown(subject)
     }
 }
 // goto general page example (hello world)
-window.addEventListener('load',_ => goto())
-window.addEventListener('hashchange',_ => goto());
+window.addEventListener('load', _ => goto())
+window.addEventListener('hashchange', _ => goto());
 
+function initInner(target) {
+    const code = target.getAttribute('data-init');  // Get the attribute value (the code to eval).
+    try {
+        // Evaluate the code; ensure you understand the security implications of eval!
+        const result = eval(code);
+        // Set the evaluated result as the element's innerHTML.
+        target.innerHTML = result;
+    } catch (err) {
+        target.innerHTML = `Error evaluating data-init attribute: ${err} `
+    }
+
+}
+
+// Create a MutationObserver that looks for attribute changes.
+const observer = new MutationObserver((mutationsList) => {
+    mutationsList.forEach(mutation => {
+        // We're only interested in attribute mutations on "data-init".
+        if (mutation.type === 'attributes') {
+            console.log('attribute change %s', mutation.attributeName)
+        }
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-init') {
+            initInner(mutation.target)
+        }
+    });
+});
+
+// Observer configuration: watch for attribute changes in the whole document subtree.
+observer.observe(document.body, {
+    attributes: true,
+    //attributeFilter: ['data-init'],
+    subtree: true,
+    childList: true
+})
 

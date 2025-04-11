@@ -769,7 +769,8 @@ class JSONSchemaDraft07 {
     readonly;
     collapsed;
     rank;
-    expression;
+    dynamic;
+    initialize;
     change;
     nullable;
     assets;
@@ -805,7 +806,8 @@ const FZ_KEYWORDS = [
     "readonly",
     "collapsed",
     "rank",
-    "expression",
+    "dynamic",
+    "initialize",
     "change",
     "_nullable",
     "assets",
@@ -948,8 +950,8 @@ class Schema extends JSONSchemaDraft07 {
             }
         }
     }
-    _toJSON() {
-        return JSON.stringify(this, (key, value) => SchemaAnnotation.includes(key) ? undefined : value);
+    _toJSON(indent) {
+        return JSON.stringify(this, (key, value) => SchemaAnnotation.includes(key) ? undefined : value, indent);
     }
     static wrapSchema(schema) {
         Object.setPrototypeOf(schema, Schema.prototype);
@@ -1447,8 +1449,8 @@ class FzField extends Base {
      * @param changedProps changed properties
      */
     update(changedProps) {
-        if (this.schema?.expression)
-            this.value = this.evalExpr("expression");
+        if (this.schema?.dynamic)
+            this.value = this.evalExpr("dynamic");
         super.update(changedProps);
         if (this._dofocus) {
             this._dofocus = false;
@@ -1458,6 +1460,9 @@ class FzField extends Base {
     firstUpdated(_changedProperties) {
         super.firstUpdated(_changedProperties);
         this.i_collapsed = ['allways', 'true'].includes(this.schema.collapsed) ? true : false;
+        if (this.isempty && isFunction(this.schema.initialize)) {
+            this.evalExpr("initialize");
+        }
         this.toField();
         this.form?.check();
     }
@@ -1561,11 +1566,10 @@ class FzField extends Base {
      * tracked data had been change
      */
     trackedValueChange() {
-        // actually only expression update directly the value ofther extension
+        // actually only dynamic/initialize update directly the value ofther extension
         // keywords are called on demand
-        if (this.schema?.expression) {
-            this.value = this.evalExpr("expression");
-        }
+        if (isFunction(this.schema?.dynamic))
+            this.value = this.evalExpr("dynamic");
         this.requestUpdate();
     }
 }
@@ -2112,18 +2116,18 @@ FzEnumTypeahead = __decorate([
 let FzInputConstant = class FzInputConstant extends FzInputBase {
     toField() {
         if (notNull(this.input)) {
-            this.input.value = String(this.schema.const ?? "");
+            this.input.value = String(this.schema?.const ?? "");
         }
     }
     toValue() {
-        this.value = this.schema.const;
+        this.value = this.schema?.const;
     }
     renderInput() {
         return x `<div id=input class="input-group ${this.validation}">${this.value}</div>`;
     }
     connectedCallback() {
         super.connectedCallback();
-        if (this.value !== this.schema.const)
+        if (this.value !== this.schema?.const)
             this.value = this.schema.const;
     }
 };
@@ -2271,7 +2275,7 @@ class FzInputNumber extends FzInputBase {
         return;
     }
     get step() {
-        return isNumber(this.schema.multipleOf) ? this.schema.multipleOf : undefined;
+        return isNumber(this.schema?.multipleOf) ? this.schema.multipleOf : undefined;
     }
     get type() {
         return this.schema?.field == "fz-range" ? "range" : "number";
@@ -5708,7 +5712,8 @@ class SchemaCompiler {
             new CSBool(this.root, 'requiredIf', () => false),
             new CSBool(this.root, 'filter', () => true),
             new CSAny(this.root, 'rank', () => true),
-            new CSAny(this.root, 'expression', () => ''),
+            new CSAny(this.root, 'dynamic', () => ''),
+            new CSAny(this.root, 'initialize', () => ''),
             new CSAny(this.root, 'change', () => ''),
         ];
         for (const step of this.steps) {

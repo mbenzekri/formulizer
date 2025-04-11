@@ -46,7 +46,7 @@ Here is some important pages.
                         },
                         "hello": {
                             "type": "string",
-                            "expression": " `Hello, ${ $`#/who` } !` ",
+                            "dynamic": " `Hello, ${ $`#/who` } !` ",
                             "readonly" : true
                         }
                     }
@@ -92,7 +92,7 @@ Here is some important pages.
                 },
                 "hello": {
                     "type": "string",
-                    "expression": " `Hello, ${ $`#/who` } !` ",
+                    "dynamic": " `Hello, ${ $`#/who` } !` ",
                     "readonly" : true
                 }
             }
@@ -103,7 +103,7 @@ Here is some important pages.
     - a property "who" of type "string" to store to who you say hello
     - a property "hello" of type "string" to store the hello result
     - "readonly" property to avoid user modification to this field (see ...)
-    - "expression" property to dynamicaly calculate field value (see ...) 
+    - "dynamic" property to dynamicaly calculate field value (see ...) 
 
 - set the property `data` with initial data to be edited by the form as plain javascript object
     ```

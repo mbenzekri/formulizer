@@ -5,7 +5,7 @@
             "active": {
                 "type": "string",
                 "readonly": "true",
-                "expression": "String(setInterval)"
+                "dynamic": "String(setInterval)"
             }
         }
     },

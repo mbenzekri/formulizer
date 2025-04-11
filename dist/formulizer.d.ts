@@ -79,7 +79,8 @@ declare class JSONSchemaDraft07 {
     readonly?: string | ExprFunc<boolean>;
     collapsed: "never" | "allways" | "true" | "false";
     rank?: string | ExprFunc<any>;
-    expression?: string | ExprFunc<any>;
+    dynamic?: string | ExprFunc<any>;
+    initialize?: string | ExprFunc<any>;
     change?: string | ExprFunc<any>;
     nullable: boolean;
     assets?: string;
@@ -118,7 +119,7 @@ declare class Schema extends JSONSchemaDraft07 {
      * @param expr function body or arrow function body to parse
      */
     _track(expr: string): void;
-    _toJSON(): string;
+    _toJSON(indent?: number): string;
     static wrapSchema(schema: JSONSchema): Schema;
     static inferEnums(schema: Schema): EnumItem[] | undefined;
     _empty(): any;

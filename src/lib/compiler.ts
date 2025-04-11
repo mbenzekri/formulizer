@@ -65,7 +65,8 @@ export class SchemaCompiler {
                 new CSBool(this.root, 'requiredIf', () => false),
                 new CSBool(this.root, 'filter', () => true),
                 new CSAny(this.root, 'rank', () => true),
-                new CSAny(this.root, 'expression', () => ''),
+                new CSAny(this.root, 'dynamic', () => ''),
+                new CSAny(this.root, 'initialize', () => ''),
                 new CSAny(this.root, 'change', () => ''),
         ]
         for (const step of this.steps) {

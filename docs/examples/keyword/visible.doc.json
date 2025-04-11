@@ -19,7 +19,7 @@
             "offer": {
                 "type": "string",
                 "format": "markdown",
-                "expression": [
+                "dynamic": [
                     "## 🎁 Offer...",
                     "**We’d love to keep you! Here’s a special 50% discount just for you.**"
                 ],

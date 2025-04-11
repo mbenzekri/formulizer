@@ -68,7 +68,7 @@
             "markdown": {
                 "type": "string",
                 "format": "markdown",
-                "expression": [
+                "dynamic": [
                     "---",
                     "\\`format markdown\\`",
                     "",

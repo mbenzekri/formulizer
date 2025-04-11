@@ -1,0 +1,38 @@
+{
+    "form": {
+        "type": "object",
+        "title": "Catapult Calculator",
+        "properties": {
+            "today": {
+                "type": "string",
+                "title": "Today",
+                "readonly": "true",
+                "dynamic": "new Date().toISOString()"
+            },
+            "weight": {
+                "type": "integer",
+                "title": "Weight (kg)",
+                "minimum": 20,
+                "maximum": 200,
+                "multipleOf": 20
+            },
+            "angle": {
+                "type": "integer",
+                "title": "Angle (°)",
+                "minimum": 10,
+                "maximum": 90,
+                "multipleOf": 5
+            },
+            "distance": {
+                "type": "number",
+                "title": "Distance (m)",
+                "readonly": "true",
+                "dynamic": " $`/weight` * Math.sin(2 * $`/angle` * Math.PI / 180)"
+            }
+        }
+    },
+    "data": {
+        "weight": 100,
+        "angle": 45
+    }
+}

@@ -337,8 +337,8 @@ export abstract class FzField extends Base {
      * @param changedProps changed properties 
      */
     override update(changedProps: any) {
-        if (this.schema?.expression)
-            this.value = this.evalExpr("expression")
+        if (this.schema?.dynamic)
+            this.value = this.evalExpr("dynamic")
 
         super.update(changedProps)
         if (this._dofocus) {
@@ -350,6 +350,9 @@ export abstract class FzField extends Base {
     protected override firstUpdated(_changedProperties: PropertyValues): void {
         super.firstUpdated(_changedProperties)
         this.i_collapsed = ['allways','true'].includes(this.schema.collapsed) ? true : false
+        if (this.isempty && isFunction(this.schema.initialize)) {
+            this.evalExpr("initialize")
+        }
         this.toField()
         this.form?.check()       
     }
@@ -464,11 +467,9 @@ export abstract class FzField extends Base {
      * tracked data had been change
      */
     trackedValueChange() {
-        // actually only expression update directly the value ofther extension
+        // actually only dynamic/initialize update directly the value ofther extension
         // keywords are called on demand
-        if (this.schema?.expression) {
-            this.value = this.evalExpr("expression")
-        }
+        if (isFunction(this.schema?.dynamic)) this.value = this.evalExpr("dynamic")
         this.requestUpdate()
     }
 }

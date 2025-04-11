@@ -29,7 +29,7 @@ The Markdown feature is useful for displaying formatted text, such as headers, l
 {
   "type": "string",
   "format": "markdown",
-  "expression": [
+  "dynamic": [
     "# Welcome to FzForm",
     "This is a **Markdown** example with data: ${$`/a/b/c`}.",
     "- Bullet point 1",

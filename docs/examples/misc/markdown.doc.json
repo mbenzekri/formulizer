@@ -14,7 +14,7 @@
             "field12": {
                 "type": "string",
                 "format": "markdown",
-                "expression": [
+                "dynamic": [
                     "---",
                     "__Advertisement__",
                     "",

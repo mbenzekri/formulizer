@@ -1,0 +1,27 @@
+{
+    "form": {
+        "type": "object",
+        "properties": {
+            "base": {
+                "type": "integer"
+            },
+            "multiplier": {
+                "type": "integer"
+            },
+            "result": {
+                "type": "number",
+                "dynamic": "$`/base` * $`/multiplier`",
+                "readonly": true
+            }
+        },
+        "required": [
+            "base",
+            "multiplier"
+        ]
+    },
+    "data" : {
+        "$schema" : "/form",
+        "base" :5,
+        "multiplier" :4
+    }
+}

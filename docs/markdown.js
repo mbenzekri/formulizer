@@ -76,4 +76,7 @@ async function markdown(name) {
     // render the html into the div
     document.getElementById('markdown').innerHTML = markdownHTML;
     document.getElementById('name').innerHTML = name;
+    for (const elem of document.querySelectorAll('pre[onclick]')) {
+        elem.click()
+    }
 }

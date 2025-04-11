@@ -291,16 +291,27 @@
             "description": "fz-keyword: if expression is true associate the field to this value"
         },
         "readonly": {
-            "type": "string",
+            "type": ["string","boolean"],
             "description": "fz-keyword: expression to set readonly field state"
         },
         "collapsed": {
-            "enum": ["never", "allways", "true", "false" ],
+            "type": ["string","boolean"],
+            "enum": ["never", "allways", "true", "false", true, false],
             "description": "fz-keyword: indicate extend/collapse field behavior ('never', 'allways','true', 'false')"
         },
-        "expression": {
-            "type": "string",
-            "description": "fz-keyword: expression to set field value"
+        "dynamic": {
+            "description": "fz-keyword: expression to set current field value",
+            "oneOf": [
+                { "type": "array", "items": { "type": "string"}},
+                { "type": "string"}
+            ]
+        },
+        "initialize": {
+            "description": "fz-keyword: expression to initialize current field value",
+            "oneOf": [
+                { "items": { "type": "string"}},
+                { "type": "string"}
+            ]
         },
         "change": {
             "type": "string",

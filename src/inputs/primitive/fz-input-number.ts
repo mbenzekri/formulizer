@@ -75,7 +75,7 @@ abstract class FzInputNumber extends FzInputBase {
         return
     }
     get step() {
-        return isNumber(this.schema.multipleOf) ? this.schema.multipleOf : undefined
+        return isNumber(this.schema?.multipleOf) ? this.schema.multipleOf : undefined
     }
     get type() {
         return this.schema?.field == "fz-range" ? "range" : "number"

@@ -18,7 +18,7 @@
             "desc" : {
                 "type" : "string",
                 "format" : "markdown",
-                "expression": [
+                "dynamic": [
                     "**Usage** :", 
                     ">Le format __\"asset\"__ permet de collecter des références ou accroches sur des éléments connus/gérés par l'application appelante ", 
                     "(patrimoine, référentiel ou autre ...).",

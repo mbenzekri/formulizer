@@ -16,11 +16,11 @@ export class FzInputConstant extends FzInputBase {
 
     override toField(): void {
         if (notNull(this.input)) {
-            this.input.value = String(this.schema.const ?? "")
+            this.input.value = String(this.schema?.const ?? "")
         }
     }
     override toValue(): void {
-        this.value = this.schema.const
+        this.value = this.schema?.const
     }
 
     renderInput() {
@@ -29,6 +29,6 @@ export class FzInputConstant extends FzInputBase {
 
     override connectedCallback() {
         super.connectedCallback()
-        if (this.value !== this.schema.const) this.value = this.schema.const
+        if (this.value !== this.schema?.const) this.value = this.schema.const
     }
 }
