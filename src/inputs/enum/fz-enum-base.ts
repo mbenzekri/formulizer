@@ -51,7 +51,7 @@ export abstract class FzEnumBase extends FzInputBase {
                 option.selected = true
             }
         }
-        if (this.refenum?.pointer) this.form?.updateField(this.refenum?.pointer)
+        if (this.refenum?.pointer) this.context?.updateField(this.refenum?.pointer)
         super.change()
         this.requestUpdate()
     }
@@ -139,10 +139,10 @@ export abstract class FzEnumBase extends FzInputBase {
             const target = this.refenum.target
             return target.reduce((list: EnumItem[], item: any, index: number) => {
                 const schema = getSchema(item)
-                const ok = schema._evalExpr('filter', schema, item, target as Pojo, index,this.derefFunc,this.form.options.userdata)
+                const ok = schema._evalExpr('filter', schema, item, target as Pojo, index,this.derefFunc,this.context.appdata)
                 if (ok) {
                     const value = item[name]
-                    const title = schema._evalExpr('abstract',schema, item, target as Pojo, index, this.derefFunc, this.form.options.userdata)
+                    const title = schema._evalExpr('abstract',schema, item, target as Pojo, index, this.derefFunc, this.context.appdata)
                     list.push({ title, value })
                 }
                 return list

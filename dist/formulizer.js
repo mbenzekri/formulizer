@@ -1,3 +1,84 @@
+class _FzLogger {
+    static levels = {
+        DEBUG: 0,
+        INFO: 1,
+        WARN: 2,
+        ERROR: 3,
+        NONE: 4
+    };
+    static registry = new Map();
+    /** Set global log level per domain */
+    static set(...args) {
+        let level = "NONE";
+        for (const item of args) {
+            if (['DEBUG', 'INFO', 'WARN', 'ERROR', 'NONE'].includes(item)) {
+                level = item;
+            }
+            else {
+                FzLogger.registry.set(item, level);
+            }
+        }
+    }
+    /** Returns a logger for a domain, optionally scoped with context */
+    static get(domain, context) {
+        function isA(obj, name) {
+            let proto = Object.getPrototypeOf(obj ?? {});
+            while (proto) {
+                if (proto.constructor?.name === name)
+                    return true;
+                proto = Object.getPrototypeOf(proto);
+            }
+            return false;
+        }
+        const ctxstrings = [];
+        for (const property in context) {
+            if (isA(context[property], "FzField") || isA(context[property], "Schema"))
+                ctxstrings.push(`${property}: ${context[property].pointer}`);
+        }
+        const shouldLog = (lvl) => {
+            const level = FzLogger.registry.get(domain);
+            return (level == null) ? false : FzLogger.levels[lvl] >= FzLogger.levels[level];
+        };
+        const format = (msg, ...args) => {
+            return [`[${domain}][${ctxstrings.join(" ")}] ${msg}`, ...args];
+        };
+        const log = (lvl, ...args) => {
+            if (!shouldLog(lvl))
+                return;
+            const pattern = args.shift();
+            const msg = format(pattern, ...args);
+            switch (lvl) {
+                case 'DEBUG':
+                    console.debug(...msg);
+                    break;
+                case 'INFO':
+                    console.info(...msg);
+                    break;
+                case 'WARN':
+                    console.warn(...msg);
+                    break;
+                case 'ERROR':
+                    console.error(...msg);
+                    break;
+            }
+        };
+        return {
+            debug: (...a) => log('DEBUG', ...a),
+            info: (...a) => log('INFO', ...a),
+            warn: (...a) => log('WARN', ...a),
+            error: (...a) => log('ERROR', ...a),
+            if: {
+                debug: (c, ...a) => c && log('DEBUG', ...a),
+                info: (c, ...a) => c && log('INFO', ...a),
+                warn: (c, ...a) => c && log('WARN', ...a),
+                error: (c, ...a) => c && log('ERROR', ...a),
+            }
+        };
+    }
+}
+// Attach to global
+globalThis.FzLogger = _FzLogger;
+
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
 
@@ -626,7 +707,7 @@ class Base extends r$1 {
         if (Base.isBootStrapLoaded())
             return;
         const logger = FzLogger.get("lazy");
-        logger.info(">>> registerBootstrap()");
+        logger.info(">>> loadBootstrap()");
         let bootstrap_sheet;
         if (isString(bootstrap_url)) {
             logger.info("Bootstrap CSS to be load from url: %s ", bootstrap_url);
@@ -675,7 +756,7 @@ class Base extends r$1 {
             logger.info("Adopting bootstrap to fz-form Element");
             item.adoptBootStrap();
         }
-        logger.info("<<< registerBootstrap()");
+        logger.info("<<< loadBootstrap()");
     }
     static isBootStrapLoaded() {
         return Base.loaded;
@@ -1128,7 +1209,7 @@ const t$1={ATTRIBUTE:1,CHILD:2},e$2=t=>(...e)=>({_$litDirective$:t,values:e});le
  * @prop required
  */
 class FzField extends Base {
-    form;
+    context;
     localError;
     _dofocus = false;
     #pointer_accessor_storage = '/';
@@ -1153,9 +1234,9 @@ class FzField extends Base {
     get i_collapsed() { return this.#i_collapsed_accessor_storage; }
     set i_collapsed(value) { this.#i_collapsed_accessor_storage = value; }
     get errors() {
-        if (!this.form)
+        if (!this.context)
             return [];
-        return this.localError ? [this.localError, ...this.form.errors(this.pointer)] : this.form.errors(this.pointer);
+        return this.localError ? [this.localError, ...this.context.errors(this.pointer)] : this.context.errors(this.pointer);
     }
     get valid() {
         return this.errors.length === 0 && isNull(this.localError);
@@ -1190,7 +1271,7 @@ class FzField extends Base {
     }
     /** A field is touched if really modified (dirty) or submission by user done */
     get touched() {
-        return this.dirty || this.form?.submitted;
+        return this.dirty || this.context?.submitted;
     }
     get validation() {
         return e$1({
@@ -1216,7 +1297,7 @@ class FzField extends Base {
             return;
         this.cascadeValue(value);
         this.dirty = true;
-        this.form?.check();
+        this.context?.check();
     }
     get empty() { return this.schema._empty(); }
     get isempty() { return isEmptyValue(this.value); }
@@ -1278,9 +1359,9 @@ class FzField extends Base {
      * calculate a readonly boolean state for this field
      */
     get readonly() {
-        if (!this.form)
+        if (!this.context)
             return true;
-        if (this.form.readonly)
+        if (this.context.readonly)
             return true;
         return (this.data && this.schema.readonly) ? this.evalExpr("readonly") : false;
     }
@@ -1289,7 +1370,6 @@ class FzField extends Base {
      */
     cascadeValue(value) {
         const schema = this.schema;
-        const form = this.form;
         // this.data has a value (not undefined or null)
         // ---------------------------------------------
         // we simple set new value (newValue func ensure well constructed values , chaining , default, ..)
@@ -1328,12 +1408,12 @@ class FzField extends Base {
             // we calculate a newValue for each missing property/index  in path in descending order until this target 
             const fields = [];
             let ipointer = '';
-            let parent = form.root;
+            let parent = this.context.root;
             for (let i = 0; i < keys.length && parent; i++) {
                 const key = keys[i];
                 const schema = schemas[i];
                 ipointer = i ? `${ipointer}/${key}` : `${key}`;
-                const field = form.getField(ipointer);
+                const field = this.context.getField(ipointer);
                 if (field)
                     fields.push(field);
                 const type = schema.basetype;
@@ -1438,12 +1518,13 @@ class FzField extends Base {
     // ---------------
     connectedCallback() {
         super.connectedCallback();
-        this.form = this.queryClosest("fz-form");
-        this.form?.addField(this.schema.pointer, this.pointer, this);
+        const form = this.queryClosest("fz-form");
+        this.context = form.context;
+        this.context.addField(this.schema.pointer, this.pointer, this);
     }
     disconnectedCallback() {
         super.disconnectedCallback();
-        this.form?.removeField(this.schema.pointer, this.pointer);
+        this.context.removeField(this.schema.pointer, this.pointer);
         this.pointer = undefined;
         this.schema = undefined;
         this.data = undefined;
@@ -1473,7 +1554,7 @@ class FzField extends Base {
             this.evalExpr("initialize");
         }
         this.toField();
-        this.form?.check();
+        this.context?.check();
     }
     /**
      * 'click' handler when click occurs on field label element
@@ -1534,19 +1615,19 @@ class FzField extends Base {
         }
         else if (notNull(itemschema) && isFunction(itemschema.from)) {
             const refto = isFunction(itemschema.from)
-                ? itemschema._evalExpr('from', itemschema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata)
+                ? itemschema._evalExpr('from', itemschema, this.value[key], this.data, this.key, this.derefFunc, this.context.appdata)
                 : undefined;
             const index = refto.refarray.findIndex((x) => x[refto.refname] === this.value[key]);
             const value = refto.refarray[index];
             const schema = getSchema(value);
             text = isFunction(schema.abstract)
-                ? schema._evalExpr('abstract', schema, value, refto.refarray, index, this.derefFunc, this.form.options.userdata)
+                ? schema._evalExpr('abstract', schema, value, refto.refarray, index, this.derefFunc, this.context.appdata)
                 : schema._abstract(this.value[key]);
         }
         else {
             const schema = (typeof key === 'string') ? this.schema.properties?.[key] : itemschema;
             if (schema) {
-                const abstract_sandbox = newSandbox(schema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata);
+                const abstract_sandbox = newSandbox(schema, this.value[key], this.data, this.key, this.derefFunc, this.context.appdata);
                 text = isFunction(schema?.abstract) ? schema.abstract(abstract_sandbox) : schema?._abstract(this.value[key]);
             }
             else {
@@ -1556,7 +1637,7 @@ class FzField extends Base {
         return text && text.length > 200 ? text.substring(0, 200) + '...' : (text ?? "");
     }
     evalExpr(attribute, schema, value, parent, key) {
-        return this.schema._evalExpr(attribute, schema ? schema : this.schema, schema ? value : this.value, schema ? parent : this.data, schema ? key ?? "" : this.key, this.derefFunc, this.form?.options.userdata);
+        return this.schema._evalExpr(attribute, schema ? schema : this.schema, schema ? value : this.value, schema ? parent : this.data, schema ? key ?? "" : this.key, this.derefFunc, this.context.appdata);
     }
     /**
      * return tagged template '$' for pointer derefencing in expression or code used in schema
@@ -1567,7 +1648,7 @@ class FzField extends Base {
     get derefFunc() {
         return (template, ...substitutions) => {
             const pointer = String.raw(template, substitutions);
-            return derefPointerData(this.form.root, this.data, this.key, pointer);
+            return derefPointerData(this.context.root, this.data, this.key, pointer);
         };
     }
     /**
@@ -1721,7 +1802,7 @@ class FzEnumBase extends FzInputBase {
             }
         }
         if (this.refenum?.pointer)
-            this.form?.updateField(this.refenum?.pointer);
+            this.context?.updateField(this.refenum?.pointer);
         super.change();
         this.requestUpdate();
     }
@@ -1810,10 +1891,10 @@ class FzEnumBase extends FzInputBase {
             const target = this.refenum.target;
             return target.reduce((list, item, index) => {
                 const schema = getSchema(item);
-                const ok = schema._evalExpr('filter', schema, item, target, index, this.derefFunc, this.form.options.userdata);
+                const ok = schema._evalExpr('filter', schema, item, target, index, this.derefFunc, this.context.appdata);
                 if (ok) {
                     const value = item[name];
-                    const title = schema._evalExpr('abstract', schema, item, target, index, this.derefFunc, this.form.options.userdata);
+                    const title = schema._evalExpr('abstract', schema, item, target, index, this.derefFunc, this.context.appdata);
                     list.push({ title, value });
                 }
                 return list;
@@ -2648,7 +2729,7 @@ let FzInputDatetime = class FzInputDatetime extends FzInputBase {
         return this.schema?.maximum;
     }
     get step() {
-        const precision = String(this.schema.precision ?? "min");
+        const precision = String(this.schema?.precision ?? "min");
         if (precision === "sec")
             return 1;
         if (precision === "ms")
@@ -2697,7 +2778,7 @@ let FzInputTime = class FzInputTime extends FzInputBase {
             />`;
     }
     get step() {
-        const precision = String(this.schema.precision ?? "min");
+        const precision = String(this.schema?.precision ?? "min");
         if (precision === "sec")
             return 1;
         if (precision === "ms")
@@ -2893,9 +2974,9 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
     get state() { return this.#state_accessor_storage; }
     set state(value) { this.#state_accessor_storage = value; }
     get isblank() {
-        if (!this.context || !this.canvas)
+        if (!this.canvasContext || !this.canvas)
             return false;
-        const pixelBuffer = new Uint32Array(this.context.getImageData(0, 0, this.canvas.width, this.canvas.height).data.buffer);
+        const pixelBuffer = new Uint32Array(this.canvasContext.getImageData(0, 0, this.canvas.width, this.canvas.height).data.buffer);
         let white = 0, black = 0;
         pixelBuffer.forEach(color => color !== 0 ? black++ : white++);
         const percent = black * 100 / (black + white);
@@ -2904,7 +2985,7 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
     content;
     image;
     canvas;
-    context;
+    canvasContext;
     observer;
     offsetX = 0;
     offsetY = 0;
@@ -2949,7 +3030,7 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
         this.canvas = this.shadowRoot?.getElementById('canvas') ?? undefined;
         // Gestion des événements
         if (this.canvas) {
-            this.context = this.canvas.getContext('2d') ?? undefined;
+            this.canvasContext = this.canvas.getContext('2d') ?? undefined;
             this.listen(this.canvas, 'mousedown', evt => this.onDown(evt));
             this.listen(this.canvas, 'mousemove', evt => this.onMove(evt));
             this.listen(this.canvas, 'mouseup', evt => this.onUp(evt));
@@ -2970,7 +3051,7 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
         this.content = undefined;
         this.image = undefined;
         this.canvas = undefined;
-        this.context = undefined;
+        this.canvasContext = undefined;
         this.observer?.disconnect();
         this.observer = undefined;
     }
@@ -3036,12 +3117,12 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
         this.getOffset(event);
         this.getPos(event);
         // start a new line
-        if (this.context && this.currentX) {
-            this.context.beginPath();
-            this.context.moveTo(this.currentX, this.currentY);
-            this.context.strokeStyle = "#4bf";
-            this.context.lineWidth = 5;
-            this.context.lineJoin = 'round';
+        if (this.canvasContext && this.currentX) {
+            this.canvasContext.beginPath();
+            this.canvasContext.moveTo(this.currentX, this.currentY);
+            this.canvasContext.strokeStyle = "#4bf";
+            this.canvasContext.lineWidth = 5;
+            this.canvasContext.lineJoin = 'round';
         }
         this.eventStop(event);
         return false;
@@ -3050,9 +3131,9 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
         if (!this.drawing)
             return;
         this.getPos(event);
-        if (this.context) {
-            this.context.lineTo(this.currentX, this.currentY);
-            this.context.stroke();
+        if (this.canvasContext) {
+            this.canvasContext.lineTo(this.currentX, this.currentY);
+            this.canvasContext.stroke();
         }
         this.eventStop(event);
         return false;
@@ -3081,12 +3162,12 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
     // }
     //}
     load() {
-        if (this.context && this.image && this.value) {
+        if (this.canvasContext && this.image && this.value) {
             this.image.src = this.value;
         }
     }
     edit() {
-        this.canvas && this.context?.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.canvas && this.canvasContext?.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.value = null;
         this.state = 'edit';
     }
@@ -3417,7 +3498,7 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
         return this.schema?.mimetype ? this.schema.mimetype : FzInputDoc_1.docTypes.join(', ');
     }
     get store() {
-        return this.form.store;
+        return this.context.store;
     }
     static get styles() {
         return [
@@ -3823,7 +3904,7 @@ class FZCollection extends FzField {
         }
     }
     renderItemErrors(index) {
-        const errors = this.form.errors(`${this.pointer}/${index}`);
+        const errors = this.context.errors(`${this.pointer}/${index}`);
         return x `
             <span id="error" class="error-message error-truncated">
                 ${errors.join(', ')}
@@ -4113,7 +4194,7 @@ let FzArray$1 = class FzArray extends FZCollection {
                 const evalCase = (schema) => {
                     if (!isFunction(schema.case))
                         return false;
-                    const sandbox = newSandbox(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc, this.form.options.userdata);
+                    const sandbox = newSandbox(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc, this.context.appdata);
                     return schema.case(sandbox) ?? false;
                 };
                 this.schemas.push(getSchema(value) ?? this.schema.items?.oneOf?.find(evalCase));
@@ -4976,87 +5057,6 @@ __decorate([
 FzItemDlg = __decorate([
     t$4("fz-item-dlg")
 ], FzItemDlg);
-
-class _FzLogger {
-    static levels = {
-        DEBUG: 0,
-        INFO: 1,
-        WARN: 2,
-        ERROR: 3,
-        NONE: 4
-    };
-    static registry = new Map();
-    /** Set global log level per domain */
-    static set(...args) {
-        let level = "NONE";
-        for (const item of args) {
-            if (['DEBUG', 'INFO', 'WARN', 'ERROR', 'NONE'].includes(item)) {
-                level = item;
-            }
-            else {
-                FzLogger.registry.set(item, level);
-            }
-        }
-    }
-    /** Returns a logger for a domain, optionally scoped with context */
-    static get(domain, context) {
-        function isA(obj, name) {
-            let proto = Object.getPrototypeOf(obj ?? {});
-            while (proto) {
-                if (proto.constructor?.name === name)
-                    return true;
-                proto = Object.getPrototypeOf(proto);
-            }
-            return false;
-        }
-        const ctxstrings = [];
-        for (const property in context) {
-            if (isA(context[property], "FzField") || isA(context[property], "Schema"))
-                ctxstrings.push(`${property}: ${context[property].pointer}`);
-        }
-        const shouldLog = (lvl) => {
-            const level = FzLogger.registry.get(domain);
-            return (level == null) ? false : FzLogger.levels[lvl] >= FzLogger.levels[level];
-        };
-        const format = (msg, ...args) => {
-            return [`[${domain}][${ctxstrings.join(" ")}] ${msg}`, ...args];
-        };
-        const log = (lvl, ...args) => {
-            if (!shouldLog(lvl))
-                return;
-            const pattern = args.shift();
-            const msg = format(pattern, ...args);
-            switch (lvl) {
-                case 'DEBUG':
-                    console.debug(...msg);
-                    break;
-                case 'INFO':
-                    console.info(...msg);
-                    break;
-                case 'WARN':
-                    console.warn(...msg);
-                    break;
-                case 'ERROR':
-                    console.error(...msg);
-                    break;
-            }
-        };
-        return {
-            debug: (...a) => log('DEBUG', ...a),
-            info: (...a) => log('INFO', ...a),
-            warn: (...a) => log('WARN', ...a),
-            error: (...a) => log('ERROR', ...a),
-            if: {
-                debug: (c, ...a) => c && log('DEBUG', ...a),
-                info: (c, ...a) => c && log('INFO', ...a),
-                warn: (c, ...a) => c && log('WARN', ...a),
-                error: (c, ...a) => c && log('ERROR', ...a),
-            }
-        };
-    }
-}
-// Attach to global
-globalThis.FzLogger = _FzLogger;
 
 var $schema = "http://json-schema.org/draft-07/schema#";
 var $id = "http://json-schema.org/draft-07/schema-3s#";
@@ -6599,10 +6599,6 @@ class BlobMemory {
 }
 
 var FzForm_1;
-/**
- * @prop schema
- * @prop data
- */
 let FzForm = FzForm_1 = class FzForm extends Base {
     static get styles() {
         return [...super.styles];
@@ -6633,6 +6629,32 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     compiledSchema = DEFAULT_SCHEMA;
     validator = new DefaultValidator(DEFAULT_SCHEMA);
     message = "";
+    // @ts-ignore
+    get context() {
+        const that = this;
+        return {
+            get root() { return that.root; },
+            get submitted() { return that.submitted; },
+            get readonly() { return that.readonly; },
+            get appdata() { return that.options?.userdata; },
+            get asset() { return that.asset; },
+            get store() { return that.store; },
+            check() { that.check(); },
+            errors(pointer) { return that.errors(pointer); },
+            getField(pointer) { return that.fieldMap.get(pointer); },
+            addField(schemaPointer, dataPointer, field) {
+                that.schemaMap.set(schemaPointer, field);
+                that.fieldMap.set(dataPointer, field);
+            },
+            removeField(schemaPointer, dataPointer) {
+                that.schemaMap.delete(schemaPointer);
+                that.fieldMap.delete(dataPointer);
+            },
+            updateField(pointer) {
+                that.fieldMap.get(pointer)?.requestUpdate();
+            }
+        };
+    }
     get root() { return this.i_root.content; }
     get valid() {
         this.validator.validate(this.root);
@@ -6703,23 +6725,6 @@ let FzForm = FzForm_1 = class FzForm extends Base {
                 .catch((e) => console.error(`MARKDOWN: MarkdownIt loading fails due to ${e}`));
         }
     }
-    getField(pointer) {
-        return this.fieldMap.get(pointer);
-    }
-    addField(schemaPointer, dataPointer, field) {
-        this.schemaMap.set(schemaPointer, field);
-        this.fieldMap.set(dataPointer, field);
-    }
-    removeField(schemaPointer, dataPointer) {
-        this.schemaMap.delete(schemaPointer);
-        this.fieldMap.delete(dataPointer);
-    }
-    getfieldFromSchema(pointer) {
-        return this.schemaMap.get(pointer);
-    }
-    updateField(pointer) {
-        this.getField(pointer)?.requestUpdate();
-    }
     render() {
         if (!Base.isBootStrapLoaded())
             return 'Bootstrap not loaded...';
@@ -6752,6 +6757,8 @@ let FzForm = FzForm_1 = class FzForm extends Base {
         ];
     }
     errors(pointer) {
+        if (isNull(pointer))
+            return [...this.errorMap.values()].flat();
         return this.errorMap.get(pointer) ?? [];
     }
     connectedCallback() {
@@ -6796,7 +6803,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
             return;
         const trackers = evt.detail.trackers;
         trackers.forEach(pointer => {
-            const field = this.getfieldFromSchema(pointer);
+            const field = this.schemaMap.get(pointer);
             const logger = FzLogger.get("tracker", { field, schema: field?.schema });
             logger.info(`refreshed by %s`, evt.detail.field.pointer);
             field?.trackedValueChange();

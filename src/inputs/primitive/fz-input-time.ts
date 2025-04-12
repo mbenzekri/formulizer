@@ -42,7 +42,7 @@ export class FzInputTime extends FzInputBase {
             />`
     }
     get step() {
-        const precision = String(this.schema.precision ?? "min")
+        const precision = String(this.schema?.precision ?? "min")
         if (precision === "sec") return 1
         if (precision === "ms") return 0.001
         return 60

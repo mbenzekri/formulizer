@@ -64,7 +64,7 @@ export class FzInputDoc extends FzInputBase {
     }
 
     get store(): IBlobStore {
-        return this.form.store
+        return this.context.store
     }
 
     static override get styles() {

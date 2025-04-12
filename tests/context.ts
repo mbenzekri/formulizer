@@ -39,7 +39,7 @@ export class TestContext {
         await page.waitForSelector('fz-form', { state: 'attached' })
         await page.waitForFunction(() => {
             const form = document.querySelector('fz-form') as any
-            return form && typeof form.getField === 'function';
+            return form && typeof form.errors === 'function';
         })
 
         // get the form, set schema and data , get field and input

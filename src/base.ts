@@ -128,7 +128,7 @@ export class Base extends LitElement {
         if (Base.isBootStrapLoaded()) return;
 
         const logger = FzLogger.get("lazy")
-        logger.info(">>> registerBootstrap()")
+        logger.info(">>> loadBootstrap()")
 
         let bootstrap_sheet: CSSStyleSheet
         if (isString(bootstrap_url)) {
@@ -183,7 +183,7 @@ export class Base extends LitElement {
             item.adoptBootStrap()
         }
         
-        logger.info("<<< registerBootstrap()")
+        logger.info("<<< loadBootstrap()")
 
     }
     static isBootStrapLoaded() {

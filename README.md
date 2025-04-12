@@ -73,7 +73,7 @@ JSON Schema driven WebComponent to display dynamic form (Bootstrap UI 5)
     >    - abortcb: to abort update
     >How to manage lists instead of single value
 
-    💡⚠️ ❓🔧✅ 📌🔍
+    ⚠️ 💡 ❓ 🔧 ✅  📌 🔍
 9397	Ⓐ
 9398	Ⓑ
 9399	Ⓒ

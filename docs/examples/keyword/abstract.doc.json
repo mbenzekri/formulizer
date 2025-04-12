@@ -24,16 +24,16 @@
         "properties": {
             "user": { 
                 "$ref" : "#/definitions/profile",
-                "title": "user defined",
+                "title": "Ⓐ user defined",
                 "abstract": "👋 I am ${ $`/user/firstname` }"
             },
             "default": {
                 "$ref" : "#/definitions/profile",
-                "title": "default abstract"
+                "title": "Ⓑ default abstract"
             },
             "empty": {
                 "$ref" : "#/definitions/profile",
-                "title": "empty"
+                "title": "Ⓒ empty"
             }
         }
     },

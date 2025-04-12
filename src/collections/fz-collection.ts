@@ -106,7 +106,7 @@ export abstract class FZCollection extends FzField {
     }
 
     protected renderItemErrors(index: number|string) {
-        const errors= this.form.errors(`${this.pointer}/${index}`)
+        const errors= this.context.errors(`${this.pointer}/${index}`)
         return html`
             <span id="error" class="error-message error-truncated">
                 ${errors.join(', ')}

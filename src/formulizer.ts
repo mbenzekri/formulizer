@@ -1,3 +1,4 @@
+import "./lib/logger"
 import "./inputs/enum/fz-enum-select";
 import "./inputs/enum/fz-enum-check";
 import "./inputs/enum/fz-enum-typeahead";
@@ -27,7 +28,6 @@ import "./components/fz-barcode-dlg"
 import "./components/fz-photo-dlg"
 import "./components/fz-item-dlg"
 
-import "./lib/logger"
 import { FzForm } from "./fz-form";
 import { FzMarkdownIt } from "./components/markdown-it";
 

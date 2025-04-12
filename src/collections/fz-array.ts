@@ -286,7 +286,7 @@ export class FzArray extends FZCollection {
                 // evaluate the case keyword expression 
                 const evalCase = (schema:Schema) => {
                     if (!isFunction(schema.case)) return false
-                    const sandbox = newSandbox(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc, this.form.options.userdata)
+                    const sandbox = newSandbox(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc, this.context.appdata)
                     return schema.case(sandbox) ?? false
                 }
                 this.schemas.push(getSchema(value) ?? this.schema.items?.oneOf?.find(evalCase))

@@ -1,4 +1,5 @@
 
+## Keyword: `title`
 
 The `title` keyword provide a **label** for each property.
 
@@ -16,7 +17,7 @@ The `title` keyword provide a **label** for each property.
 }
 ```
 
-## 🔍 Example explained
+## 🔍 Example
 
 - Ⓐ field has a `title` to shows the "First name" label (primitive types).
     <pre onclick="this.innerHTML = form.sourceSchema.properties.name._toJSON(4)">...</pre>
@@ -33,7 +34,7 @@ The `title` keyword provide a **label** for each property.
 
 - Ⓔ field shows `title` for an **object**.
   You can click on the label to expand/hide object content.
-  <pre onclick="this.innerHTML = form.sourceSchema.properties.palette._toJSON(4)">...</pre>
+  <pre onclick="this.innerHTML = form.sourceSchema.properties.profile._toJSON(4)">...</pre>
 
 
 

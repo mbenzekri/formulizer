@@ -24,9 +24,9 @@ export class FzInputSignature extends FzInputBase {
     @property({ attribute: false }) accessor state: 'edit' | 'read' = 'read'
 
     private get isblank(): any {
-        if (!this.context || !this.canvas) return false
+        if (!this.canvasContext || !this.canvas) return false
         const pixelBuffer = new Uint32Array(
-          this.context.getImageData(0, 0, this.canvas.width, this.canvas.height).data.buffer
+          this.canvasContext.getImageData(0, 0, this.canvas.width, this.canvas.height).data.buffer
         )
         let white = 0,black = 0
         pixelBuffer.forEach(color => color !== 0 ? black++ : white++ );
@@ -37,7 +37,7 @@ export class FzInputSignature extends FzInputBase {
     private content?: HTMLElement
     private image?: HTMLImageElement
     private canvas?: HTMLCanvasElement
-    private context?: CanvasRenderingContext2D
+    private canvasContext?: CanvasRenderingContext2D
     private observer?: ResizeObserver
     private offsetX = 0
     private offsetY = 0
@@ -86,7 +86,7 @@ export class FzInputSignature extends FzInputBase {
         this.canvas = this.shadowRoot?.getElementById('canvas')as HTMLCanvasElement ?? undefined
         // Gestion des événements
         if (this.canvas) {
-            this.context = this.canvas.getContext('2d') ?? undefined
+            this.canvasContext = this.canvas.getContext('2d') ?? undefined
             this.listen(this.canvas,'mousedown', evt => this.onDown(evt))
             this.listen(this.canvas,'mousemove', evt => this.onMove(evt))
             this.listen(this.canvas,'mouseup', evt => this.onUp(evt))
@@ -108,7 +108,7 @@ export class FzInputSignature extends FzInputBase {
         this.content = undefined as any
         this.image = undefined as any
         this.canvas = undefined as any
-        this.context = undefined as any
+        this.canvasContext = undefined as any
         this.observer?.disconnect()
         this.observer = undefined as any
 
@@ -179,12 +179,12 @@ export class FzInputSignature extends FzInputBase {
         this.getPos(event);
 
         // start a new line
-        if (this.context && this.currentX) {
-            this.context.beginPath();
-            this.context.moveTo(this.currentX, this.currentY);
-            this.context.strokeStyle = "#4bf";
-            this.context.lineWidth = 5;
-            this.context.lineJoin = 'round';
+        if (this.canvasContext && this.currentX) {
+            this.canvasContext.beginPath();
+            this.canvasContext.moveTo(this.currentX, this.currentY);
+            this.canvasContext.strokeStyle = "#4bf";
+            this.canvasContext.lineWidth = 5;
+            this.canvasContext.lineJoin = 'round';
         }
 
         this.eventStop(event)
@@ -193,9 +193,9 @@ export class FzInputSignature extends FzInputBase {
     private onMove(event: Event) {
         if (!this.drawing) return
         this.getPos(event)
-        if (this.context) {
-            this.context.lineTo(this.currentX, this.currentY);
-            this.context.stroke();
+        if (this.canvasContext) {
+            this.canvasContext.lineTo(this.currentX, this.currentY);
+            this.canvasContext.stroke();
         }
         this.eventStop(event)
         return false;
@@ -223,13 +223,13 @@ export class FzInputSignature extends FzInputBase {
         // }
     //}
     private load() {
-        if (this.context && this.image && this.value) {
+        if (this.canvasContext && this.image && this.value) {
             this.image.src = this.value
         }
     }
 
     private edit() {
-        this.canvas && this.context?.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.canvas && this.canvasContext?.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.value = null
         this.state = 'edit'
     }

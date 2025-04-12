@@ -3,12 +3,12 @@
         "toc": {
             "General": {
                 "general/whatis": "What is fz-form",
-                "general/api": "The fz-form API",
+                "general/component": "The web component",
                 "general/bootstrap": "Loading Bootstrap",
-                "general/schema": "The fz-form schema",
-                "general/keyword": "The fz-form keywords",
+                "general/schema": "JSON schema",
+                "general/keyword": "fz-form keywords",
                 "general/definition": "Using definitions",
-                "general/expression": "Using Expressions",
+                "general/expression": "Using expressions",
                 "general/typenull": "About emptyness"
             },
             "Keywords": {

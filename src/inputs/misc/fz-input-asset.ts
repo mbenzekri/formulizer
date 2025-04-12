@@ -34,7 +34,7 @@ export class FzInputPicker extends FzInputBase {
 
 
     get assets() { return (this.schema.assets ?? "").split(","); }
-    get asset() { return this.form.asset }
+    get asset() { return this.context.asset }
 
     renderInput() {
         return html`

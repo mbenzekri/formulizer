@@ -6,7 +6,7 @@ The `abstract` keyword helps provide a **readable summary** of a property in dif
 - when item of 'array' is displayed (not displayed for edition)
 - when choice list are displayed for selection
 
-## ✅ Usage
+## Usage
 
 >- You can use `abstract` on **any field type**.
 >- It displays a **short summary** of the property value to improve readability in various contexts.
@@ -26,9 +26,15 @@ The `abstract` keyword helps provide a **readable summary** of a property in dif
 
 ## 🔍 Example
 
-- First object has an `abstract` that shows the first and last name of a contact.
-- Second object does not have an `abstract`, so a **default summary** is used.
-- Third object shows `abstract` for an **empty property (null|undefined)**.
+- Ⓐ field has an `abstract` that shows the first and last name of a contact..
+    <pre onclick="this.innerHTML = form.sourceSchema.properties.user._toJSON(4)">...</pre>
 
-You can **click on the panel headers** to expand and see the full property content.
+- Ⓑ field does not have an `abstract`, so a **default summary** is used.
+    <pre onclick="this.innerHTML = form.sourceSchema.properties.default._toJSON(4)">...</pre>
+
+- Ⓒ field shows `abstract` for an **empty property (null|undefined)**.
+  <pre onclick="this.innerHTML = form.sourceSchema.properties.empty._toJSON(4)">...</pre>
+
+
+💡: You can **click on the panel headers** to expand and see the full objects property.
 

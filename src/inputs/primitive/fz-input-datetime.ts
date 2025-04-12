@@ -86,7 +86,7 @@ export class FzInputDatetime extends FzInputBase {
         return this.schema?.maximum
     }
     get step() {
-        const precision = String(this.schema.precision ?? "min")
+        const precision = String(this.schema?.precision ?? "min")
         if (precision === "sec") return 1
         if (precision === "ms") return 0.001
         return 60

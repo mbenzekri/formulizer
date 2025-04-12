@@ -6,16 +6,39 @@ fz-form makes extensive use of string expressions (since JSON does not permit Ja
 >- An expression is associated with the field in which it is defined.
 >- Expressions are evaluated dynamically based on their dependencies on other fields (see $`...`).
 
-# Dynamic Expression Context Variables
 
-When building dynamic expressions in fz-form, a context of local variables is provided to each evaluated expression.
+Two kinds of JavaScript code are handled in fz-form:
 
+- **Expressions:**  
+    Full JavaScript expressions (without statements) that compute values and are re-evaluated when their dependencies change.
+    ```
+        " value.map(x => x.id).join(',') "`
+    ```
+    Supposing field is an array of object with an "id" property, this expression will return a string joining all the ids.
+
+- **String Literals:**  
+    Plain strings that include embedded dynamic parts (via the $ interpolation syntax) and are also recomputed whenever their dependencies change.
+    ```
+        "${ $\`/firstname\` + $\`/lastname` }"
+    ```
+    Supposing field is a string to store full name, this string literal will concatenate firstname an lastname properties.
+
+
+## Dynamic Expression Context Variables
+
+whether for 'expressions' or 'literal strings' the provided code is executed in a specific context of local variables.
+
+The context define the following variables:
 - **`schema`**: the schema object of the current field in which the expression is defined.
 - **`value`**: the value of the current field.
 - **`parent`**: the parent of the current value (i.e., the object or array that contains the current field), equivalent to `$`1.
 - **`key`**: the property name (if the parent is an object) or the index (if the parent is an array) of the current field.
 - **`appdata`**: application-provided data for managing app-specific use cases.
-- **`$`**: the template literal function for form data access.
+- **`$`**: the template literal function for form data access (see details above).
+
+⚠️ : JS code is executed in a sandboxed context, then all globals (windows, document, ...) are not accessible within expressions 
+only javascript globals are provided (Math, Object, Date...)
+
 
 ## The `$` Template Literal Function
 

@@ -3,11 +3,10 @@ import { property } from "lit/decorators.js"
 import { html, TemplateResult, PropertyValues } from "lit"
 import { derefPointerData, isEmptyValue, newValue, getSchema, isFunction, notNull, isArray, isNull, newSandbox } from "./lib/tools"
 import { Pojo } from "./lib/types"
-import { FzForm } from "./fz-form"
+import { FzForm,FzFormContext } from "./fz-form"
 import { Base } from "./base"
 import { EMPTY_SCHEMA, Schema } from "./lib/schema"
 import { classMap } from "lit/directives/class-map.js"
-
 
 
 /**
@@ -19,11 +18,11 @@ import { classMap } from "lit/directives/class-map.js"
  */
 export abstract class FzField extends Base {
 
-    abstract renderField(): TemplateResult;
-    abstract toField(): void;
-    abstract toValue(): void;
+    protected context!:FzFormContext
+    abstract renderField(): TemplateResult
+    abstract toField(): void
+    abstract toValue(): void
 
-    protected form!: FzForm
     protected localError?: string
     private _dofocus = false
 
@@ -36,8 +35,8 @@ export abstract class FzField extends Base {
     @property({ attribute:false}) accessor dirty = false
     @property({ attribute: false }) accessor i_collapsed = false
     @property({ attribute: false }) get errors(): string[] {
-        if (!this.form) return []
-        return this.localError ? [this.localError,...this.form.errors(this.pointer)] : this.form.errors(this.pointer)
+        if (!this.context) return []
+        return this.localError ? [this.localError,...this.context.errors(this.pointer)] : this.context.errors(this.pointer)
     }
 
     get valid() {
@@ -69,7 +68,7 @@ export abstract class FzField extends Base {
 
     /** A field is touched if really modified (dirty) or submission by user done */
     get touched() {
-        return this.dirty || this.form?.submitted
+        return this.dirty || this.context?.submitted
     }
     get validation() {
         return classMap({ 
@@ -95,7 +94,7 @@ export abstract class FzField extends Base {
         if (value === this.value) return
         this.cascadeValue(value)
         this.dirty = true
-        this.form?.check()
+        this.context?.check()
     }
 
     get empty() { return this.schema._empty() }
@@ -157,8 +156,8 @@ export abstract class FzField extends Base {
      * calculate a readonly boolean state for this field 
      */
     get readonly(): boolean {
-        if (!this.form) return true
-        if (this.form.readonly) return true
+        if (!this.context) return true
+        if (this.context.readonly) return true
         return (this.data && this.schema.readonly) ? this.evalExpr("readonly") : false
     }
 
@@ -167,7 +166,6 @@ export abstract class FzField extends Base {
      */
     private cascadeValue(value: any) {
         const schema = this.schema
-        const form = this.form
 
         // this.data has a value (not undefined or null)
         // ---------------------------------------------
@@ -208,12 +206,12 @@ export abstract class FzField extends Base {
             // we calculate a newValue for each missing property/index  in path in descending order until this target 
             const fields: FzField[] = []
             let ipointer = ''
-            let parent = form.root
+            let parent  = this.context.root
             for (let i = 0; i < keys.length && parent; i++) {
                 const key = keys[i]
                 const schema = schemas[i]
                 ipointer = i ? `${ipointer}/${key}` : `${key}`
-                const field = form.getField(ipointer)
+                const field = this.context.getField(ipointer)
                 if (field) fields.push(field)
                 const type = schema.basetype
                 switch (true) {
@@ -315,13 +313,14 @@ export abstract class FzField extends Base {
     // ---------------
     override connectedCallback() {
         super.connectedCallback()
-        this.form = this.queryClosest("fz-form") as FzForm
-        this.form?.addField(this.schema.pointer, this.pointer, this)
+        const form = this.queryClosest("fz-form") as FzForm
+        this.context = form.context
+        this.context.addField(this.schema.pointer, this.pointer, this)
     }
 
     override disconnectedCallback() {
         super.disconnectedCallback()
-        this.form?.removeField(this.schema.pointer, this.pointer)
+        this.context.removeField(this.schema.pointer, this.pointer)
         this.pointer = undefined as any
         this.schema = undefined as any
         this.data = undefined as any
@@ -354,7 +353,7 @@ export abstract class FzField extends Base {
             this.evalExpr("initialize")
         }
         this.toField()
-        this.form?.check()       
+        this.context?.check()       
     }
 
     /**
@@ -418,18 +417,18 @@ export abstract class FzField extends Base {
                 : this.schema._abstract(this.value)
         } else if (notNull(itemschema) && isFunction(itemschema.from)) {
             const refto = isFunction(itemschema.from) 
-                ? itemschema._evalExpr('from',itemschema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata)
+                ? itemschema._evalExpr('from',itemschema, this.value[key], this.data, this.key, this.derefFunc, this.context.appdata)
                 : undefined
             const index = refto.refarray.findIndex((x: any) => x[refto.refname] === this.value[key])
             const value = refto.refarray[index]
             const schema = getSchema(value)
             text = isFunction(schema.abstract) 
-                ? schema._evalExpr('abstract',schema, value, refto.refarray, index, this.derefFunc, this.form.options.userdata) 
+                ? schema._evalExpr('abstract',schema, value, refto.refarray, index, this.derefFunc, this.context.appdata) 
                 : schema._abstract(this.value[key])
         } else {
             const schema = (typeof key === 'string') ? this.schema.properties?.[key] : itemschema
             if (schema) {
-                const abstract_sandbox = newSandbox(schema, this.value[key], this.data, this.key, this.derefFunc, this.form.options.userdata)
+                const abstract_sandbox = newSandbox(schema, this.value[key], this.data, this.key, this.derefFunc, this.context.appdata)
                 text = isFunction(schema?.abstract) ? schema.abstract(abstract_sandbox) : schema?._abstract(this.value[key])
             } else {
                 text = ""
@@ -447,7 +446,7 @@ export abstract class FzField extends Base {
             schema ? parent : this.data, 
             schema ? key ?? "": this.key,
             this.derefFunc,
-            this.form?.options.userdata)
+            this.context.appdata)
     }
 
     /**
@@ -459,7 +458,7 @@ export abstract class FzField extends Base {
     get derefFunc() {
         return (template: { raw: readonly string[] | ArrayLike<string> }, ...substitutions: any[]) => {
             const pointer = String.raw(template, substitutions)
-            return derefPointerData(this.form.root, this.data, this.key, pointer)
+            return derefPointerData(this.context.root, this.data, this.key, pointer)
         }
     }
     /**

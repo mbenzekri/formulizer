@@ -16,7 +16,7 @@ The `collapsed` keyword accepts the following values:
 
 Use the `collapsed` keyword within the schema definition of an object or array field to control its initial display state.
 
-### Examples
+### 🔍 Examples
 
 1. **Expanded on Init (`"false"`)**
    ```json
@@ -55,7 +55,3 @@ Use the `collapsed` keyword within the schema definition of an object or array f
    ```
 
 These examples demonstrate how to use the `collapsed` keyword to control the visual state of fields in `fz-form`.
-
----
-
-This documentation provides a clear and concise explanation of the `collapsed` keyword, including its purpose, possible values, and examples for each use case. If you need any further modifications or additional information, feel free to ask!

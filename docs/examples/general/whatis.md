@@ -1,7 +1,6 @@
 
 
-## What is fz-form
-
+## Overview
 
 fz-form is a W3C-compliant web component that dynamically renders UI forms. Formz produced by fz-form are described by 
 an extended JSON Schema format.
@@ -15,55 +14,21 @@ an extended JSON Schema format.
 >- The bundle is provided as a unique javascript file to be loaded in your page (provide in CDN).
 >- fz-form is developped using typescript and lit3.
 
-## How to read this documentation 
+## This documentation 
 
-This README page is the root of the fz-form documentation.
-Here is some important pages.
-- `<fz-form>` web component API documentation (go there link)
-- JSON Schema keywords and how that impact the form rendering (go there link)
-- Some examples : use the search box to select an example or click a table of content item.
+This page is the root of the fz-form documentation.Here is some important pages:
+>- `<fz-form>` web component [documentation](#general/api)
+>- JSON Schema keywords and how that impact the form rendering: [JSON Schema](#general/schema)
+>- fz-form  added keywords to manage form specific features : [JSON Schema](#general/schema)
+>- how to add dynamic behavior in fz-form with [evaluated expression](#general/expression)
+>- a special page dedicated to the  [emptiness problem](#general/typenull)
+>- Some examples : use the search box to select an example or click a Table Of Content item.
 
-## 💡 A "[Hello, world!](./hello.html)" tuto
+## 💡 My tribute to ["hello world"](https://en.wikipedia.org/wiki/%22Hello,_World!%22_program)...
 
-```html
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script type="module" src="./formulizer.js"></script>
-    </head>
-    <body>
-        <fz-form id="myform" ></fz-form>
-        <pre id="mydata" lang=""></pre>
-        <script>
-            window.onload = () => {
-                const form = document.getElementById("myform")
-                form.schema = {
-                    "title": "Say hello to...",
-                    "type": "object",
-                    "properties": {
-                        "who": {
-                            "type": "string",
-                        },
-                        "hello": {
-                            "type": "string",
-                            "dynamic": " `Hello, ${ $`#/who` } !` ",
-                            "readonly" : true
-                        }
-                    }
-                }
-                form.data = { "who" : "world!" }
-                form.addEventListener("change", () => {
-                    document.getElementById("mydata").innerHTML = JSON.stringify(form.data)
-                })
-            }
-        </script>
-    </body>
-</html>
-```
-[History of Hello world...](https://en.wikipedia.org/wiki/%22Hello,_World!%22_program)
+You could test the hello world tuto here :[Hello, world!](./hello.html)"
 
-## Example explained
+### Hello world explained
 
 - load fz-form library in the header:
     ```
@@ -111,9 +76,9 @@ Here is some important pages.
         form.data = { "who" : "world" }
     ```
 
-- get updated data from the form using "change" event
+- get updated data from the form using "update" event
     ```
-        form.addEventListener("change", () => {
+        form.addEventListener("update", () => {
             document.getElementById("mydata").innerHTML = JSON.stringify(form.data)
         })
     ```

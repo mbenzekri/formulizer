@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { html, PropertyValues } from "lit";
+import { html, PropertyValues } from "lit"
 import { Base } from "./base"
 import { property, customElement } from "lit/decorators.js";
 import { IAsset, IOptions, Pojo } from "./lib/types"
@@ -10,10 +10,25 @@ import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { Schema, schemaAttrConverter, DEFAULT_SCHEMA } from "./lib/schema";
 import { FzMarkdownIt } from "./components/markdown-it";
 import { isNull, isString } from "./lib/tools";
+
 /**
- * @prop schema
- * @prop data
+ * Form Context is provided from FzForm to all descendant sub-FzField as an API
+ * to access global form shared data and methods 
  */
+export type FzFormContext = {
+    readonly root: any
+    readonly submitted: boolean
+    readonly readonly: boolean
+    readonly appdata: any
+    readonly asset: IAsset
+    readonly store: IBlobStore
+    readonly errors:(pointer: string) => string[]
+    readonly check: () => void
+    readonly getField: (pointer: string) => FzField | undefined
+    readonly addField: (schemaPointer: string, dataPointer: string, field: FzField) => void,
+    readonly removeField: (schemaPointer: string, dataPointer: string) => void
+    readonly updateField: (pointer: string) => void
+}
 
 @customElement("fz-form")
 export class FzForm extends Base {
@@ -42,6 +57,34 @@ export class FzForm extends Base {
     private compiledSchema = DEFAULT_SCHEMA
     private validator: Validator = new DefaultValidator(DEFAULT_SCHEMA)
     private message = ""
+
+    // @ts-ignore
+    public get context(): FzFormContext {
+        const that = this
+        return {
+            get root() { return that.root },
+            get submitted() { return that.submitted },
+            get readonly() { return that.readonly },
+            get appdata() { return that.options?.userdata },
+            get asset() { return that.asset },
+            get store() { return that.store },
+            check() { that.check() },
+            errors(pointer?: string) { return that.errors(pointer)},
+            getField(pointer: string) { return that.fieldMap.get(pointer) },
+            addField(schemaPointer: string, dataPointer: string, field: FzField) { 
+                that.schemaMap.set(schemaPointer, field)
+                that.fieldMap.set(dataPointer, field)
+            },
+            removeField(schemaPointer: string, dataPointer: string) { 
+                that.schemaMap.delete(schemaPointer)
+                that.fieldMap.delete(dataPointer)
+            },
+            updateField(pointer: string) { 
+                that.fieldMap.get(pointer)?.requestUpdate()
+            }
+
+        }
+    }
 
     get root(): any { return this.i_root.content }
     get valid() {
@@ -120,24 +163,6 @@ export class FzForm extends Base {
         }
     }
 
-    public getField(pointer: string) {
-        return this.fieldMap.get(pointer)
-    }
-    addField(schemaPointer: string, dataPointer: string, field: FzField) {
-        this.schemaMap.set(schemaPointer, field)
-        this.fieldMap.set(dataPointer, field)
-    }
-    removeField(schemaPointer: string, dataPointer: string) {
-        this.schemaMap.delete(schemaPointer)
-        this.fieldMap.delete(dataPointer)
-    }
-    getfieldFromSchema(pointer: string) {
-        return this.schemaMap.get(pointer)
-    }
-    updateField(pointer: string) {
-        this.getField(pointer)?.requestUpdate()
-    }
-
     override render() {
         if (!Base.isBootStrapLoaded()) return 'Bootstrap not loaded...'
         return this.validator.schemaValid ? this.renderForm() : this.renderError()
@@ -172,7 +197,8 @@ export class FzForm extends Base {
         ]
     }
 
-    errors(pointer:string): string[] {
+    errors(pointer?:string): string[] {
+        if (isNull(pointer)) return [...this.errorMap.values()].flat()
         return this.errorMap.get(pointer) ?? []
     }
 
@@ -222,7 +248,7 @@ export class FzForm extends Base {
         if (this === evt.composedPath()[0]) return
         const trackers: string[] = (evt as CustomEvent).detail.trackers
         trackers.forEach(pointer => {
-            const field = this.getfieldFromSchema(pointer)
+            const field = this.schemaMap.get(pointer)
             const logger = FzLogger.get("tracker",{field,schema:field?.schema})
             logger.info(`refreshed by %s`,evt.detail.field.pointer)
             field?.trackedValueChange()
