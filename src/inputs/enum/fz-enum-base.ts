@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { html, TemplateResult } from "lit"
 import { FzItemDlg } from "../../components/fz-item-dlg";
-import { getSchema, isFunction, isNull, notNull } from "../../lib/tools"
+import { isFunction, isNull, notNull } from "../../lib/tools"
 import { FzInputBase } from "../fz-input-base";
 import { isFrom, Schema } from "../../lib/schema";
-import { EnumItem, FromObject, Pojo } from "../../lib/types";
+import { EnumItem, FromObject, Pojo, SCHEMA } from "../../lib/types";
 import { query } from "lit/decorators.js";
 
 export const FETCHING = []
@@ -138,7 +138,7 @@ export abstract class FzEnumBase extends FzInputBase {
             const name = this.refenum.name
             const target = this.refenum.target
             return target.reduce((list: EnumItem[], item: any, index: number) => {
-                const schema = getSchema(item)
+                const schema = item[SCHEMA]
                 const ok = schema._evalExpr('filter', schema, item, target as Pojo, index,this.derefFunc,this.context.appdata)
                 if (ok) {
                     const value = item[name]

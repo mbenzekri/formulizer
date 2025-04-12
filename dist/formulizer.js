@@ -172,6 +172,11 @@ const t$2=globalThis,i$3=t$2.trustedTypes,s$1=i$3?i$3.createPolicy("lit-html",{c
  * SPDX-License-Identifier: BSD-3-Clause
  */let r$1 = class r extends b{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0;}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const s=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=B(s,this.renderRoot,this.renderOptions);}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(true);}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(false);}render(){return T}};r$1._$litElement$=true,r$1["finalized"]=true,globalThis.litElementHydrateSupport?.({LitElement:r$1});const i$2=globalThis.litElementPolyfillSupport;i$2?.({LitElement:r$1});(globalThis.litElementVersions??=[]).push("4.1.1");
 
+const SCHEMA = Symbol("FZ_FORM_SCHEMA");
+const PARENT = Symbol("FZ_FORM_PARENT");
+const KEY = Symbol("FZ_FORM_KEY");
+const ROOT = Symbol("FZ_FORM_ROOT");
+
 function notNull(value) {
     return value != null;
 }
@@ -504,7 +509,7 @@ function derefPointerData(root, parent, key, pointer) {
         }
         else {
             for (let i = 1; i < count; i++)
-                base = getParent(base);
+                base = base?.[PARENT];
         }
         if (!base) {
             console.error(`enable to dereference pointer ${pointer} (no more parents)`);
@@ -520,20 +525,6 @@ function derefPointerData(root, parent, key, pointer) {
     }
     return base;
 }
-function pointerSchema(parent, property, prev = "") {
-    if (!parent)
-        return (property ? property : "");
-    if (!property)
-        return "";
-    const root = parent.root;
-    prev = property + ((prev === "") ? "" : "/" + prev);
-    if (root == parent)
-        return "/" + prev;
-    return pointerSchema(parent.parent, prev);
-}
-const SCHEMASYM = Symbol("FZ_FORM_SCHEMA");
-const PARENTSYM = Symbol("FZ_FORM_PARENT");
-const ROOTSYM = Symbol("FZ_FORM_ROOT");
 function setHiddenProperty(data, property, value) {
     if (data && typeof data === "object" && value) {
         Object.defineProperty(data, property, {
@@ -545,40 +536,9 @@ function setHiddenProperty(data, property, value) {
     return data;
 }
 function newValue(value, parent, schema) {
-    setSchema(value, schema);
-    setParent(value, parent);
-    setRoot(value, getRoot(parent));
-    return value;
-}
-function setSchema(data, schema) {
-    return setHiddenProperty(data, SCHEMASYM, schema);
-}
-function getSchema(data) {
-    return data?.[SCHEMASYM];
-}
-function setParent(data, parent) {
-    return setHiddenProperty(data, PARENTSYM, parent);
-}
-function getParent(data) {
-    return data[PARENTSYM];
-}
-function setRoot(data, root) {
-    return setHiddenProperty(data, ROOTSYM, root);
-}
-function getRoot(data) {
-    return data[ROOTSYM];
-}
-/**
-    * stringify method to remove circular references in JSON object
-    * @param key key of the attribute to find
-    * @param value value of the attribute to replace
-    *
-*/
-function getCircularReplacer(key, value) {
-    if (key === 'root')
-        return undefined;
-    if (key === 'parent')
-        return undefined;
+    setHiddenProperty(value, SCHEMA, schema);
+    setHiddenProperty(value, PARENT, parent);
+    setHiddenProperty(value, ROOT, parent[ROOT]);
     return value;
 }
 function isEmptyValue(value) {
@@ -1619,7 +1579,7 @@ class FzField extends Base {
                 : undefined;
             const index = refto.refarray.findIndex((x) => x[refto.refname] === this.value[key]);
             const value = refto.refarray[index];
-            const schema = getSchema(value);
+            const schema = value[SCHEMA];
             text = isFunction(schema.abstract)
                 ? schema._evalExpr('abstract', schema, value, refto.refarray, index, this.derefFunc, this.context.appdata)
                 : schema._abstract(this.value[key]);
@@ -1746,7 +1706,7 @@ class FzInputBase extends FzField {
             const mapping = invalidkeys.map((key) => `${key} = ${this.input.validity[key]}`).join('\n');
             logger.info("invalid mapping \n%s", mapping);
             const outlist = [
-                ['schema', JSON.stringify(this.schema, getCircularReplacer).substring(0, 100)],
+                ['schema', JSON.stringify(this.schema, (key, value) => ['root', 'parent'].includes(key) ? undefined : value).substring(0, 100)],
                 ['data', JSON.stringify(this.data, (key, value) => typeof key === 'symbol' ? undefined : value).substring(1, 100)],
                 ['pointer', this.pointer],
                 ['name', this.name],
@@ -1890,7 +1850,7 @@ class FzEnumBase extends FzInputBase {
             const name = this.refenum.name;
             const target = this.refenum.target;
             return target.reduce((list, item, index) => {
-                const schema = getSchema(item);
+                const schema = item[SCHEMA];
                 const ok = schema._evalExpr('filter', schema, item, target, index, this.derefFunc, this.context.appdata);
                 if (ok) {
                     const value = item[name];
@@ -4197,7 +4157,7 @@ let FzArray$1 = class FzArray extends FZCollection {
                     const sandbox = newSandbox(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc, this.context.appdata);
                     return schema.case(sandbox) ?? false;
                 };
-                this.schemas.push(getSchema(value) ?? this.schema.items?.oneOf?.find(evalCase));
+                this.schemas.push(value[SCHEMA] ?? this.schema.items?.oneOf?.find(evalCase));
             }
         }
     }
@@ -5002,7 +4962,7 @@ let FzItemDlg = class FzItemDlg extends Base {
             this.pointer = this.reference?.pointer;
             this.array = this.reference?.target;
             this.refname = this.reference?.name;
-            this.arraySchema = getSchema(this.array);
+            this.arraySchema = this.array[SCHEMA];
         }
         else {
             this.pointer = undefined;
@@ -5587,11 +5547,6 @@ class AjvValidator extends Validator {
 //     }
 // }
 
-const SCHEMA = Symbol("FZ_FORM_SCHEMA");
-const PARENT = Symbol("FZ_FORM_PARENT");
-const KEY = Symbol("FZ_FORM_KEY");
-const ROOT = Symbol("FZ_FORM_ROOT");
-
 class CSUpgradeNullable extends CompilationStep {
     constructor(root) {
         super(root, "nullable", "upgrade", []);
@@ -5932,10 +5887,11 @@ class CSTargetType extends CompilationStep {
     }
     apply(schema, parent, name) {
         schema.target = [...this.infer(schema)];
+        const pointer = `${parent?.pointer}/${name}`;
         switch (schema.target.length) {
             case 2:
                 if (!schema.target.includes("null")) {
-                    throw Error(`Second type must be "null" : ${pointerSchema(parent, name)}`);
+                    throw Error(`Second type must be "null" : ${pointer}`);
                 }
                 schema.basetype = schema.target.find((t) => t !== "null") ?? schema.target[0];
                 schema.nullAllowed = true;
@@ -5949,7 +5905,7 @@ class CSTargetType extends CompilationStep {
                 schema.nullAllowed = false;
                 break;
             default:
-                throw Error(`multiple types not implemented : ${pointerSchema(parent, name)}`);
+                throw Error(`multiple types not implemented : ${pointer}`);
         }
     }
     infer(schema) {
@@ -6376,7 +6332,7 @@ class CSInsideRef extends CompilationStep {
                 console.error(`reference list must be an array ${pointer}`);
                 return [];
             }
-            return { pointer, name, target, schema: getSchema(target), extend: !!from.extend };
+            return { pointer, name, target, schema: target[SCHEMA], extend: !!from.extend };
         };
     }
 }
@@ -6506,10 +6462,10 @@ class DataCompiler {
         this.steps = [
             (schema, data, parent, key) => {
                 if (isObject(data) || isArray(data)) {
+                    data[ROOT] = this.data;
                     data[SCHEMA] = schema;
                     data[PARENT] = parent;
                     data[KEY] = key;
-                    data[ROOT] = data;
                 }
             }
         ];

@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { html, PropertyValues, TemplateResult } from "lit";
 import { FzField } from "../fz-field";
-import { getCircularReplacer } from "../lib/tools";
 
 const invalidkeys = [
     'valueMissing',
@@ -72,7 +71,7 @@ export abstract class FzInputBase extends FzField {
             const mapping = invalidkeys.map((key) => `${key} = ${(this.input.validity as any)[key]}`).join('\n')
             logger.info("invalid mapping \n%s",mapping)
             const outlist = [
-                ['schema', JSON.stringify(this.schema, getCircularReplacer).substring(0,100)],
+                ['schema', JSON.stringify(this.schema, (key: any, value: any) => ['root','parent'].includes(key) ? undefined : value).substring(0,100)],
                 ['data', JSON.stringify(this.data, (key, value) => typeof key === 'symbol' ? undefined : value).substring(1,100)],
                 ['pointer',this.pointer],
                 ['name', this.name],

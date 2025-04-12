@@ -1,11 +1,10 @@
 import { html, css } from "lit"
 import { property, customElement } from "lit/decorators.js"
 import { FzDialog } from "./dialog"
-import { getSchema } from "../lib/tools"
 import { FzField } from "../fz-field"
 import { Base } from "../base"
 import { Schema } from "../lib/schema"
-import { FromObject } from "../lib/types"
+import { FromObject, SCHEMA } from "../lib/types"
 
 
 @customElement("fz-item-dlg")
@@ -53,7 +52,7 @@ export class FzItemDlg extends Base {
             this.pointer = this.reference?.pointer
             this.array = this.reference?.target
             this.refname = this.reference?.name
-            this.arraySchema = getSchema(this.array)
+            this.arraySchema = (this.array as any)[SCHEMA]
         } else {
             this.pointer = undefined
             this.array =undefined

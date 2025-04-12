@@ -1,4 +1,4 @@
-import { Pojo, Sandbox } from "../lib/types"
+import { PARENT, Pojo, ROOT, Sandbox, SCHEMA } from "../lib/types"
 import { Schema } from "../lib/schema"
 
 export function notNull<A>(value:A): value is Exclude<A,null|undefined>
@@ -368,13 +368,13 @@ export function newSandbox(schema:Schema, value: any, parent: any, key: string|n
 export function derefPointerData(root: Pojo, parent: Pojo, key: string | number, pointer: string): any {
     const tokens = pointer.split(/\//)
     const relative = /^\d+$/.test(tokens[0])
-    let base: Pojo|undefined = relative ? parent : root
+    let base: any = relative ? parent : root
     if (relative) {
         const count = parseInt(tokens[0])
         if (count === 0) {
             base = base[key] as Pojo
         } else {
-            for (let i = 1; i < count; i++) base = getParent(base)
+            for (let i = 1; i < count; i++) base = base?.[PARENT]
         }
         if (!base) {
             console.error(`enable to dereference pointer ${pointer} (no more parents)`)
@@ -390,28 +390,6 @@ export function derefPointerData(root: Pojo, parent: Pojo, key: string | number,
     return base
 }
 
-export function pointerData(parent: Pojo | null, key: string | number | null, prev = ""): string {
-    if (!parent) return (key != null ? String(key) : "")
-    if (!key) return ""
-    const root = getRoot(parent)
-    prev = key + ((prev === "") ? "" : "/" + prev);
-    if (root == parent) return "/" + prev
-    return pointerData(getParent(parent), prev)
-}
-
-export function pointerSchema(parent?: Schema, property?: string, prev = ""): string {
-    if (!parent) return (property ? property : "")
-    if (!property) return ""
-    const root = parent.root
-    prev = property + ((prev === "") ? "" : "/" + prev);
-    if (root == parent) return "/" + prev
-    return pointerSchema(parent.parent, prev)
-}
-
-const SCHEMASYM = Symbol("FZ_FORM_SCHEMA")
-const PARENTSYM = Symbol("FZ_FORM_PARENT")
-const ROOTSYM = Symbol("FZ_FORM_ROOT")
-
 function setHiddenProperty(data: any, property: symbol, value: any) {
     if (data && typeof data === "object" && value) {
         Object.defineProperty(data, property, {
@@ -424,47 +402,10 @@ function setHiddenProperty(data: any, property: symbol, value: any) {
 }
 
 export function newValue(value: any, parent: any, schema: Schema): Pojo {
-    setSchema(value, schema)
-    setParent(value, parent)
-    setRoot(value, getRoot(parent))
+    setHiddenProperty(value, SCHEMA, schema)
+    setHiddenProperty(value, PARENT, parent)
+    setHiddenProperty(value, ROOT, parent[ROOT])
     return value
-}
-
-
-export function setSchema(data: any, schema: Schema) {
-    return setHiddenProperty(data, SCHEMASYM, schema)
-}
-
-export function getSchema(data: any): Schema {
-    return data?.[SCHEMASYM]
-}
-
-export function setParent(data: any, parent: any) {
-    return setHiddenProperty(data, PARENTSYM, parent)
-}
-
-export function getParent(data: any): any {
-    return data[PARENTSYM]
-}
-
-export function setRoot(data: any, root: any) {
-    return setHiddenProperty(data, ROOTSYM, root)
-}
-
-export function getRoot(data: any): any {
-    return data[ROOTSYM]
-}
-
-/**
-    * stringify method to remove circular references in JSON object
-    * @param key key of the attribute to find
-    * @param value value of the attribute to replace
-    *
-*/
-export function getCircularReplacer(key: any, value: any) {
-    if (key === 'root') return undefined
-    if (key === 'parent') return undefined
-    return value;
 }
 
 export function isEmptyValue(value: any): boolean {
@@ -505,8 +446,8 @@ export function formatMsg(key: string, input?: HTMLInputElement): string {
 export function cleanJSON(data: Pojo) {
     // we avoid returning object having only nullish values , or empty arrays
     const replacer = function (this: any, name: string, value: any) {
-        const schema = getSchema(value)
-        const pschema = getSchema(this)
+        const schema = value[SCHEMA]
+        const pschema = this[SCHEMA]
         if (pschema?.properties?.[name]?.transient) return undefined
         if (schema && Array.isArray(value) && value.length === 0) {
             return undefined

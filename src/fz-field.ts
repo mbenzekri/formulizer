@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property } from "lit/decorators.js"
 import { html, TemplateResult, PropertyValues } from "lit"
-import { derefPointerData, isEmptyValue, newValue, getSchema, isFunction, notNull, isArray, isNull, newSandbox } from "./lib/tools"
-import { Pojo } from "./lib/types"
+import { derefPointerData, isEmptyValue, newValue, isFunction, notNull, isArray, isNull, newSandbox } from "./lib/tools"
+import { Pojo, SCHEMA } from "./lib/types"
 import { FzForm,FzFormContext } from "./fz-form"
 import { Base } from "./base"
 import { EMPTY_SCHEMA, Schema } from "./lib/schema"
@@ -421,7 +421,7 @@ export abstract class FzField extends Base {
                 : undefined
             const index = refto.refarray.findIndex((x: any) => x[refto.refname] === this.value[key])
             const value = refto.refarray[index]
-            const schema = getSchema(value)
+            const schema = value[SCHEMA]
             text = isFunction(schema.abstract) 
                 ? schema._evalExpr('abstract',schema, value, refto.refarray, index, this.derefFunc, this.context.appdata) 
                 : schema._abstract(this.value[key])

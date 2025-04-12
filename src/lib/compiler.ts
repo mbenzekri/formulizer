@@ -1,5 +1,5 @@
 import { Pojo, FieldOrder, ExprFunc, IOptions, FromObject, SCHEMA, ROOT, PARENT, KEY } from "./types"
-import { pointerSchema, derefPointerData, complement, intersect, union, isPrimitive, isArray, isFunction, notNull, getSchema, isObject, isBoolean, isNull, isString, isNumber } from "./tools";
+import { derefPointerData, complement, intersect, union, isPrimitive, isArray, isFunction, notNull, isObject, isBoolean, isNull, isString, isNumber } from "./tools";
 import { Schema, CompilationStep, isenumarray } from "./schema";
 import { CSUpgradeRef, CSUpgradeAdditionalProperties, CSUpgradeDependencies, CSUpgradeId, CSUpgradeItems, CSUpgradeNullable } from "./upgrade";
 
@@ -284,10 +284,11 @@ class CSTargetType extends CompilationStep {
 
     override apply(schema: Schema, parent?: Schema, name?: string) {
         schema.target = [...this.infer(schema)]
+        const pointer = `${parent?.pointer}/${name}`
         switch (schema.target.length) {
             case 2:
                 if (!schema.target.includes("null")) {
-                    throw Error(`Second type must be "null" : ${pointerSchema(parent, name)}`)
+                    throw Error(`Second type must be "null" : ${pointer}`)
                 }
                 schema.basetype = schema.target.find((t: string) => t !== "null") ?? schema.target[0]
                 schema.nullAllowed = true
@@ -301,7 +302,7 @@ class CSTargetType extends CompilationStep {
                 schema.nullAllowed = false
                 break
             default:
-                throw Error(`multiple types not implemented : ${pointerSchema(parent, name)}`)
+                throw Error(`multiple types not implemented : ${pointer}`)
         }
     }
 
@@ -765,7 +766,7 @@ class CSInsideRef extends CompilationStep {
                 console.error(`reference list must be an array ${pointer}`)
                 return []
             }
-            return { pointer, name, target, schema: getSchema(target), extend: !!from.extend } as FromObject
+            return { pointer, name, target, schema: (target as any)[SCHEMA], extend: !!from.extend } as FromObject
         }
     }
 }
@@ -901,10 +902,10 @@ export class DataCompiler {
         this.steps = [
             (schema, data, parent, key) => {
                 if (isObject(data) || isArray(data)) {
+                    data[ROOT] = this.data
                     data[SCHEMA] = schema
                     data[PARENT] = parent
                     data[KEY] = key
-                    data[ROOT] = data
                 }
             }
         ]

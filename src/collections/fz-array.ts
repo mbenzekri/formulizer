@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement, property } from "lit/decorators.js"
 import { css, html, TemplateResult } from "lit"
-import { getSchema, isArray, isFunction, isNull, isObject, newSandbox, when } from "../lib/tools"
+import { isArray, isFunction, isNull, isObject, newSandbox, when } from "../lib/tools"
 import { FZCollection } from "./fz-collection"
 import { EMPTY_SCHEMA, Schema } from "../lib/schema"
+import { SCHEMA } from "../lib/types"
 
 /**
  * @prop schema
@@ -289,7 +290,7 @@ export class FzArray extends FZCollection {
                     const sandbox = newSandbox(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc, this.context.appdata)
                     return schema.case(sandbox) ?? false
                 }
-                this.schemas.push(getSchema(value) ?? this.schema.items?.oneOf?.find(evalCase))
+                this.schemas.push(value[SCHEMA] ?? this.schema.items?.oneOf?.find(evalCase))
             }
         }
     }
