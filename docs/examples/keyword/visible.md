@@ -3,34 +3,26 @@
 >The `visible` keyword controls whether a field is **shown or hidden** in your form.
 
 
-## Always Visible (Default)
+## Usage
 
-```json
-{
-    "type": "string",
-    "visible": true
-}
-```
+>- Allways visible when set to `true` (Default)
+>- Allways hidden when set to false
+>- use a string boolean expression to set it dynamically
+    
+💡: expression syntax  are discussed  → [chp. general/expression](#general/expression)
 
-## Always Hidden
 
-```json
-{
-    "type": "string",
-    "visible": false
-}
-```
+## 🔍 Example
 
-## Conditional Visibility (Using Expressions)
+- Ⓐ field `reason` will be use to switch visibility of other fields.
+    <pre onclick="this.innerHTML = form.sourceSchema.properties.reason._toJSON(4)">...</pre>
+- Ⓑ field `sorry` will be visible if reason is "Does not meet my needs".
+    <pre onclick="this.innerHTML = form.sourceSchema.properties.sorry._toJSON(4)">...</pre>
+- Ⓒ field `offer` will be visible if reason is "Too expensive".
+    <pre onclick="this.innerHTML = form.sourceSchema.properties.offer._toJSON(4)">...</pre>
 
-- provide a fz-form boolean expression (in string).
-- the field will show or hide depending on the result.
-- expression syntax  are discussed  → <a href=# onclick="goto('expression')">here</a>.
+- Ⓓ field `canceled` will be visible if reason is "Project canceled".
+    <pre onclick="this.innerHTML = form.sourceSchema.properties.canceled._toJSON(4)">...</pre>
 
-```json
-{
-    "type": "string",
-    "visible": "$`1/reason` === 'other'"
-}
-```
-
+- Ⓔ field `comment` will be visible if reason is "Other".
+    <pre onclick="this.innerHTML = form.sourceSchema.properties.comment._toJSON(4)">...</pre>

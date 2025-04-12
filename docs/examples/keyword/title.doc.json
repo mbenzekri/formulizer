@@ -57,7 +57,7 @@
     "data": {
         "name": "Bob",
         "gotit": null,
-        "nolabel": "Ⓒ ...",
+        "nolabel": "Ⓒ I dont have label...",
         "palette": ["red","green"],
         "profile" : {
             "pseudo": "Iron Man",

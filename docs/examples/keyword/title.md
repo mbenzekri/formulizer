@@ -1,21 +1,13 @@
 
 ## Keyword: `title`
 
-The `title` keyword provide a **label** for each property.
+>The `title` keyword provide a **label** for each property.
 
-## ✅ Usage
+## Usage
 
 >- You can use `title` on **any field type**.
 >- It displays a **label** for the property aside the input.
 >- Set it to "" (epmty string) to remove label
-
-```json
-"name": {
-   "type": "string",
-   "title": "First name",
-   ...
-}
-```
 
 ## 🔍 Example
 

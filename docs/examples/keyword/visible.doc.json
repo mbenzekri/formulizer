@@ -6,29 +6,43 @@
         "properties": {
             "reason": {
                 "type": "string",
-                "title": "Help us improve",
-                "enum" :  ["Doesn’t fit my needs", "Too expensive", "I don’t need it anymore", "other"],
+                "title": "Ⓐ Help us improve",
+                "enum" :  [
+                    "Does not meet my needs", 
+                    "Too expensive", 
+                    "Project canceled", 
+                    "Other"],
                 "default" : "Doesn’t fit my needs"
+            },
+            "sorry": {
+                "title": "Ⓑ",
+                "visible": "$`1/reason` === 'Does not meet my needs'",
+                "const": "Sorry, I did my best"
+            },
+            "offer": {
+                "visible": "$`1/reason` === 'Too expensive'",
+                "type": "string",
+                "format": "markdown",
+                "dynamic": ["Ⓒ",
+                    "## 🎁 Offer... ",
+                    "**We’d love to keep you! Here’s a special 50% discount just for you.**"
+                ],
+                "transient": true
+            },
+            "canceled": {
+                "title": "Ⓓ",
+                "visible": "$`1/reason` === 'Project canceled'",
+                "const": "Bye, See you soon"
             },
             "comment": {
                 "type": "string",
-                "title": "Tell us more",
-                "maxLength": 500,
-                "visible": "$`1/reason` === 'other'"
-            },
-            "offer": {
-                "type": "string",
-                "format": "markdown",
-                "dynamic": [
-                    "## 🎁 Offer...",
-                    "**We’d love to keep you! Here’s a special 50% discount just for you.**"
-                ],
-                "visible": "$`1/reason` === 'Too expensive'",
-                "transient": true
+                "visible": "$`1/reason` === 'Other'",
+                "title": "Ⓔ Tell us more",
+                "maxLength": 500
             }
         }
     },
     "data": {
-        "reason" : "Doesn’t fit my needs"
+        "reason" : "Does not meet my needs"
     }
 }
