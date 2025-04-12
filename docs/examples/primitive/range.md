@@ -1,7 +1,7 @@
 
 ## Configuration
 
-The `FzForm` range input is used for integer type within a specified range (few possible values). 
+The `fz-form` range input is used for integer type within a specified range (few possible values). 
 It is automatically infered when the JSON schema defines an integer type with both lower and upper limits and an optional `multipleOf` 
 property, provided the number of possible values is 10 or fewer.
 

@@ -1,5 +1,5 @@
 
-In FzForm, floating number fields are defined using the `type` keyword set to `"number"`. 
+In fz-form, floating number fields are defined using the `type` keyword set to `"number"`. 
 Float fields can have specific constraints to ensure data integrity and enhance user experience.
 
 ## Properties

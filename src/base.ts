@@ -55,7 +55,16 @@ export class Base extends LitElement {
                 white-space: nowrap;
                 overflow:hidden !important;
                 text-overflow: ellipsis;
-            } 
+            }
+            /* Apply the thin scrollbar */
+            .scrollable-div::-webkit-scrollbar {
+                width: 4px;
+            }
+
+            .scrollable-div::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 4px;
+            }
         `]
 
     private handlers: HandlerItem[] = []

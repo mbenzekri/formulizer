@@ -1,8 +1,8 @@
 
 
-## FzForm API
+## fz-form API
 
-FzForm is a W3C-compliant web component:
+fz-form is a W3C-compliant web component:
 
 - load the bundle formulizer.js (dev env) or formulizer.min.js (prod env) 
 - the tag to be used is: `<fz-form ></fz-form>`
@@ -14,9 +14,9 @@ FzForm is a W3C-compliant web component:
 | ---- | - | ---- | ----------- |
 | schema | x | JSON | an annotated JSON Schema form description the form data structure [see detail here](#general/schema) |
 | data | x | JSON | initial data to be updated throught the form. |
-| bootstrap |  | boolean | if present FzForm will load bootstrap from CDN [bootstrap chapter](#general/bootstrap) |
-| useajv |  | boolean | if present FzForm will load Ajv validator (lazy loading module) |
-| usemarkdown |  | boolean | if present FzForm will load Markdown field type  (lazy loading module) |
+| bootstrap |  | boolean | if present fz-form will load bootstrap from CDN [bootstrap chapter](#general/bootstrap) |
+| useajv |  | boolean | if present fz-form will load Ajv validator (lazy loading module) |
+| usemarkdown |  | boolean | if present fz-form will load Markdown field type  (lazy loading module) |
 | actions |  | boolean | if true will show actions buttons to validate or cancel the form (default to false / absent)|
 | readonly |   | boolean | if true form will show a readonly state of the data otherwise will allow form to allow update (default to false / absent) |
 | checkin |   | boolean | if true fzform reject the data not conforming to the JSON Schema (error message / no form) (default to false / absent) |
@@ -33,7 +33,7 @@ __note__ :
 | valid | boolean | return true if this.data conform to schema |
 | schema | Object | return the schema describing the form |
 | data | Object | return the actual edited data |
-| options | Object | option to configure FzForm |
+| options | Object | option to configure fz-form |
 
 
 ## Events 

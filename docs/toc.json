@@ -2,13 +2,14 @@
     "definitions": {
         "toc": {
             "General": {
-                "general/whatis": "What is FzForm",
-                "general/api": "Component API",
-                "general/bootstrap": "Load Bootstrap",
-                "general/schema": "extended JSON Schema",
-                "general/definition": "Reusable definitions",
-                "general/expression": "expressions",
-                "general/typenull": "typenull"
+                "general/whatis": "What is fz-form",
+                "general/api": "The fz-form API",
+                "general/bootstrap": "Loading Bootstrap",
+                "general/schema": "The fz-form schema",
+                "general/keyword": "The fz-form keywords",
+                "general/definition": "Using definitions",
+                "general/expression": "Using Expressions",
+                "general/typenull": "About emptyness"
             },
             "Keywords": {
                 "keyword/title": "title",

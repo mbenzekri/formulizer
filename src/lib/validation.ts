@@ -94,7 +94,7 @@ export class Validator {
                 allErrors: true,
                 //strict: true,
                 allowUnionTypes: true,
-                //strictSchema: true,
+                strictSchema: false,
                 strictNumbers: false,
                 coerceTypes: false,
                 multipleOfPrecision: 15

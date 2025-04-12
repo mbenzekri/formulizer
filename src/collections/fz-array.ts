@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement, property } from "lit/decorators.js"
-import { html, TemplateResult } from "lit"
+import { css, html, TemplateResult } from "lit"
 import { getSchema, isArray, isFunction, isNull, isObject, newSandbox, when } from "../lib/tools"
 import { FZCollection } from "./fz-collection"
 import { EMPTY_SCHEMA, Schema } from "../lib/schema"
@@ -18,7 +18,16 @@ export class FzArray extends FZCollection {
     private schemas: Schema[] = []
     private currentSchema?: Schema
 
-
+    static override  get styles() {
+        return [
+            ...super.styles,
+            css`
+            .list-group {
+                max-height: 350px!important; 
+                overflow-y: auto;
+            }`
+        ]
+    }
     override toField(): void {
         // all is done at rendering
     }
@@ -82,11 +91,12 @@ export class FzArray extends FZCollection {
                     </div>
                 </div>
                 <div class="space-after"> 
-                    <ul id="content" class="list-group">${lines}</ul>
+                    <ul id="content" class="list-group scrollable-div" >${lines}</ul>
                 </div>
                 ${this.renderErrors()}
                 <div class="form-group row space-before " @click="${this.close}">
-                    ${this.actionBtns()}
+                    <div class="col-sm-3"></div>
+                    <div class="col-sm-9">${this.actionBtns()}</div>
                 </div>
             </div>
         `
@@ -103,7 +113,7 @@ export class FzArray extends FZCollection {
             <button 
                 type="button" 
                 @click="${this.add}" 
-                class="btn btn-primary btn-sm col-sm-1"
+                class="btn btn-primary btn-sm col-sm"
                 >
                 <b>+</b>
             </button>`

@@ -732,12 +732,12 @@ class CSCollapsed extends CompilationStep {
     }
     override apply(schema: Schema) {
         if (isNull(schema.collapsed)) {
-            schema.collapsed = "false"
+            schema.collapsed = "never"
         } else {
             const domain = ["never","allways","true","false"]
             if (!(domain.includes(schema.collapsed))) {
                 throw this.error(`${schema.pointer} : collapsed must be one of [${domain.join(', ')}]`)
-            }    
+            }
         }
     }
 }

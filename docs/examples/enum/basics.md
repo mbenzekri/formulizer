@@ -1,10 +1,9 @@
 ## Basic enumeration
 
->FzForm adapts how enum fields are displayed based on the number of available options.
+>- fz-form adapts how enum fields are displayed based on the number of available options.
 >- Small lists use radio buttons for quick selection.
 >- Medium lists use dropdowns for easy browsing.
 >- Large lists use typeahead search for efficiency.
-> you can specify the input you want (see force input)
 
 __🎨 Display Rules__
 

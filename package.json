@@ -12,21 +12,28 @@
     "dist/"
   ],
   "scripts": {
-    "clean": "rimraf 'dist/**/*'",
+
+    "clean": "rimraf 'dist/**/*' ",
+
     "build": "rimraf 'dist/**/*-dynamic*.*' && tsc && rollup -c",
     "build:dev": "rimraf 'dist/**/*-dynamic*.*' && tsc && NODE_ENV=development rollup -c ",
     "build:watch": "NODE_ENV=development concurrently 'tsc --watch' 'rollup -c --watch'",
     "build:clean": "npm run clean && npm run build",
+
     "lint": "npm run lint:lit-analyzer && npm run lint:eslint",
     "lint:eslint": "eslint 'src/**/*.ts'",
     "lint:lit-analyzer": "lit-analyzer",
+
     "test": "npx playwright test --project=chrome",
     "test:all": "npx playwright test",
     "test:debug": "npx playwright test --debug --project=chrome -g",
     "test:one": "npx playwright test  --project=chrome -g ",
+    "test:chrome": "npx playwright test --project=chrome -g",
+    "test:chromium": "npx playwright test --project=chromium -g",
+    "test:firefox": "npx playwright test --project=firefox -g",
     "test:webkit": "npx playwright test --project=webkit -g",
     "test:safari_phone": "npx playwright test --project=safari_phone -g",
-    "test:android_phone": "npx playwright test --project=android_phone"
+    "test:chrome_phone": "npx playwright test --project=chrome_phone -g"
   },
   "keywords": [
     "web-component",

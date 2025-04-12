@@ -129,25 +129,3 @@ function initInner(target) {
     }
 
 }
-
-// Create a MutationObserver that looks for attribute changes.
-const observer = new MutationObserver((mutationsList) => {
-    mutationsList.forEach(mutation => {
-        // We're only interested in attribute mutations on "data-init".
-        if (mutation.type === 'attributes') {
-            console.log('attribute change %s', mutation.attributeName)
-        }
-        if (mutation.type === 'attributes' && mutation.attributeName === 'data-init') {
-            initInner(mutation.target)
-        }
-    });
-});
-
-// Observer configuration: watch for attribute changes in the whole document subtree.
-observer.observe(document.body, {
-    attributes: true,
-    //attributeFilter: ['data-init'],
-    subtree: true,
-    childList: true
-})
-

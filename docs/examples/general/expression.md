@@ -8,7 +8,7 @@ fz-form makes extensive use of string expressions (since JSON does not permit Ja
 
 # Dynamic Expression Context Variables
 
-When building dynamic expressions in FzForm, a context of local variables is provided to each evaluated expression.
+When building dynamic expressions in fz-form, a context of local variables is provided to each evaluated expression.
 
 - **`schema`**: the schema object of the current field in which the expression is defined.
 - **`value`**: the value of the current field.

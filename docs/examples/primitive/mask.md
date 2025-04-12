@@ -1,7 +1,7 @@
 # FzInputMask: User Documentation
 
 ## Introduction
-`FzInputMask` is a field type in **FzForm** that ensures users enter data in a structured format. It helps with inputs like:
+`FzInputMask` is a field type in **fz-form** that ensures users enter data in a structured format. It helps with inputs like:
 
 - **Credit Card Numbers** (`####-####-####-####`)
 - **Phone Numbers** (`+1 (###) ###-####`)
@@ -9,7 +9,7 @@
 
 ## How to Use
 ### 1️⃣ **Defining a Masked Field in Your Form**
-In **FzForm**, you can define an input field with a `mask` property:
+In **fz-form**, you can define an input field with a `mask` property:
 ```json
 {
     "type": "string",
@@ -28,7 +28,7 @@ In **FzForm**, you can define an input field with a `mask` property:
 | License Plate      | `AA-####`              | `AB-1234`               |
 | Postal Code (FR)   | `#####`                | `75001`                 |
 
-## Behavior in FzForm
+## Behavior in fz-form
 ### **Typing and Formatting**
 - Users **type only numbers**, static characters like `-`, `(`, `)` appear automatically.
 - The **saved value is the same as what is displayed**.
@@ -44,10 +44,10 @@ In **FzForm**, you can define an input field with a `mask` property:
 
 ### **Validating Input**
 - The mask ensures **only valid input is accepted**.
-- If a required field is incomplete, FzForm will mark it as **invalid**.
+- If a required field is incomplete, fz-form will mark it as **invalid**.
 
-## Example in a FzForm Form
-To define a field inside a FzForm form:
+## Example in a fz-form Form
+To define a field inside a fz-form form:
 ```json
 {
     "type": "object",
@@ -64,10 +64,10 @@ To define a field inside a FzForm form:
 ✅ This ensures the user enters a phone number in the correct format.
 
 ## Summary
-✅ **FzForm automatically applies formatting** as users type.
+✅ **fz-form automatically applies formatting** as users type.
 ✅ **Users do not need to worry about special characters (`-`, `(`, `)`).**
 ✅ **Stored values match exactly what is displayed.**
 ✅ **Validation ensures the format is respected.**
 
-With `FzInputMask`, FzForm provides a smooth and structured input experience!
+With `FzInputMask`, fz-form provides a smooth and structured input experience!
 

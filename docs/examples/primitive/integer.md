@@ -1,5 +1,5 @@
 
-In FzForm, integer fields are defined using the `type` keyword set to `"integer"`. 
+In fz-form, integer fields are defined using the `type` keyword set to `"integer"`. 
 Integer fields can have specific constraints to ensure data integrity and enhance user experience.
 
 ## Properties

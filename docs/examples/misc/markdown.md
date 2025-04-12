@@ -1,7 +1,7 @@
 
 ## Overview
 
-`FzForm` allows users to display Markdown content within a field by specifying a `type` of `"string"` and a `format` of `"markdown"`. This feature enables the rendering of rich text using Markdown syntax.
+`fz-form` allows users to display Markdown content within a field by specifying a `type` of `"string"` and a `format` of `"markdown"`. This feature enables the rendering of rich text using Markdown syntax.
 
 ## Description
 
@@ -30,7 +30,7 @@ The Markdown feature is useful for displaying formatted text, such as headers, l
   "type": "string",
   "format": "markdown",
   "dynamic": [
-    "# Welcome to FzForm",
+    "# Welcome to fz-form",
     "This is a **Markdown** example with data: ${$`/a/b/c`}.",
     "- Bullet point 1",
     "- Bullet point 2",
@@ -51,6 +51,6 @@ The Markdown feature is useful for displaying formatted text, such as headers, l
 
 ### Implementation Details
 
-- **Markdown-it**: `FzForm` uses [Markdown-it](https://github.com/markdown-it/markdown-it) to parse and render Markdown content. Markdown-it is a flexible, extensible, and fast Markdown parser with plugins for additional functionality.
+- **Markdown-it**: `fz-form` uses [Markdown-it](https://github.com/markdown-it/markdown-it) to parse and render Markdown content. Markdown-it is a flexible, extensible, and fast Markdown parser with plugins for additional functionality.
 
 

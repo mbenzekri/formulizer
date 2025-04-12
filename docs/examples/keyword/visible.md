@@ -23,7 +23,7 @@
 
 ## Conditional Visibility (Using Expressions)
 
-- provide a FzForm boolean expression (in string).
+- provide a fz-form boolean expression (in string).
 - the field will show or hide depending on the result.
 - expression syntax  are discussed  → <a href=# onclick="goto('expression')">here</a>.
 

@@ -1,7 +1,7 @@
 
 ## Overview
 
-The `collapsed` keyword in `FzForm` extends JSON Schema to manage the visual state of complex fields (objects or arrays), determining whether they appear expanded or collapsed.
+The `collapsed` keyword in `fz-form` extends JSON Schema to manage the visual state of complex fields (objects or arrays), determining whether they appear expanded or collapsed.
 
 ## Description
 
@@ -54,7 +54,7 @@ Use the `collapsed` keyword within the schema definition of an object or array f
    }
    ```
 
-These examples demonstrate how to use the `collapsed` keyword to control the visual state of fields in `FzForm`.
+These examples demonstrate how to use the `collapsed` keyword to control the visual state of fields in `fz-form`.
 
 ---
 

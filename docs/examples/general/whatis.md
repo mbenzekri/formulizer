@@ -1,22 +1,23 @@
 
 
-## What is FzForm
+## What is fz-form
 
-FzForm is a W3C-compliant web component that dynamically renders UI forms. Formz produced by FzForm are described by 
+
+fz-form is a W3C-compliant web component that dynamically renders UI forms. Formz produced by fz-form are described by 
 an extended JSON Schema format.
 
->- FzForm is provided as a [W3C web component](https://www.webcomponents.org/introduction)
+>- fz-form is provided as a [W3C web component](https://www.webcomponents.org/introduction)
 >- The component (tag: `<fz-form>`) expect a form description (`schema` property) and initial data (`data` property)
 >- The form description is provided in [JSON Schema ](https://json-schema.org/) format.
->- FzForm extends JSON Schema with UI and Form [specific keywords](#general/schema).
+>- fz-form extends JSON Schema with UI and Form [specific keywords](#general/schema).
 >- The generated form UI is designed with bootstrap 5 [bootstrap integration](#general/bootstrap).
 >- The data is provided and retrieved in JSON (JSON serializable JS objects).
 >- The bundle is provided as a unique javascript file to be loaded in your page (provide in CDN).
->- FzForm is developped using typescript and lit3.
+>- fz-form is developped using typescript and lit3.
 
 ## How to read this documentation 
 
-This README page is the root of the FzForm documentation.
+This README page is the root of the fz-form documentation.
 Here is some important pages.
 - `<fz-form>` web component API documentation (go there link)
 - JSON Schema keywords and how that impact the form rendering (go there link)
@@ -64,12 +65,12 @@ Here is some important pages.
 
 ## Example explained
 
-- load FzForm library in the header:
+- load fz-form library in the header:
     ```
         <script type="module" src="./formulizer.js"></script>
     ```
 
-- insert the FzForm tag and set attribute id to pick it later
+- insert the fz-form tag and set attribute id to pick it later
     ```
         <fz-form id="myform" ></fz-form>
     ```

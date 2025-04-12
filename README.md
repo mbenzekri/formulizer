@@ -43,15 +43,20 @@ JSON Schema driven WebComponent to display dynamic form (Bootstrap UI 5)
 >npm run build:watch
 >```
 
+### test
+
+- run full test on chrome : `npm run test`
+
 ### view documentation 
 - Ensure Live Sserver running and open [docs link](http://127.0.0.1:5500/docs/index.html) 
 
 ### debug specific schema/data
 
-- update `./docs/debug.json` file with the initial schema/data to debug
-- Ensure Live Sserver running and open [debug link](http://127.0.0.1:5500/docs/debug.html#debug) 
+- update `./docs/debug.json` file provide the initial form/data to reproduce bug. 
+- Ensure Live Sserver running 
+- Open [debug link](http://127.0.0.1:5500/docs/debug.html#debug) 
 
-## Directory structure
+
 # TODO LIST
 
 - from to data example not working
@@ -67,3 +72,31 @@ JSON Schema driven WebComponent to display dynamic form (Bootstrap UI 5)
     >    - donecb: to validate selection
     >    - abortcb: to abort update
     >How to manage lists instead of single value
+
+    💡⚠️ ❓🔧✅ 📌🔍
+9397	Ⓐ
+9398	Ⓑ
+9399	Ⓒ
+9400	Ⓓ
+9401	Ⓔ
+9402	Ⓕ
+9403	Ⓖ
+9404	Ⓗ
+9405	Ⓘ
+9406	Ⓙ
+9407    Ⓚ
+9408	Ⓛ
+9409	Ⓜ
+9410	Ⓝ
+9411	Ⓞ
+9412	Ⓟ
+9413	Ⓠ
+9414	Ⓡ
+9415	Ⓢ
+9416	Ⓣ
+9417	Ⓤ
+9418	Ⓥ
+9419    Ⓦ
+9420	Ⓧ
+9421	Ⓨ
+9422	Ⓩ

@@ -51,11 +51,11 @@ export class FzForm extends Base {
     }
 
     get schema() { return this.compiledSchema }
-    set schema(value: Schema) {
-        this.validator = Validator.getValidator(value)
+    set schema(newSchema: Schema) {
+        this.validator = Validator.getValidator(newSchema)
         if (this.validator.schemaValid) {
-            this.sourceSchema = new Schema(JSON.parse(JSON.stringify(value)))
-            this.compiledSchema = new Schema(JSON.parse(JSON.stringify(value)))
+            this.sourceSchema = new Schema(JSON.parse(JSON.stringify(newSchema)))
+            this.compiledSchema = new Schema(JSON.parse(JSON.stringify(newSchema)))
         } else {
             this.sourceSchema = new Schema(JSON.parse(JSON.stringify(DEFAULT_SCHEMA)))
             this.compiledSchema = new Schema(JSON.parse(JSON.stringify(DEFAULT_SCHEMA)))

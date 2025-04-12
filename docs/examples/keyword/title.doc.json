@@ -1,62 +1,66 @@
 {
     "form": {
         "type": "object",
-        "title" : "Demo title",
+        "title": "Demo title",
         "properties": {
-            "nom": {
+            "name": {
                 "type": "string",
-                "title": "Nom"
+                "title": "Ⓐ First name"
             },
-            "age": {
-                "type": "integer",
-                "title": "Age"
-            },
-            "taille": {
-                "type": "number",
-                "title": "Taille"
-            },
-            "permisb": {
+            "gotit": {
                 "type": "boolean",
-                "title": "J'ai le permis"
+                "title": "Ⓑ Got it?"
             },
-            "couleurs": {
+            "nolabel": {
+                "type": "string",
+                "title": ""
+            },
+            "palette": {
                 "type": "array",
-                "title": "mes couleurs",
+                "title": "Ⓓ My colors",
                 "items": {
                     "type": "string",
                     "enum": [
-                        "blanc",
-                        "noir",
-                        "rouge",
-                        "vert",
-                        "bleu",
-                        "jaune",
-                        "violet"
+                        "black",
+                        "red",
+                        "green",
+                        "blue",
+                        "yellow"
                     ]
                 }
             },
-            "adresse": {
+            "profile": {
                 "type": "object",
-                "title": "Adresse",
-                "collapsed": "never",
+                "title": "Ⓔ Profile",
                 "properties": {
-                    "no": {
-                        "type": "integer",
-                        "title": "No"
-                    },
-                    "rue": {
+                    "pseudo": {
                         "type": "string",
-                        "title": "Voie"
+                        "title": "Pseudo"
                     },
-                    "commune": {
+                    "email": {
                         "type": "string",
-                        "title": "Ville"
+                        "format": "email",
+                        "title": "Email"
+                    },
+                    "password": {
+                        "type": "string",
+                        "format": "password",
+                        "title": "Password"
                     }
                 }
             }
+
         }
     },
     "data": {
-        "adresse" : {}
+        "name": "Bob",
+        "gotit": null,
+        "nolabel": "Ⓒ ...",
+        "palette": ["red","green"],
+        "profile" : {
+            "pseudo": "Iron Man",
+            "email": "iron.man@avengers.com",
+            "password": "morgan"
+        }
     }
 }

@@ -1,17 +1,15 @@
-# FzForm + Bootstrap Integration
+## fz-form + Bootstrap Integration
 
-FzForm uses Bootstrap 5 class conventions (`form-control`, `form-group`, `is-valid`, etc.) to provide familiar styling for forms. However, **it does not include Bootstrap by default**, so the developer must explicitly register the styles.
+fz-form uses Bootstrap 5 class conventions (`form-control`, `form-group`, `is-valid`, etc.) to provide familiar styling for forms. However, **it does not include Bootstrap by default**, so the developer must explicitly register the styles.
 
 This design ensures:
 - Smaller bundle size
 - No duplication if the app already includes Bootstrap
 - Full control by the host application
 
----
-
 ## 🔧 Integration Methods
 
-You have **3 supported ways** to register Bootstrap styles into FzForm:
+You have **3 supported ways** to register Bootstrap styles into fz-form:
 
 ### ✅ 1. Register CSS via JS imports
 
@@ -26,8 +24,6 @@ FzForm.registerBootstrap(bootstrapCss, iconsCss)
 ```
 
 This is the recommended method when you're already using Bootstrap in a modular way.
-
----
 
 ### ✅ 2. Reuse existing `<link>` in HTML
 
@@ -47,13 +43,11 @@ FzForm.registerBootstrapFromLinks(
 )
 ```
 
-This reuses the already-loaded `CSSStyleSheet` objects and injects them into all FzForm fields.
-
----
+This reuses the already-loaded `CSSStyleSheet` objects and injects them into all fz-form fields.
 
 ### ✅ 3. Load Bootstrap from CDN (fallback)
 
-If no styles are registered, you can let FzForm load Bootstrap automatically:
+If no styles are registered, you can let fz-form load Bootstrap automatically:
 
 ```ts
 await FzForm.registerBootstrapCDN()
@@ -65,7 +59,6 @@ This will inject the following:
 
 > ⚠️ Warning: not recommended for production. Use as fallback only.
 
----
 
 ## ❓ Did Bootstrap Register?
 
@@ -76,8 +69,6 @@ if (!FzForm.isBootstrapRegistered()) {
   console.warn("No Bootstrap styles registered")
 }
 ```
-
----
 
 ## 📌 Content Security Policy (CSP) Notes
 
@@ -101,7 +92,7 @@ Content-Security-Policy: style-src 'self' 'unsafe-inline'
 
 > Lit will automatically apply `nonce` to `<style>` tags if `window.litNonce` is set.
 
----
+
 
 ## 🧠 Best Practices
 
@@ -111,32 +102,4 @@ Content-Security-Policy: style-src 'self' 'unsafe-inline'
 | Using `<link>` tags in HTML      | `registerBootstrapFromLinks()`      |
 | No Bootstrap setup (testing/dev) | `registerBootstrapCDN()`            |
 | App doesn't use Bootstrap        | Fallback loading bootstrap from CDN |
-
----
-
-## 🔍 Example Full Setup
-
-```ts
-import { FzForm } from 'formulizer'
-
-FzForm.registerBootstrapFromLinks(
-  'link[href*="bootstrap.min.css"]',
-  'link[href*="bootstrap-icons"]'
-)
-
-// OR
-
-import bootstrapCss from 'bootstrap/dist/css/bootstrap.min.css'
-FzForm.registerBootstrap(bootstrapCss)
-
-// OR
-
-await FzForm.registerBootstrapCDN()
-```
-
-Done properly, all FzForm fields (`fz-form`, `fz-string`, `fz-boolean`, etc.) will render with Bootstrap 5 styling, validation feedback, layout, and responsiveness.
-
----
-
-Need help? Encounter CSP issues or shadow DOM styling problems? Ask for guidance on registering styles explicitly before rendering your first form.
 

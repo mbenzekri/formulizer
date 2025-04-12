@@ -566,7 +566,16 @@ class Base extends r$1 {
                 white-space: nowrap;
                 overflow:hidden !important;
                 text-overflow: ellipsis;
-            } 
+            }
+            /* Apply the thin scrollbar */
+            .scrollable-div::-webkit-scrollbar {
+                width: 4px;
+            }
+
+            .scrollable-div::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 4px;
+            }
         `
     ];
     handlers = [];
@@ -3849,6 +3858,16 @@ let FzArray$1 = class FzArray extends FZCollection {
     set current(value) { this.#current_accessor_storage = value; }
     schemas = [];
     currentSchema;
+    static get styles() {
+        return [
+            ...super.styles,
+            i$5 `
+            .list-group {
+                max-height: 350px!important; 
+                overflow-y: auto;
+            }`
+        ];
+    }
     toField() {
         // all is done at rendering
     }
@@ -3906,11 +3925,12 @@ let FzArray$1 = class FzArray extends FZCollection {
                     </div>
                 </div>
                 <div class="space-after"> 
-                    <ul id="content" class="list-group">${lines}</ul>
+                    <ul id="content" class="list-group scrollable-div" >${lines}</ul>
                 </div>
                 ${this.renderErrors()}
                 <div class="form-group row space-before " @click="${this.close}">
-                    ${this.actionBtns()}
+                    <div class="col-sm-3"></div>
+                    <div class="col-sm-9">${this.actionBtns()}</div>
                 </div>
             </div>
         `;
@@ -3925,7 +3945,7 @@ let FzArray$1 = class FzArray extends FZCollection {
             <button 
                 type="button" 
                 @click="${this.add}" 
-                class="btn btn-primary btn-sm col-sm-1"
+                class="btn btn-primary btn-sm col-sm"
                 >
                 <b>+</b>
             </button>`;
@@ -5347,7 +5367,7 @@ class Validator {
             allErrors: true,
             //strict: true,
             allowUnionTypes: true,
-            //strictSchema: true,
+            strictSchema: false,
             strictNumbers: false,
             coerceTypes: false,
             multipleOfPrecision: 15
@@ -6323,7 +6343,7 @@ class CSCollapsed extends CompilationStep {
     }
     apply(schema) {
         if (isNull(schema.collapsed)) {
-            schema.collapsed = "false";
+            schema.collapsed = "never";
         }
         else {
             const domain = ["never", "allways", "true", "false"];
@@ -6620,11 +6640,11 @@ let FzForm = FzForm_1 = class FzForm extends Base {
         return this.validator.valid;
     }
     get schema() { return this.compiledSchema; }
-    set schema(value) {
-        this.validator = Validator.getValidator(value);
+    set schema(newSchema) {
+        this.validator = Validator.getValidator(newSchema);
         if (this.validator.schemaValid) {
-            this.sourceSchema = new Schema(JSON.parse(JSON.stringify(value)));
-            this.compiledSchema = new Schema(JSON.parse(JSON.stringify(value)));
+            this.sourceSchema = new Schema(JSON.parse(JSON.stringify(newSchema)));
+            this.compiledSchema = new Schema(JSON.parse(JSON.stringify(newSchema)));
         }
         else {
             this.sourceSchema = new Schema(JSON.parse(JSON.stringify(DEFAULT_SCHEMA)));

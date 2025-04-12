@@ -1,7 +1,7 @@
 
 ## Overview
 
-The `string` type in `FzForm` is used to define fields that accept text input. This type supports several JSON Schema keywords that allow you to validate and constrain the input, ensuring it meets specific criteria.
+The `string` type in `fz-form` is used to define fields that accept text input. This type supports several JSON Schema keywords that allow you to validate and constrain the input, ensuring it meets specific criteria.
 
 ## Description
 

@@ -1,6 +1,6 @@
 ## Enum with Labels
 
-> FzForm supports defining enums with human-readable labels using the standard JSON Schema **`oneOf`** construct.
+> fz-form supports defining enums with human-readable labels using the standard JSON Schema **`oneOf`** construct.
 
 ## Defining Labeled Enumerations
 A labeled enum is defined with **`oneOf`**, where each option has:
