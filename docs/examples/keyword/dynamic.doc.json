@@ -9,12 +9,12 @@
                 "readonly": "true",
                 "dynamic": "new Date().toISOString()"
             },
-            "weight": {
+            "speed": {
                 "type": "integer",
-                "title": "Weight (kg)",
-                "minimum": 20,
-                "maximum": 200,
-                "multipleOf": 20
+                "title": "Speed (m/s)",
+                "minimum": 0,
+                "maximum": 20,
+                "multipleOf": 2
             },
             "angle": {
                 "type": "integer",
@@ -23,16 +23,28 @@
                 "maximum": 90,
                 "multipleOf": 5
             },
+            "theta": {
+                "type": "number",
+                "title": "Angle (rad)",
+                "readonly": true,
+                "dynamic": " $`/angle` * Math.PI / 180"
+            },
             "distance": {
                 "type": "number",
                 "title": "Distance (m)",
                 "readonly": "true",
-                "dynamic": " $`/weight` * Math.sin(2 * $`/angle` * Math.PI / 180)"
+                "dynamic": " ($`/speed` ** 2 / 9.81) * Math.sin(2 * $`/theta`)"
+            },
+            "theta2": {
+                "type": "number",
+                "title": "BIS",
+                "readonly": "true",
+                "dynamic": " $`/theta` "
             }
         }
     },
     "data": {
-        "weight": 100,
+        "speed": 1,
         "angle": 45
     }
 }

@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property } from "lit/decorators.js"
 import { html, TemplateResult, PropertyValues } from "lit"
-import { derefPointerData, isEmptyValue, newValue, isFunction, notNull, isArray, isNull, newSandbox } from "./lib/tools"
-import { Pojo, SCHEMA } from "./lib/types"
+import { derefPointerData, isEmptyValue, newValue, isFunction, notNull, isArray, isNull, isString } from "./lib/tools"
+import { Pojo } from "./lib/types"
 import { FzForm,FzFormContext } from "./fz-form"
 import { Base } from "./base"
 import { EMPTY_SCHEMA, Schema } from "./lib/schema"
@@ -81,7 +81,6 @@ export abstract class FzField extends Base {
         return this.schema.parent == null
     }
 
-
     get value(): any {
         // Warning side effects is prohibited in this method, never update this.data 
         if (this.data == null) return undefined
@@ -139,7 +138,7 @@ export abstract class FzField extends Base {
      * calculate a visible boolean state for this field 
      */
     get visible() {
-        return this.data && this.schema.visible ? !!this.evalExpr("visible") : true
+        return isFunction(this.schema?.visible) ? !!this.evalExpr("visible") : true
     }
     /**
      * calculate a required boolean state for this field 
@@ -409,31 +408,14 @@ export abstract class FzField extends Base {
      */
 
     abstract(key?: string | number, itemschema?: Schema): string {
-        let text
-        if (key === null || key === undefined) {
-            if (this.isempty) return "~"
-            text = this.schema.abstract
-                ? this.evalExpr("abstract")
-                : this.schema._abstract(this.value)
-        } else if (notNull(itemschema) && isFunction(itemschema.from)) {
-            const refto = isFunction(itemschema.from) 
-                ? itemschema._evalExpr('from',itemschema, this.value[key], this.data, this.key, this.derefFunc, this.context.appdata)
-                : undefined
-            const index = refto.refarray.findIndex((x: any) => x[refto.refname] === this.value[key])
-            const value = refto.refarray[index]
-            const schema = value[SCHEMA]
-            text = isFunction(schema.abstract) 
-                ? schema._evalExpr('abstract',schema, value, refto.refarray, index, this.derefFunc, this.context.appdata) 
-                : schema._abstract(this.value[key])
+        let text = ""
+        if (isNull(key)) {
+            text = this.schema._abstract(this.derefFunc, this.context.appdata,this.value)
         } else {
-            const schema = (typeof key === 'string') ? this.schema.properties?.[key] : itemschema
+            const schema = isString(key) ? this.schema.properties?.[key] : itemschema
             if (schema) {
-                const abstract_sandbox = newSandbox(schema, this.value[key], this.data, this.key, this.derefFunc, this.context.appdata)
-                text = isFunction(schema?.abstract) ? schema.abstract(abstract_sandbox) : schema?._abstract(this.value[key])
-            } else {
-                text = ""
+                text = schema?._abstract(this.derefFunc, this.context.appdata,this.value[key])
             }
-
         }
         return text && text.length > 200 ? text.substring(0, 200) + '...' : (text ?? "")
     }
@@ -468,7 +450,10 @@ export abstract class FzField extends Base {
     trackedValueChange() {
         // actually only dynamic/initialize update directly the value ofther extension
         // keywords are called on demand
-        if (isFunction(this.schema?.dynamic)) this.value = this.evalExpr("dynamic")
+        if (isFunction(this.schema?.dynamic)) {
+            this.value = this.evalExpr("dynamic")
+            this.change()
+        }
         this.requestUpdate()
     }
 }

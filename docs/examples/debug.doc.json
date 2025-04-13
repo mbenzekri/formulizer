@@ -1,15 +1,50 @@
 {
     "form": {
         "type": "object",
+        "title": "Catapult Calculator",
         "properties": {
-            "active": {
+            "today": {
                 "type": "string",
+                "title": "Today",
                 "readonly": "true",
-                "dynamic": "String(setInterval)"
+                "dynamic": "new Date().toISOString()"
+            },
+            "speed": {
+                "type": "integer",
+                "title": "Speed (m/s)",
+                "minimum": 0,
+                "maximum": 20,
+                "multipleOf": 2
+            },
+            "angle": {
+                "type": "integer",
+                "title": "Angle (°)",
+                "minimum": 10,
+                "maximum": 90,
+                "multipleOf": 5
+            },
+            "theta": {
+                "type": "number",
+                "title": "Angle (rad)",
+                "readonly": true,
+                "dynamic": " $`/angle` * Math.PI / 180"
+            },
+            "distance": {
+                "type": "number",
+                "title": "Distance (m)",
+                "readonly": "true",
+                "dynamic": " ($`/speed` ** 2 / 9.81) * Math.sin(2 * $`/theta`)"
+            },
+            "theta2": {
+                "type": "number",
+                "title": "BIS",
+                "readonly": "true",
+                "dynamic": " $`/theta` "
             }
         }
     },
     "data": {
-        "active": true
+        "speed": 1,
+        "angle": 45
     }
 }

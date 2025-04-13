@@ -1,5 +1,5 @@
 import { isArray, isEmptyValue, isFunction, isObject, isPrimitive, isString, newSandbox, newValue, notNull } from "./tools";
-import { EnumItem, ExprFunc, FieldOrder, FromObject, Pojo } from "./types";
+import { EnumItem, ExprFunc, FieldOrder, FromObject } from "./types";
 
 
 // // Define the method structure as a Type
@@ -169,36 +169,61 @@ export class Schema extends JSONSchemaDraft07 {
     /**
      * default abstract calculation
      */
-    _abstract(value: any): string {
+    _abstract($:Function, appdata: any, value: any,schema?:Schema,parent?:any,key?:string|number): string {
         if (isEmptyValue(value) || value == null) return '~'
+        schema = schema ? schema : this 
 
-        if (isArray(value) && this.items instanceof Schema && this.items != null) {
-            const items = this.items
-            return (value)
-                .map((item) => items._abstract(item))
-                .filter((v: any) => v)
+        if (isFunction(schema.abstract)) {
+            return schema._evalExpr("abstract",schema,value,parent,key ?? "",$,appdata)
+        }
+        if (isPrimitive(schema)) {
+            return String(value)
+        }
+
+        // const fschema= schema ? schema : this 
+        // if (notNull(fschema) && isFunction(fschema.from)) {
+        //     const refto = isFunction(fschema.from) 
+        //         ? fschema._evalExpr('from',fschema, value, parent, key ?? "", $, appdata)
+        //         : undefined
+        //     const index = refto.refarray.findIndex((x: any) => x[refto.refname] === value[key])
+        //     const v = refto.refarray[index]
+        //     const schema = value[SCHEMA] as Schema
+        //     return isFunction(schema.abstract) 
+        //         ? schema._evalExpr('abstract',schema, v, refto.refarray, index, $, appdata) 
+        //         : schema._abstract($, appdata,value[key])
+        // }
+        const itemSchema = schema ? schema.items : this.items
+        const parentValue = value
+        if (isArray(parentValue) && isSchema(itemSchema)) {
+            return (parentValue)
+                .map((value,key) => itemSchema._abstract($,appdata,value,itemSchema,parentValue,key))
+                .filter((v: any) => v!= null && v!== '~')
                 .join(',')
         }
-        if (isArray(value) && isArray(this.items)) {
-            //const items = this.items
+        if (isArray(value) && isArray(itemSchema)) {
+            // array for "items"not implemented if 
             return ''
         }
-        if (isObject(this.properties)) {
-            const properties = this.properties
-            return this.properties ? Object.keys(this.properties)
-                .filter((property: string) => value[property] != null)
-                .map((property: string) => properties[property]._abstract(value[property]))
-                .join(',') : ""
+        const properties = schema ? schema.properties : this.properties
+        if (isObject(properties) && isObject(value)) {
+            const parentValue = value
+            return Object.keys(properties)
+                .map((key: string) => {
+                    const value = parentValue[key]
+                    const propertySchema = properties[key]
+                    return propertySchema._abstract($,appdata,value,propertySchema,parentValue,key) 
+                })
+                .filter((v: any) => v!= null && v!== '~')
+                .join(',')
         }
-
-        return String(value)
+        return ''
     }
     
     static _abstractFunc() {
         return (sandbox: any) => sandbox.schema?._abstract(sandbox.value) 
     }
 
-    _evalExpr(attribute: keyof Schema, schema: Schema, value: Pojo, parent: Pojo, key: string | number,$:Function, appdata: object ) {
+    _evalExpr(attribute: keyof Schema, schema: Schema, value: any, parent: any, key: string | number,$:Function, appdata: object ) {
         const exprFunc = this[attribute]
         if (isFunction(exprFunc)) {
             const sandbox = newSandbox(schema, value, parent, key, $, appdata)

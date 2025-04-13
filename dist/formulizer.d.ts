@@ -8,25 +8,29 @@ type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'NONE';
 interface FzLogContext {
     [name: string]: any;
 }
-type LoggerMethods = {
-    debug: (...args: any[]) => void;
-    info: (...args: any[]) => void;
-    warn: (...args: any[]) => void;
-    error: (...args: any[]) => void;
-    if: {
-        debug: (cond: boolean, ...args: any[]) => void;
-        info: (cond: boolean, ...args: any[]) => void;
-        warn: (cond: boolean, ...args: any[]) => void;
-        error: (cond: boolean, ...args: any[]) => void;
-    };
-};
 declare class _FzLogger {
+    readonly domain: string;
+    readonly context: FzLogContext;
     private static levels;
     private static registry;
     /** Set global log level per domain */
     static set(...args: (string | LogLevel)[]): void;
     /** Returns a logger for a domain, optionally scoped with context */
-    static get(domain: string, context?: FzLogContext): LoggerMethods;
+    static get(domain: string, context?: FzLogContext): _FzLogger;
+    constructor(domain: string, context?: FzLogContext);
+    shouldLog(lvl: LogLevel): boolean;
+    format(msg: string, ...args: any[]): any[];
+    log(lvl: LogLevel, ...args: any[]): void;
+    debug(...a: any[]): void;
+    info(...a: any[]): void;
+    warn(...a: any[]): void;
+    error(...a: any[]): void;
+    get if(): {
+        debug: (c: boolean, ...a: any[]) => false | void;
+        info: (c: boolean, ...a: any[]) => false | void;
+        warn: (c: boolean, ...a: any[]) => false | void;
+        error: (c: boolean, ...a: any[]) => false | void;
+    };
 }
 
 declare global {
@@ -125,9 +129,9 @@ declare class Schema extends JSONSchemaDraft07 {
     /**
      * default abstract calculation
      */
-    _abstract(value: any): string;
+    _abstract($: Function, appdata: any, value: any, schema?: Schema, parent?: any, key?: string | number): string;
     static _abstractFunc(): (sandbox: any) => any;
-    _evalExpr(attribute: keyof Schema, schema: Schema, value: Pojo, parent: Pojo, key: string | number, $: Function, appdata: object): any;
+    _evalExpr(attribute: keyof Schema, schema: Schema, value: any, parent: any, key: string | number, $: Function, appdata: object): any;
     _default(parent: any): any;
     /**
      * get the schema corresponding to a jsonpointer (absolute or relative)

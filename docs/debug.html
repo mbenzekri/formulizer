@@ -26,6 +26,7 @@
         }
         window.onload = async () => {
             //FzLogger.set("DEBUG", "validation", "tracker", "compilation", "input", "data-update","bootstrap")
+            FzLogger.set("DEBUG", "tracker")
             const form = document.getElementById("myform")
             const feedback = document.getElementById("mydata")
             const output = () => feedback.innerHTML = `${form.valid ? "valid" : "invalid"} =>${JSON.stringify(form.data)}`

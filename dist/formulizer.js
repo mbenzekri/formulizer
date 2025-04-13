@@ -1,4 +1,27 @@
+// type LoggerMethods = {
+//     debug: (...args: any[]) => void
+//     info: (...args: any[]) => void
+//     warn: (...args: any[]) => void
+//     error: (...args: any[]) => void
+//     if: {
+//         debug: (cond: boolean, ...args: any[]) => void
+//         info: (cond: boolean, ...args: any[]) => void
+//         warn: (cond: boolean, ...args: any[]) => void
+//         error: (cond: boolean, ...args: any[]) => void
+//     }
+// }
+function isA(obj, name) {
+    let proto = Object.getPrototypeOf(obj ?? {});
+    while (proto) {
+        if (proto.constructor?.name === name)
+            return true;
+        proto = Object.getPrototypeOf(proto);
+    }
+    return false;
+}
 class _FzLogger {
+    domain;
+    context;
     static levels = {
         DEBUG: 0,
         INFO: 1,
@@ -21,61 +44,125 @@ class _FzLogger {
     }
     /** Returns a logger for a domain, optionally scoped with context */
     static get(domain, context) {
-        function isA(obj, name) {
-            let proto = Object.getPrototypeOf(obj ?? {});
-            while (proto) {
-                if (proto.constructor?.name === name)
-                    return true;
-                proto = Object.getPrototypeOf(proto);
-            }
-            return false;
-        }
+        return new FzLogger(domain, context);
+    }
+    constructor(domain, context = {}) {
+        this.domain = domain;
+        this.context = context;
+    }
+    shouldLog(lvl) {
+        const level = FzLogger.registry.get(this.domain);
+        return (level == null) ? false : FzLogger.levels[lvl] >= FzLogger.levels[level];
+    }
+    format(msg, ...args) {
         const ctxstrings = [];
-        for (const property in context) {
-            if (isA(context[property], "FzField") || isA(context[property], "Schema"))
-                ctxstrings.push(`${property}: ${context[property].pointer}`);
+        for (const property in this.context) {
+            if (isA(this.context[property], "FzField") || isA(this.context[property], "Schema"))
+                ctxstrings.push(`${property}: ${this.context[property].pointer}`);
         }
-        const shouldLog = (lvl) => {
-            const level = FzLogger.registry.get(domain);
-            return (level == null) ? false : FzLogger.levels[lvl] >= FzLogger.levels[level];
-        };
-        const format = (msg, ...args) => {
-            return [`[${domain}][${ctxstrings.join(" ")}] ${msg}`, ...args];
-        };
-        const log = (lvl, ...args) => {
-            if (!shouldLog(lvl))
-                return;
-            const pattern = args.shift();
-            const msg = format(pattern, ...args);
-            switch (lvl) {
-                case 'DEBUG':
-                    console.debug(...msg);
-                    break;
-                case 'INFO':
-                    console.info(...msg);
-                    break;
-                case 'WARN':
-                    console.warn(...msg);
-                    break;
-                case 'ERROR':
-                    console.error(...msg);
-                    break;
-            }
-        };
+        return [`[${this.domain}][${ctxstrings.join(" ")}] ${msg}`, ...args];
+    }
+    log(lvl, ...args) {
+        if (!this.shouldLog(lvl))
+            return;
+        const pattern = args.shift();
+        const msg = this.format(pattern, ...args);
+        switch (lvl) {
+            case 'DEBUG':
+                console.debug(...msg);
+                break;
+            case 'INFO':
+                console.info(...msg);
+                break;
+            case 'WARN':
+                console.warn(...msg);
+                break;
+            case 'ERROR':
+                console.error(...msg);
+                break;
+        }
+    }
+    debug(...a) { this.log('DEBUG', ...a); }
+    info(...a) { this.log('INFO', ...a); }
+    warn(...a) { this.log('WARN', ...a); }
+    error(...a) { this.log('ERROR', ...a); }
+    get if() {
+        const that = this;
         return {
-            debug: (...a) => log('DEBUG', ...a),
-            info: (...a) => log('INFO', ...a),
-            warn: (...a) => log('WARN', ...a),
-            error: (...a) => log('ERROR', ...a),
-            if: {
-                debug: (c, ...a) => c && log('DEBUG', ...a),
-                info: (c, ...a) => c && log('INFO', ...a),
-                warn: (c, ...a) => c && log('WARN', ...a),
-                error: (c, ...a) => c && log('ERROR', ...a),
-            }
+            debug: (c, ...a) => c && that.log('DEBUG', ...a),
+            info: (c, ...a) => c && that.log('INFO', ...a),
+            warn: (c, ...a) => c && that.log('WARN', ...a),
+            error: (c, ...a) => c && that.log('ERROR', ...a),
         };
     }
 }
+// class _FzLogger {
+//     private static levels: Record<LogLevel, number> = {
+//         DEBUG: 0,
+//         INFO: 1,
+//         WARN: 2,
+//         ERROR: 3,
+//         NONE: 4
+//     }
+//     private static registry: Map<string, LogLevel> = new Map()
+//     /** Set global log level per domain */
+//     static set(...args: (string | LogLevel)[]) {
+//         let level: LogLevel = "NONE"
+//         for (const item of args) {
+//             if (['DEBUG', 'INFO', 'WARN', 'ERROR', 'NONE'].includes(item)) {
+//                 level = item as LogLevel
+//             } else {
+//                 FzLogger.registry.set(item, level)
+//             }
+//         }
+//     }
+//     /** Returns a logger for a domain, optionally scoped with context */
+//     static get(domain: string, context?: FzLogContext): LoggerMethods {
+//         function isA(obj: any, name: string) {
+//             let proto = Object.getPrototypeOf(obj ?? {})
+//             while (proto) {
+//                 if (proto.constructor?.name === name) return true;
+//                 proto = Object.getPrototypeOf(proto)
+//             }
+//             return false;
+//         }
+//         const ctxstrings: string[] = []
+//         for (const property in context) {
+//             if (isA(context[property], "FzField") || isA(context[property], "Schema"))
+//                 ctxstrings.push(`${property}: ${context[property].pointer}`)
+//         }
+//         const shouldLog = (lvl: LogLevel) => {
+//             const level = FzLogger.registry.get(domain)
+//             return (level == null) ? false : FzLogger.levels[lvl] >= FzLogger.levels[level]
+//         }
+//         const format = (msg: string, ...args: any[]) => {
+//             return [`[${domain}][${ctxstrings.join(" ")}] ${msg}`, ...args]
+//         }
+//         const log = (lvl: LogLevel, ...args: any[]) => {
+//             if (!shouldLog(lvl)) return
+//             const pattern = args.shift()
+//             const msg = format(pattern, ...args)
+//             switch (lvl) {
+//                 case 'DEBUG': console.debug(...msg); break
+//                 case 'INFO': console.info(...msg); break
+//                 case 'WARN': console.warn(...msg); break
+//                 case 'ERROR': console.error(...msg); break
+//             }
+//         }
+//         return {
+//             debug: (...a) => log('DEBUG', ...a),
+//             info: (...a) => log('INFO', ...a),
+//             warn: (...a) => log('WARN', ...a),
+//             error: (...a) => log('ERROR', ...a),
+//             if: {
+//                 debug: (c, ...a) => c && log('DEBUG', ...a),
+//                 info: (c, ...a) => c && log('INFO', ...a),
+//                 warn: (c, ...a) => c && log('WARN', ...a),
+//                 error: (c, ...a) => c && log('ERROR', ...a),
+//             }
+//         }
+//     }
+// }
 // Attach to global
 globalThis.FzLogger = _FzLogger;
 
@@ -213,11 +300,16 @@ function isArray(value, and_notempty = false) {
 function isFunction(value) {
     return typeof value === "function";
 }
+const primitivetypes = new Set(['string', 'integer', 'number', 'boolean']);
 const primitiveornulltypes = new Set(['string', 'integer', 'number', 'boolean', 'null']);
 function isPrimitive(value, ornull) {
-    if (isObject(value) && value.target.every(t => primitiveornulltypes.has(t)))
+    if (!ornull && isObject(value) && value.target.every(t => primitivetypes.has(t)))
         return true;
-    if (typeof value == "string" && primitiveornulltypes.has(value))
+    if (ornull && isObject(value) && value.target.every(t => primitiveornulltypes.has(t)))
+        return true;
+    if (!ornull && typeof value == "string" && primitivetypes.has(value))
+        return true;
+    if (ornull && typeof value == "string" && primitiveornulltypes.has(value))
         return true;
     return false;
 }
@@ -893,28 +985,53 @@ class Schema extends JSONSchemaDraft07 {
     /**
      * default abstract calculation
      */
-    _abstract(value) {
+    _abstract($, appdata, value, schema, parent, key) {
         if (isEmptyValue(value) || value == null)
             return '~';
-        if (isArray(value) && this.items instanceof Schema && this.items != null) {
-            const items = this.items;
-            return (value)
-                .map((item) => items._abstract(item))
-                .filter((v) => v)
+        schema = schema ? schema : this;
+        if (isFunction(schema.abstract)) {
+            return schema._evalExpr("abstract", schema, value, parent, key ?? "", $, appdata);
+        }
+        if (isPrimitive(schema)) {
+            return String(value);
+        }
+        // const fschema= schema ? schema : this 
+        // if (notNull(fschema) && isFunction(fschema.from)) {
+        //     const refto = isFunction(fschema.from) 
+        //         ? fschema._evalExpr('from',fschema, value, parent, key ?? "", $, appdata)
+        //         : undefined
+        //     const index = refto.refarray.findIndex((x: any) => x[refto.refname] === value[key])
+        //     const v = refto.refarray[index]
+        //     const schema = value[SCHEMA] as Schema
+        //     return isFunction(schema.abstract) 
+        //         ? schema._evalExpr('abstract',schema, v, refto.refarray, index, $, appdata) 
+        //         : schema._abstract($, appdata,value[key])
+        // }
+        const itemSchema = schema ? schema.items : this.items;
+        const parentValue = value;
+        if (isArray(parentValue) && isSchema(itemSchema)) {
+            return (parentValue)
+                .map((value, key) => itemSchema._abstract($, appdata, value, itemSchema, parentValue, key))
+                .filter((v) => v != null && v !== '~')
                 .join(',');
         }
-        if (isArray(value) && isArray(this.items)) {
-            //const items = this.items
+        if (isArray(value) && isArray(itemSchema)) {
+            // array for "items"not implemented if 
             return '';
         }
-        if (isObject(this.properties)) {
-            const properties = this.properties;
-            return this.properties ? Object.keys(this.properties)
-                .filter((property) => value[property] != null)
-                .map((property) => properties[property]._abstract(value[property]))
-                .join(',') : "";
+        const properties = schema ? schema.properties : this.properties;
+        if (isObject(properties) && isObject(value)) {
+            const parentValue = value;
+            return Object.keys(properties)
+                .map((key) => {
+                const value = parentValue[key];
+                const propertySchema = properties[key];
+                return propertySchema._abstract($, appdata, value, propertySchema, parentValue, key);
+            })
+                .filter((v) => v != null && v !== '~')
+                .join(',');
         }
-        return String(value);
+        return '';
     }
     static _abstractFunc() {
         return (sandbox) => sandbox.schema?._abstract(sandbox.value);
@@ -930,7 +1047,7 @@ class Schema extends JSONSchemaDraft07 {
         switch (true) {
             case ("const" in this):
                 return this.const;
-            case isPrimitive(this) && 'default' in this:
+            case isPrimitive(this, true) && 'default' in this:
                 return this.default;
             case this.basetype === 'object': {
                 return this.properties ? Object.entries(this.properties).reduce((object, [key, property]) => {
@@ -1023,7 +1140,7 @@ class Schema extends JSONSchemaDraft07 {
     }
     static inferEnums(schema) {
         // Exclude nullish schema, "array" and "object" from being enums
-        if (!isObject(schema) || !isPrimitive(schema))
+        if (!isObject(schema) || !isPrimitive(schema, true))
             return;
         // Direct "enum" keyword
         if (isArray(schema.enum)) {
@@ -1303,7 +1420,7 @@ class FzField extends Base {
      * calculate a visible boolean state for this field
      */
     get visible() {
-        return this.data && this.schema.visible ? !!this.evalExpr("visible") : true;
+        return isFunction(this.schema?.visible) ? !!this.evalExpr("visible") : true;
     }
     /**
      * calculate a required boolean state for this field
@@ -1565,33 +1682,14 @@ class FzField extends Base {
      * calculate an abstract string (summary) for this field or a property/item of field
      */
     abstract(key, itemschema) {
-        let text;
-        if (key === null || key === undefined) {
-            if (this.isempty)
-                return "~";
-            text = this.schema.abstract
-                ? this.evalExpr("abstract")
-                : this.schema._abstract(this.value);
-        }
-        else if (notNull(itemschema) && isFunction(itemschema.from)) {
-            const refto = isFunction(itemschema.from)
-                ? itemschema._evalExpr('from', itemschema, this.value[key], this.data, this.key, this.derefFunc, this.context.appdata)
-                : undefined;
-            const index = refto.refarray.findIndex((x) => x[refto.refname] === this.value[key]);
-            const value = refto.refarray[index];
-            const schema = value[SCHEMA];
-            text = isFunction(schema.abstract)
-                ? schema._evalExpr('abstract', schema, value, refto.refarray, index, this.derefFunc, this.context.appdata)
-                : schema._abstract(this.value[key]);
+        let text = "";
+        if (isNull(key)) {
+            text = this.schema._abstract(this.derefFunc, this.context.appdata, this.value);
         }
         else {
-            const schema = (typeof key === 'string') ? this.schema.properties?.[key] : itemschema;
+            const schema = isString(key) ? this.schema.properties?.[key] : itemschema;
             if (schema) {
-                const abstract_sandbox = newSandbox(schema, this.value[key], this.data, this.key, this.derefFunc, this.context.appdata);
-                text = isFunction(schema?.abstract) ? schema.abstract(abstract_sandbox) : schema?._abstract(this.value[key]);
-            }
-            else {
-                text = "";
+                text = schema?._abstract(this.derefFunc, this.context.appdata, this.value[key]);
             }
         }
         return text && text.length > 200 ? text.substring(0, 200) + '...' : (text ?? "");
@@ -1618,8 +1716,10 @@ class FzField extends Base {
     trackedValueChange() {
         // actually only dynamic/initialize update directly the value ofther extension
         // keywords are called on demand
-        if (isFunction(this.schema?.dynamic))
+        if (isFunction(this.schema?.dynamic)) {
             this.value = this.evalExpr("dynamic");
+            this.change();
+        }
         this.requestUpdate();
     }
 }
@@ -6045,7 +6145,7 @@ class CSEnum extends CompilationStep {
         schema.isenum = false;
         switch (true) {
             // allow only primitive types to be enums
-            case !isPrimitive(schema): break;
+            case !isPrimitive(schema, true): break;
             // it is an enumeration only for one of this cases
             case !!schema.enum:
             case schema.oneOf && schema.oneOf.every((sch) => 'const' in sch):
@@ -6069,7 +6169,7 @@ class CSEnumArray extends CompilationStep {
         return !(this.property in schema);
     }
     apply(schema) {
-        schema.isenumarray = isPrimitive(schema) && isenumarray(schema);
+        schema.isenumarray = isPrimitive(schema, true) && isenumarray(schema);
     }
 }
 /**
@@ -6191,7 +6291,7 @@ class CSField extends CompilationStep {
     apply(schema) {
         if ("const" in schema)
             return schema.field = 'fz-const';
-        if (schema.from && isPrimitive(schema)) {
+        if (schema.from && isPrimitive(schema, true)) {
             if (!schema.filter)
                 schema.filter = () => true;
             return schema.field = 'fz-enum-select';

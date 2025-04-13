@@ -26,10 +26,10 @@ export class TestContext {
     field: Locator
     input: Locator
 
-    constructor(public pointer: string,public inputSelector: string) {}
+    constructor(public pointer: string,public inputSelector: string="") {}
 
     async init(page, schema=TestContext.SCHEMA, data=TestContext.DATA) {
-
+        this.page = page
         // init FzForm test page (wait for fz-form readiness)
         await page.goto(TEST_PAGE)
         page.on('console', msg => {
@@ -102,7 +102,13 @@ export class TestContext {
         }, selector)
     }
     
-    
+    async fieldLocator(pointer:string) {
+        return await this.page.locator(`[pointer="${pointer}"]`)
+    }
+    async inputLocator(pointer:string, selector: string) {
+        return await this.page.locator(`[pointer="${pointer}"] ${selector}`)
+    }
+
 }
 
 
