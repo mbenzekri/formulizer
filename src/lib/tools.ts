@@ -1,17 +1,15 @@
 import { PARENT, Pojo, ROOT, Sandbox, SCHEMA } from "../lib/types"
 import { Schema } from "../lib/schema"
 
-export function notNull<A>(value:A): value is Exclude<A,null|undefined>
-{
+export function notNull<A>(value: A): value is Exclude<A, null | undefined> {
     return value != null
 }
 
-export function isNull(value:any): value is null|undefined
-{
+export function isNull(value: any): value is null | undefined {
     return value == null
 }
 
-export function isString(value: any,and_notempty=false): value is string {
+export function isString(value: any, and_notempty = false): value is string {
     if (typeof value !== "string") return false
     if (and_notempty) value.length > 0
     return true
@@ -22,17 +20,17 @@ export function isNumber(value: any): value is number {
 }
 
 export function isBoolean(value: any): value is boolean {
-    return typeof value === "boolean" 
+    return typeof value === "boolean"
 }
 
 
-export function isObject(value: unknown,and_notempty=false): value is Record<string,any> {
+export function isObject(value: unknown, and_notempty = false): value is Record<string, any> {
     if (value == null || typeof value !== "object" || Array.isArray(value)) return false
     if (and_notempty) Object.values(value).some(v => v !== undefined)
     return true
 }
 
-export function isArray(value: any,and_notempty = false): value is Array<any> {
+export function isArray(value: any, and_notempty = false): value is Array<any> {
     if (!Array.isArray(value)) return false
     if (and_notempty) return value.length > 0
     return true
@@ -51,20 +49,20 @@ export function isPrimitive(schema?: Schema, ornull?: boolean): boolean;
 export function isPrimitive(type?: string): type is ('string' | 'integer' | 'number' | 'boolean' | 'array');
 export function isPrimitive(type?: string, ornull?: true): type is ('string' | 'integer' | 'number' | 'boolean' | 'null');
 export function isPrimitive(value?: string | Schema, ornull?: boolean) {
-    if (!ornull  && isObject(value) && value.target.every(t => primitivetypes.has(t))) return true  
-    if (ornull  && isObject(value) && value.target.every(t => primitiveornulltypes.has(t))) return true  
+    if (!ornull && isObject(value) && value.target.every(t => primitivetypes.has(t))) return true
+    if (ornull && isObject(value) && value.target.every(t => primitiveornulltypes.has(t))) return true
     if (!ornull && typeof value == "string" && primitivetypes.has(value)) return true
     if (ornull && typeof value == "string" && primitiveornulltypes.has(value)) return true
     return false
 }
 
-export function when<T>(test:any,value: T) {
+export function when<T>(test: any, value: T) {
     if (test) return value
     return ''
 }
 
 export function isCollection(schema?: Schema): boolean {
-    if (isObject(schema) && ["object","array]"].includes(schema.basetype)) return true  
+    if (isObject(schema) && ["object", "array]"].includes(schema.basetype)) return true
     return false
 }
 
@@ -73,13 +71,13 @@ export function intersect(sets: Set<string>[]): Set<string> {
     return sets.reduce((acc, set) => new Set([...acc].filter(x => set.has(x))), sets[0]);
 }
 
-export function complement(set: Set<string>|null,full: Set<string>): Set<string> {
+export function complement(set: Set<string> | null, full: Set<string>): Set<string> {
     if (set == null) return new Set()
     return new Set([...full].filter(x => !set.has(x)));
 }
 export function union(sets: Set<string>[]): Set<string> {
     return sets.reduce((acc, set) => new Set([...acc, ...set]), new Set());
-}    
+}
 
 
 export const jsonAttributeConverter = {
@@ -101,7 +99,7 @@ export const jsonAttributeConverter = {
     }
 };
 
-export function newSandbox(schema:Schema, value: any, parent: any, key: string|number|undefined, $: Function, appdata:any): Sandbox & Record<string,any> {
+export function newSandbox(schema: Schema, value: any, parent: any, key: string | number | undefined, $: Function, appdata: any): Sandbox & Record<string, any> {
     const globals = [
         "window",
         "self",
@@ -343,11 +341,11 @@ export function newSandbox(schema:Schema, value: any, parent: any, key: string|n
         "FzLogger",
         "FzForm"
     ]
-    const sandbox = globals.reduce((s,property) => (s[property] = null,s),{} as any)
-    return Object.assign(sandbox,{
-        Function:null,
+    const sandbox = globals.reduce((s, property) => (s[property] = null, s), {} as any)
+    return Object.assign(sandbox, {
+        Function: null,
         // Whitelist of provided global objects
-        undefined, Infinity,NaN,
+        undefined, Infinity, NaN,
         // Core constructors and types (without Function)
         Object, Array, Number, Boolean, String, Error,
         // Utility objects & functions
@@ -376,10 +374,10 @@ export function derefPointerData(root: Pojo, parent: Pojo, key: string | number,
         } else {
             for (let i = 1; i < count; i++) base = base?.[PARENT]
         }
-        if (!base) {
-            console.error(`enable to dereference pointer ${pointer} (no more parents)`)
-            return null
-        }
+        if (!base) return undefined
+        //     console.error(`enable to dereference pointer ${pointer} (no more parents)`)
+        //     return undefined
+        // }
     }
     tokens.shift()
     for (const token of tokens) {
@@ -462,17 +460,108 @@ export function cleanJSON(data: Pojo) {
     return jsonobj
 }
 
-(window as any).nvl = function nvl(templates: { raw: readonly string[] | ArrayLike<string> }, ...values: any[]) {
-    const cleaned = values.map(v => v ?? '')
-    return String.raw(templates, cleaned)
-}
-
 export function setGlobalHandler(target: EventTarget, event: string, value: string | null) {
     if (value) {
         const fn = (window as any)[value]; // Look up the function in the global scope
         if (typeof fn === 'function') {
-            target.addEventListener(event, fn)
+            target.addEventListener(`on${event}`, fn)
         }
     }
 }
+/**
+ * Returns the data located at a given pointer.
+ *
+ * @param root - The root data from which all pointers are evaluated.
+ * @param from - An absolute JSON pointer (string) serving as the base.
+ * @param to - An optional pointer to the target data. If provided and it starts with "/",
+ *             it is treated as an absolute pointer from root; otherwise it is relative to
+ *             the `from` pointer. If omitted, the data at the pointer given by `from` is returned.
+ * @returns The data at the pointer, or undefined if not found.
+ *
+ * Note: A null value in the data is valid and distinct from undefined (data not found).
+ */
+export function getDataAtPointer<T = any>(root: any, from: string, to?: string): T | undefined {
+    // Helper function to decode a JSON Pointer segment per RFC 6901.
+    const decode = (segment: string): string =>
+        segment.replace(/~1/g, '/').replace(/~0/g, '~');
 
+    // Helper function to join an absolute base pointer with a relative pointer.
+    // If both base and relative are empty, return an empty string.
+    const joinPointers = (base: string, rel: string): string => {
+        if (base === '' && rel === '') return '';
+        if (base === '') return '/' + rel;
+        if (rel === '') return base;
+        return base.endsWith('/') ? base + rel : base + '/' + rel;
+    };
+
+    // Determine effective pointer:
+    // If "to" is provided, evaluate it; otherwise, use "from".
+    const effectivePointer: string = typeof to === 'string'
+        ? (to.startsWith('/') ? to : joinPointers(from, to))
+        : from;
+
+    // If effective pointer is empty, return the root data.
+    if (effectivePointer === '') return root as T;
+
+    // Split the pointer into segments (skipping the first empty segment from the leading '/').
+    const segments: string[] = effectivePointer.split('/').slice(1);
+    let data: any = root;
+
+    for (const segment of segments) {
+        const decodedSegment = decode(segment);
+        if (data !== null && typeof data === 'object' && decodedSegment in data) {
+            data = data[decodedSegment];
+        } else {
+            return undefined;
+        }
+    }
+    return data as T;
+}
+
+/**
+ * Given an absolute JSON pointer, returns an object with:
+ * - `parent`: the parent pointer (absolute) from which the last segment is removed;
+ * - `key`: the last segment, decoded according to RFC6901. If the decoded segment is purely numeric,
+ *          it is returned as a number.
+ *
+ * For example:
+ *  - "/a/b/3"   → { parent: "/a/b", key: 3 }
+ *  - "/a/b/c"   → { parent: "/a/b", key: "c" }
+ *  - "/single"  → { parent: "", key: "single" }
+ *  - "/"        → { parent: undefined, key: undefined }
+ *
+ * @param pointer - An absolute JSON pointer string (starting with "/").
+ * @returns An object containing the parent pointer and the key (string or number), or undefined values if
+ *          the pointer is root.
+ */
+export function getParentAndKey(pointer: string): { parent?: string; key?: string | number } {
+    // If the pointer is empty or root, there is no parent or key.
+    if (!pointer || pointer === "/") {
+        return { parent: undefined, key: undefined };
+    }
+
+    // Remove the leading "/" and split into segments.
+    const segments = pointer.split("/").slice(1);
+    if (segments.length === 0) {
+        return { parent: undefined, key: undefined };
+    }
+
+    // Remove and decode the last segment.
+    const lastSegmentEncoded = segments.pop()!;
+    const decodeSegment = (segment: string): string =>
+        segment.replace(/~1/g, "/").replace(/~0/g, "~");
+
+    const decodedKey = decodeSegment(lastSegmentEncoded);
+
+    // Determine parent pointer: if no segments remain, parent is the root (empty string)
+    const parentPointer = segments.length ? "/" + segments.join("/") : "";
+
+    // If the decoded key is a valid integer string, return it as a number.
+    const possibleNumber = Number(decodedKey);
+    const key: string | number =
+        !isNaN(possibleNumber) && decodedKey.trim() !== "" && String(possibleNumber) === decodedKey
+            ? possibleNumber
+            : decodedKey;
+
+    return { parent: parentPointer, key };
+}

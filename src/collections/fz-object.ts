@@ -148,7 +148,7 @@ export class FzObject extends FZCollection {
         }
 
         // item case (this field is item of an array)
-        if (this.isItem) {
+        if (this.isitem) {
             return (this.label=== "")
                 ? html`<div>${this.renderLabel()}</div>${itemTemplates}`
                 : html`<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`
@@ -179,7 +179,7 @@ export class FzObject extends FZCollection {
     }
 
     override labelClicked(evt: Event) {
-        if (this.isItem) {
+        if (this.isitem) {
             this.dispatchEvent(new CustomEvent('toggle-item', {
                 detail: {
                     field: this

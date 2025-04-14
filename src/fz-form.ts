@@ -9,7 +9,7 @@ import { SchemaCompiler, DataCompiler } from "./lib/compiler"
 import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { Schema, schemaAttrConverter, DEFAULT_SCHEMA } from "./lib/schema";
 import { FzMarkdownIt } from "./components/markdown-it";
-import { isNull, isString } from "./lib/tools";
+import { getDataAtPointer, getParentAndKey, isNull, isString, newValue } from "./lib/tools";
 
 /**
  * Form Context is provided from FzForm to all descendant sub-FzField as an API
@@ -22,6 +22,8 @@ export type FzFormContext = {
     readonly appdata: any
     readonly asset: IAsset
     readonly store: IBlobStore
+    readonly at:(from:string,to?:string) => any
+    readonly set:(pointer: string, value: any, schema: Schema) => void
     readonly errors:(pointer: string) => string[]
     readonly check: () => void
     readonly getField: (pointer: string) => FzField | undefined
@@ -68,6 +70,12 @@ export class FzForm extends Base {
             get appdata() { return that.options?.userdata },
             get asset() { return that.asset },
             get store() { return that.store },
+            at(from: string, to?: string) {
+                return that.at(from,to)
+            },
+            set(pointer: string, value: any, schema: Schema) {
+                that.setValue(pointer,value,schema)
+            },
             check() { that.check() },
             errors(pointer?: string) { return that.errors(pointer)},
             getField(pointer: string) { return that.fieldMap.get(pointer) },
@@ -86,6 +94,9 @@ export class FzForm extends Base {
         }
     }
 
+    private at(from: string,to?:string) {
+        return getDataAtPointer(this.root,from,to)
+    }
     get root(): any { return this.i_root.content }
     get valid() {
         this.validator.validate(this.root) 
@@ -171,8 +182,8 @@ export class FzForm extends Base {
     private renderForm() {
         return html`
             ${this.schema.basetype == "array"
-                ? html`<fz-array pointer="" name="content"  .data="${this.i_root}" .schema="${this.schema}"></fz-array>`
-                : html`<fz-object  pointer="" name="content" .data="${this.i_root}" .schema="${this.schema}"></fz-object>`
+                ? html`<fz-array pointer="" .schema="${this.schema}"></fz-array>`
+                : html`<fz-object  pointer="" .schema="${this.schema}"></fz-object>`
             }
             ${this.renderButtons()}`
     }
@@ -322,6 +333,94 @@ export class FzForm extends Base {
         });
     }
 
+    /**
+     * this method is called for to update value (THIS MUST BE DONE ONLY HERE !!!)
+     */
+    private setValue(pointer:string, value: any, schema: Schema) {
+
+        const fields: FzField[] = []
+        const field = this.fieldMap.get(pointer)
+        if (field) fields.push(field)
+
+        // this.data has a value (not undefined or null)
+        // ---------------------------------------------
+        // we simple set new value (newValue func ensure well constructed values , chaining , default, ..)
+        const {parent, key} = getParentAndKey(pointer)
+        if (parent === undefined || key === undefined) {
+            throw Error(`unable to set value ${pointer}`)
+        }
+        const parentValue = this.at(parent)
+        if (parentValue) {
+            parentValue[key] = newValue(value, parentValue, schema)
+        } else {
+
+            // parent is undefined | null
+            // --------------------
+            // we need to set this value and all the nullish ascendant found (cascading sets)
+            // imagine if current pointer is '/a/b/c/d/e' 
+            // we must check if d,c,b, and a are nullish (suppose d,c,b are nullish)
+            // we will set new newValue() for b,c,d first 
+
+            if (!pointer.startsWith("/")) {
+                throw Error(`setValue pointer not absolute => ${pointer}`)
+            }
+            if (/^\/?$/.test(pointer)) {
+                throw Error(`setValue cant change root => ${pointer}`)
+            }
+            // we split pointer to obtain the path as an array of properties or indexes
+            // ex '/a/b/c/d/e => ['',a,b,c,d,e]
+            const keys = pointer.split('/').map(name => /^\d+$/.test(name) ? parseInt(name, 10) : name)
+
+            // for each properties in path we calculate a corresponding schema
+            // because heterogeneous types in arrays we are not allways able to do it
+            const schemas: Schema[] = []
+            for (let ischema: Schema | undefined = schema; ischema; ischema = ischema.parent) { schemas.unshift(ischema) }
+            if (keys.length !== schemas.length) {
+                // not sure this is possible to happen because if we are ther choices had be done then intermidiary schema/values exists
+                throw Error(`setValue fail missing schemas on path => ${pointer}`)
+            }
+
+            // we calculate a newValue for each missing property/index  in path in descending order until this target 
+            let ipointer = ''
+            let parent  = this.context.root
+            for (let i = 0; i < keys.length && parent; i++) {
+                const key = keys[i]
+                const schema = schemas[i]
+                ipointer = i ? `${ipointer}/${key}` : `${key}`
+                const field = this.fieldMap.get(ipointer)
+                if (field) fields.push(field)
+                const type = schema.basetype
+                switch (true) {
+                    // root nothing to do
+                    case key === '':
+                        break
+                    // last property empty => affecting
+                    case i === keys.length - 1: {
+                        const v = newValue(value, parent, schema)
+                        parent = parent[key] = v
+                    }
+                        break
+                    // property "array" typed empty => initialising
+                    case parent[key] == null && type == 'array': {
+                        const v = newValue([], parent, schema)
+                        parent = parent[key] = v
+                    }
+                        break
+                    // property "object" typed empty => initialising
+                    case parent[key] == null && type == 'object': {
+                        const v = newValue({}, parent, schema)
+                        parent = parent[key] = v
+                    }
+                        break
+                    default:
+                        parent = (type == 'object' || type == 'array') ? parent[key] : null
+                }
+            }
+
+        }
+        // trigger a requestUpdate for each field
+        fields.forEach(f => f.requestUpdate())
+    }
 }
 
 // Optional: expose globally

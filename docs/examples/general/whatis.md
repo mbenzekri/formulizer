@@ -24,7 +24,7 @@ This page is the root of the fz-form documentation.Here is some important pages:
 >- a special page dedicated to the  [emptiness problem](#general/typenull)
 >- Some examples : use the search box to select an example or click a Table Of Content item.
 
-## 💡 My tribute to ["hello world"](https://en.wikipedia.org/wiki/%22Hello,_World!%22_program)...
+## 💡 AA tribute to ["hello world"](https://en.wikipedia.org/wiki/%22Hello,_World!%22_program)...
 
 You could test the hello world tuto here :[Hello, world!](./hello.html)"
 

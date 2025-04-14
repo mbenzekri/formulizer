@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { property } from "lit/decorators.js"
 import { html, TemplateResult, PropertyValues } from "lit"
-import { derefPointerData, isEmptyValue, newValue, isFunction, notNull, isArray, isNull, isString } from "./lib/tools"
+import { derefPointerData, isEmptyValue, isFunction, notNull, isArray, isNull, isString, getParentAndKey } from "./lib/tools"
 import { Pojo } from "./lib/types"
 import { FzForm,FzFormContext } from "./fz-form"
 import { Base } from "./base"
@@ -28,9 +28,33 @@ export abstract class FzField extends Base {
 
     @property({ type: String, reflect: true }) accessor pointer = '/'
     @property({ type: Object }) accessor schema = EMPTY_SCHEMA
-    @property({ type: Object }) accessor data: any = {}
-    @property({ type: String }) accessor name: string | null = null
-    @property({ type: Number }) accessor index: number | null = null
+
+    //@property({ type: Object }) accessor data: any = {}
+    //@property({ type: String }) accessor name: string | null = null
+    // @property({ type: Number }) accessor index: number | null = null
+    get data():any {
+        const {parent} = getParentAndKey(this.pointer)
+        return isNull(parent) ? undefined :  this.context?.at(parent)
+    }
+    get key(): string | number {
+        return isNull(this.name) ? this.index ?? -1 : this.name
+    }
+    private i_name!: string | null 
+    get name() {
+        if (this.i_name !== undefined ) return this.i_name
+        const segments = this.pointer?.split('/').slice(1) ?? []
+        const last = segments.length === 0 ? '' : segments[segments.length - 1]
+        this.i_name =  /^\d+$/.test(last) ? null : last;
+        return this.i_name
+    }
+    private i_index!: number | null 
+    get index() {
+        if (this.i_index !== undefined ) return this.i_index
+        const segments = this.pointer?.split('/').slice(1) ?? []
+        const last = segments.length === 0 ? '' : segments[segments.length - 1]
+        this.i_index = /^\d+$/.test(last) ? parseInt(last) : null
+        return this.i_index
+    }
 
     @property({ attribute:false}) accessor dirty = false
     @property({ attribute: false }) accessor i_collapsed = false
@@ -82,16 +106,18 @@ export abstract class FzField extends Base {
     }
 
     get value(): any {
+        if (isNull(this.pointer) || isNull(this.pointer)) return undefined
+        return this.context.at(this.pointer)
         // Warning side effects is prohibited in this method, never update this.data 
-        if (this.data == null) return undefined
+        // if (this.data == null) return undefined
         // this is a known exception on side efect prohibition 
         // We need to initialise properties to 'undefined' if they are not present
-        if (this.name && !(this.name in this.data)) this.data[this.name] = undefined
-        return this.data[this.key]
+        // if (this.name && !(this.name in this.data)) this.data[this.name] = undefined
+        // return this.data[this.key]
     }
     set value(value: any) {
         if (value === this.value) return
-        this.cascadeValue(value)
+        this.context.set(this.pointer,value,this.schema)
         this.dirty = true
         this.context?.check()
     }
@@ -108,9 +134,6 @@ export abstract class FzField extends Base {
         return this.schema.nullAllowed
     }
 
-    get key(): string | number {
-        return this.name ?? this.index ?? -1
-    }
     /**
      * calculate label for this field
      */
@@ -118,142 +141,44 @@ export abstract class FzField extends Base {
         // user may decide to remove label (title == "")
         if (this.schema?.title === "") return ""
         // label for array items is an index poistion (one based)
-        if (this.isItem) return String(this.index != null ? this.index + 1 : '-')
+        if (this.isitem) return String(this.index != null ? this.index + 1 : '-')
         // label for properties is title or default to property name
         return this.schema?.title ?? this.name ?? ""
     }
     /**
      * return true if this field is item of array, false otherwise
      */
-    get isItem() {
-        return (this.index != null)
+    get isitem() {
+        return notNull(this.index)
     }
     /**
      * return true if this field is property of object, false otherwise
      */
-    get isProperty(): boolean {
-        return (this.name != null)
+    get isproperty(): boolean {
+        return notNull(this.name)
     }
     /**
      * calculate a visible boolean state for this field 
      */
     get visible() {
-        return isFunction(this.schema?.visible) ? !!this.evalExpr("visible") : true
+        return !!(this.evalExpr("visible") ?? true)
     }
     /**
      * calculate a required boolean state for this field 
      */
     get required() {
-        let required = false
-        if (this.isProperty && this.schema.requiredIf) {
-            required = this.evalExpr("requiredIf") ?? false
-        }
-        return required
+        if (!this.isproperty) return false
+        return this.evalExpr("requiredIf") ?? false 
     }
 
     /**
      * calculate a readonly boolean state for this field 
      */
     get readonly(): boolean {
-        if (!this.context) return true
-        if (this.context.readonly) return true
-        return (this.data && this.schema.readonly) ? this.evalExpr("readonly") : false
+        if (isNull(this.context) || this.context.readonly) return true
+        return this.evalExpr("readonly") ?? false 
     }
 
-    /**
-     * this method is called for to update this.value (and must be done only here)
-     */
-    private cascadeValue(value: any) {
-        const schema = this.schema
-
-        // this.data has a value (not undefined or null)
-        // ---------------------------------------------
-        // we simple set new value (newValue func ensure well constructed values , chaining , default, ..)
-        if (this.data) {
-            this.data[this.key] = newValue(value, this.data, this.schema)
-        } else {
-
-            // this.data is nullish
-            // --------------------
-            // we need to set this value and all the nullish ascendant found (cascading sets)
-            // imagine if current pointer is '/a/b/c/d/e' 
-            // we must check if d,c,b, and a are nullish (suppose d,c,b are nullish)
-            // we will set new newValue() for b,c,d first 
-
-            if (!this.pointer.startsWith("/")) {
-                console.error(`cascadeValue pointer not absolute => ${this.pointer}`)
-                return false
-            }
-            if (this.pointer === "/") {
-                console.error(`newValue cant change root => ${this.pointer}`)
-                return false
-            }
-            // we split pointer to obtain the path as an array of properties or indexes
-            // ex '/a/b/c/d/e => ['',a,b,c,d,e]
-            const keys = this.pointer.split('/').map(name => /^\d+$/.test(name) ? parseInt(name, 10) : name)
-
-            // for each properties in path we calculate a corresponding schema
-            // because heterogeneous types in arrays we are not allways able to do it
-            const schemas: Schema[] = []
-            for (let ischema: Schema | undefined = schema; ischema; ischema = ischema.parent) { schemas.unshift(ischema) }
-            if (keys.length !== schemas.length) {
-                // not sure this is possible to happen because if we are ther choices had be done then intermidiary schema/values exists
-                console.error(`cascadeValue fail not all schema found on path `)
-                return false
-            }
-
-            // we calculate a newValue for each missing property/index  in path in descending order until this target 
-            const fields: FzField[] = []
-            let ipointer = ''
-            let parent  = this.context.root
-            for (let i = 0; i < keys.length && parent; i++) {
-                const key = keys[i]
-                const schema = schemas[i]
-                ipointer = i ? `${ipointer}/${key}` : `${key}`
-                const field = this.context.getField(ipointer)
-                if (field) fields.push(field)
-                const type = schema.basetype
-                switch (true) {
-                    // root nothing to do
-                    case key === '':
-                        break
-                    // last property empty => affecting
-                    case i === keys.length - 1: {
-                        const v = newValue(value, parent, schema)
-                        if (field && !field.data) field.data = parent
-                        parent = parent[key] = v
-                    }
-                        break
-                    // property "array" typed empty => initialising
-                    case parent[key] == null && type == 'array': {
-                        const v = newValue([], parent, schema)
-                        if (field && !field.data) field.data = parent
-                        parent = parent[key] = v
-                    }
-                        break
-                    // property "object" typed empty => initialising
-                    case parent[key] == null && type == 'object': {
-                        const v = newValue({}, parent, schema)
-                        if (field && !field.data) field.data = parent
-                        parent = parent[key] = v
-                    }
-                        break
-                    default:
-                        parent = (type == 'object' || type == 'array') ? parent[key] : null
-                }
-            }
-            // trigger a requestUpdate for each field
-            fields.forEach(f => {
-                //f.toField()
-                f.requestUpdate()
-            })
-
-        }
-        // trigger a requestUpdate for this field
-        //this.toField()
-        this.requestUpdate()
-        return true
-    }
 
     /**
      * call for focus on next update for field
@@ -296,8 +221,8 @@ export abstract class FzField extends Base {
         const label = `${this.label}${this.required ? '*' : ''}`
         // for array items => badge index / for object property => label
         return html`
-            <label for="input" class="${this.isItem ? 'col-sm-1' : 'col-sm-3'} col-form-label" @click="${this.labelClicked}">
-                <div>${ this.isItem ? this.badge(label) : label} </div>
+            <label for="input" class="${this.isitem ? 'col-sm-1' : 'col-sm-3'} col-form-label" @click="${this.labelClicked}">
+                <div>${ this.isitem ? this.badge(label) : label} </div>
             </label>`
     }
 
@@ -322,11 +247,10 @@ export abstract class FzField extends Base {
         this.context.removeField(this.schema.pointer, this.pointer)
         this.pointer = undefined as any
         this.schema = undefined as any
-        this.data = undefined as any
-        this.name = undefined as any
-        this.index = undefined as any
         this.dirty = undefined as any
         this._dofocus = undefined as any
+        this.i_name = undefined as any
+        this.i_index = undefined as any        
     }
 
     /**
@@ -335,7 +259,7 @@ export abstract class FzField extends Base {
      * @param changedProps changed properties 
      */
     override update(changedProps: any) {
-        if (this.schema?.dynamic)
+        if (isFunction(this.schema?.dynamic))
             this.value = this.evalExpr("dynamic")
 
         super.update(changedProps)
@@ -421,7 +345,7 @@ export abstract class FzField extends Base {
     }
 
     evalExpr(attribute: keyof Schema, schema?: Schema, value?: Pojo, parent?: Pojo, key?: string | number) {
-        return this.schema._evalExpr(
+        return this.schema?._evalExpr(
             attribute, 
             schema ? schema : this.schema,
             schema ? value : this.value, 

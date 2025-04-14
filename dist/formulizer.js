@@ -603,10 +603,11 @@ function derefPointerData(root, parent, key, pointer) {
             for (let i = 1; i < count; i++)
                 base = base?.[PARENT];
         }
-        if (!base) {
-            console.error(`enable to dereference pointer ${pointer} (no more parents)`);
-            return null;
-        }
+        if (!base)
+            return undefined;
+        //     console.error(`enable to dereference pointer ${pointer} (no more parents)`)
+        //     return undefined
+        // }
     }
     tokens.shift();
     for (const token of tokens) {
@@ -646,10 +647,93 @@ function isEmptyValue(value) {
         return value.length === 0;
     return false;
 }
-window.nvl = function nvl(templates, ...values) {
-    const cleaned = values.map(v => v ?? '');
-    return String.raw(templates, cleaned);
-};
+/**
+ * Returns the data located at a given pointer.
+ *
+ * @param root - The root data from which all pointers are evaluated.
+ * @param from - An absolute JSON pointer (string) serving as the base.
+ * @param to - An optional pointer to the target data. If provided and it starts with "/",
+ *             it is treated as an absolute pointer from root; otherwise it is relative to
+ *             the `from` pointer. If omitted, the data at the pointer given by `from` is returned.
+ * @returns The data at the pointer, or undefined if not found.
+ *
+ * Note: A null value in the data is valid and distinct from undefined (data not found).
+ */
+function getDataAtPointer(root, from, to) {
+    // Helper function to decode a JSON Pointer segment per RFC 6901.
+    const decode = (segment) => segment.replace(/~1/g, '/').replace(/~0/g, '~');
+    // Helper function to join an absolute base pointer with a relative pointer.
+    // If both base and relative are empty, return an empty string.
+    const joinPointers = (base, rel) => {
+        if (base === '' && rel === '')
+            return '';
+        if (base === '')
+            return '/' + rel;
+        if (rel === '')
+            return base;
+        return base.endsWith('/') ? base + rel : base + '/' + rel;
+    };
+    // Determine effective pointer:
+    // If "to" is provided, evaluate it; otherwise, use "from".
+    const effectivePointer = typeof to === 'string'
+        ? (to.startsWith('/') ? to : joinPointers(from, to))
+        : from;
+    // If effective pointer is empty, return the root data.
+    if (effectivePointer === '')
+        return root;
+    // Split the pointer into segments (skipping the first empty segment from the leading '/').
+    const segments = effectivePointer.split('/').slice(1);
+    let data = root;
+    for (const segment of segments) {
+        const decodedSegment = decode(segment);
+        if (data !== null && typeof data === 'object' && decodedSegment in data) {
+            data = data[decodedSegment];
+        }
+        else {
+            return undefined;
+        }
+    }
+    return data;
+}
+/**
+ * Given an absolute JSON pointer, returns an object with:
+ * - `parent`: the parent pointer (absolute) from which the last segment is removed;
+ * - `key`: the last segment, decoded according to RFC6901. If the decoded segment is purely numeric,
+ *          it is returned as a number.
+ *
+ * For example:
+ *  - "/a/b/3"   → { parent: "/a/b", key: 3 }
+ *  - "/a/b/c"   → { parent: "/a/b", key: "c" }
+ *  - "/single"  → { parent: "", key: "single" }
+ *  - "/"        → { parent: undefined, key: undefined }
+ *
+ * @param pointer - An absolute JSON pointer string (starting with "/").
+ * @returns An object containing the parent pointer and the key (string or number), or undefined values if
+ *          the pointer is root.
+ */
+function getParentAndKey(pointer) {
+    // If the pointer is empty or root, there is no parent or key.
+    if (!pointer || pointer === "/") {
+        return { parent: undefined, key: undefined };
+    }
+    // Remove the leading "/" and split into segments.
+    const segments = pointer.split("/").slice(1);
+    if (segments.length === 0) {
+        return { parent: undefined, key: undefined };
+    }
+    // Remove and decode the last segment.
+    const lastSegmentEncoded = segments.pop();
+    const decodeSegment = (segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~");
+    const decodedKey = decodeSegment(lastSegmentEncoded);
+    // Determine parent pointer: if no segments remain, parent is the root (empty string)
+    const parentPointer = segments.length ? "/" + segments.join("/") : "";
+    // If the decoded key is a valid integer string, return it as a number.
+    const possibleNumber = Number(decodedKey);
+    const key = !isNaN(possibleNumber) && decodedKey.trim() !== "" && String(possibleNumber) === decodedKey
+        ? possibleNumber
+        : decodedKey;
+    return { parent: parentPointer, key };
+}
 
 const BOOTSTRAP_URL = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css";
 const ICONS_URL = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css";
@@ -1295,15 +1379,34 @@ class FzField extends Base {
     #schema_accessor_storage = EMPTY_SCHEMA;
     get schema() { return this.#schema_accessor_storage; }
     set schema(value) { this.#schema_accessor_storage = value; }
-    #data_accessor_storage = {};
-    get data() { return this.#data_accessor_storage; }
-    set data(value) { this.#data_accessor_storage = value; }
-    #name_accessor_storage = null;
-    get name() { return this.#name_accessor_storage; }
-    set name(value) { this.#name_accessor_storage = value; }
-    #index_accessor_storage = null;
-    get index() { return this.#index_accessor_storage; }
-    set index(value) { this.#index_accessor_storage = value; }
+    //@property({ type: Object }) accessor data: any = {}
+    //@property({ type: String }) accessor name: string | null = null
+    // @property({ type: Number }) accessor index: number | null = null
+    get data() {
+        const { parent } = getParentAndKey(this.pointer);
+        return isNull(parent) ? undefined : this.context?.at(parent);
+    }
+    get key() {
+        return isNull(this.name) ? this.index ?? -1 : this.name;
+    }
+    i_name;
+    get name() {
+        if (this.i_name !== undefined)
+            return this.i_name;
+        const segments = this.pointer?.split('/').slice(1) ?? [];
+        const last = segments.length === 0 ? '' : segments[segments.length - 1];
+        this.i_name = /^\d+$/.test(last) ? null : last;
+        return this.i_name;
+    }
+    i_index;
+    get index() {
+        if (this.i_index !== undefined)
+            return this.i_index;
+        const segments = this.pointer?.split('/').slice(1) ?? [];
+        const last = segments.length === 0 ? '' : segments[segments.length - 1];
+        this.i_index = /^\d+$/.test(last) ? parseInt(last) : null;
+        return this.i_index;
+    }
     #dirty_accessor_storage = false;
     get dirty() { return this.#dirty_accessor_storage; }
     set dirty(value) { this.#dirty_accessor_storage = value; }
@@ -1360,19 +1463,20 @@ class FzField extends Base {
         return this.schema.parent == null;
     }
     get value() {
-        // Warning side effects is prohibited in this method, never update this.data 
-        if (this.data == null)
+        if (isNull(this.pointer) || isNull(this.pointer))
             return undefined;
+        return this.context.at(this.pointer);
+        // Warning side effects is prohibited in this method, never update this.data 
+        // if (this.data == null) return undefined
         // this is a known exception on side efect prohibition 
         // We need to initialise properties to 'undefined' if they are not present
-        if (this.name && !(this.name in this.data))
-            this.data[this.name] = undefined;
-        return this.data[this.key];
+        // if (this.name && !(this.name in this.data)) this.data[this.name] = undefined
+        // return this.data[this.key]
     }
     set value(value) {
         if (value === this.value)
             return;
-        this.cascadeValue(value);
+        this.context.set(this.pointer, value, this.schema);
         this.dirty = true;
         this.context?.check();
     }
@@ -1388,9 +1492,6 @@ class FzField extends Base {
             return true;
         return this.schema.nullAllowed;
     }
-    get key() {
-        return this.name ?? this.index ?? -1;
-    }
     /**
      * calculate label for this field
      */
@@ -1399,7 +1500,7 @@ class FzField extends Base {
         if (this.schema?.title === "")
             return "";
         // label for array items is an index poistion (one based)
-        if (this.isItem)
+        if (this.isitem)
             return String(this.index != null ? this.index + 1 : '-');
         // label for properties is title or default to property name
         return this.schema?.title ?? this.name ?? "";
@@ -1407,138 +1508,36 @@ class FzField extends Base {
     /**
      * return true if this field is item of array, false otherwise
      */
-    get isItem() {
-        return (this.index != null);
+    get isitem() {
+        return notNull(this.index);
     }
     /**
      * return true if this field is property of object, false otherwise
      */
-    get isProperty() {
-        return (this.name != null);
+    get isproperty() {
+        return notNull(this.name);
     }
     /**
      * calculate a visible boolean state for this field
      */
     get visible() {
-        return isFunction(this.schema?.visible) ? !!this.evalExpr("visible") : true;
+        return !!(this.evalExpr("visible") ?? true);
     }
     /**
      * calculate a required boolean state for this field
      */
     get required() {
-        let required = false;
-        if (this.isProperty && this.schema.requiredIf) {
-            required = this.evalExpr("requiredIf") ?? false;
-        }
-        return required;
+        if (!this.isproperty)
+            return false;
+        return this.evalExpr("requiredIf") ?? false;
     }
     /**
      * calculate a readonly boolean state for this field
      */
     get readonly() {
-        if (!this.context)
+        if (isNull(this.context) || this.context.readonly)
             return true;
-        if (this.context.readonly)
-            return true;
-        return (this.data && this.schema.readonly) ? this.evalExpr("readonly") : false;
-    }
-    /**
-     * this method is called for to update this.value (and must be done only here)
-     */
-    cascadeValue(value) {
-        const schema = this.schema;
-        // this.data has a value (not undefined or null)
-        // ---------------------------------------------
-        // we simple set new value (newValue func ensure well constructed values , chaining , default, ..)
-        if (this.data) {
-            this.data[this.key] = newValue(value, this.data, this.schema);
-        }
-        else {
-            // this.data is nullish
-            // --------------------
-            // we need to set this value and all the nullish ascendant found (cascading sets)
-            // imagine if current pointer is '/a/b/c/d/e' 
-            // we must check if d,c,b, and a are nullish (suppose d,c,b are nullish)
-            // we will set new newValue() for b,c,d first 
-            if (!this.pointer.startsWith("/")) {
-                console.error(`cascadeValue pointer not absolute => ${this.pointer}`);
-                return false;
-            }
-            if (this.pointer === "/") {
-                console.error(`newValue cant change root => ${this.pointer}`);
-                return false;
-            }
-            // we split pointer to obtain the path as an array of properties or indexes
-            // ex '/a/b/c/d/e => ['',a,b,c,d,e]
-            const keys = this.pointer.split('/').map(name => /^\d+$/.test(name) ? parseInt(name, 10) : name);
-            // for each properties in path we calculate a corresponding schema
-            // because heterogeneous types in arrays we are not allways able to do it
-            const schemas = [];
-            for (let ischema = schema; ischema; ischema = ischema.parent) {
-                schemas.unshift(ischema);
-            }
-            if (keys.length !== schemas.length) {
-                // not sure this is possible to happen because if we are ther choices had be done then intermidiary schema/values exists
-                console.error(`cascadeValue fail not all schema found on path `);
-                return false;
-            }
-            // we calculate a newValue for each missing property/index  in path in descending order until this target 
-            const fields = [];
-            let ipointer = '';
-            let parent = this.context.root;
-            for (let i = 0; i < keys.length && parent; i++) {
-                const key = keys[i];
-                const schema = schemas[i];
-                ipointer = i ? `${ipointer}/${key}` : `${key}`;
-                const field = this.context.getField(ipointer);
-                if (field)
-                    fields.push(field);
-                const type = schema.basetype;
-                switch (true) {
-                    // root nothing to do
-                    case key === '':
-                        break;
-                    // last property empty => affecting
-                    case i === keys.length - 1:
-                        {
-                            const v = newValue(value, parent, schema);
-                            if (field && !field.data)
-                                field.data = parent;
-                            parent = parent[key] = v;
-                        }
-                        break;
-                    // property "array" typed empty => initialising
-                    case parent[key] == null && type == 'array':
-                        {
-                            const v = newValue([], parent, schema);
-                            if (field && !field.data)
-                                field.data = parent;
-                            parent = parent[key] = v;
-                        }
-                        break;
-                    // property "object" typed empty => initialising
-                    case parent[key] == null && type == 'object':
-                        {
-                            const v = newValue({}, parent, schema);
-                            if (field && !field.data)
-                                field.data = parent;
-                            parent = parent[key] = v;
-                        }
-                        break;
-                    default:
-                        parent = (type == 'object' || type == 'array') ? parent[key] : null;
-                }
-            }
-            // trigger a requestUpdate for each field
-            fields.forEach(f => {
-                //f.toField()
-                f.requestUpdate();
-            });
-        }
-        // trigger a requestUpdate for this field
-        //this.toField()
-        this.requestUpdate();
-        return true;
+        return this.evalExpr("readonly") ?? false;
     }
     /**
      * call for focus on next update for field
@@ -1580,8 +1579,8 @@ class FzField extends Base {
         const label = `${this.label}${this.required ? '*' : ''}`;
         // for array items => badge index / for object property => label
         return x `
-            <label for="input" class="${this.isItem ? 'col-sm-1' : 'col-sm-3'} col-form-label" @click="${this.labelClicked}">
-                <div>${this.isItem ? this.badge(label) : label} </div>
+            <label for="input" class="${this.isitem ? 'col-sm-1' : 'col-sm-3'} col-form-label" @click="${this.labelClicked}">
+                <div>${this.isitem ? this.badge(label) : label} </div>
             </label>`;
     }
     chevron() {
@@ -1604,11 +1603,10 @@ class FzField extends Base {
         this.context.removeField(this.schema.pointer, this.pointer);
         this.pointer = undefined;
         this.schema = undefined;
-        this.data = undefined;
-        this.name = undefined;
-        this.index = undefined;
         this.dirty = undefined;
         this._dofocus = undefined;
+        this.i_name = undefined;
+        this.i_index = undefined;
     }
     /**
      * before each update
@@ -1616,7 +1614,7 @@ class FzField extends Base {
      * @param changedProps changed properties
      */
     update(changedProps) {
-        if (this.schema?.dynamic)
+        if (isFunction(this.schema?.dynamic))
             this.value = this.evalExpr("dynamic");
         super.update(changedProps);
         if (this._dofocus) {
@@ -1695,7 +1693,7 @@ class FzField extends Base {
         return text && text.length > 200 ? text.substring(0, 200) + '...' : (text ?? "");
     }
     evalExpr(attribute, schema, value, parent, key) {
-        return this.schema._evalExpr(attribute, schema ? schema : this.schema, schema ? value : this.value, schema ? parent : this.data, schema ? key ?? "" : this.key, this.derefFunc, this.context.appdata);
+        return this.schema?._evalExpr(attribute, schema ? schema : this.schema, schema ? value : this.value, schema ? parent : this.data, schema ? key ?? "" : this.key, this.derefFunc, this.context.appdata);
     }
     /**
      * return tagged template '$' for pointer derefencing in expression or code used in schema
@@ -1729,15 +1727,6 @@ __decorate([
 __decorate([
     n$2({ type: Object })
 ], FzField.prototype, "schema", null);
-__decorate([
-    n$2({ type: Object })
-], FzField.prototype, "data", null);
-__decorate([
-    n$2({ type: String })
-], FzField.prototype, "name", null);
-__decorate([
-    n$2({ type: Number })
-], FzField.prototype, "index", null);
 __decorate([
     n$2({ attribute: false })
 ], FzField.prototype, "dirty", null);
@@ -3915,42 +3904,35 @@ class FZCollection extends FzField {
      * @param key
      */
     renderItem(schema, key) {
-        let name = null;
-        let index = null;
         if (!this.schema)
             return x ``;
-        if (typeof key === 'string')
-            name = key;
-        if (typeof key === 'number')
-            index = key;
-        const data = (this.data == null) ? null : this.data[this.key];
         switch (schema.field) {
-            case 'fz-enum-select': return x `<fz-enum-select .pointer="${this.pointer}/${key}" .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-select>`;
-            case 'fz-enum-check': return x `<fz-enum-check .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-check>`;
-            case "fz-date": return x `<fz-date .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-date>`;
-            case "fz-time": return x `<fz-time .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-time>`;
-            case "fz-datetime": return x `<fz-datetime .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-datetime>`;
-            case "fz-textarea": return x `<fz-textarea .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-textarea>`;
-            case "fz-string": return x `<fz-string .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-string>`;
-            case "fz-mask": return x `<fz-mask .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-mask>`;
-            case "fz-picker": return x `<fz-picker .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-picker>`;
-            case "fz-signature": return x `<fz-signature .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-signature>`;
-            case "fz-boolean": return x `<fz-boolean .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-boolean>`;
-            case "fz-float": return x `<fz-float .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-float>`;
-            case "fz-integer": return x `<fz-integer .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-integer>`;
-            case "fz-range": return x `<fz-range .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-range>`;
-            case "fz-location": return x `<fz-location .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-location>`;
-            case "fz-array": return x `<fz-array .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-array>`;
-            case "fz-object": return x ` <fz-object .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-object>`;
-            case "fz-const": return x ` <fz-const .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-const>`;
-            case "fz-enum-array": return x ` <fz-enum-array .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-array>`;
-            case "fz-doc": return x ` <fz-doc .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-doc>`;
-            case "fz-uuid": return x ` <fz-uuid .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-uuid>`;
-            case "fz-markdown": return x ` <fz-markdown .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-markdown>`;
-            case "fz-enum-typeahead": return x ` <fz-enum-typeahead .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-typeahead>`;
-            case "fz-color": return x ` <fz-color .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-color>`;
+            case 'fz-enum-select': return x `<fz-enum-select .pointer="${this.pointer}/${key}" .schema="${schema}" ></fz-enum-select>`;
+            case 'fz-enum-check': return x `<fz-enum-check .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-enum-check>`;
+            case "fz-date": return x `<fz-date .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-date>`;
+            case "fz-time": return x `<fz-time .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-time>`;
+            case "fz-datetime": return x `<fz-datetime .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-datetime>`;
+            case "fz-textarea": return x `<fz-textarea .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-textarea>`;
+            case "fz-string": return x `<fz-string .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-string>`;
+            case "fz-mask": return x `<fz-mask .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-mask>`;
+            case "fz-picker": return x `<fz-picker .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-picker>`;
+            case "fz-signature": return x `<fz-signature .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-signature>`;
+            case "fz-boolean": return x `<fz-boolean .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-boolean>`;
+            case "fz-float": return x `<fz-float .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-float>`;
+            case "fz-integer": return x `<fz-integer .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-integer>`;
+            case "fz-range": return x `<fz-range .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-range>`;
+            case "fz-location": return x `<fz-location .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-location>`;
+            case "fz-array": return x `<fz-array .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-array>`;
+            case "fz-object": return x ` <fz-object .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-object>`;
+            case "fz-const": return x ` <fz-const .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-const>`;
+            case "fz-enum-array": return x ` <fz-enum-array .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-enum-array>`;
+            case "fz-doc": return x ` <fz-doc .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-doc>`;
+            case "fz-uuid": return x ` <fz-uuid .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-uuid>`;
+            case "fz-markdown": return x ` <fz-markdown .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-markdown>`;
+            case "fz-enum-typeahead": return x ` <fz-enum-typeahead .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-enum-typeahead>`;
+            case "fz-color": return x ` <fz-color .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-color>`;
             case 'fz-error':
-            default: return x `<div class="alert alert-warning" role="alert">field name=${name} type ${schema.basetype}/${schema.field} not implemented !</div>`;
+            default: return x `<div class="alert alert-warning" role="alert">field=${this.pointer} type ${schema.basetype}/${schema.field} not implemented !</div>`;
         }
     }
     renderItemErrors(index) {
@@ -4416,7 +4398,7 @@ let FzObject = class FzObject extends FZCollection {
             }
         }
         // item case (this field is item of an array)
-        if (this.isItem) {
+        if (this.isitem) {
             return (this.label === "")
                 ? x `<div>${this.renderLabel()}</div>${itemTemplates}`
                 : x `<div ?hidden="${this.collapsed}" > ${itemTemplates} </div>`;
@@ -4444,7 +4426,7 @@ let FzObject = class FzObject extends FZCollection {
         return !!this.schema.required?.includes(name);
     }
     labelClicked(evt) {
-        if (this.isItem) {
+        if (this.isitem) {
             this.dispatchEvent(new CustomEvent('toggle-item', {
                 detail: {
                     field: this
@@ -5044,7 +5026,7 @@ let FzItemDlg = class FzItemDlg extends Base {
                 </div>`}
                 ${this.itemSchema == null
             ? '' :
-            x `<fz-object id="form-object" .pointer="${this.pointer}/${this.index}"  .schema="${this.itemSchema}" .name="${undefined}" .index="${this.index}" .data="${this.array}"></fz-object>`}
+            x `<fz-object id="form-object" .pointer="${this.pointer}/${this.index}" .schema="${this.itemSchema}"></fz-object>`}
             </fz-dialog>`;
     }
     updated(_changedProperties) {
@@ -5721,6 +5703,10 @@ class CSUpgradeRef extends CompilationStep {
     }
 }
 
+window.nvl = function nvl(templates, ...values) {
+    const cleaned = values.map(v => v ?? '');
+    return String.raw(templates, cleaned);
+};
 /**
  * class to compile schema for fz-form
  * compilation process is a in-depth walkthrough schema applying in order all
@@ -5776,10 +5762,10 @@ class SchemaCompiler {
             new CSBool(this.root, 'readonly', () => false),
             new CSBool(this.root, 'requiredIf', () => false),
             new CSBool(this.root, 'filter', () => true),
-            new CSAny(this.root, 'rank', () => true),
-            new CSAny(this.root, 'dynamic', () => ''),
-            new CSAny(this.root, 'initialize', () => ''),
-            new CSAny(this.root, 'change', () => ''),
+            new CSAny(this.root, 'rank', () => 1),
+            new CSAny(this.root, 'dynamic', () => undefined),
+            new CSAny(this.root, 'initialize', () => undefined),
+            new CSAny(this.root, 'change', () => undefined),
         ];
         for (const step of this.steps) {
             this.passes[step.phase].push(step);
@@ -5964,10 +5950,14 @@ class CSRoot extends CompilationStep {
  * @param schema shema to comp base type
  */
 class CSTargetType extends CompilationStep {
+    // lsit of infering methods
+    static KEYMETHODS = ['constKW', 'typeKW', 'enumKW', 'numberKW', 'stringKW', 'arrayKW', 'objectKW', 'notKW', 'allofKW', 'anyofKW', 'oneofKW'];
+    // infering keywords lists
     static STRINGKW = ["minLength", "maxLength", "pattern", "format"];
     static NUMBERKW = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"];
     static ARRAYKW = ["items", "additionalItems", "minItems", "maxItems", "uniqueItems"];
     static OBJECTKW = ["required", "properties", "additionalProperties", "patternProperties", "minProperties", "maxProperties", "dependencies"];
+    // all types set
     static ALL = new Set(["string", "integer", "number", "object", "array", "boolean", "null"]);
     constructor(root) {
         super(root, "basetype", "pre", []);
@@ -5999,9 +5989,8 @@ class CSTargetType extends CompilationStep {
         }
     }
     infer(schema) {
-        const kwfuncs = ['constKW', 'typeKW', 'enumKW', 'numberKW', 'stringKW', 'arrayKW', 'objectKW', 'notKW', 'allofKW', 'anyofKW', 'oneofKW'];
         // we call all the helpers that infer types for each keyword
-        const infered = kwfuncs.map(kw => this[kw](schema));
+        const infered = CSTargetType.KEYMETHODS.map(kw => this[kw](schema));
         const filtered = infered.filter(value => value != null);
         // Specific integer use case as integer and number domains overlaps
         // number is infered through "number" in type keyword or presence of "number" keyword (minimum,...)
@@ -6038,7 +6027,7 @@ class CSTargetType extends CompilationStep {
     oneofKW(schema) {
         // Handling "oneOf" → union of types (similar to anyOf)
         if (schema.oneOf) {
-            const oneOfTypes = schema.oneOf.map((s) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x);
+            const oneOfTypes = schema.oneOf.map((s) => this.infer(s)).map(x => isNull(x) ? CSTargetType.ALL : x);
             return union(oneOfTypes);
         }
         return;
@@ -6050,14 +6039,14 @@ class CSTargetType extends CompilationStep {
     enumKW(schema) {
         // infering type from "enum" keyword correspond to a set of all enums value types
         if ("enum" in schema && Array.isArray(schema.enum)) {
-            const types = schema.enum.map(value => value == null ? "null" : Array.isArray(value) ? "array" : typeof value);
+            const types = schema.enum.map(value => isNull(value) ? "null" : isArray(value) ? "array" : typeof value);
             return new Set(types);
         }
         return;
     }
     typeKW(schema) {
         if ("type" in schema) {
-            return new Set(Array.isArray(schema.type) ? schema.type : [schema.type]);
+            return new Set(isArray(schema.type) ? schema.type : [schema.type]);
         }
         return;
     }
@@ -6223,7 +6212,7 @@ class CSTrackers extends CompilationStep {
                             const index = trackers.indexOf(node);
                             if (index !== -1) {
                                 console.warn(`Cycle detected: Removing track link from ${parent} → ${node}`);
-                                trackers.splice(index, 1); // ✅ Modify array in place
+                                trackers.splice(index, 1); // Modify array in place
                             }
                         }
                     }
@@ -6685,6 +6674,12 @@ let FzForm = FzForm_1 = class FzForm extends Base {
             get appdata() { return that.options?.userdata; },
             get asset() { return that.asset; },
             get store() { return that.store; },
+            at(from, to) {
+                return that.at(from, to);
+            },
+            set(pointer, value, schema) {
+                that.setValue(pointer, value, schema);
+            },
             check() { that.check(); },
             errors(pointer) { return that.errors(pointer); },
             getField(pointer) { return that.fieldMap.get(pointer); },
@@ -6700,6 +6695,9 @@ let FzForm = FzForm_1 = class FzForm extends Base {
                 that.fieldMap.get(pointer)?.requestUpdate();
             }
         };
+    }
+    at(from, to) {
+        return getDataAtPointer(this.root, from, to);
     }
     get root() { return this.i_root.content; }
     get valid() {
@@ -6779,8 +6777,8 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     renderForm() {
         return x `
             ${this.schema.basetype == "array"
-            ? x `<fz-array pointer="" name="content"  .data="${this.i_root}" .schema="${this.schema}"></fz-array>`
-            : x `<fz-object  pointer="" name="content" .data="${this.i_root}" .schema="${this.schema}"></fz-object>`}
+            ? x `<fz-array pointer="" .schema="${this.schema}"></fz-array>`
+            : x `<fz-object  pointer="" .schema="${this.schema}"></fz-object>`}
             ${this.renderButtons()}`;
     }
     renderButtons() {
@@ -6917,6 +6915,95 @@ let FzForm = FzForm_1 = class FzForm extends Base {
             configurable: true,
             enumerable: true
         });
+    }
+    /**
+     * this method is called for to update value (THIS MUST BE DONE ONLY HERE !!!)
+     */
+    setValue(pointer, value, schema) {
+        const fields = [];
+        const field = this.fieldMap.get(pointer);
+        if (field)
+            fields.push(field);
+        // this.data has a value (not undefined or null)
+        // ---------------------------------------------
+        // we simple set new value (newValue func ensure well constructed values , chaining , default, ..)
+        const { parent, key } = getParentAndKey(pointer);
+        if (parent === undefined || key === undefined) {
+            throw Error(`unable to set value ${pointer}`);
+        }
+        const parentValue = this.at(parent);
+        if (parentValue) {
+            parentValue[key] = newValue(value, parentValue, schema);
+        }
+        else {
+            // parent is undefined | null
+            // --------------------
+            // we need to set this value and all the nullish ascendant found (cascading sets)
+            // imagine if current pointer is '/a/b/c/d/e' 
+            // we must check if d,c,b, and a are nullish (suppose d,c,b are nullish)
+            // we will set new newValue() for b,c,d first 
+            if (!pointer.startsWith("/")) {
+                throw Error(`setValue pointer not absolute => ${pointer}`);
+            }
+            if (/^\/?$/.test(pointer)) {
+                throw Error(`setValue cant change root => ${pointer}`);
+            }
+            // we split pointer to obtain the path as an array of properties or indexes
+            // ex '/a/b/c/d/e => ['',a,b,c,d,e]
+            const keys = pointer.split('/').map(name => /^\d+$/.test(name) ? parseInt(name, 10) : name);
+            // for each properties in path we calculate a corresponding schema
+            // because heterogeneous types in arrays we are not allways able to do it
+            const schemas = [];
+            for (let ischema = schema; ischema; ischema = ischema.parent) {
+                schemas.unshift(ischema);
+            }
+            if (keys.length !== schemas.length) {
+                // not sure this is possible to happen because if we are ther choices had be done then intermidiary schema/values exists
+                throw Error(`setValue fail missing schemas on path => ${pointer}`);
+            }
+            // we calculate a newValue for each missing property/index  in path in descending order until this target 
+            let ipointer = '';
+            let parent = this.context.root;
+            for (let i = 0; i < keys.length && parent; i++) {
+                const key = keys[i];
+                const schema = schemas[i];
+                ipointer = i ? `${ipointer}/${key}` : `${key}`;
+                const field = this.fieldMap.get(ipointer);
+                if (field)
+                    fields.push(field);
+                const type = schema.basetype;
+                switch (true) {
+                    // root nothing to do
+                    case key === '':
+                        break;
+                    // last property empty => affecting
+                    case i === keys.length - 1:
+                        {
+                            const v = newValue(value, parent, schema);
+                            parent = parent[key] = v;
+                        }
+                        break;
+                    // property "array" typed empty => initialising
+                    case parent[key] == null && type == 'array':
+                        {
+                            const v = newValue([], parent, schema);
+                            parent = parent[key] = v;
+                        }
+                        break;
+                    // property "object" typed empty => initialising
+                    case parent[key] == null && type == 'object':
+                        {
+                            const v = newValue({}, parent, schema);
+                            parent = parent[key] = v;
+                        }
+                        break;
+                    default:
+                        parent = (type == 'object' || type == 'array') ? parent[key] : null;
+                }
+            }
+        }
+        // trigger a requestUpdate for each field
+        fields.forEach(f => f.requestUpdate());
     }
 };
 __decorate([

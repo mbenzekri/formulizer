@@ -1,14 +1,48 @@
 {
     "form": {
         "type": "object",
+        "title": "Oh no! Thinking of leaving?",
+        "abstract": "",
         "properties": {
-            "today": {
+            "reason": {
                 "type": "string",
-                "title": "location",
-                "format": "location"
+                "title": "Ⓐ Help us improve",
+                "enum" :  [
+                    "Does not meet my needs", 
+                    "Too expensive", 
+                    "Project canceled", 
+                    "Other"],
+                "default" : "Doesn’t fit my needs"
+            },
+            "sorry": {
+                "title": "Ⓑ",
+                "visible": "$`1/reason` === 'Does not meet my needs'",
+                "const": "Sorry, I did my best"
+            },
+            "offer": {
+                "visible": "$`1/reason` === 'Too expensive'",
+                "type": "string",
+                "format": "markdown",
+                "dynamic": ["Ⓒ",
+                    "## 🎁 Offer... ",
+                    "**We’d love to keep you! Here’s a special 50% discount just for you.**"
+                ],
+                "transient": true
+            },
+            "canceled": {
+                "title": "Ⓓ",
+                "visible": "$`1/reason` === 'Project canceled'",
+                "const": "Bye, See you soon"
+            },
+            "comment": {
+                "type": "string",
+                "visible": "$`1/reason` === 'Other'",
+                "title": "Ⓔ Tell us more",
+                "maxLength": 500
             }
         }
     },
     "data": {
+        "reason" : "Does not meet my needs"
     }
 }

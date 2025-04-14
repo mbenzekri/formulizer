@@ -268,6 +268,8 @@ type FzFormContext = {
     readonly appdata: any;
     readonly asset: IAsset;
     readonly store: IBlobStore;
+    readonly at: (from: string, to?: string) => any;
+    readonly set: (pointer: string, value: any, schema: Schema) => void;
     readonly errors: (pointer: string) => string[];
     readonly check: () => void;
     readonly getField: (pointer: string) => FzField | undefined;
@@ -296,6 +298,7 @@ declare class FzForm extends Base {
     private validator;
     private message;
     get context(): FzFormContext;
+    private at;
     get root(): any;
     get valid(): boolean;
     get schema(): Schema;
@@ -323,6 +326,10 @@ declare class FzForm extends Base {
     private cancel;
     private compile;
     trace(pointer: string): void;
+    /**
+     * this method is called for to update value (THIS MUST BE DONE ONLY HERE !!!)
+     */
+    private setValue;
 }
 
 /**
@@ -341,9 +348,12 @@ declare abstract class FzField extends Base {
     private _dofocus;
     accessor pointer: string;
     accessor schema: Schema;
-    accessor data: any;
-    accessor name: string | null;
-    accessor index: number | null;
+    get data(): any;
+    get key(): string | number;
+    private i_name;
+    get name(): string | null;
+    private i_index;
+    get index(): number | null;
     accessor dirty: boolean;
     accessor i_collapsed: boolean;
     get errors(): string[];
@@ -361,7 +371,6 @@ declare abstract class FzField extends Base {
     get empty(): any;
     get isempty(): boolean;
     get nullable(): boolean | undefined;
-    get key(): string | number;
     /**
      * calculate label for this field
      */
@@ -369,11 +378,11 @@ declare abstract class FzField extends Base {
     /**
      * return true if this field is item of array, false otherwise
      */
-    get isItem(): boolean;
+    get isitem(): boolean;
     /**
      * return true if this field is property of object, false otherwise
      */
-    get isProperty(): boolean;
+    get isproperty(): boolean;
     /**
      * calculate a visible boolean state for this field
      */
@@ -381,15 +390,11 @@ declare abstract class FzField extends Base {
     /**
      * calculate a required boolean state for this field
      */
-    get required(): boolean;
+    get required(): any;
     /**
      * calculate a readonly boolean state for this field
      */
     get readonly(): boolean;
-    /**
-     * this method is called for to update this.value (and must be done only here)
-     */
-    private cascadeValue;
     /**
      * call for focus on next update for field
      */

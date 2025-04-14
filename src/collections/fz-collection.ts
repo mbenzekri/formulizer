@@ -68,40 +68,35 @@ export abstract class FZCollection extends FzField {
      * @param key 
      */
     protected renderItem(schema: Schema, key: string | number): TemplateResult {
-        let name: string | null = null
-        let index: number | null = null
         if (!this.schema) return html``
-        if (typeof key === 'string') name = key
-        if (typeof key === 'number') index = key
-        const data = (this.data == null) ? null : this.data[this.key]
 
         switch (schema.field) {
-            case 'fz-enum-select': return html`<fz-enum-select .pointer="${this.pointer}/${key}" .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-select>`
-            case 'fz-enum-check': return html`<fz-enum-check .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-check>`
-            case "fz-date": return html`<fz-date .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-date>`
-            case "fz-time": return html`<fz-time .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-time>`
-            case "fz-datetime": return html`<fz-datetime .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-datetime>`
-            case "fz-textarea": return html`<fz-textarea .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-textarea>`
-            case "fz-string": return html`<fz-string .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-string>`
-            case "fz-mask": return html`<fz-mask .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-mask>`
-            case "fz-picker": return html`<fz-picker .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-picker>`
-            case "fz-signature": return html`<fz-signature .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-signature>`
-            case "fz-boolean": return html`<fz-boolean .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-boolean>`
-            case "fz-float": return html`<fz-float .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-float>`
-            case "fz-integer": return html`<fz-integer .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-integer>`
-            case "fz-range": return html`<fz-range .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-range>`
-            case "fz-location": return html`<fz-location .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-location>`
-            case "fz-array": return html`<fz-array .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-array>`
-            case "fz-object": return html` <fz-object .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-object>`
-            case "fz-const": return html` <fz-const .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-const>`
-            case "fz-enum-array": return html` <fz-enum-array .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-array>`
-            case "fz-doc": return html` <fz-doc .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-doc>`
-            case "fz-uuid": return html` <fz-uuid .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-uuid>`
-            case "fz-markdown": return html` <fz-markdown .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-markdown>`
-            case "fz-enum-typeahead": return html` <fz-enum-typeahead .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-enum-typeahead>`
-            case "fz-color": return html` <fz-color .pointer="${this.pointer}/${key}"  .schema="${schema}" .name="${name}" .index="${index}" .data="${data}"></fz-color>`
+            case 'fz-enum-select': return html`<fz-enum-select .pointer="${this.pointer}/${key}" .schema="${schema}" ></fz-enum-select>`
+            case 'fz-enum-check': return html`<fz-enum-check .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-enum-check>`
+            case "fz-date": return html`<fz-date .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-date>`
+            case "fz-time": return html`<fz-time .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-time>`
+            case "fz-datetime": return html`<fz-datetime .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-datetime>`
+            case "fz-textarea": return html`<fz-textarea .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-textarea>`
+            case "fz-string": return html`<fz-string .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-string>`
+            case "fz-mask": return html`<fz-mask .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-mask>`
+            case "fz-picker": return html`<fz-picker .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-picker>`
+            case "fz-signature": return html`<fz-signature .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-signature>`
+            case "fz-boolean": return html`<fz-boolean .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-boolean>`
+            case "fz-float": return html`<fz-float .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-float>`
+            case "fz-integer": return html`<fz-integer .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-integer>`
+            case "fz-range": return html`<fz-range .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-range>`
+            case "fz-location": return html`<fz-location .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-location>`
+            case "fz-array": return html`<fz-array .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-array>`
+            case "fz-object": return html` <fz-object .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-object>`
+            case "fz-const": return html` <fz-const .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-const>`
+            case "fz-enum-array": return html` <fz-enum-array .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-enum-array>`
+            case "fz-doc": return html` <fz-doc .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-doc>`
+            case "fz-uuid": return html` <fz-uuid .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-uuid>`
+            case "fz-markdown": return html` <fz-markdown .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-markdown>`
+            case "fz-enum-typeahead": return html` <fz-enum-typeahead .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-enum-typeahead>`
+            case "fz-color": return html` <fz-color .pointer="${this.pointer}/${key}"  .schema="${schema}" ></fz-color>`
             case 'fz-error':
-            default: return html`<div class="alert alert-warning" role="alert">field name=${name} type ${schema.basetype}/${schema.field} not implemented !</div>`
+            default: return html`<div class="alert alert-warning" role="alert">field=${this.pointer} type ${schema.basetype}/${schema.field} not implemented !</div>`
         }
     }
 

@@ -44,7 +44,7 @@ export class FzItemDlg extends Base {
                 </div>`}
                 ${this.itemSchema == null
                 ? '' :
-                html`<fz-object id="form-object" .pointer="${this.pointer}/${this.index}"  .schema="${this.itemSchema}" .name="${undefined}" .index="${this.index}" .data="${this.array}"></fz-object>`}
+                html`<fz-object id="form-object" .pointer="${this.pointer}/${this.index}" .schema="${this.itemSchema}"></fz-object>`}
             </fz-dialog>`
     }
     protected override updated(_changedProperties: Map<string | number | symbol, unknown>): void {

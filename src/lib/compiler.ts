@@ -3,6 +3,13 @@ import { derefPointerData, complement, intersect, union, isPrimitive, isArray, i
 import { Schema, CompilationStep, isenumarray } from "./schema";
 import { CSUpgradeRef, CSUpgradeAdditionalProperties, CSUpgradeDependencies, CSUpgradeId, CSUpgradeItems, CSUpgradeNullable } from "./upgrade";
 
+
+
+(window as any).nvl = function nvl(templates: { raw: readonly string[] | ArrayLike<string> }, ...values: any[]) {
+    const cleaned = values.map(v => v ?? '')
+    return String.raw(templates, cleaned)
+}
+
 /**
  * class to compile schema for fz-form 
  * compilation process is a in-depth walkthrough schema applying in order all 
@@ -64,10 +71,10 @@ export class SchemaCompiler {
                 new CSBool(this.root, 'readonly', () => false),
                 new CSBool(this.root, 'requiredIf', () => false),
                 new CSBool(this.root, 'filter', () => true),
-                new CSAny(this.root, 'rank', () => true),
-                new CSAny(this.root, 'dynamic', () => ''),
-                new CSAny(this.root, 'initialize', () => ''),
-                new CSAny(this.root, 'change', () => ''),
+                new CSAny(this.root, 'rank', () => 1),
+                new CSAny(this.root, 'dynamic', () => undefined),
+                new CSAny(this.root, 'initialize', () => undefined),
+                new CSAny(this.root, 'change', () => undefined),
         ]
         for (const step of this.steps) {
             this.passes[step.phase].push(step)
@@ -268,11 +275,14 @@ class CSRoot extends CompilationStep {
  * @param schema shema to comp base type
  */
 class CSTargetType extends CompilationStep {
-
+    // lsit of infering methods
+    static KEYMETHODS: (keyof CSTargetType)[] = ['constKW', 'typeKW', 'enumKW', 'numberKW', 'stringKW', 'arrayKW', 'objectKW', 'notKW', 'allofKW', 'anyofKW', 'oneofKW']
+    // infering keywords lists
     static STRINGKW = ["minLength", "maxLength", "pattern", "format"]
     static NUMBERKW = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"]
     static ARRAYKW = ["items", "additionalItems", "minItems", "maxItems", "uniqueItems"]
     static OBJECTKW = ["required", "properties", "additionalProperties", "patternProperties", "minProperties", "maxProperties", "dependencies"]
+    // all types set
     static ALL = new Set(["string", "integer", "number", "object", "array", "boolean", "null"])
     constructor(root: Schema) {
         super(root, "basetype","pre",[])
@@ -307,9 +317,9 @@ class CSTargetType extends CompilationStep {
     }
 
     infer(schema: Schema): Set<string> {
-        const kwfuncs: (keyof CSTargetType)[] = ['constKW', 'typeKW', 'enumKW', 'numberKW', 'stringKW', 'arrayKW', 'objectKW', 'notKW', 'allofKW', 'anyofKW', 'oneofKW']
+
         // we call all the helpers that infer types for each keyword
-        const infered = kwfuncs.map(kw => (this as any)[kw](schema)) as Set<string>[]
+        const infered = CSTargetType.KEYMETHODS.map(kw => (this as any)[kw](schema)) as Set<string>[]
         const filtered = infered.filter(value => value != null)
         // Specific integer use case as integer and number domains overlaps
         // number is infered through "number" in type keyword or presence of "number" keyword (minimum,...)
@@ -346,7 +356,7 @@ class CSTargetType extends CompilationStep {
     oneofKW(schema: Schema) {
         // Handling "oneOf" → union of types (similar to anyOf)
         if (schema.oneOf) {
-            const oneOfTypes = schema.oneOf.map((s: Schema) => this.infer(s)).map(x => x == null ? CSTargetType.ALL : x)
+            const oneOfTypes = schema.oneOf .map((s: Schema) => this.infer(s)).map(x => isNull(x) ? CSTargetType.ALL : x)
             return union(oneOfTypes)
         }
         return
@@ -359,7 +369,7 @@ class CSTargetType extends CompilationStep {
     enumKW(schema: Schema) {
         // infering type from "enum" keyword correspond to a set of all enums value types
         if ("enum" in schema && Array.isArray(schema.enum)) {
-            const types = schema.enum.map(value => value == null ? "null" : Array.isArray(value) ? "array" : typeof value)
+            const types = schema.enum.map(value => isNull(value) ? "null" : isArray(value) ? "array" : typeof value)
             return new Set(types)
         }
         return
@@ -367,7 +377,7 @@ class CSTargetType extends CompilationStep {
 
     typeKW(schema: Schema) {
         if ("type" in schema) {
-            return new Set(Array.isArray(schema.type) ? schema.type : [schema.type]) as Set<string>
+            return new Set(isArray(schema.type) ? schema.type : [schema.type]) as Set<string>
         }
         return
     }
@@ -555,7 +565,7 @@ class CSTrackers extends CompilationStep {
                             const index = trackers.indexOf(node);
                             if (index !== -1) {
                                 console.warn(`Cycle detected: Removing track link from ${parent} → ${node}`);
-                                trackers.splice(index, 1); // ✅ Modify array in place
+                                trackers.splice(index, 1); // Modify array in place
                             }
                         }
                     }
