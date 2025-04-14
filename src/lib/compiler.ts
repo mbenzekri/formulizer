@@ -672,7 +672,7 @@ class CSField extends CompilationStep {
                     case "date": return schema.field = 'fz-date'
                     case "time": return schema.field = 'fz-time'
                     case "date-time": return schema.field = 'fz-datetime'
-                    case "geo": return schema.field = 'fz-location'
+                    case "location": return schema.field = 'fz-location'
                     case "doc": return schema.field = 'fz-doc'
                     case "markdown": return schema.field = 'fz-markdown'
                     case "asset": return schema.field = 'fz-picker'

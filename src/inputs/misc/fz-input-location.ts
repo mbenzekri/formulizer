@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement} from "lit/decorators.js"
-import {  html, css } from "lit"
+import {  html } from "lit"
 import { notNull } from "../../lib/tools"
 import { FzInputBase } from "../fz-input-base";
 
@@ -25,40 +25,30 @@ export class FzInputLocation extends FzInputBase {
         }
     }
 
-    static override get styles() {
-        return [
-            ...super.styles,
-            css`
-            input[type="color"] {
-                height: 38px
-            }`
-        ]
-    }
-    
     renderInput() {
         return html`
             <div class="input-group ${this.validation}">
                 <input
                     id="input"
                     type="text"
-                    readonly
-                    placeholder="POINT(x y)"
                     ?readonly="${this.readonly}" 
+                    placeholder="POINT(x y)"
                     autocomplete=off  spellcheck="false"
                     class="form-control"
                 />
                 <div class="btn-group">
                     <button 
                         type="button"
-                        class="btn btn-danger btn-sm"
                         @click="${this.remove}"
-                        aria-label="delete">
-                            <i class="bi bi-x"></i>
+                        aria-label="delete"
+                        class="btn btn-sm"
+                    >
+                        <i class="bi bi-trash"></i>
                     </button>
                     <button 
                         type="button"
                         ?disabled=${!navigator.geolocation}
-                        @click="${this.geolocate}"
+                        @click="${this.locate}"
                         aria-label="Geolocate"
                         class="btn btn-primary btn-sm"
                     >
@@ -67,17 +57,22 @@ export class FzInputLocation extends FzInputBase {
                 </div>
             </div>`
     }
-    geolocate() { 
+    clearWatcher() {
+        if (this.watchId !== undefined) {
+            navigator.geolocation.clearWatch(this.watchId)
+            this.watchId = undefined
+        }
+    }
+    locate() { 
 
         this.watchId = navigator.geolocation.watchPosition(
             position => {
-                if (!this.isConnected) return
-                if (this.watchId !== undefined) navigator.geolocation.clearWatch(this.watchId)
+                this.clearWatcher()
                 this.value = this.input.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`
                 this.change()
             },
             err => {
-                if (this.watchId !== undefined) navigator.geolocation.clearWatch(this.watchId)
+                this.clearWatcher()
                 console.warn("Geolocation error:", err)
             },
             {
@@ -90,16 +85,13 @@ export class FzInputLocation extends FzInputBase {
 
 
     override remove() {
-        this.input.value = ""
+        this.input.value = this.empty
         this.change()
     }
 
     override disconnectedCallback(): void {
         super.disconnectedCallback()
-        if (this.watchId !== undefined) {
-            navigator.geolocation.clearWatch(this.watchId)
-            this.watchId = undefined
-        }
+        this.clearWatcher()
     }
 
 }

@@ -923,7 +923,7 @@ class JSONSchemaDraft07 {
     tab;
     group;
 }
-const FZ_FORMATS = ["color", "signature", "password", "doc", "uuid", "geo", "markdown", "asset", "date", "time", "date-time", "email", "barcode"];
+const FZ_FORMATS = ["color", "signature", "password", "doc", "uuid", "location", "markdown", "asset", "date", "time", "date-time", "email", "barcode"];
 const FZ_KEYWORDS = [
     "root",
     "parent",
@@ -3426,39 +3426,30 @@ let FzInputLocation = class FzInputLocation extends FzInputBase {
             this.value = notNull(this.input.value) ? this.input.value : undefined;
         }
     }
-    static get styles() {
-        return [
-            ...super.styles,
-            i$5 `
-            input[type="color"] {
-                height: 38px
-            }`
-        ];
-    }
     renderInput() {
         return x `
             <div class="input-group ${this.validation}">
                 <input
                     id="input"
                     type="text"
-                    readonly
-                    placeholder="POINT(x y)"
                     ?readonly="${this.readonly}" 
+                    placeholder="POINT(x y)"
                     autocomplete=off  spellcheck="false"
                     class="form-control"
                 />
                 <div class="btn-group">
                     <button 
                         type="button"
-                        class="btn btn-danger btn-sm"
                         @click="${this.remove}"
-                        aria-label="delete">
-                            <i class="bi bi-x"></i>
+                        aria-label="delete"
+                        class="btn btn-sm"
+                    >
+                        <i class="bi bi-trash"></i>
                     </button>
                     <button 
                         type="button"
                         ?disabled=${!navigator.geolocation}
-                        @click="${this.geolocate}"
+                        @click="${this.locate}"
                         aria-label="Geolocate"
                         class="btn btn-primary btn-sm"
                     >
@@ -3467,17 +3458,19 @@ let FzInputLocation = class FzInputLocation extends FzInputBase {
                 </div>
             </div>`;
     }
-    geolocate() {
+    clearWatcher() {
+        if (this.watchId !== undefined) {
+            navigator.geolocation.clearWatch(this.watchId);
+            this.watchId = undefined;
+        }
+    }
+    locate() {
         this.watchId = navigator.geolocation.watchPosition(position => {
-            if (!this.isConnected)
-                return;
-            if (this.watchId !== undefined)
-                navigator.geolocation.clearWatch(this.watchId);
+            this.clearWatcher();
             this.value = this.input.value = `POINT (${position.coords.longitude} ${position.coords.latitude})`;
             this.change();
         }, err => {
-            if (this.watchId !== undefined)
-                navigator.geolocation.clearWatch(this.watchId);
+            this.clearWatcher();
             console.warn("Geolocation error:", err);
         }, {
             enableHighAccuracy: true,
@@ -3486,15 +3479,12 @@ let FzInputLocation = class FzInputLocation extends FzInputBase {
         });
     }
     remove() {
-        this.input.value = "";
+        this.input.value = this.empty;
         this.change();
     }
     disconnectedCallback() {
         super.disconnectedCallback();
-        if (this.watchId !== undefined) {
-            navigator.geolocation.clearWatch(this.watchId);
-            this.watchId = undefined;
-        }
+        this.clearWatcher();
     }
 };
 FzInputLocation = __decorate([
@@ -6342,7 +6332,7 @@ class CSField extends CompilationStep {
                     case "date": return schema.field = 'fz-date';
                     case "time": return schema.field = 'fz-time';
                     case "date-time": return schema.field = 'fz-datetime';
-                    case "geo": return schema.field = 'fz-location';
+                    case "location": return schema.field = 'fz-location';
                     case "doc": return schema.field = 'fz-doc';
                     case "markdown": return schema.field = 'fz-markdown';
                     case "asset": return schema.field = 'fz-picker';

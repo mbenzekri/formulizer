@@ -51,7 +51,7 @@
             "geo": {
                 "title": "format geolocation",
                 "type": "string",
-                "format": "geo"
+                "format": "location"
             },
             "doc": {
                 "type": "string",
