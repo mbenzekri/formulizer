@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { customElement, property } from "lit/decorators.js"
 import { css, html, TemplateResult } from "lit"
-import { isArray, isFunction, isNull, isObject, newSandbox, when } from "../lib/tools"
+import { isArray, isNull, isObject, when } from "../lib/tools"
 import { FZCollection } from "./fz-collection"
 import { EMPTY_SCHEMA, Schema } from "../lib/schema"
 import { SCHEMA } from "../lib/types"
@@ -56,9 +56,9 @@ export class FzArray extends FZCollection {
             <div class="form-group row space-before" @click=${this.labelClicked}>
                 ${this.renderLabel()}
                 <div class="col-sm-9">
-                    <div class="input-group ${this.validation}" @click="${this.toggle}" >
+                    <div class="input-group ${this.validation}" @click="${this.toggleCollapsed}" >
                         <div class="form-control">
-                            ${ isArray(this.value,true) ? html`${this.chevron()} ${this.abstract()}` : this.actionBtns() }
+                            ${ isArray(this.value,true) ? html`${this.renderChevron()} ${this.abstract()}` : this.actionBtns() }
                         </div>
                     </div>
                 </div>
@@ -67,7 +67,7 @@ export class FzArray extends FZCollection {
         `
     }
     override labelClicked(evt: Event) {
-        this.toggle(evt)
+        this.toggleCollapsed(evt)
     }
 
     override renderField() {
@@ -86,8 +86,8 @@ export class FzArray extends FZCollection {
                 <div class="form-group row ${when(hidelabel, 'd-none')}">
                     ${this.renderLabel()}
                     <div class="col-sm-1 d-none d-sm-block">
-                        <div class="input-group ${this.validation}" @click="${this.toggle}" >
-                            <div class="form-control border-0">${this.chevron()}</i></div>
+                        <div class="input-group ${this.validation}" @click="${this.toggleCollapsed}" >
+                            <div class="form-control border-0">${this.renderChevron()}</i></div>
                         </div>
                     </div>
                 </div>
@@ -238,7 +238,7 @@ export class FzArray extends FZCollection {
     add(evt?: Event) {
         if (!this.currentSchema) return
         if (!isArray(this.value)) this.value = []
-        const value = this.currentSchema._default(this.data)
+        const value = this.currentSchema._default(this.parent)
         this.value.push(value)
         this.schemas.push(this.currentSchema)
         this.open(this.value.length - 1)
@@ -286,9 +286,7 @@ export class FzArray extends FZCollection {
             else {
                 // evaluate the case keyword expression 
                 const evalCase = (schema:Schema) => {
-                    if (!isFunction(schema.case)) return false
-                    const sandbox = newSandbox(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc, this.context.appdata)
-                    return schema.case(sandbox) ?? false
+                    return schema._evalExpr('case',EMPTY_SCHEMA,value,this.parent,this.key,this.derefFunc, this.context.appdata) ?? false
                 }
                 this.schemas.push(value[SCHEMA] ?? this.schema.items?.oneOf?.find(evalCase))
             }

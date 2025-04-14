@@ -32,8 +32,8 @@ export class FzObject extends FZCollection {
             <div class="form-group row space-before">
                 ${this.renderLabel()}
                 <div class="col-sm-9">
-                    <div class="input-group ${this.validation}" @click="${this.toggle}" >
-                        <div class="form-control">${this.chevron()} ${this.abstract()}</div>
+                    <div class="input-group ${this.validation}" @click="${this.toggleCollapsed}" >
+                        <div class="form-control">${this.renderChevron()} ${this.abstract()}</div>
                     </div>
                 </div>
             </div>
@@ -161,8 +161,8 @@ export class FzObject extends FZCollection {
                 <div class="form-group row ${when(hidelabel,'d-none')}">
                     ${this.renderLabel()}
                     <div class="col-sm-1 d-none d-sm-block">
-                        <div class="input-group ${this.validation}" @click="${this.toggle}" >
-                            <div class="form-control border-0">${this.chevron()}</div>
+                        <div class="input-group ${this.validation}" @click="${this.toggleCollapsed}" >
+                            <div class="form-control border-0">${this.renderChevron()}</div>
                         </div>
                     </div>
                 </div>
@@ -188,7 +188,7 @@ export class FzObject extends FZCollection {
                 composed: true
             }))
         } else {
-            this.toggle(evt)
+            this.toggleCollapsed(evt)
         }
         super.labelClicked(evt)
     }

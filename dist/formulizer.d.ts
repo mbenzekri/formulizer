@@ -340,80 +340,75 @@ declare class FzForm extends Base {
  * @prop required
  */
 declare abstract class FzField extends Base {
-    protected context: FzFormContext;
     abstract renderField(): TemplateResult;
     abstract toField(): void;
     abstract toValue(): void;
+    protected context: FzFormContext;
     protected localError?: string;
     private _dofocus;
+    private i_key?;
     accessor pointer: string;
     accessor schema: Schema;
-    get data(): any;
-    get key(): string | number;
-    private i_name;
-    get name(): string | null;
-    private i_index;
-    get index(): number | null;
     accessor dirty: boolean;
     accessor i_collapsed: boolean;
     get errors(): string[];
-    get valid(): boolean;
-    get invalid(): boolean;
-    get collapsed(): boolean;
-    set collapsed(value: boolean);
-    toggle(evt: Event): void;
-    /** A field is touched if really modified (dirty) or submission by user done */
-    get touched(): boolean;
-    get validation(): lit_html_directive.DirectiveResult<typeof lit_html_directives_class_map.ClassMapDirective>;
+    /** true if this field is rendering root data (no parent) */
     get isroot(): boolean;
-    get value(): any;
-    set value(value: any);
+    /** property name of this field in parent object data */
+    get name(): string | undefined;
+    /** index position name of this field in parent array data */
+    get index(): number | undefined;
+    /** true if data is conforming to this.schema  */
+    get valid(): boolean;
+    /** true if data not conforming to this.schema  */
+    get invalid(): boolean;
+    /** return true if field is really modified (dirty) or already submited by user */
+    get touched(): boolean;
+    /** return enpty value for this field */
     get empty(): any;
+    /** true if this.value is empty (see emptiness chapter) */
     get isempty(): boolean;
-    get nullable(): boolean | undefined;
-    /**
-     * calculate label for this field
-     */
-    get label(): string;
-    /**
-     * return true if this field is item of array, false otherwise
-     */
+    /** true if field is item of array, false otherwise */
     get isitem(): boolean;
-    /**
-     * return true if this field is property of object, false otherwise
-     */
+    /** return true if field is property of object, false otherwise */
     get isproperty(): boolean;
-    /**
-     * calculate a visible boolean state for this field
-     */
+    /** true if field is visible false otherwise (dynamic keyword 'visible') */
     get visible(): boolean;
-    /**
-     * calculate a required boolean state for this field
-     */
+    /** get parent data */
+    get parent(): any;
+    /** get key (property name or index of array) of this field */
+    get key(): string | number;
+    /** get data value for this field */
+    get value(): any;
+    /** set data value for this field */
+    set value(value: any);
+    /** true if this field is collapsed */
+    get collapsed(): boolean;
+    /** set collapsed state for this field (note!: may not change if never or allways) */
+    set collapsed(value: boolean);
+    /** toggle collapsed field state (note!: may not change if never or allways) */
+    toggleCollapsed(evt: Event): void;
+    /** get validation classMap to render child validation uniformly */
+    get validation(): lit_html_directive.DirectiveResult<typeof lit_html_directives_class_map.ClassMapDirective>;
+    /** check if field is nullable */
+    get nullable(): boolean | undefined;
+    /** calculate label for this field */
+    get label(): string;
+    /** true if field is require false otherwise (dynamic keyword 'requiredIf' + 'required') */
     get required(): any;
-    /**
-     * calculate a readonly boolean state for this field
-     */
+    /** true if field is readonly false otherwise (dynamic keyword 'readonly') */
     get readonly(): boolean;
-    /**
-     * call for focus on next update for field
-     */
+    /** call for focus on next update for field */
     dofocus(): void;
-    /**
-     * to override if focusout need to be managed by field
-     */
+    /** overridable method when focusout need to be managed by field */
     focusout(_evt: Event): void;
-    /**
-     * render method for this field component (calls renderField() abstract rendering method)
-     */
+    /** render method for this field component */
     render(): "" | TemplateResult<1>;
-    renderErrors(): "" | TemplateResult<1>;
-    private toggleError;
-    /**
-     * render method for label
-     */
-    renderLabel(): TemplateResult<1>;
-    chevron(): "" | TemplateResult<1>;
+    /** render method for this field errors */
+    protected renderErrors(): "" | TemplateResult<1>;
+    /** render method for label */
+    protected renderLabel(): TemplateResult<1>;
+    protected renderChevron(): "" | TemplateResult<1>;
     connectedCallback(): void;
     disconnectedCallback(): void;
     /**
@@ -434,7 +429,7 @@ declare abstract class FzField extends Base {
      * - update the model value from the field
      * - eval 'change' keyword
      * - process a validation
-     * - triggers needed cha,ge events for update and trackers
+     * - triggers needed change events for update and trackers
      */
     protected change(): void;
     /**

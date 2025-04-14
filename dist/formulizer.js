@@ -1373,40 +1373,13 @@ class FzField extends Base {
     context;
     localError;
     _dofocus = false;
+    i_key;
     #pointer_accessor_storage = '/';
     get pointer() { return this.#pointer_accessor_storage; }
     set pointer(value) { this.#pointer_accessor_storage = value; }
     #schema_accessor_storage = EMPTY_SCHEMA;
     get schema() { return this.#schema_accessor_storage; }
     set schema(value) { this.#schema_accessor_storage = value; }
-    //@property({ type: Object }) accessor data: any = {}
-    //@property({ type: String }) accessor name: string | null = null
-    // @property({ type: Number }) accessor index: number | null = null
-    get data() {
-        const { parent } = getParentAndKey(this.pointer);
-        return isNull(parent) ? undefined : this.context?.at(parent);
-    }
-    get key() {
-        return isNull(this.name) ? this.index ?? -1 : this.name;
-    }
-    i_name;
-    get name() {
-        if (this.i_name !== undefined)
-            return this.i_name;
-        const segments = this.pointer?.split('/').slice(1) ?? [];
-        const last = segments.length === 0 ? '' : segments[segments.length - 1];
-        this.i_name = /^\d+$/.test(last) ? null : last;
-        return this.i_name;
-    }
-    i_index;
-    get index() {
-        if (this.i_index !== undefined)
-            return this.i_index;
-        const segments = this.pointer?.split('/').slice(1) ?? [];
-        const last = segments.length === 0 ? '' : segments[segments.length - 1];
-        this.i_index = /^\d+$/.test(last) ? parseInt(last) : null;
-        return this.i_index;
-    }
     #dirty_accessor_storage = false;
     get dirty() { return this.#dirty_accessor_storage; }
     set dirty(value) { this.#dirty_accessor_storage = value; }
@@ -1418,12 +1391,56 @@ class FzField extends Base {
             return [];
         return this.localError ? [this.localError, ...this.context.errors(this.pointer)] : this.context.errors(this.pointer);
     }
-    get valid() {
-        return this.errors.length === 0 && isNull(this.localError);
+    /** true if this field is rendering root data (no parent) */
+    get isroot() { return this.schema.parent == null; }
+    /** property name of this field in parent object data */
+    get name() { return isString(this.key) ? this.key : undefined; }
+    /** index position name of this field in parent array data */
+    get index() { return isString(this.key) ? undefined : this.key; }
+    /** true if data is conforming to this.schema  */
+    get valid() { return this.errors.length === 0 && isNull(this.localError); }
+    /** true if data not conforming to this.schema  */
+    get invalid() { return this.errors.length > 0 || notNull(this.localError); }
+    /** return true if field is really modified (dirty) or already submited by user */
+    get touched() { return this.dirty || this.context?.submitted; }
+    /** return enpty value for this field */
+    get empty() { return this.schema._empty(); }
+    /** true if this.value is empty (see emptiness chapter) */
+    get isempty() { return isEmptyValue(this.value); }
+    /** true if field is item of array, false otherwise */
+    get isitem() { return notNull(this.index); }
+    /** return true if field is property of object, false otherwise */
+    get isproperty() { return notNull(this.name); }
+    /** true if field is visible false otherwise (dynamic keyword 'visible') */
+    get visible() { return Boolean(this.evalExpr("visible") ?? true); }
+    /** get parent data */
+    get parent() {
+        const { parent } = getParentAndKey(this.pointer);
+        return isNull(parent) ? undefined : this.context?.at(parent);
     }
-    get invalid() {
-        return this.errors.length > 0 || notNull(this.localError);
+    /** get key (property name or index of array) of this field */
+    get key() {
+        if (this.i_key === undefined) {
+            const { key } = getParentAndKey(this.pointer);
+            this.i_key = key ?? '';
+        }
+        return this.i_key;
     }
+    /** get data value for this field */
+    get value() {
+        if (isNull(this.pointer) || isNull(this.pointer))
+            return undefined;
+        return this.context.at(this.pointer);
+    }
+    /** set data value for this field */
+    set value(value) {
+        if (value === this.value)
+            return;
+        this.context.set(this.pointer, value, this.schema);
+        this.dirty = true;
+        this.context?.check();
+    }
+    /** true if this field is collapsed */
     get collapsed() {
         if (this.schema.collapsed == "never")
             return false;
@@ -1431,14 +1448,14 @@ class FzField extends Base {
             return true;
         return this.i_collapsed;
     }
+    /** set collapsed state for this field (note!: may not change if never or allways) */
     set collapsed(value) {
-        if (this.schema.collapsed == "never")
-            return;
-        if (this.schema.collapsed == "allways")
+        if (["never", "allways"].includes(this.schema.collapsed))
             return;
         this.i_collapsed = value;
     }
-    toggle(evt) {
+    /** toggle collapsed field state (note!: may not change if never or allways) */
+    toggleCollapsed(evt) {
         if (["never", "allways"].includes(this.schema.collapsed))
             return;
         if (this.isroot) {
@@ -1449,42 +1466,14 @@ class FzField extends Base {
         this.eventStop(evt);
         this.requestUpdate();
     }
-    /** A field is touched if really modified (dirty) or submission by user done */
-    get touched() {
-        return this.dirty || this.context?.submitted;
-    }
+    /** get validation classMap to render child validation uniformly */
     get validation() {
         return e$1({
             "is-valid": this.touched && this.valid,
             "is-invalid": this.touched && this.invalid
         });
     }
-    get isroot() {
-        return this.schema.parent == null;
-    }
-    get value() {
-        if (isNull(this.pointer) || isNull(this.pointer))
-            return undefined;
-        return this.context.at(this.pointer);
-        // Warning side effects is prohibited in this method, never update this.data 
-        // if (this.data == null) return undefined
-        // this is a known exception on side efect prohibition 
-        // We need to initialise properties to 'undefined' if they are not present
-        // if (this.name && !(this.name in this.data)) this.data[this.name] = undefined
-        // return this.data[this.key]
-    }
-    set value(value) {
-        if (value === this.value)
-            return;
-        this.context.set(this.pointer, value, this.schema);
-        this.dirty = true;
-        this.context?.check();
-    }
-    get empty() { return this.schema._empty(); }
-    get isempty() { return isEmptyValue(this.value); }
-    /*
-    * check if field is nullable
-    */
+    /** check if field is nullable */
     get nullable() {
         if (this.schema.type === "null")
             return true;
@@ -1492,86 +1481,51 @@ class FzField extends Base {
             return true;
         return this.schema.nullAllowed;
     }
-    /**
-     * calculate label for this field
-     */
+    /** calculate label for this field */
     get label() {
-        // user may decide to remove label (title == "")
         if (this.schema?.title === "")
-            return "";
-        // label for array items is an index poistion (one based)
+            return ""; // removed by user
         if (this.isitem)
-            return String(this.index != null ? this.index + 1 : '-');
-        // label for properties is title or default to property name
-        return this.schema?.title ?? this.name ?? "";
+            return String(notNull(this.index) ? this.index + 1 : '-'); // index in array
+        return this.schema?.title ?? this.name ?? ""; // propety in object 
     }
-    /**
-     * return true if this field is item of array, false otherwise
-     */
-    get isitem() {
-        return notNull(this.index);
-    }
-    /**
-     * return true if this field is property of object, false otherwise
-     */
-    get isproperty() {
-        return notNull(this.name);
-    }
-    /**
-     * calculate a visible boolean state for this field
-     */
-    get visible() {
-        return !!(this.evalExpr("visible") ?? true);
-    }
-    /**
-     * calculate a required boolean state for this field
-     */
+    /** true if field is require false otherwise (dynamic keyword 'requiredIf' + 'required') */
     get required() {
         if (!this.isproperty)
             return false;
         return this.evalExpr("requiredIf") ?? false;
     }
-    /**
-     * calculate a readonly boolean state for this field
-     */
+    /** true if field is readonly false otherwise (dynamic keyword 'readonly') */
     get readonly() {
         if (isNull(this.context) || this.context.readonly)
             return true;
-        return this.evalExpr("readonly") ?? false;
+        return Boolean(this.evalExpr("readonly"));
     }
-    /**
-     * call for focus on next update for field
-     */
+    /** call for focus on next update for field */
     dofocus() { this._dofocus = true; }
-    /**
-     * to override if focusout need to be managed by field
-     */
-    focusout(_evt) {
-        // dont forget to call super.focusout(evt)
-    }
-    /**
-     * render method for this field component (calls renderField() abstract rendering method)
-     */
+    /** overridable method when focusout need to be managed by field */
+    focusout(_evt) { }
+    // Rendering methods & heplers 
+    // ---------------
+    /** render method for this field component */
     render() {
         if (!this.visible)
             return '';
         this.toField();
         return x `<div class="space-before" @focusout="${this.focusout}" >${this.renderField()}</div>`;
     }
+    /** render method for this field errors */
     renderErrors() {
-        if (!this.touched || this.valid)
-            return '';
-        return x `
-            <span id="error" class="error-message error-truncated" @click="${this.toggleError}">
+        let toggle = true;
+        return when(this.touched && this.invalid, x `
+            <span 
+                class="error-message error-truncated ${e$1({ 'error-truncated': toggle })}" 
+                @click="${() => toggle = !toggle}"
+            >
                 ${this.errors.join(', ')}
-            </span>`;
+            </span>`);
     }
-    toggleError() {
-        this.shadowRoot?.getElementById("error")?.classList.toggle("error-truncated");
-    }
-    /**
-     * render method for label
-     */
+    /** render method for label */
     renderLabel() {
         // the user may choose not to show label  
         if (this.label === "")
@@ -1583,7 +1537,7 @@ class FzField extends Base {
                 <div>${this.isitem ? this.badge(label) : label} </div>
             </label>`;
     }
-    chevron() {
+    renderChevron() {
         if (["allways", "never"].includes(this.schema.collapsed))
             return '';
         if (this.collapsed)
@@ -1605,8 +1559,7 @@ class FzField extends Base {
         this.schema = undefined;
         this.dirty = undefined;
         this._dofocus = undefined;
-        this.i_name = undefined;
-        this.i_index = undefined;
+        this.i_key = undefined;
     }
     /**
      * before each update
@@ -1644,7 +1597,7 @@ class FzField extends Base {
      * - update the model value from the field
      * - eval 'change' keyword
      * - process a validation
-     * - triggers needed cha,ge events for update and trackers
+     * - triggers needed change events for update and trackers
      */
     change() {
         // changed occurs evaluate change keyword extension
@@ -1653,7 +1606,7 @@ class FzField extends Base {
         // signal field update for ascendant
         const event = new CustomEvent('update', {
             detail: {
-                data: this.data,
+                data: this.parent,
                 schema: this.schema,
                 field: this
             },
@@ -1693,7 +1646,7 @@ class FzField extends Base {
         return text && text.length > 200 ? text.substring(0, 200) + '...' : (text ?? "");
     }
     evalExpr(attribute, schema, value, parent, key) {
-        return this.schema?._evalExpr(attribute, schema ? schema : this.schema, schema ? value : this.value, schema ? parent : this.data, schema ? key ?? "" : this.key, this.derefFunc, this.context.appdata);
+        return this.schema?._evalExpr(attribute, schema ? schema : this.schema, schema ? value : this.value, schema ? parent : this.parent, schema ? key ?? "" : this.key, this.derefFunc, this.context.appdata);
     }
     /**
      * return tagged template '$' for pointer derefencing in expression or code used in schema
@@ -1704,7 +1657,7 @@ class FzField extends Base {
     get derefFunc() {
         return (template, ...substitutions) => {
             const pointer = String.raw(template, substitutions);
-            return derefPointerData(this.context.root, this.data, this.key, pointer);
+            return derefPointerData(this.context.root, this.parent, this.key, pointer);
         };
     }
     /**
@@ -1796,7 +1749,7 @@ class FzInputBase extends FzField {
             logger.info("invalid mapping \n%s", mapping);
             const outlist = [
                 ['schema', JSON.stringify(this.schema, (key, value) => ['root', 'parent'].includes(key) ? undefined : value).substring(0, 100)],
-                ['data', JSON.stringify(this.data, (key, value) => typeof key === 'symbol' ? undefined : value).substring(1, 100)],
+                ['data', JSON.stringify(this.parent, (key, value) => typeof key === 'symbol' ? undefined : value).substring(1, 100)],
                 ['pointer', this.pointer],
                 ['name', this.name],
                 ['valid', this.valid],
@@ -1892,7 +1845,7 @@ class FzEnumBase extends FzInputBase {
         if (isNull(unfiltered))
             return [];
         return unfiltered?.reduce((list, item) => {
-            const ok = this.evalExpr('filter', this.schema, item.value, this.data, this.key);
+            const ok = this.evalExpr('filter', this.schema, item.value, this.parent, this.key);
             if (ok)
                 list.push(item);
             return list;
@@ -4006,9 +3959,9 @@ let FzArray$1 = class FzArray extends FZCollection {
             <div class="form-group row space-before" @click=${this.labelClicked}>
                 ${this.renderLabel()}
                 <div class="col-sm-9">
-                    <div class="input-group ${this.validation}" @click="${this.toggle}" >
+                    <div class="input-group ${this.validation}" @click="${this.toggleCollapsed}" >
                         <div class="form-control">
-                            ${isArray(this.value, true) ? x `${this.chevron()} ${this.abstract()}` : this.actionBtns()}
+                            ${isArray(this.value, true) ? x `${this.renderChevron()} ${this.abstract()}` : this.actionBtns()}
                         </div>
                     </div>
                 </div>
@@ -4017,7 +3970,7 @@ let FzArray$1 = class FzArray extends FZCollection {
         `;
     }
     labelClicked(evt) {
-        this.toggle(evt);
+        this.toggleCollapsed(evt);
     }
     renderField() {
         // always process order and schemas before rendering
@@ -4032,8 +3985,8 @@ let FzArray$1 = class FzArray extends FZCollection {
                 <div class="form-group row ${when(hidelabel, 'd-none')}">
                     ${this.renderLabel()}
                     <div class="col-sm-1 d-none d-sm-block">
-                        <div class="input-group ${this.validation}" @click="${this.toggle}" >
-                            <div class="form-control border-0">${this.chevron()}</i></div>
+                        <div class="input-group ${this.validation}" @click="${this.toggleCollapsed}" >
+                            <div class="form-control border-0">${this.renderChevron()}</i></div>
                         </div>
                     </div>
                 </div>
@@ -4177,7 +4130,7 @@ let FzArray$1 = class FzArray extends FZCollection {
             return;
         if (!isArray(this.value))
             this.value = [];
-        const value = this.currentSchema._default(this.data);
+        const value = this.currentSchema._default(this.parent);
         this.value.push(value);
         this.schemas.push(this.currentSchema);
         this.open(this.value.length - 1);
@@ -4224,10 +4177,7 @@ let FzArray$1 = class FzArray extends FZCollection {
             else {
                 // evaluate the case keyword expression 
                 const evalCase = (schema) => {
-                    if (!isFunction(schema.case))
-                        return false;
-                    const sandbox = newSandbox(EMPTY_SCHEMA, value, this.data, this.key, this.derefFunc, this.context.appdata);
-                    return schema.case(sandbox) ?? false;
+                    return schema._evalExpr('case', EMPTY_SCHEMA, value, this.parent, this.key, this.derefFunc, this.context.appdata) ?? false;
                 };
                 this.schemas.push(value[SCHEMA] ?? this.schema.items?.oneOf?.find(evalCase));
             }
@@ -4292,8 +4242,8 @@ let FzObject = class FzObject extends FZCollection {
             <div class="form-group row space-before">
                 ${this.renderLabel()}
                 <div class="col-sm-9">
-                    <div class="input-group ${this.validation}" @click="${this.toggle}" >
-                        <div class="form-control">${this.chevron()} ${this.abstract()}</div>
+                    <div class="input-group ${this.validation}" @click="${this.toggleCollapsed}" >
+                        <div class="form-control">${this.renderChevron()} ${this.abstract()}</div>
                     </div>
                 </div>
             </div>
@@ -4410,8 +4360,8 @@ let FzObject = class FzObject extends FZCollection {
                 <div class="form-group row ${when(hidelabel, 'd-none')}">
                     ${this.renderLabel()}
                     <div class="col-sm-1 d-none d-sm-block">
-                        <div class="input-group ${this.validation}" @click="${this.toggle}" >
-                            <div class="form-control border-0">${this.chevron()}</div>
+                        <div class="input-group ${this.validation}" @click="${this.toggleCollapsed}" >
+                            <div class="form-control border-0">${this.renderChevron()}</div>
                         </div>
                     </div>
                 </div>
@@ -4436,7 +4386,7 @@ let FzObject = class FzObject extends FZCollection {
             }));
         }
         else {
-            this.toggle(evt);
+            this.toggleCollapsed(evt);
         }
         super.labelClicked(evt);
     }
@@ -4545,7 +4495,7 @@ let FzArray = class FzArray extends FZCollection {
     }
     getItems() {
         const enums = this.schema.items?.enum;
-        const data = this.data;
+        const data = this.parent;
         if (enums) {
             return enums.reduce((list, value) => {
                 const ok = this.evalExpr('filter', this.schema.items, value, data[this.key], -1);
@@ -4557,7 +4507,7 @@ let FzArray = class FzArray extends FZCollection {
         const consts = this.schema.items?.oneOf;
         if (consts)
             return consts.reduce((list, type) => {
-                const ok = this.evalExpr('filter', type, type.const, this.data[this.key], -1);
+                const ok = this.evalExpr('filter', type, type.const, this.parent[this.key], -1);
                 if (ok)
                     list.push({ label: type.title ?? type.description ?? type.const, value: type.const });
                 return list;

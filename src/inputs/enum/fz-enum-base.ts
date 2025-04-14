@@ -94,7 +94,7 @@ export abstract class FzEnumBase extends FzInputBase {
         const unfiltered = Schema.inferEnums(this.schema)
         if (isNull(unfiltered)) return []
         return unfiltered?.reduce((list: EnumItem[], item) => {
-            const ok = this.evalExpr('filter', this.schema, item.value, this.data, this.key)
+            const ok = this.evalExpr('filter', this.schema, item.value, this.parent, this.key)
             if (ok) list.push(item)
             return list
         }, []) 

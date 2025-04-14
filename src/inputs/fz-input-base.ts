@@ -72,7 +72,7 @@ export abstract class FzInputBase extends FzField {
             logger.info("invalid mapping \n%s",mapping)
             const outlist = [
                 ['schema', JSON.stringify(this.schema, (key: any, value: any) => ['root','parent'].includes(key) ? undefined : value).substring(0,100)],
-                ['data', JSON.stringify(this.data, (key, value) => typeof key === 'symbol' ? undefined : value).substring(1,100)],
+                ['data', JSON.stringify(this.parent, (key, value) => typeof key === 'symbol' ? undefined : value).substring(1,100)],
                 ['pointer',this.pointer],
                 ['name', this.name],
                 ['valid', this.valid],
