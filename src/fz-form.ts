@@ -10,7 +10,7 @@ import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { Schema, schemaAttrConverter, DEFAULT_SCHEMA } from "./lib/schema";
 import { FzMarkdownIt } from "./components/markdown-it";
 import { getDataAtPointer, getParentAndKey, isNull, isString, newValue } from "./lib/tools";
-import { FzFormDismissEvent, FzFormInitEvent, FzFormInvalidEvent, FzFormReadyEvent, FzFormValidateEvent, FzFormValidEvent } from "./lib/events";
+import { FzFormDismissEvent, FzFormInitEvent, FzFormInvalidEvent, FzFormReadyEvent, FzFormValidateEvent, FzFormValidEvent, FzTrackEvent } from "./lib/events";
 
 /**
  * Form Context is provided from FzForm to all descendant sub-FzField as an API
@@ -40,7 +40,7 @@ export class FzForm extends Base {
         return [...super.styles]
     }
 
-    private readonly i_root = { content: {} as Pojo }
+    private  i_root:Record<string,any> = { }
     private i_options: IOptions = { dialect: "draft-07", userdata: undefined}
     public store: IBlobStore = new BlobMemory()
     public asset!: IAsset
@@ -98,7 +98,7 @@ export class FzForm extends Base {
     private at(from: string,to?:string) {
         return getDataAtPointer(this.root,from,to)
     }
-    get root(): any { return this.i_root.content }
+    get root(): any { return this.i_root }
     get valid() {
         this.validator.validate(this.root) 
         this.errorMap =this.validator.map
@@ -144,7 +144,7 @@ export class FzForm extends Base {
             // TBD data must be valid (if checkin option is true)
             null;
         }
-        this.i_root.content = value
+        this.i_root = value
         this.compile()
         this.requestUpdate()
     }
@@ -216,7 +216,7 @@ export class FzForm extends Base {
 
     override connectedCallback() {
         super.connectedCallback()
-        this.listen(this, 'data-updated', (e: Event) => this.handleDataUpdate(e as CustomEvent))
+        this.listen(this, 'data-updated', (e: Event) => this.handleDataUpdate(e as FzTrackEvent))
         this.dispatchEvent(new FzFormInitEvent(this))
     }
     override disconnectedCallback() {
@@ -253,10 +253,9 @@ export class FzForm extends Base {
      * 'data-updated' event handler for data change. 
      * It applies a field.requestUpdate() on each traker associated FzField
      */
-    private handleDataUpdate(evt: CustomEvent) {
+    private handleDataUpdate(evt: FzTrackEvent) {
         if (this === evt.composedPath()[0]) return
-        const trackers: string[] = (evt as CustomEvent).detail.trackers
-        trackers.forEach(pointer => {
+        evt.detail.trackers.forEach(pointer => {
             const field = this.schemaMap.get(pointer)
             const logger = FzLogger.get("tracker",{field,schema:field?.schema})
             logger.info(`refreshed by %s`,evt.detail.field.pointer)
@@ -264,8 +263,7 @@ export class FzForm extends Base {
         })
     }
     private confirm(evt: Event) {
-        evt.preventDefault()
-        evt.stopPropagation()
+        this.eventStop(evt)
         this.submitted = true
         this.check()
         this.fieldMap.forEach(field => field.requestUpdate())
@@ -279,7 +277,7 @@ export class FzForm extends Base {
     private compile() {
 
         // All schema compilation are fatal (unable to build the form)
-        const schema_compiler = new SchemaCompiler(this.compiledSchema, this.options, this.i_root.content)
+        const schema_compiler = new SchemaCompiler(this.compiledSchema, this.options, this.i_root)
         const schema_errors = schema_compiler.compile()
         if (schema_errors.length > 0) {
             this.message = `Schema compilation failed: \n    - ${schema_errors.join('\n    - ')}`
@@ -288,7 +286,7 @@ export class FzForm extends Base {
         }
 
         // Data compilation never fail otherwise it's a bug to fix
-        const data_compiler = new DataCompiler(this.i_root.content, this.schema)
+        const data_compiler = new DataCompiler(this.i_root, this.schema)
         const data_errors = data_compiler.compile()
         if (data_errors.length > 0) {
             this.message = `Data compilation failed: \n    - ${data_errors.join('\n    - ')}`

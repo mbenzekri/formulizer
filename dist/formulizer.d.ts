@@ -279,7 +279,7 @@ type FzFormContext = {
 };
 declare class FzForm extends Base {
     static get styles(): lit.CSSResult[];
-    private readonly i_root;
+    private i_root;
     private i_options;
     store: IBlobStore;
     asset: IAsset;

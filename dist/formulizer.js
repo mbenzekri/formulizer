@@ -6628,7 +6628,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     static get styles() {
         return [...super.styles];
     }
-    i_root = { content: {} };
+    i_root = {};
     i_options = { dialect: "draft-07", userdata: undefined };
     store = new BlobMemory();
     asset;
@@ -6689,7 +6689,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     at(from, to) {
         return getDataAtPointer(this.root, from, to);
     }
-    get root() { return this.i_root.content; }
+    get root() { return this.i_root; }
     get valid() {
         this.validator.validate(this.root);
         this.errorMap = this.validator.map;
@@ -6730,7 +6730,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
             return;
         const valid = this.valid;
         if (!valid && this.checkIn) ;
-        this.i_root.content = value;
+        this.i_root = value;
         this.compile();
         this.requestUpdate();
     }
@@ -6832,8 +6832,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     handleDataUpdate(evt) {
         if (this === evt.composedPath()[0])
             return;
-        const trackers = evt.detail.trackers;
-        trackers.forEach(pointer => {
+        evt.detail.trackers.forEach(pointer => {
             const field = this.schemaMap.get(pointer);
             const logger = FzLogger.get("tracker", { field, schema: field?.schema });
             logger.info(`refreshed by %s`, evt.detail.field.pointer);
@@ -6841,8 +6840,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
         });
     }
     confirm(evt) {
-        evt.preventDefault();
-        evt.stopPropagation();
+        this.eventStop(evt);
         this.submitted = true;
         this.check();
         this.fieldMap.forEach(field => field.requestUpdate());
@@ -6855,7 +6853,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     }
     compile() {
         // All schema compilation are fatal (unable to build the form)
-        const schema_compiler = new SchemaCompiler(this.compiledSchema, this.options, this.i_root.content);
+        const schema_compiler = new SchemaCompiler(this.compiledSchema, this.options, this.i_root);
         const schema_errors = schema_compiler.compile();
         if (schema_errors.length > 0) {
             this.message = `Schema compilation failed: \n    - ${schema_errors.join('\n    - ')}`;
@@ -6863,7 +6861,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
             return;
         }
         // Data compilation never fail otherwise it's a bug to fix
-        const data_compiler = new DataCompiler(this.i_root.content, this.schema);
+        const data_compiler = new DataCompiler(this.i_root, this.schema);
         const data_errors = data_compiler.compile();
         if (data_errors.length > 0) {
             this.message = `Data compilation failed: \n    - ${data_errors.join('\n    - ')}`;
