@@ -10,6 +10,7 @@ import { BlobMemory, IBlobStore, BlobStoreWrapper } from "./lib/storage";
 import { Schema, schemaAttrConverter, DEFAULT_SCHEMA } from "./lib/schema";
 import { FzMarkdownIt } from "./components/markdown-it";
 import { getDataAtPointer, getParentAndKey, isNull, isString, newValue } from "./lib/tools";
+import { FzFormDismissEvent, FzFormInitEvent, FzFormInvalidEvent, FzFormReadyEvent, FzFormValidateEvent, FzFormValidEvent } from "./lib/events";
 
 /**
  * Form Context is provided from FzForm to all descendant sub-FzField as an API
@@ -216,7 +217,7 @@ export class FzForm extends Base {
     override connectedCallback() {
         super.connectedCallback()
         this.listen(this, 'data-updated', (e: Event) => this.handleDataUpdate(e as CustomEvent))
-        this.dispatchEvent(new CustomEvent('init'))
+        this.dispatchEvent(new FzFormInitEvent(this))
     }
     override disconnectedCallback() {
         super.disconnectedCallback()
@@ -246,10 +247,7 @@ export class FzForm extends Base {
     }
 
     check() {
-        // collect errors and trigger valid/invalid event 
-        const validated = this.valid 
-        const event =  new CustomEvent(validated ? "data-valid" : "data-invalid")
-        this.dispatchEvent(event);
+        this.dispatchEvent(this.valid ?  new FzFormValidEvent(this) : new FzFormInvalidEvent(this));
     }
     /**
      * 'data-updated' event handler for data change. 
@@ -270,17 +268,13 @@ export class FzForm extends Base {
         evt.stopPropagation()
         this.submitted = true
         this.check()
-        for (const field of this.fieldMap.values()) {
-            field.requestUpdate()
-        }
-        const event = new CustomEvent('validate');
-        this.dispatchEvent(event);
+        this.fieldMap.forEach(field => field.requestUpdate())
+        this.dispatchEvent( new FzFormValidateEvent(this));
     }
     private cancel(evt: Event) {
         evt.preventDefault()
         evt.stopPropagation()
-        const event = new CustomEvent('dismiss');
-        this.dispatchEvent(event);
+        this.dispatchEvent(new FzFormDismissEvent(this));
     }
     private compile() {
 
@@ -300,7 +294,7 @@ export class FzForm extends Base {
             this.message = `Data compilation failed: \n    - ${data_errors.join('\n    - ')}`
             console.error(this.message)
         }
-        this.dispatchEvent(new CustomEvent('ready'))
+        this.dispatchEvent(new FzFormReadyEvent(this))
     }
 
     trace(pointer: string) {

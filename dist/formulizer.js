@@ -1362,6 +1362,65 @@ const t$1={ATTRIBUTE:1,CHILD:2},e$2=t=>(...e)=>({_$litDirective$:t,values:e});le
  * SPDX-License-Identifier: BSD-3-Clause
  */const e$1=e$2(class extends i$1{constructor(t){if(super(t),t.type!==t$1.ATTRIBUTE||"class"!==t.name||t.strings?.length>2)throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.")}render(t){return " "+Object.keys(t).filter((s=>t[s])).join(" ")+" "}update(s,[i]){if(void 0===this.st){this.st=new Set,void 0!==s.strings&&(this.nt=new Set(s.strings.join(" ").split(/\s/).filter((t=>""!==t))));for(const t in i)i[t]&&!this.nt?.has(t)&&this.st.add(t);return this.render(i)}const r=s.element.classList;for(const t of this.st)t in i||(r.remove(t),this.st.delete(t));for(const t in i){const s=!!i[t];s===this.st.has(t)||this.nt?.has(t)||(s?(r.add(t),this.st.add(t)):(r.remove(t),this.st.delete(t)));}return T}});
 
+class FzUpdateEvent extends CustomEvent {
+    constructor(data, schema, field) {
+        super("update", {
+            detail: { data, schema, field },
+            bubbles: true,
+            composed: true
+        });
+    }
+}
+class FzTrackEvent extends CustomEvent {
+    constructor(trackers, schema, field) {
+        super("data-updated", {
+            detail: { trackers, schema, field },
+            bubbles: true,
+            composed: true
+        });
+    }
+}
+class FzFormReadyEvent extends CustomEvent {
+    constructor(form) {
+        super("ready", { detail: { form } });
+    }
+}
+class FzFormInitEvent extends CustomEvent {
+    constructor(form) {
+        super("init", { detail: { form } });
+    }
+}
+class FzFormValidateEvent extends CustomEvent {
+    constructor(form) {
+        super("validate", { detail: { form } });
+    }
+}
+class FzFormDismissEvent extends CustomEvent {
+    constructor(form) {
+        super("dismiss", { detail: { form } });
+    }
+}
+class FzFormValidEvent extends CustomEvent {
+    constructor(form) {
+        super("data-valid", { detail: { form } });
+    }
+}
+class FzFormInvalidEvent extends CustomEvent {
+    constructor(form) {
+        super("data-invalid", { detail: { form } });
+    }
+}
+class FzFieldEnumEvent extends CustomEvent {
+    constructor(detail) {
+        super("enum", {
+            detail,
+            bubbles: true,
+            cancelable: false,
+            composed: true
+        });
+    }
+}
+
 /**
  * @prop schema
  * @prop data
@@ -1604,26 +1663,10 @@ class FzField extends Base {
         this.toValue();
         this.evalExpr("change");
         // signal field update for ascendant
-        const event = new CustomEvent('update', {
-            detail: {
-                data: this.parent,
-                schema: this.schema,
-                field: this
-            },
-            bubbles: true,
-            composed: true
-        });
-        this.dispatchEvent(event);
+        this.dispatchEvent(new FzUpdateEvent(this.parent, this.schema, this));
         // signal field update for trackers
-        if (this.schema.trackers.length) {
-            this.dispatchEvent(new CustomEvent('data-updated', {
-                detail: {
-                    trackers: this.schema.trackers,
-                    field: this
-                },
-                bubbles: true,
-                composed: true
-            }));
+        if (isArray(this.schema.trackers, true)) {
+            this.dispatchEvent(new FzTrackEvent(this.schema.trackers, this.schema, this));
             const logger = FzLogger.get("data-update", { field: this, schema: this.schema });
             logger.info(`event "data-updated" triggered`);
         }
@@ -1853,36 +1896,28 @@ class FzEnumBase extends FzInputBase {
     }
     async fetchEnum() {
         return new Promise((resolve, reject) => {
+            if (!isString(this.schema.enumFetch))
+                return reject(`Schema:${this.schema.pointer} doesnt define "enumFetch" keyword`);
             const name = this.schema.enumFetch;
+            const field = this;
             let resolved = false;
-            const event = new CustomEvent("enum", {
-                detail: {
-                    name,
-                    success: (data) => {
-                        clearTimeout(timeout);
-                        if (!resolved) {
-                            resolved = true;
-                            resolve(data);
-                        }
-                    },
-                    failure: (message) => {
-                        clearTimeout(timeout);
-                        if (!resolved) {
-                            resolved = true;
-                            reject(new Error(`EnumFetch "${name}" failed: ${message}`));
-                        }
-                    },
-                    timeout: DEFAULT_FETCH_TIMEOUT
-                },
-                bubbles: true,
-                cancelable: false,
-                composed: true
-            });
-            this.dispatchEvent(event);
-            const timeout = setTimeout(() => {
+            const success = (data) => {
+                clearTimeout(timeout);
+                resolved = true;
+                resolve(data);
+            };
+            const failure = (message) => {
+                clearTimeout(timeout);
+                resolved = true;
+                reject(new Error(`EnumFetch "${name}" failed: ${message}`));
+            };
+            const timeoutfunc = () => {
                 if (!resolved)
                     reject(new Error(`Timeout when fetching enumeration"${name}"`));
-            }, event.detail.timeout ?? DEFAULT_FETCH_TIMEOUT);
+            };
+            const event = new FzFieldEnumEvent({ name, field, success, failure, timeout: DEFAULT_FETCH_TIMEOUT });
+            this.dispatchEvent(event);
+            const timeout = setTimeout(timeoutfunc, event.detail.timeout);
         });
     }
     getFrom() {
@@ -4602,13 +4637,13 @@ let FzDialog = class FzDialog extends Base {
         this.close();
         evt.preventDefault();
         evt.stopPropagation();
-        this.dispatchEvent(new CustomEvent('close', { detail: { dismissed: false } }));
+        this.dispatchEvent(new FzDialogCloseEvent(this, false));
     }
     dismiss(evt) {
         this.close();
         evt.preventDefault();
         evt.stopPropagation();
-        this.dispatchEvent(new CustomEvent('close', { detail: { dismissed: true } }));
+        this.dispatchEvent(new FzDialogCloseEvent(this, true));
     }
     valid(validable = true) {
         this.validable = validable;
@@ -4627,6 +4662,11 @@ __decorate([
 FzDialog = __decorate([
     t$4("fz-dialog")
 ], FzDialog);
+class FzDialogCloseEvent extends CustomEvent {
+    constructor(dialog, dismiss) {
+        super('fz-dialog-close', { detail: { dialog, dismiss } });
+    }
+}
 
 var ModalState;
 (function (ModalState) {
@@ -4660,7 +4700,7 @@ let FzBarcodeDialog = class FzBarcodeDialog extends Base {
     }
     render() {
         return x `
-            <fz-dialog modal-title="Scanner un codebar" @click="${this.stopEvent}" @close="${this.close}" > 
+            <fz-dialog modal-title="Scanner un codebar" @click="${this.stopEvent}" @fz-dialog-close="${this.close}" > 
                 <div class="row">
                     <video  class=col autoplay style="display:block" .title="${this.status}">Chargement en cours ...</video>
                 </div>
@@ -4794,7 +4834,7 @@ let FzPhotoDlg = class FzPhotoDlg extends Base {
     }
     render() {
         return x `
-            <fz-dialog modal-title="Prendre une photo ..." @click="${this.stopEvent}" @close="${this.close}" > 
+            <fz-dialog modal-title="Prendre une photo ..." @click="${this.stopEvent}" @fz-dialog-close="${this.close}" > 
                 <div class="row">
                     <video  class=col autoplay style="display:block" .title="${this.status}">Chargement en cours ...</video>
                 </div>
@@ -4962,7 +5002,7 @@ let FzItemDlg = class FzItemDlg extends Base {
     }
     render() {
         return x `
-            <fz-dialog modal-title="Ajouter un element ..." @click="${this.stopEvent}" @close="${this.close}" > 
+            <fz-dialog modal-title="Ajouter un element ..." @click="${this.stopEvent}" @fz-dialog-close="${this.close}" > 
                 ${(this.itemSchema != null || this.arraySchema?.items?.oneOf == null) ? '' :
             x `<div class="btn-group" role="group">
                     <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
@@ -6758,7 +6798,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     connectedCallback() {
         super.connectedCallback();
         this.listen(this, 'data-updated', (e) => this.handleDataUpdate(e));
-        this.dispatchEvent(new CustomEvent('init'));
+        this.dispatchEvent(new FzFormInitEvent(this));
     }
     disconnectedCallback() {
         super.disconnectedCallback();
@@ -6783,10 +6823,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
         this.check();
     }
     check() {
-        // collect errors and trigger valid/invalid event 
-        const validated = this.valid;
-        const event = new CustomEvent(validated ? "data-valid" : "data-invalid");
-        this.dispatchEvent(event);
+        this.dispatchEvent(this.valid ? new FzFormValidEvent(this) : new FzFormInvalidEvent(this));
     }
     /**
      * 'data-updated' event handler for data change.
@@ -6808,17 +6845,13 @@ let FzForm = FzForm_1 = class FzForm extends Base {
         evt.stopPropagation();
         this.submitted = true;
         this.check();
-        for (const field of this.fieldMap.values()) {
-            field.requestUpdate();
-        }
-        const event = new CustomEvent('validate');
-        this.dispatchEvent(event);
+        this.fieldMap.forEach(field => field.requestUpdate());
+        this.dispatchEvent(new FzFormValidateEvent(this));
     }
     cancel(evt) {
         evt.preventDefault();
         evt.stopPropagation();
-        const event = new CustomEvent('dismiss');
-        this.dispatchEvent(event);
+        this.dispatchEvent(new FzFormDismissEvent(this));
     }
     compile() {
         // All schema compilation are fatal (unable to build the form)
@@ -6836,7 +6869,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
             this.message = `Data compilation failed: \n    - ${data_errors.join('\n    - ')}`;
             console.error(this.message);
         }
-        this.dispatchEvent(new CustomEvent('ready'));
+        this.dispatchEvent(new FzFormReadyEvent(this));
     }
     trace(pointer) {
         if (!isString(pointer, true) || !pointer.startsWith("/")) {

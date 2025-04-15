@@ -84,18 +84,28 @@ export class FzDialog extends Base {
         this.close()
         evt.preventDefault()
         evt.stopPropagation()
-        this.dispatchEvent(new CustomEvent('close',{ detail:{dismissed: false} }))
+        this.dispatchEvent(new FzDialogCloseEvent(this,false))
     }
 
     dismiss(evt: Event) {
         this.close()
         evt.preventDefault()
         evt.stopPropagation()
-        this.dispatchEvent(new CustomEvent('close', {detail:{dismissed: true}}));
+        this.dispatchEvent(new FzDialogCloseEvent(this,true))
 
     }
     valid(validable = true) {
         this.validable = validable
         this.requestUpdate()
     }
+}
+
+export class FzDialogCloseEvent extends CustomEvent<{dialog: FzDialog, dismiss: boolean}> {
+    constructor(dialog: FzDialog,dismiss: boolean) {
+        super('fz-dialog-close', { detail: {dialog,dismiss} })
+    }
+}
+
+export interface EventMap {
+    'fz-dialog-close': FzDialogCloseEvent
 }

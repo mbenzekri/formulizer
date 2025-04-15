@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { html, TemplateResult } from "lit"
 import { FzItemDlg } from "../../components/fz-item-dlg";
-import { isFunction, isNull, notNull } from "../../lib/tools"
+import { isFunction, isNull, isString, notNull } from "../../lib/tools"
 import { FzInputBase } from "../fz-input-base";
 import { isFrom, Schema } from "../../lib/schema";
 import { EnumItem, FromObject, Pojo, SCHEMA } from "../../lib/types";
 import { query } from "lit/decorators.js";
+import { FzFieldEnumEvent } from "../../lib/events";
 
 export const FETCHING = []
 export const EMPTY = []
@@ -102,33 +103,27 @@ export abstract class FzEnumBase extends FzInputBase {
 
     private async fetchEnum(): Promise<EnumItem[]> {
         return new Promise<EnumItem[]>((resolve, reject) => {
-            const name = this.schema.enumFetch;
+            if (!isString(this.schema.enumFetch)) return reject(`Schema:${this.schema.pointer} doesnt define "enumFetch" keyword`)
+            const name = this.schema.enumFetch
+            const field = this
             let resolved = false;
-
-            const event = new CustomEvent("enum", {
-                detail: {
-                    name,
-                    success: (data: EnumItem[]) => {
-                        clearTimeout(timeout);
-                        if (!resolved) { resolved = true; resolve(data); }
-                    },
-                    failure: (message: string) => {
-                        clearTimeout(timeout);
-                        if (!resolved) { resolved = true; reject(new Error(`EnumFetch "${name}" failed: ${message}`)); }
-                    },
-                    timeout: DEFAULT_FETCH_TIMEOUT
-                },
-                bubbles: true,
-                cancelable: false,
-                composed: true
-            });
-    
-            this.dispatchEvent(event);
-            const timeout = setTimeout(() => {
+            const success = (data: EnumItem[]) => {
+                clearTimeout(timeout)
+                resolved = true 
+                resolve(data) 
+            }
+            const failure = (message: string) => {
+                clearTimeout(timeout)
+                resolved = true
+                reject(new Error(`EnumFetch "${name}" failed: ${message}`))
+            }
+            const timeoutfunc  = () => {
                 if (!resolved)  reject(new Error(`Timeout when fetching enumeration"${name}"`))
-            }, event.detail.timeout ?? DEFAULT_FETCH_TIMEOUT)
-
-        });
+            }
+            const event = new FzFieldEnumEvent({name,field,success,failure,timeout:DEFAULT_FETCH_TIMEOUT}) 
+            this.dispatchEvent(event);
+            const timeout = setTimeout(timeoutfunc, event.detail.timeout)
+        })
     }
     
     private getFrom(): EnumItem[] {

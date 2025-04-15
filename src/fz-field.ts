@@ -7,7 +7,7 @@ import { FzForm, FzFormContext } from "./fz-form"
 import { Base } from "./base"
 import { EMPTY_SCHEMA, Schema } from "./lib/schema"
 import { classMap } from "lit/directives/class-map.js"
-
+import { FzTrackEvent, FzUpdateEvent } from "./lib/events"
 
 /**
  * @prop schema
@@ -269,27 +269,11 @@ export abstract class FzField extends Base {
         this.evalExpr("change")
 
         // signal field update for ascendant
-        const event = new CustomEvent('update', {
-            detail: {
-                data: this.parent,
-                schema: this.schema,
-                field: this
-            },
-            bubbles: true,
-            composed: true
-        })
-        this.dispatchEvent(event);
+        this.dispatchEvent(new FzUpdateEvent(this.parent,this.schema,this))
 
         // signal field update for trackers
-        if (this.schema.trackers.length) {
-            this.dispatchEvent(new CustomEvent('data-updated', {
-                detail: {
-                    trackers: this.schema.trackers,
-                    field: this
-                },
-                bubbles: true,
-                composed: true
-            }))
+        if (isArray(this.schema.trackers,true)) {
+            this.dispatchEvent(new FzTrackEvent(this.schema.trackers, this.schema, this))
             const logger = FzLogger.get("data-update", { field: this, schema: this.schema })
             logger.info(`event "data-updated" triggered`)
         }

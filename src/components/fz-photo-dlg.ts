@@ -30,7 +30,7 @@ export class FzPhotoDlg extends Base {
     }
     override render() {
         return html`
-            <fz-dialog modal-title="Prendre une photo ..." @click="${this.stopEvent}" @close="${this.close}" > 
+            <fz-dialog modal-title="Prendre une photo ..." @click="${this.stopEvent}" @fz-dialog-close="${this.close}" > 
                 <div class="row">
                     <video  class=col autoplay style="display:block" .title="${this.status}">Chargement en cours ...</video>
                 </div>

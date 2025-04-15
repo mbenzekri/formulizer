@@ -30,7 +30,7 @@ export class FzItemDlg extends Base {
 
     override render() {
         return html`
-            <fz-dialog modal-title="Ajouter un element ..." @click="${this.stopEvent}" @close="${this.close}" > 
+            <fz-dialog modal-title="Ajouter un element ..." @click="${this.stopEvent}" @fz-dialog-close="${this.close}" > 
                 ${(this.itemSchema != null || this.arraySchema?.items?.oneOf == null) ? '' :
                 html`<div class="btn-group" role="group">
                     <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
