@@ -19,16 +19,16 @@ Use the `collapsed` keyword within the schema definition of an object or array f
 
 ### 🔍 Examples
 
-1. **Expanded on Init (`"false"`)**
+1. Ⓐ field **Expanded on Init**: `false`
   <pre onclick="this.innerHTML = form.sourceSchema.properties.adr1._toJSON(4)">...</pre>
 
-2. **Collapsed on Init (`"true"`)**
+2. Ⓑ field **Collapsed on Init**: `true`
   <pre onclick="this.innerHTML = form.sourceSchema.properties.adr2._toJSON(4)">...</pre>
 
-3. **Never Collapsed (`"never"`)**
+3. Ⓒ field **Never Collapsed**: `"never"`
   <pre onclick="this.innerHTML = form.sourceSchema.properties.adr3._toJSON(4)">...</pre>
 
-4. **Always Collapsed (`"always"`)**
+4. Ⓓ field **Always Collapsed**: `"always"`
   <pre onclick="this.innerHTML = form.sourceSchema.properties.adr4._toJSON(4)">...</pre>
 
 These examples demonstrate how to use the `collapsed` keyword to control the visual state of fields in `fz-form`.

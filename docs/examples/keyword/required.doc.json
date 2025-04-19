@@ -3,28 +3,25 @@
         "type": "object",
         "title" : "required and requiredIf demo",
         "properties": {
-            "prenom": {
-                "title": "Prénom",
+            "fullname": {
+                "title": "Ⓐ Fullname",
                 "type": "string"
             },
-            "nom": {
-                "title": "Nom",
-                "type": "string"
+            "getnews": {
+                "title": "Ⓑ Receive newsletter",
+                "type": "boolean"
             },
-            "age": {
-                "title": "Age",
-                "type": "integer"
-            },
-            "phone": {
-                "title": "Tél",
-                "type": "integer",
-                "requiredIf": "$`/age` >= 18"
+            "email": {
+                "title": "Ⓒ Email",
+                "type": "string",
+                "format": "email",
+                "requiredIf": " $`/getnews` "
             }
         },
-        "required" : ["prenom","nom"]
+        "required" : ["Name"]
     },
     "data" : {
-        "nom":"Dupont",
-        "prenom":"Toto"
+        "fullname":"Monkey D. Luffy ",
+        "getnews": false
     }
 }

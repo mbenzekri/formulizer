@@ -25,22 +25,22 @@
         "properties": {
             "adr1": {
                 "$ref": "#/definitions/address",
-                "title": "Expanded(on init)",
+                "title": "Ⓐ Open on init",
                 "collapsed": false
             },
             "adr2": {
                 "$ref": "#/definitions/address",
-                "title": "Collapsed(on init)",
+                "title": "Ⓑ Closed on init",
                 "collapsed": true
             },
             "adr3": {
                 "$ref": "#/definitions/address",
-                "title": "Never",
+                "title": "Ⓒ Never",
                 "collapsed": "never"
             },
             "adr4": {
                 "$ref": "#/definitions/address",
-                "title": "Allways",
+                "title": "Ⓓ Allways",
                 "collapsed": "allways"
             }
         }
