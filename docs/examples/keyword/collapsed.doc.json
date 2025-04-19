@@ -26,12 +26,12 @@
             "adr1": {
                 "$ref": "#/definitions/address",
                 "title": "Expanded(on init)",
-                "collapsed": "false"
+                "collapsed": false
             },
             "adr2": {
                 "$ref": "#/definitions/address",
                 "title": "Collapsed(on init)",
-                "collapsed": "true"
+                "collapsed": true
             },
             "adr3": {
                 "$ref": "#/definitions/address",

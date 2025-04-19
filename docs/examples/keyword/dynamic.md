@@ -38,7 +38,10 @@ This example shows how to set a field to a calculated value using data from the 
 - **today**: Is set to today's datetime (using readonly to avoid user interaction)
   <pre onclick="this.innerHTML = form.sourceSchema.properties.today._toJSON(4)">...</pre>
 
-- **distance**: Is calculated from weight and angle using an expression such as:  
-    `weight * sin(2 * angle * PI / 180)`
+- **distance**: Is calculated from weight and angle : `weight * sin(2 * angle * PI / 180)`
+
+    First tranform degree to rad
+  <pre onclick="this.innerHTML = form.sourceSchema.properties.theta._toJSON(4)">...</pre>
+    Then calculate distance
   <pre onclick="this.innerHTML = form.sourceSchema.properties.distance._toJSON(4)">...</pre>
 

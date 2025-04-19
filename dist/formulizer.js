@@ -1453,7 +1453,7 @@ class FzField extends Base {
     /** return local Errors */
     validate() {
         this.localErrors.clear();
-        if (this.value === undefined && this.required) {
+        if (this.value === undefined && this.required && !this.context.errors(this.pointer).includes("required")) {
             this.localErrors.add("required");
         }
     }
@@ -1516,13 +1516,13 @@ class FzField extends Base {
     }
     /** set collapsed state for this field (note!: may not change if never or allways) */
     set collapsed(value) {
-        if (["never", "allways"].includes(this.schema.collapsed))
+        if (["never", "allways"].includes(String(this.schema.collapsed)))
             return;
         this.i_collapsed = value;
     }
     /** toggle collapsed field state (note!: may not change if never or allways) */
     toggleCollapsed(evt) {
-        if (["never", "allways"].includes(this.schema.collapsed))
+        if (["never", "allways"].includes(String(this.schema.collapsed)))
             return;
         if (this.isroot) {
             this.i_collapsed = false;
@@ -1604,7 +1604,7 @@ class FzField extends Base {
             </label>`;
     }
     renderChevron() {
-        if (["allways", "never"].includes(this.schema.collapsed))
+        if (["allways", "never"].includes(String(this.schema.collapsed)))
             return '';
         if (this.collapsed)
             return x `<i class="bi bi-chevron-down"></i>`;
@@ -1643,7 +1643,7 @@ class FzField extends Base {
     }
     firstUpdated(_changedProperties) {
         super.firstUpdated(_changedProperties);
-        this.i_collapsed = ['allways', 'true'].includes(this.schema.collapsed) ? true : false;
+        this.i_collapsed = ['allways', 'true'].includes(String(this.schema.collapsed)) ? true : false;
         if (this.isempty && isFunction(this.schema.initialize)) {
             this.evalExpr("initialize");
         }
@@ -6377,7 +6377,7 @@ class CSCollapsed extends CompilationStep {
         }
         else {
             const domain = ["never", "allways", "true", "false"];
-            if (!(domain.includes(schema.collapsed))) {
+            if (!(domain.includes(String(schema.collapsed)))) {
                 throw this.error(`${schema.pointer} : collapsed must be one of [${domain.join(', ')}]`);
             }
         }

@@ -34,12 +34,6 @@
                 "title": "Distance (m)",
                 "readonly": "true",
                 "dynamic": " ($`/speed` ** 2 / 9.81) * Math.sin(2 * $`/theta`)"
-            },
-            "theta2": {
-                "type": "number",
-                "title": "BIS",
-                "readonly": "true",
-                "dynamic": " $`/theta` "
             }
         }
     },

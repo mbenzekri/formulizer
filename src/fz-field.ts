@@ -39,7 +39,7 @@ export abstract class FzField extends Base {
     /** return local Errors */
     validate() {
         this.localErrors.clear()
-        if (this.value === undefined && this.required) {
+        if (this.value === undefined && this.required && !this.context.errors(this.pointer).includes("required")) {
             this.localErrors.add("required")
         }
     }
@@ -114,13 +114,13 @@ export abstract class FzField extends Base {
     }
     /** set collapsed state for this field (note!: may not change if never or allways) */
     set collapsed(value: boolean) {
-        if (["never", "allways"].includes(this.schema.collapsed)) return
+        if (["never", "allways"].includes(String(this.schema.collapsed))) return
         this.i_collapsed = value
     }
 
     /** toggle collapsed field state (note!: may not change if never or allways) */
     toggleCollapsed(evt: Event) {
-        if (["never", "allways"].includes(this.schema.collapsed)) return
+        if (["never", "allways"].includes(String(this.schema.collapsed))) return
         if (this.isroot) { this.i_collapsed = false }
         else this.i_collapsed = !this.i_collapsed
         this.eventStop(evt)
@@ -205,7 +205,7 @@ export abstract class FzField extends Base {
     }
 
     protected renderChevron() {
-        if (["allways", "never"].includes(this.schema.collapsed)) return ''
+        if (["allways", "never"].includes(String(this.schema.collapsed))) return ''
         if (this.collapsed) return html`<i class="bi bi-chevron-down"></i>`
         return html`<i class="bi bi-chevron-up"></i>`
     }
@@ -248,7 +248,7 @@ export abstract class FzField extends Base {
 
     protected override firstUpdated(_changedProperties: PropertyValues): void {
         super.firstUpdated(_changedProperties)
-        this.i_collapsed = ['allways', 'true'].includes(this.schema.collapsed) ? true : false
+        this.i_collapsed = ['allways', 'true'].includes(String(this.schema.collapsed)) ? true : false
         if (this.isempty && isFunction(this.schema.initialize)) {
             this.evalExpr("initialize")
         }

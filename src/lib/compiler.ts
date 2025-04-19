@@ -746,7 +746,7 @@ class CSCollapsed extends CompilationStep {
             schema.collapsed = "never"
         } else {
             const domain = ["never","allways","true","false"]
-            if (!(domain.includes(schema.collapsed))) {
+            if (!(domain.includes(String(schema.collapsed)))) {
                 throw this.error(`${schema.pointer} : collapsed must be one of [${domain.join(', ')}]`)
             }
         }

@@ -92,7 +92,7 @@ class JSONSchemaDraft07 {
     case?: string | ExprFunc<boolean>;
     visible?: string | ExprFunc<boolean>;
     readonly?: string | ExprFunc<boolean>;
-    collapsed!: "never" | "allways" | "true" | "false" ;
+    collapsed!: "never" | "allways" | "true" | "false" | boolean ;
     rank?: string | ExprFunc<any>;
     dynamic?: string | ExprFunc<any>;
     initialize?: string | ExprFunc<any>;
