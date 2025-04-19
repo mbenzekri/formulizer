@@ -344,7 +344,7 @@ declare abstract class FzField extends Base {
     abstract toField(): void;
     abstract toValue(): void;
     protected context: FzFormContext;
-    protected localError?: string;
+    protected localErrors: Set<string>;
     private _dofocus;
     private i_key?;
     accessor pointer: string;
@@ -352,6 +352,8 @@ declare abstract class FzField extends Base {
     accessor dirty: boolean;
     accessor i_collapsed: boolean;
     get errors(): string[];
+    /** return local Errors */
+    validate(): void;
     /** true if this field is rendering root data (no parent) */
     get isroot(): boolean;
     /** property name of this field in parent object data */

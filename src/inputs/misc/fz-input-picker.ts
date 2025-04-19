@@ -42,11 +42,11 @@ export class FzInputPicker extends FzInputBase {
                 <input
                     id="input"
                     type="text"
+                    readonly
                     @input="${this.change}"
                     placeholder="${ifDefined(this.label ?? "")}"
-                    readonly
-                    class="form-control ${this.validation}"
                     autocomplete=off  spellcheck="false"
+                    class="form-control ${this.validation}"
                 />
                 <button
                     type="button"

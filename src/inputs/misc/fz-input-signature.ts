@@ -76,7 +76,7 @@ export class FzInputSignature extends FzInputBase {
             </div>
             <div>
                 <button ?hidden="${this.readonly}" ?disabled="${this.state !== 'read'}" type="button" class="col-sm-3 btn btn-primary btn-sm" @click="${this.edit}">Signer</button>
-                <button ?hidden="${this.state === 'read'}" ?disabled="${this.isblank}" type="button" class="col-sm-3 btn btn-primary btn-sm" @click="${this.validate}">Valider</button>
+                <button ?hidden="${this.state === 'read'}" ?disabled="${this.isblank}" type="button" class="col-sm-3 btn btn-primary btn-sm" @click="${this.lock}">Valider</button>
                 <button ?hidden="${this.state === 'read'}" ?disabled="${this.isblank}" type="button" class="col-sm-3 btn btn-primary btn-sm" @click="${this.clear}">Effacer</button>
             </div>`
     }
@@ -207,21 +207,7 @@ export class FzInputSignature extends FzInputBase {
         if (!this.isblank) this.save()
         return false;
     }
-    //override check() {
-        // this.valid = true
-        // this.message = ''
-        // if (this.required && this.value == null) {
-        //     this.valid = false
-        //     this.message = formatMsg('valueMissing')
-        // }
-        // this.content?.classList.add(this.valid ? 'valid' : 'invalid')
-        // this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
-        // if (this.readonly) {
-        //     this.content?.classList.add('readonly')
-        // } else {
-        //     this.content?.classList.remove('readonly')
-        // }
-    //}
+
     private load() {
         if (this.canvasContext && this.image && this.value) {
             this.image.src = this.value
@@ -233,7 +219,7 @@ export class FzInputSignature extends FzInputBase {
         this.value = null
         this.state = 'edit'
     }
-    private validate() {
+    private lock() {
         this.save()
         this.state = 'read'
     }

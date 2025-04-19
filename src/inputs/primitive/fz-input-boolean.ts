@@ -23,6 +23,7 @@ export class FzInputBoolean extends FzInputBase {
                     id="input"
                     type="checkbox"
                     ?required="${this.required}"
+                    ?readonly="${this.readonly}"
                     @change="${this.tryChange}"
                     @click="${this.tryChange}"
                     autocomplete=off  spellcheck="false"

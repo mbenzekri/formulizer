@@ -70,15 +70,41 @@ test.describe('fz-boolean field', () => {
         })
     }
 
-    test('fz-boolean: should not toggle (readonly)', async ({ page }) => {
-        await C.init(page,C.patchSchema({ properties: { active: { readonly: "true" } } }), { active: true })
+    test('fz-boolean: should be required (in required list)', async ({ page }) => {
+        await C.init(page,C.patchSchema({ required:["active"] }),{"active" : undefined})
+        expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputBoolean")
+        
+        C.submit()
+        await C.assert(undefined,false,"required")
+    })
 
-        // on click no change
-        // !!! for readonly checkbox DONT USE input_h.click() Playwright FAILS because CSS "event-pointers" set to "none"
-        await C.input.evaluate((node:HTMLInputElement) => node.click());
-        expect(await C.input.isChecked()).toBe(true);
-        expect(await C.input.evaluate((node:HTMLInputElement) => node.indeterminate)).toBe(false);
+    test('fz-boolean: should not be required (not in required list)', async ({ page }) => {
+        await C.init(page,C.patchSchema({ required:[] }),{"active" : true})
+        expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputBoolean")
+
+        C.submit()
         await C.assert(true,true)
+    })
+
+    test('fz-boolean: should toggle required (requiredIf dynamic)', async ({ page }) => {
+        await C.init(page,C.patchSchema({ 
+            "properties": { 
+                "active": { "requiredIf": " $`/toggle` " },
+                "toggle": { "type": "boolean" }
+            } 
+        }), { "active": undefined, "toggle": true })
+        const toggle = await C.inputLocator('/toggle','input')
+
+        expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputBoolean")
+
+        // check initial state should require (toggle=true)
+        await C.submit()
+        await C.assert(undefined,true,"required")
+
+        // on toggle input should not require (toggle=false)
+        await toggle.click()
+        await C.assert(undefined,true)
+
     })
 
 })

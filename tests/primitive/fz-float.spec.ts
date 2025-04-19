@@ -38,6 +38,7 @@ test.describe('fz-float field', () => {
         await C.init(page, undefined, {})
         await C.input.fill("123.45")
         expect(await C.input.inputValue()).toBe("123.45")
+        page.pause()
         expect(await C.input.evaluate((x: HTMLInputElement) => x.valueAsNumber)).toBe(123.45)
         await C.assert(123.45, true)
     })

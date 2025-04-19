@@ -14,7 +14,7 @@ const RGBA_RE = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/;
  * @prop index
  */
 @customElement("fz-color")
-export class FzInputString extends FzInputBase {
+export class FzInputColor extends FzInputBase {
 
     static override get styles() {
         return [

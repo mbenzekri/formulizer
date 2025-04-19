@@ -23,7 +23,7 @@ export abstract class FzField extends Base {
     abstract toValue(): void
 
     protected context!: FzFormContext
-    protected localError?: string
+    protected localErrors: Set<string> = new Set()
     private _dofocus = false
     private i_key?: string | number
 
@@ -33,7 +33,15 @@ export abstract class FzField extends Base {
     @property({ attribute: false }) accessor i_collapsed = false
     @property({ attribute: false }) get errors(): string[] {
         if (!this.context) return []
-        return this.localError ? [this.localError, ...this.context.errors(this.pointer)] : this.context.errors(this.pointer)
+        return [...this.localErrors, ...this.context.errors(this.pointer)]
+    }
+
+    /** return local Errors */
+    validate() {
+        this.localErrors.clear()
+        if (this.value === undefined && this.required) {
+            this.localErrors.add("required")
+        }
     }
 
     /** true if this field is rendering root data (no parent) */
@@ -46,10 +54,10 @@ export abstract class FzField extends Base {
     get index() { return isString(this.key) ? undefined : this.key }
 
     /** true if data is conforming to this.schema  */
-    get valid() { return this.errors.length === 0 && isNull(this.localError) }
+    get valid() { return this.errors.length === 0 && this.localErrors.size == 0 }
 
     /** true if data not conforming to this.schema  */
-    get invalid() { return this.errors.length > 0 || notNull(this.localError) }
+    get invalid() { return this.errors.length > 0 || this.localErrors.size > 0 }
 
     /** return true if field is really modified (dirty) or already submited by user */
     get touched() { return this.dirty || this.context?.submitted }

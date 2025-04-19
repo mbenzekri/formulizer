@@ -32,6 +32,7 @@ export class FzInputLocation extends FzInputBase {
                     id="input"
                     type="text"
                     ?readonly="${this.readonly}" 
+                    ?required="${this.required}" 
                     placeholder="POINT(x y)"
                     autocomplete=off  spellcheck="false"
                     class="form-control"

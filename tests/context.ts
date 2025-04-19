@@ -12,10 +12,14 @@ export interface FzForm extends HTMLElement {
 
 export interface FzField extends HTMLElement {
     pointer: string;
+    inputSelector: string;
     schema: any;
     data: any;
     valid: boolean;
     errors: string[]
+}
+export abstract class FzLogger {
+    static set(...args: any[]):void {}
 }
 
 export class TestContext {
@@ -28,7 +32,7 @@ export class TestContext {
 
     constructor(public pointer: string,public inputSelector: string="") {}
 
-    async init(page, schema=TestContext.SCHEMA, data=TestContext.DATA) {
+    async init(page:Page, schema=TestContext.SCHEMA, data=TestContext.DATA) {
         this.page = page
         // init FzForm test page (wait for fz-form readiness)
         await page.goto(TEST_PAGE)
@@ -39,18 +43,16 @@ export class TestContext {
         await page.waitForSelector('fz-form', { state: 'attached' })
         await page.waitForFunction(() => {
             const form = document.querySelector('fz-form') as any
-            return form && typeof form.errors === 'function';
+            return form && typeof form.ready;
         })
 
         // get the form, set schema and data , get field and input
-        this.form = await page.locator('fz-form');
+        await this.resetForm()
         await this.form.evaluate((form: any, { schema, data }) => {
             form.schema = schema;
             form.data = data;
         }, { schema, data });
-        this.field = await page.locator(`[pointer="${this.pointer}"]`)
-        if (this.inputSelector !== "")
-            this.input = await page.locator(`[pointer="${this.pointer}"] ${this.inputSelector}`)
+        await this.resetInput()
 
     }
     async state() {
@@ -74,19 +76,19 @@ export class TestContext {
 
         expect(s.data[this.pointer.substring(1)]).toBe(value)
     
-        valid
-            ? expect(await this.field.evaluate((f: FzField) => f.errors.length)).toBe(0)
+        valid && !error
+            ? expect(await this.field.evaluate((f: FzField) => f.errors.join(" "))).toBe("")
             : expect(await this.field.evaluate((f: FzField) => f.errors.length)).toBeGreaterThan(0);
     
-        if (error)expect(await this.field.evaluate((f: FzField) => f.errors.join(" "))).toContain(error);
+        if (error) expect(await this.field.evaluate((f: FzField) => f.errors.join(" "))).toContain(error)
         
         // error styling is depending on field touched or not 
         // valid 
         //     ? expect(await C.field.evaluate(f => f.shadowRoot?.querySelectorAll('.is-valid').length)).toBeGreaterThan(0)
         //     : expect(await C.field.evaluate(f => f.shadowRoot?.querySelectorAll('.is-invalid').length)).toBeGreaterThan(0)
     }
-    patchSchema(spatch:any) {
-        return patch(TestContext.SCHEMA,spatch)
+    patchSchema(...patches:any) {
+        return patch(TestContext.SCHEMA,...patches)
     }
     async child(selector: string) {
         return await this.field.evaluateHandle((field, selector ) => {
@@ -109,6 +111,22 @@ export class TestContext {
         return await this.page.locator(`[pointer="${pointer}"] ${selector}`)
     }
 
+    async resetForm() {
+        this.form = await this.page.locator('fz-form');
+    }
+    async resetField() {
+        this.resetForm()
+        this.field = await this.fieldLocator(this.pointer)
+    }
+    async resetInput() {
+        this.resetField()
+        if (this.inputSelector !== "")
+            this.input = await this.inputLocator(this.pointer,this.inputSelector)
+    }
+
+    async submit() {
+        await this.form.evaluate(f => (f.shadowRoot?.querySelector(".btn-primary") as HTMLInputElement)?.click())
+    }
 }
 
 

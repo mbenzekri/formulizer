@@ -123,16 +123,19 @@ export class FzInputDoc extends FzInputBase {
                         <span class="input-group-text"  @click="${this.open}"><i class="bi bi-eye"></i></span>
                     </div>` : null
                 }
-                <input class="form-control ${this.validation}"  type="text" spellcheck="false"
+                <input
+                    id="input"
+                    type="text"
+                    ?readonly="${this.readonly}"
+                    ?required="${this.required}"
                     placeholder="photo, document, ..."
                     .value="${this.filename ?? ''}"
-                    ?readonly="${this.readonly}" 
                     @mousedown="${(e:Event) => e.preventDefault()}"
                     @paste="${(e:Event) => e.preventDefault()}"
                     @input="${(e:Event) => e.preventDefault()}"
                     @keypress="${(e:Event) => e.preventDefault()}"
-                    ?required="${this.required}"
                     autocomplete=off  spellcheck="false"
+                    class="form-control ${this.validation}"  
                 />
                 ${ (this.isempty || this.readonly)  ? html`` : html`
                     <button  @click="${this.delete}"  type="button" class="close-right btn-close" aria-label="Close"> </button>`
@@ -169,9 +172,10 @@ export class FzInputDoc extends FzInputBase {
             const doc = await this.store.get(this.value)
             if (doc) {
                 this.set(this.value, doc.blob, doc.filename)
+                this.localErrors.delete("document not found")
             } else {
                 this.dirty = true
-                this.localError = "document not found"
+                this.localErrors.add("document not found")
             }
         }
     }

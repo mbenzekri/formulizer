@@ -79,9 +79,16 @@ export abstract class FzEnumBase extends FzInputBase {
             case notNull(this.schema?.enumFetch):
                 this.fetchEnum()
                 .then(
-                    (enums) => (this.enums = enums, this.requestUpdate()),  
-                    (err) => (this.localError=String(err))
-                )
+                    (enums) => {
+                        this.enums = enums
+                        this.localErrors.delete("unable to fetch enum")
+                    },
+                    () => {
+                        this.localErrors.add("unable to fetch enum")
+                    },
+                ).finally(() => {
+                    this.requestUpdate()
+                })
                 break
             default: 
                 this.enums = this.getEnum()

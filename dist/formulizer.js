@@ -1430,7 +1430,7 @@ class FzFieldEnumEvent extends CustomEvent {
  */
 class FzField extends Base {
     context;
-    localError;
+    localErrors = new Set();
     _dofocus = false;
     i_key;
     #pointer_accessor_storage = '/';
@@ -1448,7 +1448,14 @@ class FzField extends Base {
     get errors() {
         if (!this.context)
             return [];
-        return this.localError ? [this.localError, ...this.context.errors(this.pointer)] : this.context.errors(this.pointer);
+        return [...this.localErrors, ...this.context.errors(this.pointer)];
+    }
+    /** return local Errors */
+    validate() {
+        this.localErrors.clear();
+        if (this.value === undefined && this.required) {
+            this.localErrors.add("required");
+        }
     }
     /** true if this field is rendering root data (no parent) */
     get isroot() { return this.schema.parent == null; }
@@ -1457,9 +1464,9 @@ class FzField extends Base {
     /** index position name of this field in parent array data */
     get index() { return isString(this.key) ? undefined : this.key; }
     /** true if data is conforming to this.schema  */
-    get valid() { return this.errors.length === 0 && isNull(this.localError); }
+    get valid() { return this.errors.length === 0 && this.localErrors.size == 0; }
     /** true if data not conforming to this.schema  */
-    get invalid() { return this.errors.length > 0 || notNull(this.localError); }
+    get invalid() { return this.errors.length > 0 || this.localErrors.size > 0; }
     /** return true if field is really modified (dirty) or already submited by user */
     get touched() { return this.dirty || this.context?.submitted; }
     /** return enpty value for this field */
@@ -1872,7 +1879,14 @@ class FzEnumBase extends FzInputBase {
                 break;
             case notNull(this.schema?.enumFetch):
                 this.fetchEnum()
-                    .then((enums) => (this.enums = enums, this.requestUpdate()), (err) => (this.localError = String(err)));
+                    .then((enums) => {
+                    this.enums = enums;
+                    this.localErrors.delete("unable to fetch enum");
+                }, () => {
+                    this.localErrors.add("unable to fetch enum");
+                }).finally(() => {
+                    this.requestUpdate();
+                });
                 break;
             default:
                 this.enums = this.getEnum();
@@ -2279,6 +2293,7 @@ let FzInputBoolean = class FzInputBoolean extends FzInputBase {
                     id="input"
                     type="checkbox"
                     ?required="${this.required}"
+                    ?readonly="${this.readonly}"
                     @change="${this.tryChange}"
                     @click="${this.tryChange}"
                     autocomplete=off  spellcheck="false"
@@ -2496,7 +2511,7 @@ FzInputFloat = __decorate([
  * @prop name
  * @prop index
  */
-let FzInputString$1 = class FzInputString extends FzInputBase {
+let FzInputString = class FzInputString extends FzInputBase {
     static get styles() {
         return [
             ...super.styles,
@@ -2547,9 +2562,9 @@ let FzInputString$1 = class FzInputString extends FzInputBase {
         }
     }
 };
-FzInputString$1 = __decorate([
+FzInputString = __decorate([
     t$4("fz-string")
-], FzInputString$1);
+], FzInputString);
 
 const RGBA_RE = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/;
 /**
@@ -2558,7 +2573,7 @@ const RGBA_RE = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/;
  * @prop name
  * @prop index
  */
-let FzInputString = class FzInputString extends FzInputBase {
+let FzInputColor = class FzInputColor extends FzInputBase {
     static get styles() {
         return [
             ...super.styles,
@@ -2642,9 +2657,9 @@ let FzInputString = class FzInputString extends FzInputBase {
         }
     }
 };
-FzInputString = __decorate([
+FzInputColor = __decorate([
     t$4("fz-color")
-], FzInputString);
+], FzInputColor);
 
 function iso(date = new Date()) {
     return date.toISOString().substring(0, 10);
@@ -3058,7 +3073,7 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
             </div>
             <div>
                 <button ?hidden="${this.readonly}" ?disabled="${this.state !== 'read'}" type="button" class="col-sm-3 btn btn-primary btn-sm" @click="${this.edit}">Signer</button>
-                <button ?hidden="${this.state === 'read'}" ?disabled="${this.isblank}" type="button" class="col-sm-3 btn btn-primary btn-sm" @click="${this.validate}">Valider</button>
+                <button ?hidden="${this.state === 'read'}" ?disabled="${this.isblank}" type="button" class="col-sm-3 btn btn-primary btn-sm" @click="${this.lock}">Valider</button>
                 <button ?hidden="${this.state === 'read'}" ?disabled="${this.isblank}" type="button" class="col-sm-3 btn btn-primary btn-sm" @click="${this.clear}">Effacer</button>
             </div>`;
     }
@@ -3183,21 +3198,6 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
             this.save();
         return false;
     }
-    //override check() {
-    // this.valid = true
-    // this.message = ''
-    // if (this.required && this.value == null) {
-    //     this.valid = false
-    //     this.message = formatMsg('valueMissing')
-    // }
-    // this.content?.classList.add(this.valid ? 'valid' : 'invalid')
-    // this.content?.classList.remove(this.valid ? 'invalid' : 'valid')
-    // if (this.readonly) {
-    //     this.content?.classList.add('readonly')
-    // } else {
-    //     this.content?.classList.remove('readonly')
-    // }
-    //}
     load() {
         if (this.canvasContext && this.image && this.value) {
             this.image.src = this.value;
@@ -3208,7 +3208,7 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
         this.value = null;
         this.state = 'edit';
     }
-    validate() {
+    lock() {
         this.save();
         this.state = 'read';
     }
@@ -3410,6 +3410,7 @@ let FzInputLocation = class FzInputLocation extends FzInputBase {
                     id="input"
                     type="text"
                     ?readonly="${this.readonly}" 
+                    ?required="${this.required}" 
                     placeholder="POINT(x y)"
                     autocomplete=off  spellcheck="false"
                     class="form-control"
@@ -3580,16 +3581,19 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
                     <div class="input-group-prepend">
                         <span class="input-group-text"  @click="${this.open}"><i class="bi bi-eye"></i></span>
                     </div>` : null}
-                <input class="form-control ${this.validation}"  type="text" spellcheck="false"
+                <input
+                    id="input"
+                    type="text"
+                    ?readonly="${this.readonly}"
+                    ?required="${this.required}"
                     placeholder="photo, document, ..."
                     .value="${this.filename ?? ''}"
-                    ?readonly="${this.readonly}" 
                     @mousedown="${(e) => e.preventDefault()}"
                     @paste="${(e) => e.preventDefault()}"
                     @input="${(e) => e.preventDefault()}"
                     @keypress="${(e) => e.preventDefault()}"
-                    ?required="${this.required}"
                     autocomplete=off  spellcheck="false"
+                    class="form-control ${this.validation}"  
                 />
                 ${(this.isempty || this.readonly) ? x `` : x `
                     <button  @click="${this.delete}"  type="button" class="close-right btn-close" aria-label="Close"> </button>`}
@@ -3621,10 +3625,11 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
             const doc = await this.store.get(this.value);
             if (doc) {
                 this.set(this.value, doc.blob, doc.filename);
+                this.localErrors.delete("document not found");
             }
             else {
                 this.dirty = true;
-                this.localError = "document not found";
+                this.localErrors.add("document not found");
             }
         }
     }
@@ -6237,11 +6242,11 @@ class CSRequiredIf extends CompilationStep {
         super(root, "requiredIf", "pre", ["basetype"]);
     }
     appliable(schema) {
-        return schema.basetype === "object" && schema.properties != null && schema.required != null;
+        return schema.basetype === "object" && schema.properties != null && isArray(schema.required);
     }
     apply(schema) {
         schema.required?.forEach((name) => {
-            if (schema.properties && name in schema.properties)
+            if (schema.properties?.[name])
                 schema.properties[name].requiredIf = "true";
         });
     }
@@ -6693,6 +6698,7 @@ let FzForm = FzForm_1 = class FzForm extends Base {
     get valid() {
         this.validator.validate(this.root);
         this.errorMap = this.validator.map;
+        this.fieldMap.forEach(v => v.validate());
         return this.validator.valid;
     }
     get schema() { return this.compiledSchema; }

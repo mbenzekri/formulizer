@@ -102,6 +102,7 @@ export class FzForm extends Base {
     get valid() {
         this.validator.validate(this.root) 
         this.errorMap =this.validator.map
+        this.fieldMap.forEach( v => v.validate())
         return  this.validator.valid
     }
 

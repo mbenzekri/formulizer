@@ -22,9 +22,9 @@ const C = new TestContext("/a_color", "input")
 
 test.describe('fz-color field', () => {
 
-    test('fz-color: should be instance of FzInputString', async ({ page }) => {
+    test('fz-color: should be instance of FzInputColor', async ({ page }) => {
         await C.init(page)
-        expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputString")
+        expect(await C.field.evaluate(node => node.constructor.name)).toBe("FzInputColor")
         expect(await C.input.evaluate((x: HTMLInputElement) => x.type)).toBe("color")
         expect((await C.input.inputValue()).toUpperCase()).toBe("#FFFFFF")
         await C.assert("#FFFFFF", true)

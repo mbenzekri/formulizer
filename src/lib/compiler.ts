@@ -609,11 +609,11 @@ class CSRequiredIf extends CompilationStep {
     }
 
     override appliable(schema: Schema) {
-        return schema.basetype === "object" && schema.properties != null && schema.required != null
+        return schema.basetype === "object" && schema.properties != null && isArray(schema.required)
     }
     override apply(schema: Schema): void {
         schema.required?.forEach((name: any) => {
-            if (schema.properties && name in schema.properties) schema.properties[name].requiredIf = "true"
+            if (schema.properties?.[name]) schema.properties[name].requiredIf = "true"
         })
     }
 }
