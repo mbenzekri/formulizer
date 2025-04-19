@@ -5,24 +5,22 @@
         "properties": {
             "colors" : {
                 "type" : "array",
+                "default": { "red": 64, "green": 128, "blue": 255 },
                 "items" : {
                     "title" : "couleurs",
                     "type": "object",
                     "properties" : {
                         "red": {
                             "title": "rouge",
-                            "type": "integer",
-                            "default" : 255
+                            "type": "integer"
                         },
                         "green": {
                             "title": "vert",
-                            "type": "integer",
-                            "default" : 255
+                            "type": "integer"
                         },
                         "blue": {
                             "title": "bleu",
-                            "type": "integer",
-                            "default" : 255
+                            "type": "integer"
                         }
                     }
                 }

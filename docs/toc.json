@@ -12,15 +12,27 @@
                 "general/typenull": "About emptyness"
             },
             "Keywords": {
-                "keyword/title": "title",
+
                 "keyword/abstract": "abstract",
-                "keyword/visible": "visible",
+                "keyword/case": "case",
+                "keyword/change": "change",
                 "keyword/collapsed": "collapsed",
                 "keyword/default": "default",
                 "keyword/dynamic": "dynamic",
-                "keyword/nullable": "nullable",
+                "keyword/empty": "empty",
+                "keyword/filter": "filter",
+                "keyword/grouptab": "group & tab",
+                "keyword/initialize": "initialize",
+                "keyword/mimetype": "mimetype",
+                "keyword/picker": "picker",
+                "keyword/precision": "precision",
+                "keyword/preview": "preview",
+                "keyword/rank": "rank",
                 "keyword/readonly": "readonly",
-                "keyword/required": "required"
+                "keyword/required": "requiredIf",
+                "keyword/title": "title",
+                "keyword/transient": "transient",
+                "keyword/visible": "visible"
             },
             "Primitive types": {
                 "primitive/boolean": "boolean",
@@ -38,6 +50,7 @@
                 "enum/simple": "simple",
                 "enum/typeahead": "typeahead",
                 "enum/user": "user defined",
+                "enum/fetch": "fetch enum",
                 "enum/from": "from the data"
             },
             "Array": {

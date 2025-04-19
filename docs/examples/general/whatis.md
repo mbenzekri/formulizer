@@ -8,7 +8,7 @@ an extended JSON Schema format.
 >- fz-form is provided as a [W3C web component](https://www.webcomponents.org/introduction)
 >- The component (tag: `<fz-form>`) expect a form description (`schema` property) and initial data (`data` property)
 >- The form description is provided in [JSON Schema ](https://json-schema.org/) format.
->- fz-form extends JSON Schema with UI and Form [specific keywords](#general/schema).
+>- fz-form extends JSON Schema with UI and Form [specific keywords](#general/keyword).
 >- The generated form UI is designed with bootstrap 5 [bootstrap integration](#general/bootstrap).
 >- The data is provided and retrieved in JSON (JSON serializable JS objects).
 >- The bundle is provided as a unique javascript file to be loaded in your page (provide in CDN).
