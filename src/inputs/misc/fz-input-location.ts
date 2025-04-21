@@ -28,6 +28,17 @@ export class FzInputLocation extends FzInputBase {
     renderInput() {
         return html`
             <div class="input-group ${this.validation}">
+                <div class="btn-group">
+                    <button 
+                        type="button"
+                        ?disabled=${!navigator.geolocation}
+                        @click="${this.locate}"
+                        aria-label="Geolocate"
+                        class="btn btn-primary btn-sm"
+                    >
+                            <i class="bi bi-geo-alt"></i>
+                    </button>
+                </div>
                 <input
                     id="input"
                     type="text"
@@ -45,15 +56,6 @@ export class FzInputLocation extends FzInputBase {
                         class="btn btn-sm"
                     >
                         <i class="bi bi-trash"></i>
-                    </button>
-                    <button 
-                        type="button"
-                        ?disabled=${!navigator.geolocation}
-                        @click="${this.locate}"
-                        aria-label="Geolocate"
-                        class="btn btn-primary btn-sm"
-                    >
-                            <i class="bi bi-geo-alt"></i>
                     </button>
                 </div>
             </div>`

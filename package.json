@@ -22,7 +22,7 @@
     "lint:lit-analyzer": "lit-analyzer",
     "test": "npx playwright test --project=chrome",
     "test:all": "npx playwright test",
-    "test:debug": "npx playwright test --debug --project=chrome -g",
+    "test:debug": "npx playwright test --debug --project=firefox -g",
     "test:one": "npx playwright test  --project=chrome -g ",
     "test:chrome": "npx playwright test --project=chrome -g",
     "test:chromium": "npx playwright test --project=chromium -g",

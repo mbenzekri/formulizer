@@ -30,9 +30,9 @@ const dataset = [
     { class: "FzInputTextarea", type: "string", "format": undefined, value: "abc", patch: { maxLength: 300 } },
     { class: "FzInputDoc", type: "string", "format": "doc", value: "<xml>my document</xml>", patch: {} },
     { class: "FzInputLocation", type: "string", "format": "location", value: "POINT(45.12 45.12)", patch: {} },
-    // FzInputUuid is required by design (div)
-    // FzInputConst is required by design (div)
-    // FzInputMarkdown is required by design (html/no input)
+    // FzInputUuid is N/A (div)
+    // FzInputConst is N/A (div)
+    // FzInputMarkdown N/A (html/no input)
     // TBD OBJECT / ARRAY / FzInputPicker / FzInputSignature
 ]
 

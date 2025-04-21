@@ -3039,8 +3039,6 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
     canvas;
     canvasContext;
     observer;
-    offsetX = 0;
-    offsetY = 0;
     currentX = 0;
     currentY = 0;
     drawing = false;
@@ -3058,24 +3056,61 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
         return [
             ...super.styles,
             i$5 `
-            img {border: 0}
+            img {
+                border: 0;
+                max-width: 150px;
+                max-height: 50px;
+            }
             .readonly {background-color: rgb(235,235,228)}
+            canvas {
+                max-width: 300px;
+                max-height: 150px;
+            }
             `
         ];
     }
     renderInput() {
         return x `
-            <div id="content" class="form-control ${this.validation}">
-                <button ?hidden="${!this.value || this.required || this.readonly}" @click="${this.del}" type="button" style="float:right" class="btn-close" aria-label="Close"></button>
-                <canvas id="canvas" ?hidden="${this.state === 'read'}" height="300" width="300"></canvas>
-                <img   id="image" draggable=false ?hidden="${this.state === 'edit' || !this.value}" >
-                <div ?hidden="${!!this.value || this.state === 'edit'}" >Aucune</div>
+            <div class="input-group ${this.validation}">
+                <div class="btn-group">
+                    <button 
+                        type="button"
+                        ?hidden="${this.state !== 'read'}" 
+                        @click="${this.edit}"
+                        aria-label="Sign"
+                        class="btn btn-primary btn-sm"
+                    >
+                        <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button 
+                        type="button"
+                        ?hidden="${this.state === 'read'}" 
+                        ?disabled="${this.isblank}" 
+                        @click="${this.lock}"
+                        aria-label="Validate"
+                        class="btn btn-primary btn-sm"
+                    >
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                </div>
+                <div id="content" class="form-control ${this.validation}" >
+                    <canvas id="canvas" ?hidden="${this.state === 'read'}" height="300" width="300" ></canvas>
+                    <img   id="image" draggable=false ?hidden="${!this.value || this.state !== 'read'}">
+                    <div id="nosign" ?hidden="${this.value || this.state !== 'read'}" >No signature</div>
+                </div>
+                <div class="btn-group">
+                    <button 
+                        type="button"
+                        ?hidden="${this.isblank && this.state !== "edit"}" 
+                        @click="${this.del}"
+                        aria-label="delete"
+                        class="btn btn-sm"
+                    >
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
             </div>
-            <div>
-                <button ?hidden="${this.readonly}" ?disabled="${this.state !== 'read'}" type="button" class="col-sm-3 btn btn-primary btn-sm" @click="${this.edit}">Signer</button>
-                <button ?hidden="${this.state === 'read'}" ?disabled="${this.isblank}" type="button" class="col-sm-3 btn btn-primary btn-sm" @click="${this.lock}">Valider</button>
-                <button ?hidden="${this.state === 'read'}" ?disabled="${this.isblank}" type="button" class="col-sm-3 btn btn-primary btn-sm" @click="${this.clear}">Effacer</button>
-            </div>`;
+            `;
     }
     firstUpdated(changedProperties) {
         super.firstUpdated(changedProperties);
@@ -3083,12 +3118,10 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
         // Gestion des événements
         if (this.canvas) {
             this.canvasContext = this.canvas.getContext('2d') ?? undefined;
-            this.listen(this.canvas, 'mousedown', evt => this.onDown(evt));
-            this.listen(this.canvas, 'mousemove', evt => this.onMove(evt));
-            this.listen(this.canvas, 'mouseup', evt => this.onUp(evt));
-            this.listen(this.canvas, 'touchstart', evt => this.onDown(evt), { passive: false });
-            this.listen(this.canvas, 'touchmove', evt => this.onMove(evt), { passive: false });
-            this.listen(this.canvas, 'touchend', evt => this.onUp(evt));
+            this.listen(this.canvas, 'pointerdown', evt => this.onDown(evt));
+            this.listen(this.canvas, 'pointermove', evt => this.onMove(evt));
+            this.listen(this.canvas, 'pointerup', evt => this.onUp(evt));
+            this.listen(this.canvas, 'pointerleave', evt => this.onUp(evt));
         }
         this.content = this.shadowRoot?.getElementById('content') ?? undefined;
         if (this.content) {
@@ -3109,8 +3142,8 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
     }
     resize() {
         if (this.content) {
-            const width = this.content.offsetWidth;
-            const height = Math.floor(this.content.offsetWidth / 2);
+            let width = this.content.offsetWidth;
+            let height = Math.floor(this.content.offsetWidth / 2);
             if (this.canvas && this.state === 'read' &&
                 (this.canvas.width !== width || this.canvas.height !== height)) {
                 this.canvas.width = width;
@@ -3123,50 +3156,34 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
             }
         }
     }
+    // private getPos(event: any) {
+    //     if (isNull(this.canvas)) return
+    //     const rect = this.canvas.getBoundingClientRect();
+    //     let clientX: number, clientY: number;
+    //     if (event instanceof TouchEvent) {
+    //       clientX = event.touches[0].clientX;
+    //       clientY = event.touches[0].clientY;
+    //     } else {
+    //       clientX = event.clientX;
+    //       clientY = event.clientY;
+    //     }
+    //     this.currentX = (clientX - rect.left) * (this.canvas.width / rect.width);
+    //     this.currentY = (clientY - rect.top) * (this.canvas.height / rect.height);
+    // }
     getPos(event) {
-        if (event.touches && event.touches[0]) {
-            this.currentX = event.touches[0].clientX - this.offsetX;
-            this.currentY = event.touches[0].clientY - this.offsetY;
-        }
-        else if (event.originalEvent && event.originalEvent.touches && event.originalEvent.touches[0]) {
-            this.currentX = event.originalEvent.touches[0].clientX - this.offsetX;
-            this.currentY = event.originalEvent.touches[0].clientY - this.offsetY;
-        }
-        else if (event.offsetX !== undefined) {
-            this.currentX = event.offsetX;
-            this.currentY = event.offsetY;
-        }
-        else { // Firefox compatibility
-            this.currentX = event.layerX - event.currentTarget.offsetLeft;
-            this.currentY = event.layerY - event.currentTarget.offsetTop;
-        }
-    }
-    getOffset(event) {
-        // calculate offsets for touch devices
-        if (event.touches || event.originalEvent && event.originalEvent.touches) {
-            this.offsetX = 0;
-            this.offsetY = 0;
-            let elt = null;
-            // originalEvent is present on PC 
-            if (event.originalEvent)
-                elt = event.originalEvent.srcElement;
-            else {
-                // ORiginal Event absent from touch devices
-                if (event.touches.length > 0)
-                    elt = event.touches[0].target;
-            }
-            if (elt) {
-                while (elt) {
-                    this.offsetX += elt.offsetLeft - elt.scrollLeft;
-                    this.offsetY += elt.offsetTop - elt.scrollTop;
-                    elt = elt.offsetParent;
-                }
-            }
-        }
+        if (!this.canvas)
+            return;
+        // offsetX/Y are relative to the canvas element in CSS pixels
+        const offsetX = event.offsetX;
+        const offsetY = event.offsetY;
+        // scale to internal canvas resolution
+        const scaleX = this.canvas.width / this.canvas.clientWidth;
+        const scaleY = this.canvas.height / this.canvas.clientHeight;
+        this.currentX = offsetX * scaleX;
+        this.currentY = offsetY * scaleY;
     }
     onDown(event) {
         this.drawing = !this.readonly;
-        this.getOffset(event);
         this.getPos(event);
         // start a new line
         if (this.canvasContext && this.currentX) {
@@ -3177,7 +3194,6 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
             this.canvasContext.lineJoin = 'round';
         }
         this.eventStop(event);
-        return false;
     }
     onMove(event) {
         if (!this.drawing)
@@ -3188,15 +3204,12 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
             this.canvasContext.stroke();
         }
         this.eventStop(event);
-        return false;
     }
     onUp(event) {
-        // On arrête le dessin
+        // Stop drawing
         this.drawing = false;
+        this.state = !this.isblank ? "valid" : "edit";
         this.eventStop(event);
-        if (!this.isblank)
-            this.save();
-        return false;
     }
     load() {
         if (this.canvasContext && this.image && this.value) {
@@ -3224,7 +3237,7 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
     clear() {
         if (this.canvas)
             this.canvas.width = this.canvas.width;
-        this.value = '';
+        this.value = undefined;
         this.requestUpdate();
     }
     del() {
@@ -3406,6 +3419,17 @@ let FzInputLocation = class FzInputLocation extends FzInputBase {
     renderInput() {
         return x `
             <div class="input-group ${this.validation}">
+                <div class="btn-group">
+                    <button 
+                        type="button"
+                        ?disabled=${!navigator.geolocation}
+                        @click="${this.locate}"
+                        aria-label="Geolocate"
+                        class="btn btn-primary btn-sm"
+                    >
+                            <i class="bi bi-geo-alt"></i>
+                    </button>
+                </div>
                 <input
                     id="input"
                     type="text"
@@ -3423,15 +3447,6 @@ let FzInputLocation = class FzInputLocation extends FzInputBase {
                         class="btn btn-sm"
                     >
                         <i class="bi bi-trash"></i>
-                    </button>
-                    <button 
-                        type="button"
-                        ?disabled=${!navigator.geolocation}
-                        @click="${this.locate}"
-                        aria-label="Geolocate"
-                        class="btn btn-primary btn-sm"
-                    >
-                            <i class="bi bi-geo-alt"></i>
                     </button>
                 </div>
             </div>`;

@@ -2,11 +2,9 @@
     "form": {
         "type": "object",
         "properties": { 
-            "active": { "type": "boolean", "requiredIf": " $`/toggle` ", "title": "Active"},
-            "toggle": { "type": "boolean" }
+            "signature": { "type": "string", "format": "signature", "title": "Signature"}
         }
     },
     "data": {
-        "toggle": true
     }
 }

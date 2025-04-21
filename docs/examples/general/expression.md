@@ -19,7 +19,7 @@ Two kinds of JavaScript code are handled in fz-form:
 - **String Literals:**  
     Plain strings that include embedded dynamic parts (via the $ interpolation syntax) and are also recomputed whenever their dependencies change.
     ```
-        "${ $\`/firstname\` + $\`/lastname` }"
+        "${ $`/firstname` } ${ $`/lastname` }"
     ```
     Supposing field is a string to store full name, this string literal will concatenate firstname an lastname properties.
 

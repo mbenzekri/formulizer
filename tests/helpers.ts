@@ -25,7 +25,10 @@ export async function children(page: Page, pointer: string, selector: string) {
 }
 
 
-
+export function assertNotNull<T>(value: T, message = 'Value is null or undefined'): asserts value is NonNullable<T> {
+    if (value == null)  throw new Error(message);
+}
+  
 
 /**
  * Deep merge two objects.
