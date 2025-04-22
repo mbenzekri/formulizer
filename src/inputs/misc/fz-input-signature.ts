@@ -78,7 +78,7 @@ export class FzInputSignature extends FzInputBase {
                 <div class="btn-group">
                     <button 
                         type="button"
-                        ?hidden="${this.state !== 'read'}" 
+                        ?hidden="${this.state !== 'read' || this.readonly}" 
                         @click="${this.edit}"
                         aria-label="Sign"
                         class="btn btn-primary btn-sm"
@@ -87,7 +87,7 @@ export class FzInputSignature extends FzInputBase {
                     </button>
                     <button 
                         type="button"
-                        ?hidden="${this.state === 'read'}" 
+                        ?hidden="${this.state === 'read'|| this.readonly}" 
                         ?disabled="${this.isblank}" 
                         @click="${this.lock}"
                         aria-label="Validate"
@@ -104,7 +104,7 @@ export class FzInputSignature extends FzInputBase {
                 <div class="btn-group">
                     <button 
                         type="button"
-                        ?hidden="${this.isblank && this.state !== "edit"}" 
+                        ?hidden="${this.value != null || this.readonly}" 
                         @click="${this.del}"
                         aria-label="delete"
                         class="btn btn-sm"
