@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { html, TemplateResult } from "lit"
-import { FzItemDlg } from "../../components/fz-item-dlg";
+import { FzFromDlg } from "../../components/fz-item-dlg";
 import { isFunction, isNull, isString, notNull } from "../../lib/tools"
 import { FzInputBase } from "../fz-input-base";
 import { isFrom, Schema } from "../../lib/schema";
@@ -13,7 +13,7 @@ export const EMPTY = []
 const DEFAULT_FETCH_TIMEOUT = 10000 // 10sec 
 export abstract class FzEnumBase extends FzInputBase {
 
-    @query('fz-item-dlg') private modal?: FzItemDlg
+    @query('fz-item-dlg') private modal?: FzFromDlg
     abstract renderEnum(): TemplateResult
     protected enums?: EnumItem[] = []
     protected refenum?: FromObject

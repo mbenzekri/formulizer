@@ -739,6 +739,7 @@ const BOOTSTRAP_URL = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/boo
 const ICONS_URL = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css";
 const WOFF_URL = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/fonts/bootstrap-icons.woff2?1fa40e8900654d2863d011707b9fb6f2";
 class Base extends r$1 {
+    static deferred = new Set();
     static loaded = false;
     static sheets = [];
     static styles = [
@@ -796,6 +797,11 @@ class Base extends r$1 {
         `
     ];
     handlers = [];
+    constructor() {
+        super();
+        if (!Base.loaded)
+            Base.deferred.add(new WeakRef(this));
+    }
     badge(value) {
         return x `<span class="badge bg-primary badge-pill">${value}</span>`;
     }
@@ -888,9 +894,10 @@ class Base extends r$1 {
         //await new Promise((resolve,_) => setTimeout(() => resolve(null),10000))
         Base.loaded = true;
         // bootstrap loading is async FzForm already inserted in dom must adopt and refresh
-        for (const item of document.getElementsByTagName("fz-form")) {
+        for (const weakref of Base.deferred) {
             logger.info("Adopting bootstrap to fz-form Element");
-            item.adoptBootStrap();
+            weakref.deref()?.adoptBootStrap();
+            Base.deferred.clear();
         }
         logger.info("<<< loadBootstrap()");
     }
@@ -2613,6 +2620,7 @@ let FzInputColor = class FzInputColor extends FzInputBase {
         const useeyedropper = ("EyeDropper" in window);
         return x `
             <div class="input-group ${this.validation}" >
+                ${useeyedropper ? x `<span class="input-group-text btn btn-primary" @click="${this.eyedropper}" ><i class="bi bi-eyedropper"></i></span>` : ''}
                 <input
                     id="input"
                     type="color" 
@@ -2625,7 +2633,6 @@ let FzInputColor = class FzInputColor extends FzInputBase {
                 />
                 ${this.isempty ? x `<span class="color-empty">Choose a color</span>` : ''}
                 <span class="input-group-text" >${isNull(this.value) ? '~' : this.value}</span>
-                ${useeyedropper ? x `<span class="input-group-text btn btn-primary" @click="${this.eyedropper}" ><i class="bi bi-eyedropper"></i></span>` : ''}
             </div>`;
     }
     rgbaToHex(rgba) {
@@ -3075,7 +3082,7 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
                 <div class="btn-group">
                     <button 
                         type="button"
-                        ?hidden="${this.state !== 'read'}" 
+                        ?hidden="${this.state !== 'read' || this.readonly}" 
                         @click="${this.edit}"
                         aria-label="Sign"
                         class="btn btn-primary btn-sm"
@@ -3084,7 +3091,7 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
                     </button>
                     <button 
                         type="button"
-                        ?hidden="${this.state === 'read'}" 
+                        ?hidden="${this.state === 'read' || this.readonly}" 
                         ?disabled="${this.isblank}" 
                         @click="${this.lock}"
                         aria-label="Validate"
@@ -3101,7 +3108,7 @@ let FzInputSignature = class FzInputSignature extends FzInputBase {
                 <div class="btn-group">
                     <button 
                         type="button"
-                        ?hidden="${this.isblank && this.state !== "edit"}" 
+                        ?hidden="${this.value != null || this.readonly}" 
                         @click="${this.del}"
                         aria-label="delete"
                         class="btn btn-sm"
@@ -3585,57 +3592,58 @@ let FzInputDoc = class FzInputDoc extends FzInputBase {
         ];
     }
     renderInput() {
+        const previewdiv = when(this.url && this.hasPreview, x `
+            <img class="input-group-text img-preview" src="${this.url}" @dblclick="${this.open}"/>
+        `);
+        const openbtn = when(!this.isempty && !(this.url && this.hasPreview), x `
+            <span class="input-group-text"  @click="${this.open}"><i class="bi bi-eye"></i></span>
+        `);
+        const camerabtn = when(this.isempty && !this.readonly, x `
+            <span class="input-group-text btn btn-primary" @click="${() => this.photoModal?.open()}" >
+                <i class="bi bi-camera"></i>
+            </span>`);
+        const uploadbtn = when(this.isempty && !this.readonly, x `
+            <span class="input-group-text btn btn-primary btn btn-primary fileUpload">
+                <input type="file"
+                    @change="${this.save}"
+                    ?disabled="${this.readonly}" 
+                    accept="${this.mimetype}"
+                    class="btn-block"
+                    autocomplete=off  spellcheck="false"/>
+                <i class="bi bi-file-earmark-richtext"></i>
+            </span>`);
+        const deletebtn = when(!this.isempty && !this.readonly, x `
+            <button class="input-group-text btn btn-light" @click="${this.delete}" aria-label="delete" >
+                <i class="bi bi-trash"></i>
+            </button>`);
         return x `
-            <fz-photo-dlg id=modal ></fz-photo-dlg>
+            <fz-dlg-photo id=modal ></fz-dlg-photo>
             <div class="input-group">
-                ${(this.url && this.hasPreview) ? x `
-                    <div class="input-group-prepend" >
-                        <img class="input-group-text img-preview" src="${this.url}" @click="${this.open}"/>
-                    </div>` : null}
-                ${(!this.isempty && !(this.url && this.hasPreview)) ? x `
-                    <div class="input-group-prepend">
-                        <span class="input-group-text"  @click="${this.open}"><i class="bi bi-eye"></i></span>
-                    </div>` : null}
+                ${camerabtn}
+                ${uploadbtn}
+                ${previewdiv}
                 <input
                     id="input"
                     type="text"
                     ?readonly="${this.readonly}"
                     ?required="${this.required}"
-                    placeholder="photo, document, ..."
+                    placeholder=""
                     .value="${this.filename ?? ''}"
-                    @mousedown="${(e) => e.preventDefault()}"
-                    @paste="${(e) => e.preventDefault()}"
-                    @input="${(e) => e.preventDefault()}"
-                    @keypress="${(e) => e.preventDefault()}"
+                    @mousedown=${this.eventStop}"
+                    @paste=${this.eventStop}
+                    @input=${this.eventStop}
+                    @keypress=${this.eventStop}
                     autocomplete=off  spellcheck="false"
                     class="form-control ${this.validation}"  
                 />
-                ${(this.isempty || this.readonly) ? x `` : x `
-                    <button  @click="${this.delete}"  type="button" class="close-right btn-close" aria-label="Close"> </button>`}
-                ${(!this.isempty || this.readonly) ? x `` : x `
-                    <span class="input-group-text btn btn-primary" @click="${() => this.photoModal?.open()}" ><i class=" bi bi-camera"></i></span>
-                    <span class="input-group-text fileUpload btn btn-primary">
-                        <input type="file"
-                            @change="${this.save}"
-                            ?disabled="${this.readonly}" 
-                            accept="${this.mimetype}"
-                            class="btn-block"
-                            autocomplete=off  spellcheck="false"/>
-                        <i class="bi bi-file-earmark-richtext"></i>
-                    </span>`}
+                ${openbtn}
+                ${deletebtn}
             </div>`;
-    }
-    change() {
-        super.change();
-        this.requestUpdate();
-    }
-    connectedCallback() {
-        super.connectedCallback();
     }
     async firstUpdated(changedProperties) {
         super.firstUpdated(changedProperties);
-        this.photoModal = this.shadowRoot?.querySelector('fz-photo-dlg') ?? undefined;
-        this.listen(this.photoModal, 'close', evt => this.set(v1(), evt.detail.blob, "photo.png"));
+        this.photoModal = this.shadowRoot?.querySelector('fz-dlg-photo') ?? undefined;
+        this.listen(this.photoModal, 'fz-dlg-photo-close', (evt) => this.set(v1(), evt.detail.blob, "photo.png"));
         if (this.value != null) {
             const doc = await this.store.get(this.value);
             if (doc) {
@@ -4574,19 +4582,19 @@ FzArray = __decorate([
     t$4("fz-enum-array")
 ], FzArray);
 
-let FzDialog = class FzDialog extends Base {
-    modal;
-    backdrop;
-    validable = false;
-    #modalTitle_accessor_storage = "Dialogue";
-    get modalTitle() { return this.#modalTitle_accessor_storage; }
-    set modalTitle(value) { this.#modalTitle_accessor_storage = value; }
-    #okLabel_accessor_storage = "Valider";
-    get okLabel() { return this.#okLabel_accessor_storage; }
-    set okLabel(value) { this.#okLabel_accessor_storage = value; }
-    #dismissLabel_accessor_storage = "Annuler";
-    get dismissLabel() { return this.#dismissLabel_accessor_storage; }
-    set dismissLabel(value) { this.#dismissLabel_accessor_storage = value; }
+class FzDialog extends Base {
+    isopen = false;
+    valid = false;
+    #dialogTitle_accessor_storage = "Dialog";
+    get dialogTitle() { return this.#dialogTitle_accessor_storage; }
+    set dialogTitle(value) { this.#dialogTitle_accessor_storage = value; }
+    #confirmLabel_accessor_storage = "Ok";
+    get confirmLabel() { return this.#confirmLabel_accessor_storage; }
+    set confirmLabel(value) { this.#confirmLabel_accessor_storage = value; }
+    #cancelLabel_accessor_storage = "Cancel";
+    get cancelLabel() { return this.#cancelLabel_accessor_storage; }
+    set cancelLabel(value) { this.#cancelLabel_accessor_storage = value; }
+    save_overflow;
     static get styles() {
         return [
             ...super.styles,
@@ -4597,96 +4605,105 @@ let FzDialog = class FzDialog extends Base {
         ];
     }
     render() {
+        this.isopen;
         return x `
-            <div class="modal fade" id="modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-modal="true" role="dialog">
+            <div class="modal fade" id="modal" tabindex="-1" role="dialog" style="display:none">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" >${this.modalTitle}</h5>
-                            <button type="button" class="btn btn-secondary " aria-label="Close"  @click="${this.dismiss}">
-                                <span aria-hidden="true">×</span>
-                            </button>
+                            <h5 class="modal-title" >${this.dialogTitle}</h5>
+                            <button type="button" class="close" @click="${this.cancel}"><span>&times;</span></button>
                         </div>
                         <div class="modal-body">
-                            <slot></slot>
+                            ${this.renderDialog()}
                         </div>
                         <div class="modal-footer">
-                            <button ?disabled="${!this.validable}" type="button" class="btn btn-primary" @click="${this.validate}">${this.okLabel}</button>
-                            <button type="button" class="btn btn-danger" @click="${this.dismiss}" >${this.dismissLabel}</button>
+                            <button type="button" class="btn btn-primary" ?disabled=${!this.valid}  @click=${this.confirm}>${this.confirmLabel}</button>
+                            <button type="button" class="btn btn-secondary" @click="${this.cancel}" >${this.cancelLabel}</button>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-backdrop fade show" id="backdrop"  style="display: none;" @click="${this.dismiss}"></div>`;
+        `;
     }
-    get isOpen() {
-        return this.modal?.classList.contains("show");
+    closeModal() {
+        const modal = this.shadowRoot?.querySelector(".modal");
+        const backdrop = this.shadowRoot?.querySelector(".modal-backdrop.fade.show");
+        if (modal) {
+            backdrop.classList.remove("show");
+            if (this.save_overflow) {
+                document.body.style.overflow = this.save_overflow;
+            }
+            // We want to remove the show class from the modal outside of the regular DOM thread so that
+            // transitions can take effect
+            setTimeout(() => modal.classList.remove("show"));
+            // We want to set the display style back to none and remove the backdrop div from the body
+            // with a delay of 500ms in order to give their transition/animations time to complete
+            // before totally hiding and removing them.
+            setTimeout(() => {
+                modal.style.display = "none";
+                backdrop.remove();
+            }, 500); // this time we specified a delay
+        }
     }
-    firstUpdated() {
-        this.modal = this.shadowRoot?.getElementById('modal');
-        this.backdrop = this.shadowRoot?.getElementById('backdrop');
+    openModal() {
+        const modal = this.shadowRoot?.querySelector(".modal");
+        const backdrop = document.createElement("div");
+        backdrop.classList.add("modal-backdrop", "fade");
+        this.save_overflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        this.shadowRoot?.appendChild(backdrop);
+        modal.style.display = "block";
+        // We don't need to specify the milliseconds in this timeout, since we don't want a delay,
+        // we just want the changes to be done outside of the normal DOM thread.
+        setTimeout(() => {
+            // Move adding the show class to inside this setTimeout
+            modal.classList.add("show");
+            // Add the show class to the backdrop in this setTimeout
+            backdrop.classList.add("show");
+        });
+    }
+    firstUpdated(changedProperties) {
+        super.firstUpdated(changedProperties);
     }
     disconnectedCallback() {
         super.disconnectedCallback();
-        this.modal = undefined;
-        this.backdrop = undefined;
-        this.validable = undefined;
-        this.modalTitle = undefined;
-        this.okLabel = undefined;
-        this.dismissLabel = undefined;
     }
-    open() {
-        if (this.backdrop)
-            this.backdrop.style.display = "block";
-        if (this.modal) {
-            this.modal.style.display = "block";
-            this.modal.classList.add("show");
-        }
-        this.requestUpdate();
-        this.dispatchEvent(new CustomEvent('fz-dialog-open', { detail: {} }));
+    async open() {
+        await this.init();
+        this.isopen = true;
+        this.openModal();
     }
-    close() {
-        if (this.backdrop)
-            this.backdrop.style.display = "none";
-        if (this.modal) {
-            this.modal.style.display = "none";
-            this.modal.classList.remove("show");
-        }
+    confirm(evt) {
+        this.valid = false;
+        this.isopen = false;
+        this.closeModal();
+        this.closed(false);
+        this.eventStop(evt);
     }
-    validate(evt) {
-        this.close();
-        evt.preventDefault();
-        evt.stopPropagation();
-        this.dispatchEvent(new FzDialogCloseEvent(this, false));
-    }
-    dismiss(evt) {
-        this.close();
-        evt.preventDefault();
-        evt.stopPropagation();
-        this.dispatchEvent(new FzDialogCloseEvent(this, true));
-    }
-    valid(validable = true) {
-        this.validable = validable;
-        this.requestUpdate();
-    }
-};
-__decorate([
-    n$2({ attribute: 'modal-title' })
-], FzDialog.prototype, "modalTitle", null);
-__decorate([
-    n$2({ attribute: 'ok-label' })
-], FzDialog.prototype, "okLabel", null);
-__decorate([
-    n$2({ attribute: 'dismiss-label' })
-], FzDialog.prototype, "dismissLabel", null);
-FzDialog = __decorate([
-    t$4("fz-dialog")
-], FzDialog);
-class FzDialogCloseEvent extends CustomEvent {
-    constructor(dialog, dismiss) {
-        super('fz-dialog-close', { detail: { dialog, dismiss } });
+    cancel(evt) {
+        this.valid = false;
+        this.isopen = false;
+        this.closeModal();
+        this.closed(true);
+        this.eventStop(evt);
     }
 }
+__decorate([
+    r$4()
+], FzDialog.prototype, "isopen", void 0);
+__decorate([
+    n$2({ attribute: false })
+], FzDialog.prototype, "valid", void 0);
+__decorate([
+    n$2({ attribute: 'dlg-title' })
+], FzDialog.prototype, "dialogTitle", null);
+__decorate([
+    n$2({ attribute: 'dlg-confirm' })
+], FzDialog.prototype, "confirmLabel", null);
+__decorate([
+    n$2({ attribute: 'dlg-cancel' })
+], FzDialog.prototype, "cancelLabel", null);
 
 var ModalState;
 (function (ModalState) {
@@ -4699,13 +4716,17 @@ const Barcodes = [
     'code_128', 'code_39', 'code_93', 'codabar', 'ean_13', 'ean_8',
     'itf', 'pdf417', 'upc_a', 'upc_e', 'aztec', 'data_matrix', 'qr_code'
 ];
-let FzBarcodeDialog = class FzBarcodeDialog extends Base {
-    detector;
-    code;
+class FzBarcodeDlgCloseEvent extends CustomEvent {
+    constructor(dialog, canceled, code) {
+        super('fz-dlg-barcode-close', { detail: { dialog, canceled, code } });
+    }
+}
+let FzBarcodeDlg = class FzBarcodeDlg extends FzDialog {
     #state_accessor_storage = ModalState.notready;
     get state() { return this.#state_accessor_storage; }
     set state(value) { this.#state_accessor_storage = value; }
-    modal;
+    detector;
+    code;
     video;
     status = "Initializing";
     static get styles() {
@@ -4718,40 +4739,30 @@ let FzBarcodeDialog = class FzBarcodeDialog extends Base {
             `
         ];
     }
-    render() {
+    renderDialog() {
         return x `
-            <fz-dialog modal-title="Scanner un codebar" @click="${this.stopEvent}" @fz-dialog-close="${this.close}" > 
-                <div class="row">
-                    <video  class=col autoplay style="display:block" .title="${this.status}">Chargement en cours ...</video>
-                </div>
-                <div class="btn-toolbar m-3 row" role="toolbar">
-                    <button class="btn btn-primary col m-1" ?disabled="${!this.code}" @click="${this.scan}"><i class="bi bi-upc-scan"></i></button>
-                </div>
-                <div>${this.status}</div>
-            </fz-dialog>
-            `;
+            <div class="row">
+                <video  class=col autoplay style="display:block" .title="${this.status}">Loading ...</video>
+            </div>
+            <div class="btn-toolbar m-3 row" role="toolbar">
+                <button class="btn btn-primary col m-1" ?disabled="${!this.code}" @click="${this.scan}"><i class="bi bi-upc-scan"></i></button>
+            </div>
+            <div>${this.status}</div>
+        `;
     }
-    stopEvent(evt) {
-        evt.preventDefault();
-        evt.stopPropagation();
-    }
-    close(evt) {
+    closed(canceled) {
         if (this.video) {
             this.video?.pause();
             this.video.srcObject = null;
         }
-        const detail = evt.detail;
-        if (!evt.detail.dismissed)
-            evt.detail.code = this.code;
-        this.dispatchEvent(new CustomEvent("close", { detail }));
-        this.modal?.valid(false);
+        const code = this.code;
+        this.dispatchEvent(new FzBarcodeDlgCloseEvent(this, canceled, code));
     }
     firstUpdated() {
         // create new detector
         if (BarcodeDetector) {
             this.detector = new BarcodeDetector({ formats: Barcodes });
         }
-        this.modal = this.shadowRoot?.querySelector('fz-dialog');
         this.video = this.shadowRoot?.querySelector('video');
         if (this.video)
             this.listen(this.video, "play", _ => this.scan());
@@ -4791,38 +4802,40 @@ let FzBarcodeDialog = class FzBarcodeDialog extends Base {
         };
         renderLoop();
     }
-    async open() {
+    async init() {
         this.setState(ModalState.notready);
-        if (this.modal)
-            this.modal.open();
         await this.initCamera();
     }
     setState(state) {
         this.state = state;
-        this.modal?.valid(false);
+        this.valid = false;
         switch (state) {
             case ModalState.fail:
-                this.status = `${this.state} ⇨ Pas de flux video`;
+                this.status = `${this.state} ⇨ No video stream`;
                 break;
             case ModalState.notready:
-                this.status = `${this.state} ⇨ En initialisation`;
+                this.status = `${this.state} ⇨ Initializing`;
                 break;
             case ModalState.scanning:
-                this.status = `${this.state} ⇨ Scannez`;
+                this.status = `${this.state} ⇨ Scan`;
                 break;
             case ModalState.done:
-                this.status = `${this.state} ⇨ Resultat: ${this.code}`;
-                this.modal?.valid(true);
+                this.status = `${this.state} ⇨ Result: ${this.code}`;
+                this.valid = true;
                 break;
         }
+        console.log(this.status);
     }
 };
 __decorate([
     r$4()
-], FzBarcodeDialog.prototype, "state", null);
-FzBarcodeDialog = __decorate([
-    t$4("fz-barcode-dlg")
-], FzBarcodeDialog);
+], FzBarcodeDlg.prototype, "state", null);
+__decorate([
+    e$5("video")
+], FzBarcodeDlg.prototype, "video", void 0);
+FzBarcodeDlg = __decorate([
+    t$4("fz-dlg-barcode")
+], FzBarcodeDlg);
 
 var PhotoState;
 (function (PhotoState) {
@@ -4831,11 +4844,15 @@ var PhotoState;
     PhotoState[PhotoState["lowres"] = 2] = "lowres";
     PhotoState[PhotoState["hires"] = 3] = "hires";
 })(PhotoState || (PhotoState = {}));
-let FzPhotoDlg = class FzPhotoDlg extends Base {
+class FzPhotoDlgCloseEvent extends CustomEvent {
+    constructor(dialog, canceled, imageBitmap, url, blob) {
+        super('fz-dlg-photo-close', { detail: { dialog, canceled, imageBitmap, url, blob } });
+    }
+}
+let FzPhotoDlg = class FzPhotoDlg extends FzDialog {
     #state_accessor_storage = PhotoState.video;
     get state() { return this.#state_accessor_storage; }
     set state(value) { this.#state_accessor_storage = value; }
-    modal;
     video;
     canvas;
     imageCapture;
@@ -4852,50 +4869,44 @@ let FzPhotoDlg = class FzPhotoDlg extends Base {
             `
         ];
     }
-    render() {
+    renderDialog() {
         return x `
-            <fz-dialog modal-title="Prendre une photo ..." @click="${this.stopEvent}" @fz-dialog-close="${this.close}" > 
-                <div class="row">
-                    <video  class=col autoplay style="display:block" .title="${this.status}">Chargement en cours ...</video>
-                </div>
-                <div class="row">
-                    <canvas class=col id='canvas' style="display:none" ></canvas>
-                </div>
-                <div class="btn-toolbar m-3 row" role="toolbar">
-                        <button class="btn btn-primary col m-1" ?disabled="${this.isVideo}" @click="${this.retry}"><i class="bi bi-arrow-counterclockwise"></i></button>
-                        <button class="btn btn-primary col m-1" ?disabled="${!this.isVideo}" @click="${this.takePhotoLowres}"><i class="bi bi-camera"></i><sup> - </sup></button>
-                        <button class="btn btn-primary col m-1" ?disabled="${!this.isVideo}" @click="${this.takePhotoHires}"><i class="bi bi-camera"></i><sup> + </sup></button>
-               </div>
-            </fz-dialog>
-            `;
+            <div class="row">
+                <video  class=col autoplay style="display:block" .title="${this.status}">Loading ...</video>
+            </div>
+            <div class="row">
+                <canvas class=col id='canvas' style="display:none" ></canvas>
+            </div>
+            <div class="btn-toolbar m-3 row" role="toolbar">
+                    <button class="btn btn-primary col m-1" ?disabled="${this.isVideo}" @click="${this.retry}"><i class="bi bi-arrow-counterclockwise"></i></button>
+                    <button class="btn btn-primary col m-1" ?disabled="${!this.isVideo}" @click="${this.snapLowres}"><i class="bi bi-camera"></i><sup> - </sup></button>
+                    <button class="btn btn-primary col m-1" ?disabled="${!this.isVideo}" @click="${this.snapHires}"><i class="bi bi-camera"></i><sup> + </sup></button>
+            </div>
+        `;
     }
-    stopEvent(evt) {
-        evt.preventDefault();
-        evt.stopPropagation();
+    init() {
+        this.setState(PhotoState.notready);
+        this.getUserMedia();
     }
-    close(evt) {
+    closed(canceled) {
         if (this.video) {
             this.video?.pause();
             this.video.srcObject = null;
             this.imageCapture?.track.stop();
         }
-        const detail = evt.detail;
-        this.canvas?.toBlob((blob) => {
-            if (!blob)
-                return;
-            const url = URL.createObjectURL(blob);
-            if (!evt.detail.dismissed) {
-                evt.detail.imageBitmap = this.imageBitmap;
-                evt.detail.url = url;
-                evt.detail.blob = blob;
-            }
-            this.dispatchEvent(new CustomEvent("close", { detail }));
-            this.imageBitmap = undefined;
-            this.modal?.valid(false);
-        }, "image/png", 0.80);
+        if (canceled) {
+            this.dispatchEvent(new FzPhotoDlgCloseEvent(this, canceled));
+        }
+        else {
+            this.canvas?.toBlob((blob) => {
+                const url = blob ? URL.createObjectURL(blob) : undefined;
+                this.dispatchEvent(new FzPhotoDlgCloseEvent(this, canceled, this.imageBitmap, url, blob ?? undefined));
+                this.imageBitmap = undefined;
+            }, "image/png", 0.80);
+        }
     }
-    firstUpdated() {
-        this.modal = this.shadowRoot?.querySelector('fz-dialog');
+    firstUpdated(changedProperties) {
+        super.firstUpdated(changedProperties);
         this.video = this.shadowRoot?.querySelector('video');
         this.canvas = this.shadowRoot?.querySelector('canvas');
     }
@@ -4912,35 +4923,32 @@ let FzPhotoDlg = class FzPhotoDlg extends Base {
             .catch(error => this.status = `Unable to initialize Camera : ${String(error)}`);
     }
     retry(evt) {
-        evt.preventDefault();
-        evt.stopPropagation();
+        this.eventStop(evt);
         this.imageBitmap = undefined;
-        this.modal?.valid(false);
+        this.valid = false;
         this.setState(PhotoState.video);
     }
-    takePhotoLowres(evt) {
-        evt.preventDefault();
-        evt.stopPropagation();
+    snapLowres(evt) {
+        this.eventStop(evt);
         if (this.imageCapture) {
             this.imageCapture.grabFrame()
                 .then((imageBitmap) => {
                 this.imageBitmap = imageBitmap;
-                this.modal?.valid(true);
+                this.valid = true;
                 this.drawCanvas();
                 this.setState(PhotoState.lowres);
             })
                 .catch((error) => this.status = `Unable to grab Lowres photo : ${String(error)}`);
         }
     }
-    takePhotoHires(evt) {
-        evt.preventDefault();
-        evt.stopPropagation();
+    snapHires(evt) {
+        this.eventStop(evt);
         if (this.imageCapture) {
             this.imageCapture.takePhoto()
                 .then((blob) => createImageBitmap(blob))
                 .then((imageBitmap) => {
                 this.imageBitmap = imageBitmap;
-                this.modal?.valid(true);
+                this.valid = true;
                 this.drawCanvas();
                 this.setState(PhotoState.hires);
             })
@@ -4957,12 +4965,6 @@ let FzPhotoDlg = class FzPhotoDlg extends Base {
         const y = (this.canvas.height - this.imageBitmap.height * ratio) / 2;
         this.canvas.getContext('2d')?.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.canvas.getContext('2d')?.drawImage(this.imageBitmap, 0, 0, this.imageBitmap.width, this.imageBitmap.height, x, y, this.imageBitmap.width * ratio, this.imageBitmap.height * ratio);
-    }
-    open() {
-        this.setState(PhotoState.notready);
-        if (this.modal)
-            this.modal.open();
-        this.getUserMedia();
     }
     setState(state) {
         if (this.video && this.canvas) {
@@ -4996,14 +4998,18 @@ __decorate([
     r$4()
 ], FzPhotoDlg.prototype, "state", null);
 FzPhotoDlg = __decorate([
-    t$4("fz-photo-dlg")
+    t$4("fz-dlg-photo")
 ], FzPhotoDlg);
 
-let FzItemDlg = class FzItemDlg extends Base {
+class FzFromDlgCloseEvent extends CustomEvent {
+    constructor(dialog, canceled, value, abstract) {
+        super('fz-dlg-from-close', { detail: { dialog, canceled, value, abstract } });
+    }
+}
+let FzFromDlg = class FzFromDlg extends FzDialog {
     #reference_accessor_storage;
     get reference() { return this.#reference_accessor_storage; }
     set reference(value) { this.#reference_accessor_storage = value; }
-    modal;
     arraySchema;
     itemSchema;
     array;
@@ -5020,24 +5026,23 @@ let FzItemDlg = class FzItemDlg extends Base {
             `
         ];
     }
-    render() {
+    renderDialog() {
         return x `
-            <fz-dialog modal-title="Ajouter un element ..." @click="${this.stopEvent}" @fz-dialog-close="${this.close}" > 
-                ${(this.itemSchema != null || this.arraySchema?.items?.oneOf == null) ? '' :
+            ${(this.itemSchema != null || this.arraySchema?.items?.oneOf == null) ? '' :
             x `<div class="btn-group" role="group">
-                    <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
-                        @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    ${"Choose type"}
-                    </button> 
-                    <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-                        ${this.arraySchema?.items.oneOf.map((schema, i) => x `<a class="dropdown-item"
-                        @click="${() => this.addItem(schema)}" >${schema.title || "Type" + i}</a>`)}
-                    </div>
-                </div>`}
-                ${this.itemSchema == null
+                <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle btn-sm"
+                    @click="${this.toggleDropdown}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                ${"Choose type"}
+                </button> 
+                <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+                    ${this.arraySchema?.items.oneOf.map((schema, i) => x `<a class="dropdown-item"
+                    @click="${() => this.addItem(schema)}" >${schema.title || "Type" + i}</a>`)}
+                </div>
+            </div>`}
+            ${this.itemSchema == null
             ? '' :
             x `<fz-object id="form-object" .pointer="${this.pointer}/${this.index}" .schema="${this.itemSchema}"></fz-object>`}
-            </fz-dialog>`;
+        `;
     }
     updated(_changedProperties) {
         if (this.reference) {
@@ -5063,31 +5068,22 @@ let FzItemDlg = class FzItemDlg extends Base {
         const value = this.itemSchema._default(this.array);
         this.index = this.array?.length;
         this.array?.push(value);
-        this.modal?.valid();
+        this.valid = true;
         this.requestUpdate();
     }
-    stopEvent(evt) {
-        evt.preventDefault();
-        evt.stopPropagation();
-    }
-    close(evt) {
-        const detail = evt.detail;
-        if (!evt.detail.dismissed) {
+    closed(canceled) {
+        if (canceled) {
             const field = this.shadowRoot?.getElementById("form-object");
-            evt.detail.value = field.value[this.refname ?? "id"];
-            evt.detail.abstract = field.abstract();
+            const value = field.value[this.refname ?? "id"];
+            const abstract = field.abstract();
+            this.dispatchEvent(new FzFromDlgCloseEvent(this, canceled, value, abstract));
+        }
+        else {
+            this.dispatchEvent(new FzFromDlgCloseEvent(this, canceled));
         }
         this.reference = undefined;
-        this.stopEvent(evt);
-        this.dispatchEvent(new CustomEvent("close", { detail }));
-        this.modal?.valid(false);
     }
-    firstUpdated() {
-        this.modal = this.shadowRoot?.querySelector('fz-dialog');
-    }
-    open() {
-        if (this.modal)
-            this.modal.open();
+    init() {
         if (this.arraySchema?.homogeneous && this.index === undefined) {
             this.arraySchema?.items && this.addItem(this.arraySchema?.items);
         }
@@ -5095,10 +5091,10 @@ let FzItemDlg = class FzItemDlg extends Base {
 };
 __decorate([
     n$2({ type: Object })
-], FzItemDlg.prototype, "reference", null);
-FzItemDlg = __decorate([
-    t$4("fz-item-dlg")
-], FzItemDlg);
+], FzFromDlg.prototype, "reference", null);
+FzFromDlg = __decorate([
+    t$4("fz-dlg-from")
+], FzFromDlg);
 
 var $schema = "http://json-schema.org/draft-07/schema#";
 var $id = "http://json-schema.org/draft-07/schema-3s#";

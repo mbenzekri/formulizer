@@ -1,7 +1,6 @@
 import { html, css } from "lit"
-import { customElement, state } from "lit/decorators.js"
+import { customElement, query, state } from "lit/decorators.js"
 import { FzDialog } from "./dialog"
-import { Base } from "../base"
 
 enum ModalState { notready = 0, scanning, done, fail }
 
@@ -12,13 +11,24 @@ const Barcodes = [
     'code_128', 'code_39', 'code_93', 'codabar', 'ean_13', 'ean_8', 
     'itf', 'pdf417', 'upc_a', 'upc_e', 'aztec', 'data_matrix', 'qr_code' 
 ]
-@customElement("fz-barcode-dlg")
-export class FzBarcodeDialog extends Base {
-    private detector?: any
-    private code?: string
+
+export class FzBarcodeDlgCloseEvent extends CustomEvent<{ dialog: FzBarcodeDlg, canceled: boolean, code?: string}> {
+    constructor(dialog: FzBarcodeDlg, canceled: boolean, code?: string) {
+        super('fz-dlg-barcode-close', { detail: { dialog, canceled, code } })
+    }
+}
+
+export interface EventMap {
+    'fz-dlg-barcode-close': FzBarcodeDlgCloseEvent
+}
+
+@customElement("fz-dlg-barcode")
+export class FzBarcodeDlg extends FzDialog {
     @state()
     private accessor state: ModalState = ModalState.notready
-    private modal?: FzDialog | null
+    private detector?: any
+    private code?: string
+    @query("video")
     private video?: HTMLVideoElement | null
     private status = "Initializing"
 
@@ -32,34 +42,25 @@ export class FzBarcodeDialog extends Base {
             `]
     }
 
-    override render() {
+    override renderDialog() {
         return html`
-            <fz-dialog modal-title="Scanner un codebar" @click="${this.stopEvent}" @fz-dialog-close="${this.close}" > 
-                <div class="row">
-                    <video  class=col autoplay style="display:block" .title="${this.status}">Chargement en cours ...</video>
-                </div>
-                <div class="btn-toolbar m-3 row" role="toolbar">
-                    <button class="btn btn-primary col m-1" ?disabled="${!this.code}" @click="${this.scan}"><i class="bi bi-upc-scan"></i></button>
-                </div>
-                <div>${this.status}</div>
-            </fz-dialog>
-            `
+            <div class="row">
+                <video  class=col autoplay style="display:block" .title="${this.status}">Loading ...</video>
+            </div>
+            <div class="btn-toolbar m-3 row" role="toolbar">
+                <button class="btn btn-primary col m-1" ?disabled="${!this.code}" @click="${this.scan}"><i class="bi bi-upc-scan"></i></button>
+            </div>
+            <div>${this.status}</div>
+        `
     }
 
-    stopEvent(evt: Event) {
-        evt.preventDefault()
-        evt.stopPropagation()
-    }
-
-    close(evt: CustomEvent) {
+    override closed(canceled: boolean) {
         if (this.video) {
             this.video?.pause()
             this.video.srcObject = null
         }
-        const detail = evt.detail
-        if (!evt.detail.dismissed) evt.detail.code = this.code
-        this.dispatchEvent(new CustomEvent("close", { detail }))
-        this.modal?.valid(false)
+        const code = this.code
+        this.dispatchEvent(new FzBarcodeDlgCloseEvent(this, canceled, code))
     }
 
     override firstUpdated() {
@@ -67,7 +68,6 @@ export class FzBarcodeDialog extends Base {
         if (BarcodeDetector) {
             this.detector = new BarcodeDetector({ formats: Barcodes });
         }
-        this.modal = this.shadowRoot?.querySelector('fz-dialog')
         this.video = this.shadowRoot?.querySelector('video')
         if (this.video)  this.listen(this.video, "play", _ => this.scan())
     }
@@ -108,29 +108,29 @@ export class FzBarcodeDialog extends Base {
         renderLoop()
     }
 
-    async open() {
+    override async init() {
         this.setState(ModalState.notready)
-        if (this.modal) this.modal.open()
         await this.initCamera()
     }
 
     setState(state: ModalState) {
         this.state = state
-        this.modal?.valid(false)
+        this.valid = false
         switch (state) {
             case ModalState.fail:
-                this.status = `${this.state} ⇨ Pas de flux video`
+                this.status = `${this.state} ⇨ No video stream`
                 break
             case ModalState.notready:
-                this.status = `${this.state} ⇨ En initialisation`
+                this.status = `${this.state} ⇨ Initializing`
                 break
             case ModalState.scanning:
-                this.status = `${this.state} ⇨ Scannez`
+                this.status = `${this.state} ⇨ Scan`
                 break
             case ModalState.done:
-                this.status = `${this.state} ⇨ Resultat: ${this.code}`
-                this.modal?.valid(true)
+                this.status = `${this.state} ⇨ Result: ${this.code}`
+                this.valid = true
                 break
         }
+        console.log(this.status)
     }
 }

@@ -52,6 +52,7 @@ export class FzInputColor extends FzInputBase {
         const useeyedropper = ("EyeDropper" in window)
         return html`
             <div class="input-group ${this.validation}" >
+                ${ useeyedropper ? html`<span class="input-group-text btn btn-primary" @click="${this.eyedropper}" ><i class="bi bi-eyedropper"></i></span>` : ''}
                 <input
                     id="input"
                     type="color" 
@@ -64,7 +65,6 @@ export class FzInputColor extends FzInputBase {
                 />
                 ${this.isempty ? html`<span class="color-empty">Choose a color</span>` : ''}
                 <span class="input-group-text" >${ isNull(this.value) ? '~' :this.value }</span>
-                ${ useeyedropper ? html`<span class="input-group-text btn btn-primary" @click="${this.eyedropper}" ><i class="bi bi-eyedropper"></i></span>` : ''}
             </div>`
     }
 

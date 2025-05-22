@@ -2,7 +2,7 @@
     "form": {
         "type": "object",
         "properties": { 
-            "signature": { "type": "string", "format": "signature", "title": "Signature"}
+            "field": { "type": "string", "format": "barcode", "title": "Barcode"}
         }
     },
     "data": {

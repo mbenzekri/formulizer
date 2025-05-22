@@ -10,6 +10,7 @@ const WOFF_URL = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/fonts
 type HandlerItem = { target: EventTarget, event: string, handler: (evt: Event) => void }
 export class Base extends LitElement {
 
+    private static deferred = new Set<WeakRef<Base>>()
     private static loaded = false
     private static sheets: CSSStyleSheet[] = []
 
@@ -69,6 +70,10 @@ export class Base extends LitElement {
 
     private handlers: HandlerItem[] = []
 
+    constructor() {
+        super()
+        if (!Base.loaded) Base.deferred.add(new WeakRef(this))
+    }
     badge(value:number|string) {
         return html`<span class="badge bg-primary badge-pill">${value}</span>`
     }
@@ -178,9 +183,10 @@ export class Base extends LitElement {
         Base.loaded = true
 
         // bootstrap loading is async FzForm already inserted in dom must adopt and refresh
-        for (const item of document.getElementsByTagName("fz-form") as HTMLCollectionOf<Base>) {
+        for (const weakref of Base.deferred) {
             logger.info("Adopting bootstrap to fz-form Element")
-            item.adoptBootStrap()
+            weakref.deref()?.adoptBootStrap()
+            Base.deferred.clear()
         }
         
         logger.info("<<< loadBootstrap()")

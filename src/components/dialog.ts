@@ -1,16 +1,15 @@
-import { html,css } from "lit";
-import { customElement,property } from "lit/decorators.js";
+import { html, css, TemplateResult, PropertyValues } from "lit";
+import { property, state } from "lit/decorators.js";
 import { Base } from "../base";
 
-@customElement("fz-dialog")
-export class FzDialog extends Base {
-    private modal?: HTMLElement | null
-    private backdrop?: HTMLElement | null
-    private validable = false
-    @property({attribute: 'modal-title'}) accessor modalTitle = "Dialogue"
-    @property({attribute: 'ok-label'}) accessor okLabel = "Valider"
-    @property({attribute: 'dismiss-label'}) accessor dismissLabel = "Annuler"
-    
+export abstract class FzDialog extends Base {
+    @state() private isopen = false
+    @property({ attribute: false }) public valid = false
+    @property({ attribute: 'dlg-title' }) accessor dialogTitle = "Dialog"
+    @property({ attribute: 'dlg-confirm' }) accessor confirmLabel = "Ok"
+    @property({ attribute: 'dlg-cancel' }) accessor cancelLabel = "Cancel"
+    private save_overflow?: string
+
     static override get styles() {
         return [
             ...super.styles,
@@ -20,92 +19,100 @@ export class FzDialog extends Base {
             }`
         ]
     }
+    abstract renderDialog(): TemplateResult
+    abstract init(): void
+    abstract closed(canceled: boolean): void
     override render() {
+        this.isopen;
         return html`
-            <div class="modal fade" id="modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-modal="true" role="dialog">
+            <div class="modal fade" id="modal" tabindex="-1" role="dialog" style="display:none">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" >${this.modalTitle}</h5>
-                            <button type="button" class="btn btn-secondary " aria-label="Close"  @click="${this.dismiss}">
-                                <span aria-hidden="true">×</span>
-                            </button>
+                            <h5 class="modal-title" >${this.dialogTitle}</h5>
+                            <button type="button" class="close" @click="${this.cancel}"><span>&times;</span></button>
                         </div>
                         <div class="modal-body">
-                            <slot></slot>
+                            ${this.renderDialog()}
                         </div>
                         <div class="modal-footer">
-                            <button ?disabled="${!this.validable}" type="button" class="btn btn-primary" @click="${this.validate}">${this.okLabel}</button>
-                            <button type="button" class="btn btn-danger" @click="${this.dismiss}" >${this.dismissLabel}</button>
+                            <button type="button" class="btn btn-primary" ?disabled=${!this.valid}  @click=${this.confirm}>${this.confirmLabel}</button>
+                            <button type="button" class="btn btn-secondary" @click="${this.cancel}" >${this.cancelLabel}</button>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-backdrop fade show" id="backdrop"  style="display: none;" @click="${this.dismiss}"></div>`
+        `
+    }
+    closeModal() {
+        const modal = this.shadowRoot?.querySelector(".modal") as HTMLDivElement
+        const backdrop = this.shadowRoot?.querySelector(".modal-backdrop.fade.show") as HTMLElement
+        if (modal) {
+            backdrop.classList.remove("show")
+            if (this.save_overflow) {
+                document.body.style.overflow = this.save_overflow
+            }
+            // We want to remove the show class from the modal outside of the regular DOM thread so that
+            // transitions can take effect
+            setTimeout(() => modal.classList.remove("show"))
+
+            // We want to set the display style back to none and remove the backdrop div from the body
+            // with a delay of 500ms in order to give their transition/animations time to complete
+            // before totally hiding and removing them.
+            setTimeout(() => {
+                modal.style.display = "none";
+                backdrop.remove()
+            }, 500); // this time we specified a delay
+        }
     }
 
-    get isOpen() {
-        return this.modal?.classList.contains("show")
+    openModal() {
+        const modal = this.shadowRoot?.querySelector(".modal") as HTMLDivElement
+        const backdrop = document.createElement("div");
+        backdrop.classList.add("modal-backdrop", "fade");
+        this.save_overflow = document.body.style.overflow
+        document.body.style.overflow = "hidden"
+        this.shadowRoot?.appendChild(backdrop);
+        modal.style.display = "block";
+
+        // We don't need to specify the milliseconds in this timeout, since we don't want a delay,
+        // we just want the changes to be done outside of the normal DOM thread.
+        setTimeout(() => {
+            // Move adding the show class to inside this setTimeout
+            modal.classList.add("show");
+            // Add the show class to the backdrop in this setTimeout
+            backdrop.classList.add("show");
+        })
     }
 
-    override firstUpdated() {
-        this.modal = this.shadowRoot?.getElementById('modal');
-        this.backdrop = this.shadowRoot?.getElementById('backdrop');
+    override firstUpdated(changedProperties: PropertyValues): void {
+        super.firstUpdated(changedProperties)
     }
+
     override disconnectedCallback(): void {
         super.disconnectedCallback()
-        this.modal = undefined as any
-        this.backdrop = undefined as any
-        this.validable = undefined as any
-        this.modalTitle = undefined as any
-        this.okLabel = undefined as any
-        this.dismissLabel = undefined as any
-    
     }
 
-    open() {
-        if (this.backdrop) this.backdrop.style.display = "block"
-        if (this.modal) {
-            this.modal.style.display = "block"
-            this.modal.classList.add("show")
-        }
-        this.requestUpdate()
-        this.dispatchEvent(new CustomEvent('fz-dialog-open',{ detail:{} }))
+    public async open() {
+        await this.init()
+        this.isopen = true
+        this.openModal()
     }
-    close() {
-        if (this.backdrop) this.backdrop.style.display = "none"
-        if (this.modal) {
-            this.modal.style.display = "none"
-            this.modal.classList.remove("show");
-        }
+    private confirm(evt: Event) {
+        this.valid = false
+        this.isopen = false
+        this.closeModal()
+        this.closed(false)
+        this.eventStop(evt)
     }
 
-    validate(evt: Event) {
-        this.close()
-        evt.preventDefault()
-        evt.stopPropagation()
-        this.dispatchEvent(new FzDialogCloseEvent(this,false))
-    }
-
-    dismiss(evt: Event) {
-        this.close()
-        evt.preventDefault()
-        evt.stopPropagation()
-        this.dispatchEvent(new FzDialogCloseEvent(this,true))
-
-    }
-    valid(validable = true) {
-        this.validable = validable
-        this.requestUpdate()
+    private cancel(evt: Event) {
+        this.valid = false
+        this.isopen = false
+        this.closeModal()
+        this.closed(true)
+        this.eventStop(evt)
     }
 }
 
-export class FzDialogCloseEvent extends CustomEvent<{dialog: FzDialog, dismiss: boolean}> {
-    constructor(dialog: FzDialog,dismiss: boolean) {
-        super('fz-dialog-close', { detail: {dialog,dismiss} })
-    }
-}
 
-export interface EventMap {
-    'fz-dialog-close': FzDialogCloseEvent
-}

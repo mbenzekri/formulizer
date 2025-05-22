@@ -1,18 +1,26 @@
-import { html, css } from "lit"
+import { html, css, PropertyValues } from "lit"
 import { customElement,state } from "lit/decorators.js"
 import { FzDialog } from "./dialog"
-import { Base } from "../base"
 
 enum PhotoState { notready = 0, video, lowres, hires }
+
+export class FzPhotoDlgCloseEvent extends CustomEvent<{dialog: FzPhotoDlg, canceled: boolean, imageBitmap?: ImageBitmap, url?: string, blob?: Blob }> {
+    constructor(dialog: FzPhotoDlg,canceled: boolean,imageBitmap?:ImageBitmap,url?:string, blob?: Blob) {
+        super('fz-dlg-photo-close', { detail: { dialog, canceled, imageBitmap, url, blob} })
+    }
+}
+
+export interface EventMap {
+    'fz-dlg-photo-close': FzPhotoDlgCloseEvent
+}
 
 declare global {
     let ImageCapture: any
 }
-@customElement("fz-photo-dlg")
-export class FzPhotoDlg extends Base {
+@customElement("fz-dlg-photo")
+export class FzPhotoDlg extends FzDialog {
     @state()
     private accessor state: PhotoState = PhotoState.video
-    private modal?: FzDialog | null
     private video?: HTMLVideoElement | null
     private canvas?: HTMLCanvasElement | null
     private imageCapture?: any
@@ -28,51 +36,46 @@ export class FzPhotoDlg extends Base {
             }
             `]
     }
-    override render() {
+    override renderDialog() {
         return html`
-            <fz-dialog modal-title="Prendre une photo ..." @click="${this.stopEvent}" @fz-dialog-close="${this.close}" > 
-                <div class="row">
-                    <video  class=col autoplay style="display:block" .title="${this.status}">Chargement en cours ...</video>
-                </div>
-                <div class="row">
-                    <canvas class=col id='canvas' style="display:none" ></canvas>
-                </div>
-                <div class="btn-toolbar m-3 row" role="toolbar">
-                        <button class="btn btn-primary col m-1" ?disabled="${this.isVideo}" @click="${this.retry}"><i class="bi bi-arrow-counterclockwise"></i></button>
-                        <button class="btn btn-primary col m-1" ?disabled="${!this.isVideo}" @click="${this.takePhotoLowres}"><i class="bi bi-camera"></i><sup> - </sup></button>
-                        <button class="btn btn-primary col m-1" ?disabled="${!this.isVideo}" @click="${this.takePhotoHires}"><i class="bi bi-camera"></i><sup> + </sup></button>
-               </div>
-            </fz-dialog>
-            `
+            <div class="row">
+                <video  class=col autoplay style="display:block" .title="${this.status}">Loading ...</video>
+            </div>
+            <div class="row">
+                <canvas class=col id='canvas' style="display:none" ></canvas>
+            </div>
+            <div class="btn-toolbar m-3 row" role="toolbar">
+                    <button class="btn btn-primary col m-1" ?disabled="${this.isVideo}" @click="${this.retry}"><i class="bi bi-arrow-counterclockwise"></i></button>
+                    <button class="btn btn-primary col m-1" ?disabled="${!this.isVideo}" @click="${this.snapLowres}"><i class="bi bi-camera"></i><sup> - </sup></button>
+                    <button class="btn btn-primary col m-1" ?disabled="${!this.isVideo}" @click="${this.snapHires}"><i class="bi bi-camera"></i><sup> + </sup></button>
+            </div>
+        `
     }
 
-    stopEvent(evt: Event) {
-        evt.preventDefault()
-        evt.stopPropagation()
+    override init() {
+        this.setState(PhotoState.notready)
+        this.getUserMedia()
     }
-    close(evt: CustomEvent) {
+
+    override closed(canceled: boolean) {
         if (this.video) {
             this.video?.pause()
             this.video.srcObject = null
             this.imageCapture?.track.stop()
         }
-        const detail = evt.detail
-        this.canvas?.toBlob((blob: Blob | null) => {
-            if (!blob) return
-            const url = URL.createObjectURL(blob)
-            if (!evt.detail.dismissed) {
-                evt.detail.imageBitmap = this.imageBitmap
-                evt.detail.url = url
-                evt.detail.blob = blob
-            }
-            this.dispatchEvent(new CustomEvent("close", { detail }))
-            this.imageBitmap = undefined
-            this.modal?.valid(false)
-        }, "image/png", 0.80)
+        if (canceled) {
+            this.dispatchEvent(new FzPhotoDlgCloseEvent(this, canceled))
+        } else {
+            this.canvas?.toBlob((blob: Blob | null) => {
+                const url = blob ? URL.createObjectURL(blob) : undefined
+                this.dispatchEvent(new FzPhotoDlgCloseEvent(this, canceled,this.imageBitmap,url, blob?? undefined))
+                this.imageBitmap = undefined
+            }, "image/png", 0.80)
+        }
     }
 
-    override firstUpdated() {
-        this.modal = this.shadowRoot?.querySelector('fz-dialog')
+    override firstUpdated(changedProperties: PropertyValues) {
+        super.firstUpdated(changedProperties)
         this.video = this.shadowRoot?.querySelector('video')
         this.canvas = this.shadowRoot?.querySelector('canvas')
     }
@@ -91,20 +94,18 @@ export class FzPhotoDlg extends Base {
     }
 
     private retry(evt: Event) {
-        evt.preventDefault()
-        evt.stopPropagation()
+        this.eventStop(evt)
         this.imageBitmap = undefined
-        this.modal?.valid(false)
+        this.valid = false
         this.setState(PhotoState.video)
     }
-    private takePhotoLowres(evt: Event) {
-        evt.preventDefault()
-        evt.stopPropagation()
+    private snapLowres(evt: Event) {
+        this.eventStop(evt)
         if (this.imageCapture) {
             this.imageCapture.grabFrame()
                 .then((imageBitmap: any) => {
                     this.imageBitmap = imageBitmap
-                    this.modal?.valid(true)
+                    this.valid = true
                     this.drawCanvas()
                     this.setState(PhotoState.lowres)
                 })
@@ -112,15 +113,14 @@ export class FzPhotoDlg extends Base {
         }
     }
 
-    private takePhotoHires(evt: Event) {
-        evt.preventDefault()
-        evt.stopPropagation()
+    private snapHires(evt: Event) {
+        this.eventStop(evt)
         if (this.imageCapture) {
             this.imageCapture.takePhoto()
                 .then((blob: ImageBitmapSource) => createImageBitmap(blob))
                 .then((imageBitmap: ImageBitmap) => {
                     this.imageBitmap = imageBitmap
-                    this.modal?.valid(true)
+                    this.valid = true
                     this.drawCanvas()
                     this.setState(PhotoState.hires)
                 })
@@ -139,11 +139,6 @@ export class FzPhotoDlg extends Base {
         this.canvas.getContext('2d')?.drawImage(this.imageBitmap, 0, 0, this.imageBitmap.width, this.imageBitmap.height, x, y, this.imageBitmap.width * ratio, this.imageBitmap.height * ratio)
     }
 
-    open() {
-        this.setState(PhotoState.notready)
-        if (this.modal) this.modal.open()
-        this.getUserMedia()
-    }
     setState(state: PhotoState) {
         if (this.video && this.canvas) {
             switch (state) {

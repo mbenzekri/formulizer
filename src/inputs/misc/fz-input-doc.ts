@@ -4,8 +4,9 @@ import { html, css } from "lit";
 import { customElement } from "lit/decorators.js";
 import { IBlobStore } from "../../lib/storage";
 import { v1 as uuidv1 } from "uuid"
-import { notNull } from "../../lib/tools"
+import { notNull, when } from "../../lib/tools"
 import { FzInputBase } from "../fz-input-base";
+import { FzPhotoDlgCloseEvent } from "../../components/fz-photo-dlg";
 
 /**
  * @prop schema
@@ -14,7 +15,7 @@ import { FzInputBase } from "../fz-input-base";
  * @prop index
  * @prop options
  */
- @customElement("fz-doc")
+@customElement("fz-doc")
 export class FzInputDoc extends FzInputBase {
 
     override toField(): void {
@@ -24,7 +25,7 @@ export class FzInputDoc extends FzInputBase {
     }
     override toValue(): void {
         if (notNull(this.input)) {
-            this.value = notNull(this.input.value) ? this.input.value : undefined 
+            this.value = notNull(this.input.value) ? this.input.value : undefined
         }
     }
 
@@ -110,65 +111,66 @@ export class FzInputDoc extends FzInputBase {
     }
 
     renderInput() {
+
+        const previewdiv = when(this.url && this.hasPreview, html`
+            <img class="input-group-text img-preview" src="${this.url}" @dblclick="${this.open}"/>
+        `)
+
+        const openbtn = when(!this.isempty && !(this.url && this.hasPreview), html`
+            <span class="input-group-text"  @click="${this.open}"><i class="bi bi-eye"></i></span>
+        `)
+
+        const camerabtn = when(this.isempty && !this.readonly, html`
+            <span class="input-group-text btn btn-primary" @click="${() => this.photoModal?.open()}" >
+                <i class="bi bi-camera"></i>
+            </span>`)
+
+        const uploadbtn =when(this.isempty && !this.readonly, html`
+            <span class="input-group-text btn btn-primary btn btn-primary fileUpload">
+                <input type="file"
+                    @change="${this.save}"
+                    ?disabled="${this.readonly}" 
+                    accept="${this.mimetype}"
+                    class="btn-block"
+                    autocomplete=off  spellcheck="false"/>
+                <i class="bi bi-file-earmark-richtext"></i>
+            </span>`)
+
+        const deletebtn = when(!this.isempty && !this.readonly, html`
+            <button class="input-group-text btn btn-light" @click="${this.delete}" aria-label="delete" >
+                <i class="bi bi-trash"></i>
+            </button>`)
+
         return html`
-            <fz-photo-dlg id=modal ></fz-photo-dlg>
+            <fz-dlg-photo id=modal ></fz-dlg-photo>
             <div class="input-group">
-                ${ (this.url && this.hasPreview)  ? html`
-                    <div class="input-group-prepend" >
-                        <img class="input-group-text img-preview" src="${this.url}" @click="${this.open}"/>
-                    </div>` : null
-                }
-                ${ (!this.isempty && !(this.url && this.hasPreview))  ?html`
-                    <div class="input-group-prepend">
-                        <span class="input-group-text"  @click="${this.open}"><i class="bi bi-eye"></i></span>
-                    </div>` : null
-                }
+                ${camerabtn}
+                ${uploadbtn}
+                ${previewdiv}
                 <input
                     id="input"
                     type="text"
                     ?readonly="${this.readonly}"
                     ?required="${this.required}"
-                    placeholder="photo, document, ..."
+                    placeholder=""
                     .value="${this.filename ?? ''}"
-                    @mousedown="${(e:Event) => e.preventDefault()}"
-                    @paste="${(e:Event) => e.preventDefault()}"
-                    @input="${(e:Event) => e.preventDefault()}"
-                    @keypress="${(e:Event) => e.preventDefault()}"
+                    @mousedown=${this.eventStop}"
+                    @paste=${this.eventStop}
+                    @input=${this.eventStop}
+                    @keypress=${this.eventStop}
                     autocomplete=off  spellcheck="false"
                     class="form-control ${this.validation}"  
                 />
-                ${ (this.isempty || this.readonly)  ? html`` : html`
-                    <button  @click="${this.delete}"  type="button" class="close-right btn-close" aria-label="Close"> </button>`
-                }
-                ${ ( !this.isempty || this.readonly)  ? html`` : html`
-                    <span class="input-group-text btn btn-primary" @click="${()=>this.photoModal?.open()}" ><i class=" bi bi-camera"></i></span>
-                    <span class="input-group-text fileUpload btn btn-primary">
-                        <input type="file"
-                            @change="${this.save}"
-                            ?disabled="${this.readonly}" 
-                            accept="${this.mimetype}"
-                            class="btn-block"
-                            autocomplete=off  spellcheck="false"/>
-                        <i class="bi bi-file-earmark-richtext"></i>
-                    </span>`
-                }
+                ${openbtn}
+                ${deletebtn}
             </div>`
-    }
-
-    override change() {
-        super.change()
-        this.requestUpdate()
-    }
-
-    override connectedCallback() {
-        super.connectedCallback()
     }
 
     override async firstUpdated(changedProperties: any) {
         super.firstUpdated(changedProperties)
-        this.photoModal = this.shadowRoot?.querySelector('fz-photo-dlg') ?? undefined
-        this.listen(this.photoModal,'close' as any, evt => this.set(uuidv1(),(evt as CustomEvent).detail.blob, "photo.png") )
-        if (this.value != null)  {
+        this.photoModal = this.shadowRoot?.querySelector('fz-dlg-photo') ?? undefined
+        this.listen(this.photoModal, 'fz-dlg-photo-close', (evt:Event) => this.set(uuidv1(), (evt as FzPhotoDlgCloseEvent).detail.blob, "photo.png"))
+        if (this.value != null) {
             const doc = await this.store.get(this.value)
             if (doc) {
                 this.set(this.value, doc.blob, doc.filename)
@@ -204,7 +206,7 @@ export class FzInputDoc extends FzInputBase {
         }
     }
 
-    private async set(id: string, blob: Blob, filename: string) {
+    private async set(id: string, blob?: Blob, filename?: string) {
         if (!blob || !filename) return
         if (this.value) await this.store.remove(this.value)
         this.filename = filename
@@ -215,7 +217,7 @@ export class FzInputDoc extends FzInputBase {
     }
 
     private async save(event: any) {
-        await this.set(uuidv1(),event.target.files[0], event.target.files[0].name)
+        await this.set(uuidv1(), event.target.files[0], event.target.files[0].name)
     }
 
     private async delete() {
